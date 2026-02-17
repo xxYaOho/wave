@@ -1,0 +1,139 @@
+import * as path from 'node:path';
+import * as fs from 'node:fs/promises';
+import StyleDictionary from 'style-dictionary';
+import type { Config, PlatformConfig } from 'style-dictionary/types';
+import { formats, transformGroups } from 'style-dictionary/enums';
+import { nameKebabTransform } from './transforms/kebab.ts';
+import { valueCssVarTransform } from './transforms/css-var.ts';
+import { jsoncFormat } from './transforms/jsonc.ts';
+
+export interface GeneratorOptions {
+  themeName: string;
+  outputDir: string;
+  tokens: Record<string, unknown>;
+}
+
+export interface GeneratorResult {
+  success: boolean;
+  files: string[];
+  error?: string;
+}
+
+const WAVE_TRANSFORM_GROUP = 'wave/css';
+
+function registerWaveExtensions(): void {
+  StyleDictionary.registerTransform(nameKebabTransform);
+  StyleDictionary.registerTransform(valueCssVarTransform);
+  StyleDictionary.registerFormat(jsoncFormat);
+
+  StyleDictionary.registerTransformGroup({
+    name: WAVE_TRANSFORM_GROUP,
+    transforms: [
+      'attribute/cti',
+      nameKebabTransform.name,
+    ],
+  });
+}
+
+let extensionsRegistered = false;
+
+function ensureExtensionsRegistered(): void {
+  if (!extensionsRegistered) {
+    registerWaveExtensions();
+    extensionsRegistered = true;
+  }
+}
+
+export async function generateTokens(
+  options: GeneratorOptions
+): Promise<GeneratorResult> {
+  ensureExtensionsRegistered();
+
+  const { themeName, outputDir, tokens } = options;
+  const generatedFiles: string[] = [];
+
+  try {
+    const tempTokenPath = path.join(outputDir, '.temp-tokens.json');
+    await Bun.write(tempTokenPath, JSON.stringify(tokens, null, 2));
+
+    const platforms: Record<string, PlatformConfig> = {
+      json: {
+        buildPath: outputDir,
+        files: [{
+          destination: `${themeName}.json`,
+          format: formats.json,
+        }],
+      },
+      jsonc: {
+        buildPath: outputDir,
+        transforms: ['attribute/cti', nameKebabTransform.name],
+        files: [{
+          destination: `${themeName}.jsonc`,
+          format: jsoncFormat.name,
+        }],
+      },
+      css: {
+        buildPath: outputDir,
+        transformGroup: transformGroups.css,
+        transforms: ['attribute/cti', nameKebabTransform.name],
+        files: [{
+          destination: `${themeName}.css`,
+          format: formats.cssVariables,
+        }],
+      },
+    };
+
+    const config: Config = {
+      source: [tempTokenPath],
+      platforms,
+    };
+
+    const sd = new StyleDictionary(config);
+    await sd.buildAllPlatforms();
+
+    generatedFiles.push(
+      `${themeName}.json`,
+      `${themeName}.jsonc`,
+      `${themeName}.css`
+    );
+
+    try {
+      await fs.unlink(tempTokenPath);
+    } catch {}
+
+    return {
+      success: true,
+      files: generatedFiles,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      files: [],
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+export async function generateVariant(
+  baseName: string,
+  variantName: string,
+  outputDir: string,
+  tokens: Record<string, unknown>,
+  isNight: boolean = false
+): Promise<GeneratorResult> {
+  const suffix = isNight ? '-night' : `-${variantName}`;
+  const themeName = `${baseName}${suffix}`;
+
+  return generateTokens({
+    themeName,
+    outputDir,
+    tokens,
+  });
+}
+
+export {
+  nameKebabTransform,
+  valueCssVarTransform,
+  jsoncFormat,
+  WAVE_TRANSFORM_GROUP,
+};

@@ -1,9 +1,222 @@
-import { Command } from 'commander';
 import * as path from 'node:path';
-import { ExitCode, type GenerateOptions } from '../../types/index.ts';
+import * as fs from 'node:fs/promises';
+import { Command } from 'commander';
+import { ExitCode, type GenerateOptions, type ParseError } from '../../types/index.ts';
 import { VERSION } from '../../config/index.ts';
+import { parseThemefile } from '../../core/parser/themefile.ts';
+import { parsePalette } from '../../core/parser/palette.ts';
+import { parseDimension } from '../../core/parser/dimension.ts';
+import { resolveResource } from '../../core/resolver/index.ts';
 import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
+import { generateTokens, type GeneratorResult } from '../../core/generator/index.ts';
 import { logger } from '../../utils/logger.ts';
+
+interface ThemeCommandOptions {
+  file?: string;
+  list?: boolean;
+  night?: boolean;
+  variants?: string | boolean;
+  init?: boolean;
+  output?: string;
+}
+
+function isParseError(result: unknown): result is ParseError {
+  return typeof result === 'object' && result !== null && 'line' in result && 'message' in result;
+}
+
+function expandHomePath(filePath: string): string {
+  if (filePath.startsWith('~/')) {
+    return path.join(process.env.HOME || '', filePath.slice(2));
+  }
+  if (filePath.startsWith('${HOME}/')) {
+    return path.join(process.env.HOME || '', filePath.slice(7));
+  }
+  return filePath;
+}
+
+async function loadYamlFile(filePath: string): Promise<string> {
+  const file = Bun.file(filePath);
+  if (!(await file.exists())) {
+    throw new Error(`File not found: ${filePath}`);
+  }
+  return await file.text();
+}
+
+function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
+  const result: GenerateOptions = {
+    night: options.night !== false,
+  };
+
+  if (options.variants === undefined || options.variants === true) {
+    result.variants = undefined;
+  } else if (typeof options.variants === 'string') {
+    result.variants = options.variants
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  return result;
+}
+
+async function buildTokens(
+  paletteContent: string,
+  dimensionContent: string
+): Promise<Record<string, unknown>> {
+  const palette = parsePalette(paletteContent);
+  if (isParseError(palette)) {
+    throw new Error(`Palette parse error at line ${palette.line}: ${palette.message}`);
+  }
+
+  const dimension = parseDimension(dimensionContent);
+  if (isParseError(dimension)) {
+    throw new Error(`Dimension parse error: ${dimension.message}`);
+  }
+
+  return {
+    color: palette.global.color,
+    dimension: dimension.global.dimension,
+  };
+}
+
+async function generateThemeTokens(
+  themeName: string,
+  outputDir: string,
+  paletteContent: string,
+  dimensionContent: string
+): Promise<GeneratorResult> {
+  const tokens = await buildTokens(paletteContent, dimensionContent);
+  await fs.mkdir(outputDir, { recursive: true });
+
+  return generateTokens({
+    themeName,
+    outputDir,
+    tokens,
+  });
+}
+
+async function handleThemeGeneration(
+  name: string,
+  options: ThemeCommandOptions
+): Promise<void> {
+  const generateOptions = parseCliOptions(options);
+
+  const themeDir = options.file
+    ? path.dirname(expandHomePath(options.file))
+    : path.join(process.env.HOME || '', 'Downloads', name);
+
+  const themefilePath = options.file
+    ? expandHomePath(options.file)
+    : path.join(themeDir, 'themefile');
+
+  let themefileContent: string;
+  try {
+    themefileContent = await loadYamlFile(themefilePath);
+  } catch {
+    process.exitCode = ExitCode.FILE_NOT_FOUND;
+    logger.error(`Themefile not found: ${themefilePath}`);
+    return;
+  }
+
+  const parsedThemefile = parseThemefile(themefileContent);
+  if (isParseError(parsedThemefile)) {
+    process.exitCode = ExitCode.FORMAT_ERROR;
+    logger.error(`Themefile parse error at line ${parsedThemefile.line}: ${parsedThemefile.message}`);
+    return;
+  }
+
+  const paletteRef = parsedThemefile.PALETTE;
+  const dimensionRef = parsedThemefile.DIMENSION;
+  const themeName = parsedThemefile.THEME;
+
+  const paletteResource = resolveResource(paletteRef, 'palette', themeDir);
+  const dimensionResource = resolveResource(dimensionRef, 'dimension', themeDir);
+
+  if (!paletteResource.exists) {
+    process.exitCode = ExitCode.INVALID_RESOURCE;
+    logger.error(`Palette not found: ${paletteResource.path}`);
+    return;
+  }
+  if (!dimensionResource.exists) {
+    process.exitCode = ExitCode.INVALID_RESOURCE;
+    logger.error(`Dimension not found: ${dimensionResource.path}`);
+    return;
+  }
+
+  const outputDir = options.output
+    ? expandHomePath(options.output)
+    : path.join(process.env.HOME || '', 'Downloads', themeName);
+
+  let paletteContent: string;
+  let dimensionContent: string;
+  try {
+    paletteContent = await loadYamlFile(paletteResource.path);
+    dimensionContent = await loadYamlFile(dimensionResource.path);
+  } catch (err) {
+    process.exitCode = ExitCode.FILE_NOT_FOUND;
+    logger.error(err instanceof Error ? err.message : String(err));
+    return;
+  }
+
+  logger.success(`Palette: ${paletteRef} (${paletteResource.isBuiltin ? 'builtin' : 'user'})`);
+  logger.success(`Dimension: ${dimensionRef} (${dimensionResource.isBuiltin ? 'builtin' : 'user'})`);
+
+  const mainResult = await generateThemeTokens(
+    themeName,
+    outputDir,
+    paletteContent,
+    dimensionContent
+  );
+
+  if (!mainResult.success) {
+    process.exitCode = ExitCode.GENERAL_ERROR;
+    logger.error(mainResult.error || 'Failed to generate tokens');
+    return;
+  }
+
+  logger.success(`Generated main: ${mainResult.files.join(', ')}`);
+
+  const nightResult = detectNightMode(themeDir, generateOptions);
+  logger.info(nightResult.message);
+
+  if (nightResult.available) {
+    const nightGenResult = await generateThemeTokens(
+      `${themeName}-night`,
+      outputDir,
+      paletteContent,
+      dimensionContent
+    );
+    if (nightGenResult.success) {
+      logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
+    }
+  }
+
+  const variantsDetection = detectVariants(themeDir, generateOptions);
+  logger.info(variantsDetection.message);
+
+  if (variantsDetection.available) {
+    for (const variantFile of variantsDetection.files) {
+      const variantName = path.basename(variantFile, '.yaml');
+      const isNightVariant = variantName.endsWith('@night');
+      const baseName = isNightVariant ? variantName.replace('@night', '') : variantName;
+      const suffix = isNightVariant ? `-${baseName}-night` : `-${baseName}`;
+
+      const variantResult = await generateThemeTokens(
+        `${themeName}${suffix}`,
+        outputDir,
+        paletteContent,
+        dimensionContent
+      );
+
+      if (variantResult.success) {
+        logger.success(`Generated variant ${variantName}: ${variantResult.files.join(', ')}`);
+      }
+    }
+  }
+
+  logger.success(`Output directory: ${outputDir}`);
+  logger.success(`Theme generation complete: ${themeName}`);
+}
 
 export const themeCommand = new Command('theme')
   .description('Generate theme tokens')
@@ -13,6 +226,7 @@ export const themeCommand = new Command('theme')
   .option('--no-night', 'Disable night mode generation')
   .option('--variants [names]', 'Specify variants (comma separated)')
   .option('--init', 'Create theme template')
+  .option('-o, --output <dir>', 'Output directory')
   .action(async (name: string | undefined, options: ThemeCommandOptions) => {
     if (options.list) {
       console.log('Built-in themes:');
@@ -33,46 +247,8 @@ export const themeCommand = new Command('theme')
       process.exit(ExitCode.MISSING_PARAMETER);
     }
 
-    logger.info(`Loading theme: ${name}`);
+    logger.info(`Generating theme: ${name}`);
+    logger.info(`Version: ${VERSION}`);
 
-    const generateOptions = parseOptions(options);
-
-    const themeDir = path.join(process.env.HOME || '', 'Downloads', name);
-
-    const nightResult = detectNightMode(themeDir, generateOptions);
-    logger.info(nightResult.message);
-
-    const variantsResult = detectVariants(themeDir, generateOptions);
-    logger.info(variantsResult.message);
-
-    console.log(`Version: ${VERSION}`);
-    console.log('TODO: Implement full token generation');
-    process.exit(ExitCode.SUCCESS);
+    await handleThemeGeneration(name, options);
   });
-
-interface ThemeCommandOptions {
-  file?: string;
-  list?: boolean;
-  night?: boolean;
-  variants?: string | boolean;
-  init?: boolean;
-}
-
-function parseOptions(options: ThemeCommandOptions): GenerateOptions {
-  const result: GenerateOptions = {
-    night: options.night !== false,
-  };
-
-  if (options.variants === undefined) {
-    result.variants = undefined;
-  } else if (options.variants === true) {
-    result.variants = undefined;
-  } else if (typeof options.variants === 'string') {
-    result.variants = options.variants
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-
-  return result;
-}
