@@ -1,7 +1,10 @@
 import * as path from 'node:path';
 import type { ResourceType, ResolvedResource } from '../../types/index.ts';
 
-const RESOURCES_DIR = path.join(import.meta.dir, '..', 'resources');
+export { loadBuiltinPalette, loadBuiltinDimension, getBuiltinPalettePath, getBuiltinDimensionPath } from './builtin.ts';
+export { loadUserPalette, loadUserDimension, type UserPalette, type UserDimension } from './user.ts';
+
+const RESOURCES_DIR = path.join(import.meta.dir, '..', '..', 'resources');
 
 export function isBareName(reference: string): boolean {
   return !reference.includes('/') && !reference.startsWith('./');
@@ -16,7 +19,7 @@ export function resolveResource(
   let isBuiltin: boolean;
 
   if (isBareName(reference)) {
-    const typeDir = type === 'palette' ? 'palettes' : 'dimensions';
+    const typeDir = type === 'palette' ? 'palettes' : type === 'dimension' ? 'dimensions' : 'brands';
     resolvedPath = path.join(RESOURCES_DIR, typeDir, `${reference}.yaml`);
     isBuiltin = true;
   } else {
