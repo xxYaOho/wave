@@ -71,3 +71,53 @@ export interface WaveConfig {
   defaultOutput: string;
   defaultPlatform: string[];
 }
+
+export interface ParseError {
+  line: number;
+  message: string;
+}
+
+export interface PaletteResult {
+  name: string;
+  global: {
+    color: ColorPalette;
+  };
+}
+
+export interface ColorPalette {
+  $type: string;
+  $description?: string;
+  $extensions?: {
+    light?: Record<string, string | number>;
+    dark?: Record<string, string | number>;
+  };
+  [colorName: string]: unknown;
+}
+
+export interface DimensionValue {
+  $description?: string;
+  $type?: string;
+  $value: string | number;
+}
+
+export interface DimensionScale {
+  $description?: string;
+  $type?: string;
+  [key: string]: DimensionValue | string | number | undefined;
+}
+
+export interface DimensionCategory {
+  [dimensionName: string]: 
+    | DimensionValue
+    | DimensionScale
+    | string
+    | number
+    | undefined;
+}
+
+export interface DimensionResult {
+  name: string;
+  global: {
+    dimension: Record<string, DimensionCategory>;
+  };
+}
