@@ -121,3 +121,30 @@ export interface DimensionResult {
     dimension: Record<string, DimensionCategory>;
   };
 }
+
+export interface BuiltinPalette {
+  [paletteName: string]: {
+    global?: {
+      color?: {
+        $type: string;
+        $description?: string;
+        [colorName: string]: unknown;
+      };
+    };
+  };
+}
+
+export interface BuiltinDimension {
+  [dimensionName: string]: {
+    global?: {
+      dimension?: {
+        [dimensionKey: string]: {
+          $description?: string;
+          $type?: string;
+          $value?: unknown;
+          [variantName: string]: unknown;
+        };
+      };
+    };
+  };
+}
