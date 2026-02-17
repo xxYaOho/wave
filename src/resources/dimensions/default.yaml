@@ -1,0 +1,156 @@
+wave:
+  global:
+    dimension:
+      alpha:
+        50:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 0
+        100:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 0.08
+        200:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 0.16
+        300:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 0.24
+        400:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 0.36
+        500:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 0.48
+        600:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 0.60
+        700:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 0.75
+        800:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 0.85
+        900:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 0.92
+        950:
+          $description: 全局维度，色彩透明度，范围 0～1
+          $type: number
+          $value: 1
+      remBasic:
+        $type: dimension
+        $description: 全局维度，font-size=16
+        $value: 1rem
+      rem:
+        $type: dimension
+        1:
+          $description: 全局维度，递进基数 0.125rem（递进值 2px）
+          $value: 0.125rem
+        2:
+          $description: 全局维度，递进基数 0.125rem（递进值 2px）
+          $value: 0.25rem
+        3:
+          $description: 全局维度，递进基数 0.125rem（递进值 2px）
+          $value: 0.375rem
+        4:
+          $description: 全局维度，递进基数 0.125rem（递进值 2px）
+          $value: 0.5rem
+        5:
+          $description: 全局维度，递进基数 0.125rem（递进值 2px）
+          $value: 0.625rem
+        6:
+          $description: 全局维度，递进基数 0.125rem（递进值 2px）
+          $value: 0.75rem
+        7:
+          $description: 全局维度，递进基数 0.125rem（递进值 2px）
+          $value: 0.875rem
+        8:
+          $description: 全局维度，递进基数 0.125rem（递进值 2px）
+          $value: 1rem
+        9:
+          $description: 全局维度，递进基数 0.5rem（递进值 8px）
+          $value: 1.25rem
+        10:
+          $description: 全局维度，递进基数 0.25rem（递进值 4px）
+          $value: 1.5rem
+        11:
+          $description: 全局维度，递进基数 0.25rem（递进值 4px）
+          $value: 1.75rem
+        12:
+          $description: 全局维度，递进基数 0.25rem（递进值 4px）
+          $value: 2rem
+        13:
+          $description: 全局维度，递进基数 0.5rem（递进值 8px）
+          $value: 2.5rem
+        14:
+          $description: 全局维度，递进基数 0.5rem（递进值 8px）
+          $value: 3rem
+        15:
+          $description: 全局维度，递进基数 0.5rem（递进值 8px）
+          $value: 3.5rem
+        16:
+          $description: 全局维度，递进基数 0.5rem（递进值 8px）
+          $value: 4rem
+      pxBasic:
+        $type: dimension
+        $description: 全局维度, 最小基础像素
+        $value: 1px
+      px:
+        $type: dimension
+        1:
+          $description: 全局维度, 递进基数 2px
+          $value: 2px
+        2:
+          $description: 全局维度, 递进基数 2px
+          $value: 4px
+        3:
+          $description: 全局维度, 递进基数 2px
+          $value: 6px
+        4:
+          $description: 全局维度, 递进基数 2px
+          $value: 8px
+        5:
+          $description: 全局维度, 递进基数 2px
+          $value: 10px
+        6:
+          $description: 全局维度, 递进基数 2px
+          $value: 12px
+        7:
+          $description: 全局维度, 递进基数 4px
+          $value: 16px
+        8:
+          $description: 全局维度, 递进基数 4px
+          $value: 20px
+        9:
+          $description: 全局维度, 递进基数 4px
+          $value: 24px
+        10:
+          $description: 全局维度, 递进基数 4px
+          $value: 28px
+        11:
+          $description: 全局维度, 递进基数 4px
+          $value: 32px
+        12:
+          $description: 全局维度, 递进基数 4px
+          $value: 36px
+        13:
+          $description: 全局维度, 递进基数 4px
+          $value: 40px
+        14:
+          $description: 全局维度, 递进基数 8px
+          $value: 48px
+        15:
+          $description: 全局维度, 递进基数 8px
+          $value: 56px
+        16:
+          $description: 全局维度, 递进基数 8px
+          $value: 64px
