@@ -21,10 +21,12 @@
   "author": "ttao",
   "license": "MIT",
   "dependencies": {
-    "commander": "^13.0.0"
+    "commander": "^13.0.0",
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/js-yaml": "^4.0.9",
     "typescript": "^5"
   },
   "peerDependencies": {
