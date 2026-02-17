@@ -1,0 +1,50 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# 备份文件
+*.backup
+*.backup.*
+*~
+
+# 历史记录
+**/*_history
+
+# 缓存和临时文件
+**/.cache/
+**/.tmp/
+**/tmp/
+**/*.log
+**/*.pid
+
+# 敏感信息
+**/*.key
+**/*.pem
+**/*.p12
+**/.env
+**/.env.*
+!**/.env.example
+**/credentials
+**/secrets
+
+# 编辑器
+.vscode/
+.idea/
+*.sublime-*
+*.swp
+*.swo
+
+# Node.js
+**/node_modules/
+**/package-lock.json
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/venv/
+
+# Agent
+.sisyphus/
