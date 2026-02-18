@@ -31,6 +31,7 @@ Examples:
   wave theme beluga              Generate beluga theme
   wave theme --list              List built-in themes
   wave theme beluga --no-night   Skip night mode
+  wave theme beluga --no-variants   Skip variants generation
   wave theme beluga --variants "dark, matrix"
   wave doctor                    Run diagnostics
 
@@ -54,6 +55,7 @@ Options:
   -f, --file <path>      Themefile path
   --list                 List built-in themes
   --no-night             Disable night mode generation
+  --no-variants          Disable variants generation
   --variants [names]     Specify variants (comma separated)
   --init                 Create theme template
 
@@ -61,6 +63,7 @@ Examples:
   wave theme beluga
   wave theme --list
   wave theme beluga --no-night
+  wave theme beluga --no-variants
   wave theme beluga --variants "dark, matrix"
   wave theme --file ./custom/themefile
 `,
