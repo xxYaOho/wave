@@ -1,20 +1,25 @@
 import { Command } from 'commander';
 import { ExitCode, type CheckResult } from '../../types/index.ts';
+import { checkBuiltinResources, checkOutputDir, createConfigCheck } from '../../core/validator/index.ts';
 
 export const doctorCommand = new Command('doctor')
   .description('Check tool health status')
-  .action(async () => {
-    console.log('Running Wave diagnostics...\n');
+  .option('-f, --file <path>', 'Themefile path to validate')
+  .option('-o, --output <path>', 'Output directory to check')
+  .action(async (options) => {
+    console.log('🔍 Running Wave diagnostics...\n');
 
-    const checks = [
-      checkBunVersion(),
-      checkResources(),
+    const checks: Array<() => Promise<CheckResult & { name: string }>> = [
+      checkBunVersion,
+      () => Promise.resolve(checkBuiltinResources()),
+      createConfigCheck(options.file),
+      () => Promise.resolve(checkOutputDir(options.output)),
     ];
 
     let allPassed = true;
 
     for (const check of checks) {
-      const result = await check;
+      const result = await check();
       const icon = result.success ? '✓' : '✗';
       console.log(`${icon} ${result.name}: ${result.message}`);
 
@@ -26,7 +31,7 @@ export const doctorCommand = new Command('doctor')
 
     console.log('');
     if (allPassed) {
-      console.log('All checks passed!');
+      console.log('All checks passed! 🎉');
       process.exit(ExitCode.SUCCESS);
     } else {
       console.log('Some checks failed. Please fix the issues above.');
@@ -46,23 +51,6 @@ function checkBunVersion(): Promise<CheckResult & { name: string }> {
       ? `v${currentVersion}`
       : `v${currentVersion} (requires >= v${minVersion})`,
     suggestion: passed ? undefined : 'Run: bun upgrade',
-  });
-}
-
-function checkResources(): Promise<CheckResult & { name: string }> {
-  const resourcesDir = import.meta.dir + '/../../resources';
-  const palettesDir = resourcesDir + '/palettes';
-  const dimensionsDir = resourcesDir + '/dimensions';
-
-  const palettesExists = Bun.file(palettesDir).size !== undefined;
-  const dimensionsExists = Bun.file(dimensionsDir).size !== undefined;
-
-  return Promise.resolve({
-    name: 'Resources',
-    success: true,
-    message: palettesExists && dimensionsExists
-      ? 'All built-in resources available'
-      : 'Some resources missing (this is expected in initial setup)',
   });
 }
 
