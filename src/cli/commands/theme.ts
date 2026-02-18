@@ -11,10 +11,31 @@ import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
 import { generateTokens, type GeneratorResult } from '../../core/generator/index.ts';
 import { logger } from '../../utils/logger.ts';
 
+interface BuiltinThemeConfig {
+  palette: string;
+  dimension: string;
+}
+
+const BUILTIN_THEMES: Record<string, BuiltinThemeConfig> = {
+  beluga: {
+    palette: 'leonardo',
+    dimension: 'wave',
+  },
+};
+
+function getBuiltinThemeNames(): string[] {
+  return Object.keys(BUILTIN_THEMES);
+}
+
+function isBuiltinTheme(name: string): boolean {
+  return name in BUILTIN_THEMES;
+}
+
 interface ThemeCommandOptions {
   file?: string;
   list?: boolean;
   night?: boolean;
+  noVariants?: boolean;
   variants?: string | boolean;
   init?: boolean;
   output?: string;
@@ -45,15 +66,18 @@ async function loadYamlFile(filePath: string): Promise<string> {
 function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
   const result: GenerateOptions = {
     night: options.night !== false,
+    variants: options.noVariants === true ? [] : undefined,
   };
 
-  if (options.variants === undefined || options.variants === true) {
-    result.variants = undefined;
-  } else if (typeof options.variants === 'string') {
-    result.variants = options.variants
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
+  if (result.variants === undefined) {
+    if (options.variants === undefined || options.variants === true) {
+      result.variants = undefined;
+    } else if (typeof options.variants === 'string') {
+      result.variants = options.variants
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
   }
 
   return result;
@@ -93,6 +117,103 @@ async function generateThemeTokens(
     outputDir,
     tokens,
   });
+}
+
+async function handleBuiltinTheme(
+  name: string,
+  config: BuiltinThemeConfig,
+  options: ThemeCommandOptions
+): Promise<boolean> {
+  const generateOptions = parseCliOptions(options);
+  const themeDir = path.join(process.env.HOME || '', 'Downloads', name);
+  const outputDir = options.output
+    ? expandHomePath(options.output)
+    : themeDir;
+
+  const paletteResource = resolveResource(config.palette, 'palette', themeDir);
+  const dimensionResource = resolveResource(config.dimension, 'dimension', themeDir);
+
+  if (!paletteResource.exists) {
+    process.exitCode = ExitCode.INVALID_RESOURCE;
+    logger.error(`Built-in palette not found: ${config.palette}`);
+    return false;
+  }
+  if (!dimensionResource.exists) {
+    process.exitCode = ExitCode.INVALID_RESOURCE;
+    logger.error(`Built-in dimension not found: ${config.dimension}`);
+    return false;
+  }
+
+  let paletteContent: string;
+  let dimensionContent: string;
+  try {
+    paletteContent = await loadYamlFile(paletteResource.path);
+    dimensionContent = await loadYamlFile(dimensionResource.path);
+  } catch (err) {
+    process.exitCode = ExitCode.FILE_NOT_FOUND;
+    logger.error(err instanceof Error ? err.message : String(err));
+    return false;
+  }
+
+  logger.success(`Palette: ${config.palette} (builtin)`);
+  logger.success(`Dimension: ${config.dimension} (builtin)`);
+
+  const mainResult = await generateThemeTokens(
+    name,
+    outputDir,
+    paletteContent,
+    dimensionContent
+  );
+
+  if (!mainResult.success) {
+    process.exitCode = ExitCode.GENERAL_ERROR;
+    logger.error(mainResult.error || 'Failed to generate tokens');
+    return false;
+  }
+
+  logger.success(`Generated main: ${mainResult.files.join(', ')}`);
+
+  const nightResult = detectNightMode(themeDir, generateOptions);
+  logger.info(nightResult.message);
+
+  if (nightResult.available) {
+    const nightGenResult = await generateThemeTokens(
+      `${name}-night`,
+      outputDir,
+      paletteContent,
+      dimensionContent
+    );
+    if (nightGenResult.success) {
+      logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
+    }
+  }
+
+  const variantsDetection = detectVariants(themeDir, generateOptions);
+  logger.info(variantsDetection.message);
+
+  if (variantsDetection.available) {
+    for (const variantFile of variantsDetection.files) {
+      const variantName = path.basename(variantFile, '.yaml');
+      const isNightVariant = variantName.endsWith('@night');
+      const baseName = isNightVariant ? variantName.replace('@night', '') : variantName;
+      const suffix = isNightVariant ? `-${baseName}-night` : `-${baseName}`;
+
+      const variantResult = await generateThemeTokens(
+        `${name}${suffix}`,
+        outputDir,
+        paletteContent,
+        dimensionContent
+      );
+
+      if (variantResult.success) {
+        logger.success(`Generated variant ${variantName}: ${variantResult.files.join(', ')}`);
+      }
+    }
+  }
+
+  logger.success(`Output directory: ${outputDir}`);
+  logger.success(`Theme generation complete: ${name}`);
+  return true;
 }
 
 async function handleThemeGeneration(
@@ -224,13 +345,16 @@ export const themeCommand = new Command('theme')
   .option('-f, --file <path>', 'Themefile path')
   .option('--list', 'List built-in themes')
   .option('--no-night', 'Disable night mode generation')
+  .option('--no-variants', 'Disable variants generation')
   .option('--variants [names]', 'Specify variants (comma separated)')
   .option('--init', 'Create theme template')
   .option('-o, --output <dir>', 'Output directory')
   .action(async (name: string | undefined, options: ThemeCommandOptions) => {
     if (options.list) {
       console.log('Built-in themes:');
-      console.log('  beluga');
+      for (const themeName of getBuiltinThemeNames()) {
+        console.log(`  ${themeName}`);
+      }
       process.exit(ExitCode.SUCCESS);
     }
 
@@ -249,6 +373,32 @@ export const themeCommand = new Command('theme')
 
     logger.info(`Generating theme: ${name}`);
     logger.info(`Version: ${VERSION}`);
+
+    if (isBuiltinTheme(name) && !options.file) {
+      const config = BUILTIN_THEMES[name];
+      if (!config) {
+        process.exitCode = ExitCode.THEME_NOT_FOUND;
+        logger.error(`Theme not found: ${name}`);
+        return;
+      }
+      await handleBuiltinTheme(name, config, options);
+      return;
+    }
+
+    const themeDir = options.file
+      ? path.dirname(expandHomePath(options.file))
+      : path.join(process.env.HOME || '', 'Downloads', name);
+
+    const themefilePath = options.file
+      ? expandHomePath(options.file)
+      : path.join(themeDir, 'themefile');
+
+    const file = Bun.file(themefilePath);
+    if (!(await file.exists())) {
+      process.exitCode = ExitCode.THEME_NOT_FOUND;
+      logger.error(`Theme not found: ${name}`);
+      return;
+    }
 
     await handleThemeGeneration(name, options);
   });

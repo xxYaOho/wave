@@ -1,8 +1,9 @@
-import { Command } from 'commander';
+import { Command, CommanderError } from 'commander';
 import { themeCommand } from './commands/theme.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { helpCommand } from './commands/help.ts';
 import { VERSION } from '../config/index.ts';
+import { ExitCode } from '../types/index.ts';
 
 const program = new Command();
 
@@ -10,7 +11,17 @@ program
   .name('wave')
   .description('🌊 WAVE - Design Token CLI')
   .version(VERSION, '--version', 'Show version number')
-  .helpOption('--help', 'Show help');
+  .helpOption('--help', 'Show help')
+  .exitOverride((err) => {
+    if (err instanceof CommanderError) {
+      if (err.code === 'commander.unknownCommand') {
+        process.exit(ExitCode.INVALID_COMMAND);
+      } else if (err.code === 'commander.help' || err.code === 'commander.version') {
+        process.exit(ExitCode.SUCCESS);
+      }
+    }
+    process.exit(ExitCode.GENERAL_ERROR);
+  });
 
 program.addCommand(themeCommand);
 program.addCommand(doctorCommand);

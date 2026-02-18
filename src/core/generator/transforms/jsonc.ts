@@ -17,8 +17,10 @@ function formatWithComments(
       lines.push(`  // ${description}`);
     }
     
+    // Use $value (Style Dictionary standard) with fallback to value
+    const tokenValue = token.$value ?? token.value;
     const comma = i < sortedTokens.length - 1 ? ',' : '';
-    lines.push(`  "${token.name}": ${JSON.stringify(token.value)}${comma}`);
+    lines.push(`  "${token.name}": ${JSON.stringify(tokenValue)}${comma}`);
   }
   
   lines.push('}');
