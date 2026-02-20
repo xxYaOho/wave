@@ -66,18 +66,19 @@ async function loadYamlFile(filePath: string): Promise<string> {
 function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
   const result: GenerateOptions = {
     night: options.night !== false,
-    variants: options.noVariants === true ? [] : undefined,
   };
 
-  if (result.variants === undefined) {
-    if (options.variants === undefined || options.variants === true) {
-      result.variants = undefined;
-    } else if (typeof options.variants === 'string') {
-      result.variants = options.variants
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-    }
+  if (options.noVariants === true) {
+    result.variants = [];
+  } else if (options.variants === false) {
+    result.variants = [];
+  } else if (options.variants === undefined || options.variants === true) {
+    result.variants = undefined;
+  } else if (typeof options.variants === 'string') {
+    result.variants = options.variants
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
 
   return result;
@@ -107,7 +108,8 @@ async function generateThemeTokens(
   themeName: string,
   outputDir: string,
   paletteContent: string,
-  dimensionContent: string
+  dimensionContent: string,
+  platform?: 'general' | 'css'
 ): Promise<GeneratorResult> {
   const tokens = await buildTokens(paletteContent, dimensionContent);
   await fs.mkdir(outputDir, { recursive: true });
@@ -116,6 +118,7 @@ async function generateThemeTokens(
     themeName,
     outputDir,
     tokens,
+    platform,
   });
 }
 
@@ -162,7 +165,8 @@ async function handleBuiltinTheme(
     name,
     outputDir,
     paletteContent,
-    dimensionContent
+    dimensionContent,
+    'general'
   );
 
   if (!mainResult.success) {
@@ -181,7 +185,8 @@ async function handleBuiltinTheme(
       `${name}-night`,
       outputDir,
       paletteContent,
-      dimensionContent
+      dimensionContent,
+      'general'
     );
     if (nightGenResult.success) {
       logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
@@ -202,7 +207,8 @@ async function handleBuiltinTheme(
         `${name}${suffix}`,
         outputDir,
         paletteContent,
-        dimensionContent
+        dimensionContent,
+        'general'
       );
 
       if (variantResult.success) {
@@ -250,6 +256,12 @@ async function handleThemeGeneration(
   const dimensionRef = parsedThemefile.DIMENSION;
   const themeName = parsedThemefile.THEME;
 
+  const platformParam = parsedThemefile.PARAMETER?.platform;
+  const platform: 'general' | 'css' | undefined = 
+    platformParam === 'css' ? 'css' : 
+    platformParam === 'general' ? 'general' : 
+    undefined;
+
   const paletteResource = resolveResource(paletteRef, 'palette', themeDir);
   const dimensionResource = resolveResource(dimensionRef, 'dimension', themeDir);
 
@@ -286,7 +298,8 @@ async function handleThemeGeneration(
     themeName,
     outputDir,
     paletteContent,
-    dimensionContent
+    dimensionContent,
+    platform
   );
 
   if (!mainResult.success) {
@@ -305,7 +318,8 @@ async function handleThemeGeneration(
       `${themeName}-night`,
       outputDir,
       paletteContent,
-      dimensionContent
+      dimensionContent,
+      platform
     );
     if (nightGenResult.success) {
       logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
@@ -326,7 +340,8 @@ async function handleThemeGeneration(
         `${themeName}${suffix}`,
         outputDir,
         paletteContent,
-        dimensionContent
+        dimensionContent,
+        platform
       );
 
       if (variantResult.success) {
@@ -395,8 +410,13 @@ export const themeCommand = new Command('theme')
 
     const file = Bun.file(themefilePath);
     if (!(await file.exists())) {
-      process.exitCode = ExitCode.THEME_NOT_FOUND;
-      logger.error(`Theme not found: ${name}`);
+      if (options.file) {
+        process.exitCode = ExitCode.FILE_NOT_FOUND;
+        logger.error(`Themefile not found: ${themefilePath}`);
+      } else {
+        process.exitCode = ExitCode.THEME_NOT_FOUND;
+        logger.error(`Theme not found: ${name}`);
+      }
       return;
     }
 

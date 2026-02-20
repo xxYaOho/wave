@@ -20,7 +20,15 @@ export function detectVariants(
 ): DetectionResult {
   const variantsDir = path.join(themeDir, 'variants');
 
-  if (options.variants && options.variants.length > 0) {
+  if (options.variants !== undefined) {
+    if (options.variants.length === 0) {
+      return {
+        available: false,
+        files: [],
+        message: 'ℹ Variants: disabled by --no-variants',
+      };
+    }
+
     const files = options.variants.map((name) =>
       path.join(variantsDir, `${name}.yaml`)
     );

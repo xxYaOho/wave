@@ -13,11 +13,7 @@
     "build": "bun build ./src/index.ts --compile --outfile dist/wave",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": [
-    "design-tokens",
-    "cli",
-    "style-dictionary"
-  ],
+  "keywords": ["design-tokens", "cli", "style-dictionary"],
   "author": "ttao",
   "license": "MIT",
   "dependencies": {

@@ -11,6 +11,7 @@ export interface GeneratorOptions {
   themeName: string;
   outputDir: string;
   tokens: Record<string, unknown>;
+  platform?: 'general' | 'css';
 }
 
 export interface GeneratorResult {
@@ -49,30 +50,35 @@ export async function generateTokens(
 ): Promise<GeneratorResult> {
   ensureExtensionsRegistered();
 
-  const { themeName, outputDir, tokens } = options;
+  const { themeName, outputDir, tokens, platform } = options;
   const generatedFiles: string[] = [];
 
   try {
     const tempTokenPath = path.join(outputDir, '.temp-tokens.json');
     await Bun.write(tempTokenPath, JSON.stringify(tokens, null, 2));
 
-    const platforms: Record<string, PlatformConfig> = {
-      json: {
+    const platforms: Record<string, PlatformConfig> = {};
+
+    if (platform === undefined || platform === 'general') {
+      platforms.json = {
         buildPath: outputDir,
         files: [{
           destination: `${themeName}.json`,
           format: formats.json,
         }],
-      },
-      jsonc: {
+      };
+      platforms.jsonc = {
         buildPath: outputDir,
         transforms: ['attribute/cti', nameKebabTransform.name],
         files: [{
           destination: `${themeName}.jsonc`,
           format: jsoncFormat.name,
         }],
-      },
-      css: {
+      };
+    }
+
+    if (platform === undefined || platform === 'css') {
+      platforms.css = {
         buildPath: outputDir,
         transformGroup: transformGroups.css,
         transforms: ['attribute/cti', nameKebabTransform.name],
@@ -80,8 +86,15 @@ export async function generateTokens(
           destination: `${themeName}.css`,
           format: formats.cssVariables,
         }],
-      },
-    };
+      };
+    }
+
+    if (Object.keys(platforms).length === 0) {
+      return {
+        success: true,
+        files: [],
+      };
+    }
 
     const config: Config = {
       source: [tempTokenPath],
@@ -91,11 +104,12 @@ export async function generateTokens(
     const sd = new StyleDictionary(config);
     await sd.buildAllPlatforms();
 
-    generatedFiles.push(
-      `${themeName}.json`,
-      `${themeName}.jsonc`,
-      `${themeName}.css`
-    );
+    if (platform === undefined || platform === 'general') {
+      generatedFiles.push(`${themeName}.json`, `${themeName}.jsonc`);
+    }
+    if (platform === undefined || platform === 'css') {
+      generatedFiles.push(`${themeName}.css`);
+    }
 
     try {
       await fs.unlink(tempTokenPath);

@@ -44,8 +44,9 @@ export interface DetectionResult {
 
 export interface GenerateOptions {
   night: boolean;
-  variants?: string[];
-  brand?: string;
+  variants?: string[] | undefined;
+  brand?: string | undefined;
+  platform?: 'general' | 'css';
 }
 
 export interface ThemeInfo {
