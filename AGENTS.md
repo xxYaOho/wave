@@ -27,6 +27,8 @@
 
 - **DTCG**(Design Tokens Community Group), 关于 design token 设计规范的社区讨论组
   - [community group](https://github.com/design-tokens/community-group/tree/main)
+  - [format](https://www.designtokens.org/tr/2025.10/format/)
+  - [resolver](https://www.designtokens.org/tr/2025.10/resolver/)
 
 ## Conventions
 
