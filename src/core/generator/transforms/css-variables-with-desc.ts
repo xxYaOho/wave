@@ -38,8 +38,9 @@ function formatCssVariables(
 
 export const cssVariablesWithDescFormat: Format = {
   name: 'wave/css-variables',
-  format: ({ dictionary }: { dictionary: Dictionary }) => {
-    return formatCssVariables(dictionary.allTokens, 0);
+  format: ({ dictionary, options }: { dictionary: Dictionary; options: Record<string, unknown> }) => {
+    const filterLayer = (options?.filterLayer as number) ?? 0;
+    return formatCssVariables(dictionary.allTokens, filterLayer);
   },
 };
 

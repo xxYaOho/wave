@@ -31,14 +31,16 @@ function formatFlatJson(
 
 export const flatJsonFormat: Format = {
   name: 'wave/flat-json',
-  format: ({ dictionary }: { dictionary: Dictionary }) => {
-    return formatFlatJson(dictionary.allTokens, 0);
+  format: ({ dictionary, options }: { dictionary: Dictionary; options: Record<string, unknown> }) => {
+    const filterLayer = (options?.filterLayer as number) ?? 0;
+    return formatFlatJson(dictionary.allTokens, filterLayer);
   },
 };
 
 export const flatJsoncFormat: Format = {
   name: 'wave/flat-jsonc',
-  format: ({ dictionary }: { dictionary: Dictionary }) => {
+  format: ({ dictionary, options }: { dictionary: Dictionary; options: Record<string, unknown> }) => {
+    const filterLayer = (options?.filterLayer as number) ?? 0;
     const tokens = dictionary.allTokens;
     const lines: string[] = ['{'];
     
@@ -48,7 +50,7 @@ export const flatJsoncFormat: Format = {
       const token = sortedTokens[i];
       if (!token) continue;
       
-      const key = getFilteredName(token, 0);
+      const key = getFilteredName(token, filterLayer);
       const tokenValue = token.$value ?? token.value;
       
       const description = token.$description || token.description || token.comment;

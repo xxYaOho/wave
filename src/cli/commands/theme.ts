@@ -109,7 +109,8 @@ async function generateThemeTokens(
   outputDir: string,
   paletteContent: string,
   dimensionContent: string,
-  platform?: 'general' | 'css'
+  platform?: 'general' | 'css',
+  filterLayer?: number
 ): Promise<GeneratorResult> {
   const tokens = await buildTokens(paletteContent, dimensionContent);
   await fs.mkdir(outputDir, { recursive: true });
@@ -119,6 +120,7 @@ async function generateThemeTokens(
     outputDir,
     tokens,
     platform,
+    filterLayer,
   });
 }
 
@@ -262,6 +264,12 @@ async function handleThemeGeneration(
     platformParam === 'general' ? 'general' : 
     undefined;
 
+  const filterLayerParam = parsedThemefile.PARAMETER?.filterLayer;
+  const filterLayer: number | undefined = 
+    typeof filterLayerParam === 'number' ? filterLayerParam :
+    typeof filterLayerParam === 'string' ? parseInt(filterLayerParam, 10) :
+    undefined;
+
   const paletteResource = resolveResource(paletteRef, 'palette', themeDir);
   const dimensionResource = resolveResource(dimensionRef, 'dimension', themeDir);
 
@@ -299,7 +307,8 @@ async function handleThemeGeneration(
     outputDir,
     paletteContent,
     dimensionContent,
-    platform
+    platform,
+    filterLayer
   );
 
   if (!mainResult.success) {
@@ -319,7 +328,8 @@ async function handleThemeGeneration(
       outputDir,
       paletteContent,
       dimensionContent,
-      platform
+      platform,
+      filterLayer
     );
     if (nightGenResult.success) {
       logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
@@ -341,7 +351,8 @@ async function handleThemeGeneration(
         outputDir,
         paletteContent,
         dimensionContent,
-        platform
+        platform,
+        filterLayer
       );
 
       if (variantResult.success) {

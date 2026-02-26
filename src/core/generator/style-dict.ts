@@ -67,6 +67,7 @@ export async function generateTokens(
       platforms.json = {
         buildPath: outputDir,
         transforms: ['attribute/cti', nameKebabTransform.name],
+        options: { filterLayer },
         files: [{
           destination: `${themeName}.json`,
           format: flatJsonFormat.name,
@@ -75,6 +76,7 @@ export async function generateTokens(
       platforms.jsonc = {
         buildPath: outputDir,
         transforms: ['attribute/cti', nameKebabTransform.name],
+        options: { filterLayer },
         files: [{
           destination: `${themeName}.jsonc`,
           format: flatJsoncFormat.name,
@@ -86,6 +88,7 @@ export async function generateTokens(
       platforms.css = {
         buildPath: outputDir,
         transforms: ['attribute/cti', nameKebabTransform.name],
+        options: { filterLayer },
         files: [{
           destination: `${themeName}.css`,
           format: cssVariablesWithDescFormat.name,
