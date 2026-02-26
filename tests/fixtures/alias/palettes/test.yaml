@@ -1,0 +1,22 @@
+test:
+  global:
+    color:
+      $type: color
+      primary:
+        $description: Primary brand color
+        $value: "#3b82f6"
+      secondary:
+        $description: Secondary color
+        $value: "#6b7280"
+      success:
+        $description: Success state
+        $value: "#22c55e"
+      danger:
+        $description: Error/danger state
+        $value: "#ef4444"
+      warning:
+        $description: Warning state
+        $value: "#f59e0b"
+      info:
+        $description: Info state
+        $value: "#06b6d4"
