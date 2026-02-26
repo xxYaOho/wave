@@ -4,8 +4,8 @@ import { Command } from 'commander';
 import { ExitCode, type GenerateOptions, type ParseError } from '../../types/index.ts';
 import { VERSION } from '../../config/index.ts';
 import { parseThemefile } from '../../core/parser/themefile.ts';
-import { parsePalette } from '../../core/parser/palette.ts';
-import { parseDimension } from '../../core/parser/dimension.ts';
+import { parsePalette, validatePaletteSchema } from '../../core/parser/palette.ts';
+import { parseDimension, validateDimensionSchema } from '../../core/parser/dimension.ts';
 import { resolveResource } from '../../core/resolver/index.ts';
 import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
 import { generateTokens, type GeneratorResult } from '../../core/generator/index.ts';
@@ -86,8 +86,20 @@ function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
 
 async function buildTokens(
   paletteContent: string,
-  dimensionContent: string
+  dimensionContent: string,
+  palettePath?: string,
+  dimensionPath?: string
 ): Promise<Record<string, unknown>> {
+  const paletteSchemaError = await validatePaletteSchema(paletteContent, palettePath);
+  if (paletteSchemaError) {
+    throw new Error(`Palette schema error: ${paletteSchemaError.message}`);
+  }
+
+  const dimensionSchemaError = await validateDimensionSchema(dimensionContent, dimensionPath);
+  if (dimensionSchemaError) {
+    throw new Error(`Dimension schema error: ${dimensionSchemaError.message}`);
+  }
+
   const palette = parsePalette(paletteContent);
   if (isParseError(palette)) {
     throw new Error(`Palette parse error at line ${palette.line}: ${palette.message}`);
@@ -110,9 +122,11 @@ async function generateThemeTokens(
   paletteContent: string,
   dimensionContent: string,
   platform?: 'general' | 'css',
-  filterLayer?: number
+  filterLayer?: number,
+  palettePath?: string,
+  dimensionPath?: string
 ): Promise<GeneratorResult> {
-  const tokens = await buildTokens(paletteContent, dimensionContent);
+  const tokens = await buildTokens(paletteContent, dimensionContent, palettePath, dimensionPath);
   await fs.mkdir(outputDir, { recursive: true });
 
   return generateTokens({
@@ -163,17 +177,37 @@ async function handleBuiltinTheme(
   logger.success(`Palette: ${config.palette} (builtin)`);
   logger.success(`Dimension: ${config.dimension} (builtin)`);
 
-  const mainResult = await generateThemeTokens(
-    name,
-    outputDir,
-    paletteContent,
-    dimensionContent,
-    'general'
-  );
+  let mainResult: GeneratorResult;
+  try {
+    mainResult = await generateThemeTokens(
+      name,
+      outputDir,
+      paletteContent,
+      dimensionContent,
+      'general',
+      undefined,
+      paletteResource.path,
+      dimensionResource.path
+    );
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes('schema error')) {
+      process.exitCode = ExitCode.INVALID_RESOURCE;
+    } else {
+      process.exitCode = ExitCode.GENERAL_ERROR;
+    }
+    logger.error(errorMessage);
+    return false;
+  }
 
   if (!mainResult.success) {
-    process.exitCode = ExitCode.GENERAL_ERROR;
-    logger.error(mainResult.error || 'Failed to generate tokens');
+    const errorMsg = mainResult.error || 'Failed to generate tokens';
+    if (errorMsg.includes('schema error')) {
+      process.exitCode = ExitCode.INVALID_RESOURCE;
+    } else {
+      process.exitCode = ExitCode.GENERAL_ERROR;
+    }
+    logger.error(errorMsg);
     return false;
   }
 
@@ -188,7 +222,10 @@ async function handleBuiltinTheme(
       outputDir,
       paletteContent,
       dimensionContent,
-      'general'
+      'general',
+      undefined,
+      paletteResource.path,
+      dimensionResource.path
     );
     if (nightGenResult.success) {
       logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
@@ -210,7 +247,10 @@ async function handleBuiltinTheme(
         outputDir,
         paletteContent,
         dimensionContent,
-        'general'
+        'general',
+        undefined,
+        paletteResource.path,
+        dimensionResource.path
       );
 
       if (variantResult.success) {
@@ -302,18 +342,37 @@ async function handleThemeGeneration(
   logger.success(`Palette: ${paletteRef} (${paletteResource.isBuiltin ? 'builtin' : 'user'})`);
   logger.success(`Dimension: ${dimensionRef} (${dimensionResource.isBuiltin ? 'builtin' : 'user'})`);
 
-  const mainResult = await generateThemeTokens(
-    themeName,
-    outputDir,
-    paletteContent,
-    dimensionContent,
-    platform,
-    filterLayer
-  );
+  let mainResult: GeneratorResult;
+  try {
+    mainResult = await generateThemeTokens(
+      themeName,
+      outputDir,
+      paletteContent,
+      dimensionContent,
+      platform,
+      filterLayer,
+      paletteResource.path,
+      dimensionResource.path
+    );
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes('schema error')) {
+      process.exitCode = ExitCode.INVALID_RESOURCE;
+    } else {
+      process.exitCode = ExitCode.GENERAL_ERROR;
+    }
+    logger.error(errorMessage);
+    return;
+  }
 
   if (!mainResult.success) {
-    process.exitCode = ExitCode.GENERAL_ERROR;
-    logger.error(mainResult.error || 'Failed to generate tokens');
+    const errorMsg = mainResult.error || 'Failed to generate tokens';
+    if (errorMsg.includes('schema error')) {
+      process.exitCode = ExitCode.INVALID_RESOURCE;
+    } else {
+      process.exitCode = ExitCode.GENERAL_ERROR;
+    }
+    logger.error(errorMsg);
     return;
   }
 
@@ -329,7 +388,9 @@ async function handleThemeGeneration(
       paletteContent,
       dimensionContent,
       platform,
-      filterLayer
+      filterLayer,
+      paletteResource.path,
+      dimensionResource.path
     );
     if (nightGenResult.success) {
       logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
@@ -352,7 +413,9 @@ async function handleThemeGeneration(
         paletteContent,
         dimensionContent,
         platform,
-        filterLayer
+        filterLayer,
+        paletteResource.path,
+        dimensionResource.path
       );
 
       if (variantResult.success) {

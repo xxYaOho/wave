@@ -1,6 +1,84 @@
 import * as yaml from 'js-yaml';
 import type { DimensionResult, ParseError, DimensionCategory } from '../../types';
 
+function validateDimensionStructure(parsed: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+
+  // Filter out $schema key if present
+  const rootKeys = Object.keys(parsed).filter((key) => key !== '$schema');
+
+  if (rootKeys.length === 0) {
+    errors.push('YAML file must contain a root key (e.g., wave)');
+    return errors;
+  }
+
+  const rootName = rootKeys[0];
+  if (!rootName) {
+    errors.push('Root key is empty');
+    return errors;
+  }
+
+  const rootData = parsed[rootName];
+
+  if (!rootData || typeof rootData !== 'object') {
+    errors.push(`Root "${rootName}" data format is invalid`);
+    return errors;
+  }
+
+  const rootObj = rootData as Record<string, unknown>;
+
+  if (!('global' in rootObj) || typeof rootObj.global !== 'object') {
+    errors.push('Missing required "global" configuration');
+    return errors;
+  }
+
+  const global = rootObj.global as Record<string, unknown>;
+
+  if (!('dimension' in global) || typeof global.dimension !== 'object') {
+    errors.push('Missing required "global.dimension" configuration');
+    return errors;
+  }
+
+  return errors;
+}
+
+export async function validateDimensionSchema(
+  content: string,
+  _resourcePath?: string
+): Promise<ParseError | null> {
+  try {
+    const parsed = yaml.load(content) as Record<string, unknown>;
+
+    if (parsed && typeof parsed === 'object' && '$schema' in parsed) {
+      const schemaUri = parsed.$schema;
+
+      if (
+        typeof schemaUri === 'string' &&
+        (schemaUri.includes('dimension') || schemaUri === 'https://wave.tools/schemas/dimension.json')
+      ) {
+        const errors = validateDimensionStructure(parsed as Record<string, unknown>);
+
+        if (errors.length > 0) {
+          return {
+            line: 0,
+            message: `Schema validation failed: ${errors.join('; ')}`
+          };
+        }
+      }
+    }
+
+    return null;
+  } catch (err) {
+    if (err instanceof yaml.YAMLException) {
+      return {
+        line: err.mark?.line ? err.mark.line + 1 : 1,
+        message: `YAML syntax error: ${err.message}`
+      };
+    }
+    return null;
+  }
+}
+
 export function parseDimension(content: string): DimensionResult | ParseError {
   try {
     const parsed = yaml.load(content);
@@ -13,7 +91,9 @@ export function parseDimension(content: string): DimensionResult | ParseError {
     }
 
     const parsedRecord = parsed as Record<string, unknown>;
-    const waveData = parsedRecord.wave;
+    // Filter out $schema key if present
+    const rootKeys = Object.keys(parsedRecord).filter((key) => key !== '$schema');
+    const waveData = parsedRecord[rootKeys[0] || 'wave'];
     if (!waveData || typeof waveData !== 'object') {
       return {
         line: 1,
