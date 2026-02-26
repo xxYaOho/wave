@@ -2,16 +2,17 @@ import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import StyleDictionary from 'style-dictionary';
 import type { Config, PlatformConfig } from 'style-dictionary/types';
-import { formats, transformGroups } from 'style-dictionary/enums';
 import { nameKebabTransform } from './transforms/kebab.ts';
 import { valueCssVarTransform } from './transforms/css-var.ts';
 import { jsoncFormat } from './transforms/jsonc.ts';
+import { flatJsonFormat, flatJsoncFormat, cssVariablesWithDescFormat } from './transforms/index.ts';
 
 export interface GeneratorOptions {
   themeName: string;
   outputDir: string;
   tokens: Record<string, unknown>;
   platform?: 'general' | 'css';
+  filterLayer?: number;
 }
 
 export interface GeneratorResult {
@@ -26,6 +27,9 @@ function registerWaveExtensions(): void {
   StyleDictionary.registerTransform(nameKebabTransform);
   StyleDictionary.registerTransform(valueCssVarTransform);
   StyleDictionary.registerFormat(jsoncFormat);
+  StyleDictionary.registerFormat(flatJsonFormat);
+  StyleDictionary.registerFormat(flatJsoncFormat);
+  StyleDictionary.registerFormat(cssVariablesWithDescFormat);
 
   StyleDictionary.registerTransformGroup({
     name: WAVE_TRANSFORM_GROUP,
@@ -50,7 +54,7 @@ export async function generateTokens(
 ): Promise<GeneratorResult> {
   ensureExtensionsRegistered();
 
-  const { themeName, outputDir, tokens, platform } = options;
+  const { themeName, outputDir, tokens, platform, filterLayer } = options;
   const generatedFiles: string[] = [];
 
   try {
@@ -62,9 +66,10 @@ export async function generateTokens(
     if (platform === undefined || platform === 'general') {
       platforms.json = {
         buildPath: outputDir,
+        transforms: ['attribute/cti', nameKebabTransform.name],
         files: [{
           destination: `${themeName}.json`,
-          format: formats.json,
+          format: flatJsonFormat.name,
         }],
       };
       platforms.jsonc = {
@@ -72,7 +77,7 @@ export async function generateTokens(
         transforms: ['attribute/cti', nameKebabTransform.name],
         files: [{
           destination: `${themeName}.jsonc`,
-          format: jsoncFormat.name,
+          format: flatJsoncFormat.name,
         }],
       };
     }
@@ -80,11 +85,10 @@ export async function generateTokens(
     if (platform === undefined || platform === 'css') {
       platforms.css = {
         buildPath: outputDir,
-        transformGroup: transformGroups.css,
         transforms: ['attribute/cti', nameKebabTransform.name],
         files: [{
           destination: `${themeName}.css`,
-          format: formats.cssVariables,
+          format: cssVariablesWithDescFormat.name,
         }],
       };
     }
@@ -149,5 +153,8 @@ export {
   nameKebabTransform,
   valueCssVarTransform,
   jsoncFormat,
+  flatJsonFormat,
+  flatJsoncFormat,
+  cssVariablesWithDescFormat,
   WAVE_TRANSFORM_GROUP,
 };
