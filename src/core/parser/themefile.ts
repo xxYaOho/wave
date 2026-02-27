@@ -32,17 +32,18 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
       }
 
       if (key === 'PARAMETER') {
-        const paramMatch = value.match(/^(\w+)\s+(.+)$/);
+        const paramMatch = value.match(/^([\w-]+)\s+(.+)$/);
         if (paramMatch && paramMatch[1] && paramMatch[2]) {
           const paramKey = paramMatch[1];
           const paramValue = paramMatch[2];
           if (!result.PARAMETER) {
             result.PARAMETER = {};
           }
-          const validParams = ['night', 'variants', 'output', 'platform', 'brand'] as const;
+            const validParams = ['night', 'variants', 'output', 'platform', 'brand', 'filter-layer', 'filterLayer'] as const;
           type ValidParam = typeof validParams[number];
           if (validParams.includes(paramKey as ValidParam)) {
-            (result.PARAMETER as Record<ValidParam, string>)[paramKey as ValidParam] = paramValue;
+            const internalKey = paramKey === 'filter-layer' || paramKey === 'filterLayer' ? 'filterLayer' : paramKey;
+            (result.PARAMETER as Record<string, string>)[internalKey] = paramValue;
           }
         } else {
           return {

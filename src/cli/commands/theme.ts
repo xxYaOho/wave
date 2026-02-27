@@ -4,8 +4,8 @@ import { Command } from 'commander';
 import { ExitCode, type GenerateOptions, type ParseError } from '../../types/index.ts';
 import { VERSION } from '../../config/index.ts';
 import { parseThemefile } from '../../core/parser/themefile.ts';
-import { parsePalette } from '../../core/parser/palette.ts';
-import { parseDimension } from '../../core/parser/dimension.ts';
+import { parsePalette, validatePaletteSchema } from '../../core/parser/palette.ts';
+import { parseDimension, validateDimensionSchema } from '../../core/parser/dimension.ts';
 import { resolveResource } from '../../core/resolver/index.ts';
 import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
 import { generateTokens, type GeneratorResult } from '../../core/generator/index.ts';
@@ -16,19 +16,14 @@ interface BuiltinThemeConfig {
   dimension: string;
 }
 
-const BUILTIN_THEMES: Record<string, BuiltinThemeConfig> = {
-  beluga: {
-    palette: 'leonardo',
-    dimension: 'wave',
-  },
-};
+const BUILTIN_THEMES: Record<string, BuiltinThemeConfig> = {};
 
 function getBuiltinThemeNames(): string[] {
   return Object.keys(BUILTIN_THEMES);
 }
 
-function isBuiltinTheme(name: string): boolean {
-  return name in BUILTIN_THEMES;
+function isBuiltinTheme(_name: string): boolean {
+  return false;
 }
 
 interface ThemeCommandOptions {
@@ -86,8 +81,20 @@ function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
 
 async function buildTokens(
   paletteContent: string,
-  dimensionContent: string
+  dimensionContent: string,
+  palettePath?: string,
+  dimensionPath?: string
 ): Promise<Record<string, unknown>> {
+  const paletteSchemaError = await validatePaletteSchema(paletteContent, palettePath);
+  if (paletteSchemaError) {
+    throw new Error(`Palette schema error: ${paletteSchemaError.message}`);
+  }
+
+  const dimensionSchemaError = await validateDimensionSchema(dimensionContent, dimensionPath);
+  if (dimensionSchemaError) {
+    throw new Error(`Dimension schema error: ${dimensionSchemaError.message}`);
+  }
+
   const palette = parsePalette(paletteContent);
   if (isParseError(palette)) {
     throw new Error(`Palette parse error at line ${palette.line}: ${palette.message}`);
@@ -109,9 +116,12 @@ async function generateThemeTokens(
   outputDir: string,
   paletteContent: string,
   dimensionContent: string,
-  platform?: 'general' | 'css'
+  platform?: 'general' | 'css',
+  filterLayer?: number,
+  palettePath?: string,
+  dimensionPath?: string
 ): Promise<GeneratorResult> {
-  const tokens = await buildTokens(paletteContent, dimensionContent);
+  const tokens = await buildTokens(paletteContent, dimensionContent, palettePath, dimensionPath);
   await fs.mkdir(outputDir, { recursive: true });
 
   return generateTokens({
@@ -119,6 +129,7 @@ async function generateThemeTokens(
     outputDir,
     tokens,
     platform,
+    filterLayer,
   });
 }
 
@@ -161,17 +172,37 @@ async function handleBuiltinTheme(
   logger.success(`Palette: ${config.palette} (builtin)`);
   logger.success(`Dimension: ${config.dimension} (builtin)`);
 
-  const mainResult = await generateThemeTokens(
-    name,
-    outputDir,
-    paletteContent,
-    dimensionContent,
-    'general'
-  );
+  let mainResult: GeneratorResult;
+  try {
+    mainResult = await generateThemeTokens(
+      name,
+      outputDir,
+      paletteContent,
+      dimensionContent,
+      'general',
+      undefined,
+      paletteResource.path,
+      dimensionResource.path
+    );
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes('schema error')) {
+      process.exitCode = ExitCode.INVALID_RESOURCE;
+    } else {
+      process.exitCode = ExitCode.GENERAL_ERROR;
+    }
+    logger.error(errorMessage);
+    return false;
+  }
 
   if (!mainResult.success) {
-    process.exitCode = ExitCode.GENERAL_ERROR;
-    logger.error(mainResult.error || 'Failed to generate tokens');
+    const errorMsg = mainResult.error || 'Failed to generate tokens';
+    if (errorMsg.includes('schema error')) {
+      process.exitCode = ExitCode.INVALID_RESOURCE;
+    } else {
+      process.exitCode = ExitCode.GENERAL_ERROR;
+    }
+    logger.error(errorMsg);
     return false;
   }
 
@@ -186,7 +217,10 @@ async function handleBuiltinTheme(
       outputDir,
       paletteContent,
       dimensionContent,
-      'general'
+      'general',
+      undefined,
+      paletteResource.path,
+      dimensionResource.path
     );
     if (nightGenResult.success) {
       logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
@@ -208,7 +242,10 @@ async function handleBuiltinTheme(
         outputDir,
         paletteContent,
         dimensionContent,
-        'general'
+        'general',
+        undefined,
+        paletteResource.path,
+        dimensionResource.path
       );
 
       if (variantResult.success) {
@@ -262,6 +299,12 @@ async function handleThemeGeneration(
     platformParam === 'general' ? 'general' : 
     undefined;
 
+  const filterLayerParam = parsedThemefile.PARAMETER?.filterLayer;
+  const filterLayer: number | undefined = 
+    typeof filterLayerParam === 'number' ? filterLayerParam :
+    typeof filterLayerParam === 'string' ? parseInt(filterLayerParam, 10) :
+    undefined;
+
   const paletteResource = resolveResource(paletteRef, 'palette', themeDir);
   const dimensionResource = resolveResource(dimensionRef, 'dimension', themeDir);
 
@@ -276,9 +319,17 @@ async function handleThemeGeneration(
     return;
   }
 
-  const outputDir = options.output
-    ? expandHomePath(options.output)
-    : path.join(process.env.HOME || '', 'Downloads', themeName);
+  let outputDir: string;
+  if (options.output) {
+    outputDir = expandHomePath(options.output);
+  } else if (parsedThemefile.PARAMETER?.output) {
+    const outputPath = parsedThemefile.PARAMETER.output;
+    outputDir = path.isAbsolute(outputPath)
+      ? outputPath
+      : path.join(themeDir, outputPath);
+  } else {
+    outputDir = path.join(process.env.HOME || '', 'Downloads', themeName);
+  }
 
   let paletteContent: string;
   let dimensionContent: string;
@@ -294,17 +345,37 @@ async function handleThemeGeneration(
   logger.success(`Palette: ${paletteRef} (${paletteResource.isBuiltin ? 'builtin' : 'user'})`);
   logger.success(`Dimension: ${dimensionRef} (${dimensionResource.isBuiltin ? 'builtin' : 'user'})`);
 
-  const mainResult = await generateThemeTokens(
-    themeName,
-    outputDir,
-    paletteContent,
-    dimensionContent,
-    platform
-  );
+  let mainResult: GeneratorResult;
+  try {
+    mainResult = await generateThemeTokens(
+      themeName,
+      outputDir,
+      paletteContent,
+      dimensionContent,
+      platform,
+      filterLayer,
+      paletteResource.path,
+      dimensionResource.path
+    );
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    if (errorMessage.includes('schema error')) {
+      process.exitCode = ExitCode.INVALID_RESOURCE;
+    } else {
+      process.exitCode = ExitCode.GENERAL_ERROR;
+    }
+    logger.error(errorMessage);
+    return;
+  }
 
   if (!mainResult.success) {
-    process.exitCode = ExitCode.GENERAL_ERROR;
-    logger.error(mainResult.error || 'Failed to generate tokens');
+    const errorMsg = mainResult.error || 'Failed to generate tokens';
+    if (errorMsg.includes('schema error')) {
+      process.exitCode = ExitCode.INVALID_RESOURCE;
+    } else {
+      process.exitCode = ExitCode.GENERAL_ERROR;
+    }
+    logger.error(errorMsg);
     return;
   }
 
@@ -319,7 +390,10 @@ async function handleThemeGeneration(
       outputDir,
       paletteContent,
       dimensionContent,
-      platform
+      platform,
+      filterLayer,
+      paletteResource.path,
+      dimensionResource.path
     );
     if (nightGenResult.success) {
       logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
@@ -341,7 +415,10 @@ async function handleThemeGeneration(
         outputDir,
         paletteContent,
         dimensionContent,
-        platform
+        platform,
+        filterLayer,
+        paletteResource.path,
+        dimensionResource.path
       );
 
       if (variantResult.success) {
@@ -379,30 +456,49 @@ export const themeCommand = new Command('theme')
       process.exit(ExitCode.SUCCESS);
     }
 
-    if (!name) {
+    let themeName = name;
+
+    if (!themeName && !options.file) {
+      const defaultThemefile = 'themefile';
+      const file = Bun.file(defaultThemefile);
+      if (await file.exists()) {
+        options.file = defaultThemefile;
+        themeName = 'theme';
+      } else {
+        console.error('Error: No themefile found in current directory');
+        console.error('Usage: wave theme [path] or wave theme -f <path>');
+        console.error('Or create a themefile in current directory');
+        process.exit(ExitCode.FILE_NOT_FOUND);
+      }
+    }
+
+    if (!themeName && options.file) {
+      themeName = 'theme';
+    }
+
+    if (!themeName) {
       console.error('Error: Theme name is required');
-      console.log('Usage: wave theme <name>');
-      console.log('Try "wave help theme" for more information.');
+      console.error('Usage: wave theme [path] or wave theme -f <path>');
       process.exit(ExitCode.MISSING_PARAMETER);
     }
 
-    logger.info(`Generating theme: ${name}`);
+    logger.info(`Generating theme: ${themeName}`);
     logger.info(`Version: ${VERSION}`);
 
-    if (isBuiltinTheme(name) && !options.file) {
-      const config = BUILTIN_THEMES[name];
+    if (isBuiltinTheme(themeName) && !options.file) {
+      const config = BUILTIN_THEMES[themeName];
       if (!config) {
         process.exitCode = ExitCode.THEME_NOT_FOUND;
-        logger.error(`Theme not found: ${name}`);
+        logger.error(`Theme not found: ${themeName}`);
         return;
       }
-      await handleBuiltinTheme(name, config, options);
+      await handleBuiltinTheme(themeName, config, options);
       return;
     }
 
     const themeDir = options.file
       ? path.dirname(expandHomePath(options.file))
-      : path.join(process.env.HOME || '', 'Downloads', name);
+      : path.join(process.env.HOME || '', 'Downloads', themeName);
 
     const themefilePath = options.file
       ? expandHomePath(options.file)
@@ -415,10 +511,10 @@ export const themeCommand = new Command('theme')
         logger.error(`Themefile not found: ${themefilePath}`);
       } else {
         process.exitCode = ExitCode.THEME_NOT_FOUND;
-        logger.error(`Theme not found: ${name}`);
+        logger.error(`Theme not found: ${themeName}`);
       }
       return;
     }
 
-    await handleThemeGeneration(name, options);
+    await handleThemeGeneration(themeName, options);
   });

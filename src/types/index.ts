@@ -25,6 +25,7 @@ export interface ParsedThemefile {
     output?: string;
     platform?: string;
     brand?: string;
+    filterLayer?: number | string;
   };
 }
 

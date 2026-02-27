@@ -1,0 +1,4 @@
+PALETTE ../alias/palettes/test.yaml
+DIMENSION wave
+THEME alias-filter1
+PARAMETER filter-layer 1
