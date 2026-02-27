@@ -150,3 +150,75 @@ export interface BuiltinDimension {
     };
   };
 }
+
+// DTCG types
+
+export type DtcgScalarValue = string | number | boolean;
+export type DtcgObjectValue = Record<string, DtcgScalarValue | DtcgScalarValue[]>;
+export type DtcgValue = DtcgScalarValue | DtcgObjectValue;
+
+export interface DtcgToken {
+  $value: DtcgValue;
+  $type?: string;
+  $description?: string;
+  $deprecated?: boolean | string;
+}
+
+export type DtcgTokenNode = DtcgToken | DtcgTokenGroup | string | number;
+
+export interface DtcgTokenGroup {
+  $type?: string;
+  $description?: string;
+  [key: string]: DtcgTokenNode | string | number | boolean | undefined;
+}
+
+export interface ThemeYamlResult {
+  raw: DtcgTokenGroup;
+}
+
+export interface ReferenceDataSources {
+  palette: { global: { color: ColorPalette } };
+  dimension: { global: { dimension: Record<string, DimensionCategory> } };
+}
+
+export interface ResolvedDtcgToken {
+  $value: DtcgValue;
+  $type?: string;
+  $description?: string;
+  $deprecated?: boolean | string;
+}
+
+export interface ResolvedTokenGroup {
+  $type?: string;
+  $description?: string;
+  [key: string]: ResolvedDtcgToken | ResolvedTokenGroup | string | number | boolean | undefined;
+}
+
+export interface SdTokenValue {
+  value: DtcgValue;
+  type?: string;
+  comment?: string;
+  deprecated?: boolean | string;
+}
+
+export type SdTokenTree = {
+  [key: string]: SdTokenValue | SdTokenTree;
+};
+
+export function isDtcgToken(node: unknown): node is DtcgToken {
+  return (
+    typeof node === 'object' &&
+    node !== null &&
+    '$value' in node &&
+    !Array.isArray(node)
+  );
+}
+
+export function isResolvedToken(node: unknown): node is ResolvedDtcgToken {
+  return (
+    typeof node === 'object' &&
+    node !== null &&
+    '$value' in node &&
+    !Array.isArray(node)
+  );
+}
