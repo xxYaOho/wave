@@ -16,19 +16,14 @@ interface BuiltinThemeConfig {
   dimension: string;
 }
 
-const BUILTIN_THEMES: Record<string, BuiltinThemeConfig> = {
-  beluga: {
-    palette: 'leonardo',
-    dimension: 'wave',
-  },
-};
+const BUILTIN_THEMES: Record<string, BuiltinThemeConfig> = {};
 
 function getBuiltinThemeNames(): string[] {
   return Object.keys(BUILTIN_THEMES);
 }
 
-function isBuiltinTheme(name: string): boolean {
-  return name in BUILTIN_THEMES;
+function isBuiltinTheme(_name: string): boolean {
+  return false;
 }
 
 interface ThemeCommandOptions {
