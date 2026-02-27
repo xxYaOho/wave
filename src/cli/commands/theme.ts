@@ -1,12 +1,22 @@
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import { Command } from 'commander';
-import { ExitCode, type GenerateOptions, type ParseError } from '../../types/index.ts';
+import {
+  ExitCode,
+  type GenerateOptions,
+  type ParseError,
+  type PaletteResult,
+  type DimensionResult,
+  type ReferenceDataSources,
+  type SdTokenTree,
+} from '../../types/index.ts';
 import { VERSION } from '../../config/index.ts';
 import { parseThemefile } from '../../core/parser/themefile.ts';
 import { parsePalette, validatePaletteSchema } from '../../core/parser/palette.ts';
 import { parseDimension, validateDimensionSchema } from '../../core/parser/dimension.ts';
-import { resolveResource } from '../../core/resolver/index.ts';
+import { parseThemeYaml } from '../../core/parser/index.ts';
+import { resolveResource, resolveReferences } from '../../core/resolver/index.ts';
+import { transformToSDFormat } from '../../core/transformer/index.ts';
 import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
 import { generateTokens, type GeneratorResult } from '../../core/generator/index.ts';
 import { logger } from '../../utils/logger.ts';
@@ -109,6 +119,33 @@ async function buildTokens(
     color: palette.global.color,
     dimension: dimension.global.dimension,
   };
+}
+
+async function parseAndResolveThemeYaml(
+  yamlPath: string,
+  paletteResult: PaletteResult,
+  dimensionResult: DimensionResult
+): Promise<SdTokenTree | null> {
+  const file = Bun.file(yamlPath);
+  if (!(await file.exists())) {
+    return null;
+  }
+
+  const content = await file.text();
+  const parsed = parseThemeYaml(content);
+
+  if (isParseError(parsed)) {
+    logger.warn(`Theme YAML parse error at line ${parsed.line}: ${parsed.message}`);
+    return null;
+  }
+
+  const sources: ReferenceDataSources = {
+    palette: { global: { color: paletteResult.global.color } },
+    dimension: { global: { dimension: dimensionResult.global.dimension } },
+  };
+
+  const resolved = resolveReferences(parsed.raw, sources);
+  return transformToSDFormat(resolved);
 }
 
 async function generateThemeTokens(
@@ -345,58 +382,181 @@ async function handleThemeGeneration(
   logger.success(`Palette: ${paletteRef} (${paletteResource.isBuiltin ? 'builtin' : 'user'})`);
   logger.success(`Dimension: ${dimensionRef} (${dimensionResource.isBuiltin ? 'builtin' : 'user'})`);
 
+  const paletteSchemaError = await validatePaletteSchema(paletteContent, paletteResource.path);
+  if (paletteSchemaError) {
+    process.exitCode = ExitCode.INVALID_RESOURCE;
+    logger.error(`Palette schema error: ${paletteSchemaError.message}`);
+    return;
+  }
+
+  const dimensionSchemaError = await validateDimensionSchema(dimensionContent, dimensionResource.path);
+  if (dimensionSchemaError) {
+    process.exitCode = ExitCode.INVALID_RESOURCE;
+    logger.error(`Dimension schema error: ${dimensionSchemaError.message}`);
+    return;
+  }
+
+  const palette = parsePalette(paletteContent);
+  if (isParseError(palette)) {
+    process.exitCode = ExitCode.FORMAT_ERROR;
+    logger.error(`Palette parse error at line ${palette.line}: ${palette.message}`);
+    return;
+  }
+
+  const dimension = parseDimension(dimensionContent);
+  if (isParseError(dimension)) {
+    process.exitCode = ExitCode.FORMAT_ERROR;
+    logger.error(`Dimension parse error: ${dimension.message}`);
+    return;
+  }
+
+  const mainYamlPath = path.join(themeDir, 'main.yaml');
+  const mainYamlFile = Bun.file(mainYamlPath);
+  const hasMainYaml = await mainYamlFile.exists();
+
   let mainResult: GeneratorResult;
-  try {
-    mainResult = await generateThemeTokens(
-      themeName,
-      outputDir,
-      paletteContent,
-      dimensionContent,
-      platform,
-      filterLayer,
-      paletteResource.path,
-      dimensionResource.path
-    );
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    if (errorMessage.includes('schema error')) {
-      process.exitCode = ExitCode.INVALID_RESOURCE;
-    } else {
-      process.exitCode = ExitCode.GENERAL_ERROR;
-    }
-    logger.error(errorMessage);
-    return;
-  }
 
-  if (!mainResult.success) {
-    const errorMsg = mainResult.error || 'Failed to generate tokens';
-    if (errorMsg.includes('schema error')) {
-      process.exitCode = ExitCode.INVALID_RESOURCE;
-    } else {
-      process.exitCode = ExitCode.GENERAL_ERROR;
-    }
-    logger.error(errorMsg);
-    return;
-  }
+  if (hasMainYaml) {
+    logger.info('Found main.yaml, parsing theme tokens...');
+    const sdTokens = await parseAndResolveThemeYaml(mainYamlPath, palette, dimension);
 
-  logger.success(`Generated main: ${mainResult.files.join(', ')}`);
+    if (sdTokens) {
+      await fs.mkdir(outputDir, { recursive: true });
+      mainResult = await generateTokens({
+        themeName,
+        outputDir,
+        tokens: sdTokens,
+        platform,
+        filterLayer,
+      });
+
+      if (!mainResult.success) {
+        const errorMsg = mainResult.error || 'Failed to generate tokens';
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        logger.error(errorMsg);
+        return;
+      }
+
+      logger.success(`Generated main: ${mainResult.files.join(', ')}`);
+    } else {
+      logger.warn('Failed to parse main.yaml, falling back to palette + dimension');
+      try {
+        mainResult = await generateThemeTokens(
+          themeName,
+          outputDir,
+          paletteContent,
+          dimensionContent,
+          platform,
+          filterLayer,
+          paletteResource.path,
+          dimensionResource.path
+        );
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        process.exitCode = errorMessage.includes('schema error') ? ExitCode.INVALID_RESOURCE : ExitCode.GENERAL_ERROR;
+        logger.error(errorMessage);
+        return;
+      }
+
+      if (!mainResult.success) {
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        logger.error(mainResult.error || 'Failed to generate tokens');
+        return;
+      }
+
+      logger.success(`Generated main: ${mainResult.files.join(', ')}`);
+    }
+  } else {
+    try {
+      mainResult = await generateThemeTokens(
+        themeName,
+        outputDir,
+        paletteContent,
+        dimensionContent,
+        platform,
+        filterLayer,
+        paletteResource.path,
+        dimensionResource.path
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('schema error')) {
+        process.exitCode = ExitCode.INVALID_RESOURCE;
+      } else {
+        process.exitCode = ExitCode.GENERAL_ERROR;
+      }
+      logger.error(errorMessage);
+      return;
+    }
+
+    if (!mainResult.success) {
+      const errorMsg = mainResult.error || 'Failed to generate tokens';
+      if (errorMsg.includes('schema error')) {
+        process.exitCode = ExitCode.INVALID_RESOURCE;
+      } else {
+        process.exitCode = ExitCode.GENERAL_ERROR;
+      }
+      logger.error(errorMsg);
+      return;
+    }
+
+    logger.success(`Generated main: ${mainResult.files.join(', ')}`);
+  }
 
   const nightResult = detectNightMode(themeDir, generateOptions);
   logger.info(nightResult.message);
 
   if (nightResult.available) {
-    const nightGenResult = await generateThemeTokens(
-      `${themeName}-night`,
-      outputDir,
-      paletteContent,
-      dimensionContent,
-      platform,
-      filterLayer,
-      paletteResource.path,
-      dimensionResource.path
-    );
-    if (nightGenResult.success) {
-      logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
+    const nightYamlPath = path.join(themeDir, 'main@night.yaml');
+    const nightYamlFile = Bun.file(nightYamlPath);
+    const hasNightYaml = await nightYamlFile.exists();
+
+    if (hasNightYaml) {
+      logger.info('Found main@night.yaml, parsing night theme tokens...');
+      const nightTokens = await parseAndResolveThemeYaml(nightYamlPath, palette, dimension);
+
+      if (nightTokens) {
+        const nightGenResult = await generateTokens({
+          themeName: `${themeName}-night`,
+          outputDir,
+          tokens: nightTokens,
+          platform,
+          filterLayer,
+        });
+
+        if (nightGenResult.success) {
+          logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
+        }
+      } else {
+        logger.warn('Failed to parse main@night.yaml, falling back to palette + dimension');
+        const nightGenResult = await generateThemeTokens(
+          `${themeName}-night`,
+          outputDir,
+          paletteContent,
+          dimensionContent,
+          platform,
+          filterLayer,
+          paletteResource.path,
+          dimensionResource.path
+        );
+        if (nightGenResult.success) {
+          logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
+        }
+      }
+    } else {
+      const nightGenResult = await generateThemeTokens(
+        `${themeName}-night`,
+        outputDir,
+        paletteContent,
+        dimensionContent,
+        platform,
+        filterLayer,
+        paletteResource.path,
+        dimensionResource.path
+      );
+      if (nightGenResult.success) {
+        logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
+      }
     }
   }
 
@@ -410,19 +570,35 @@ async function handleThemeGeneration(
       const baseName = isNightVariant ? variantName.replace('@night', '') : variantName;
       const suffix = isNightVariant ? `-${baseName}-night` : `-${baseName}`;
 
-      const variantResult = await generateThemeTokens(
-        `${themeName}${suffix}`,
-        outputDir,
-        paletteContent,
-        dimensionContent,
-        platform,
-        filterLayer,
-        paletteResource.path,
-        dimensionResource.path
-      );
+      const variantTokens = await parseAndResolveThemeYaml(variantFile, palette, dimension);
 
-      if (variantResult.success) {
-        logger.success(`Generated variant ${variantName}: ${variantResult.files.join(', ')}`);
+      if (variantTokens) {
+        const variantResult = await generateTokens({
+          themeName: `${themeName}${suffix}`,
+          outputDir,
+          tokens: variantTokens,
+          platform,
+          filterLayer,
+        });
+
+        if (variantResult.success) {
+          logger.success(`Generated variant ${variantName}: ${variantResult.files.join(', ')}`);
+        }
+      } else {
+        const variantResult = await generateThemeTokens(
+          `${themeName}${suffix}`,
+          outputDir,
+          paletteContent,
+          dimensionContent,
+          platform,
+          filterLayer,
+          paletteResource.path,
+          dimensionResource.path
+        );
+
+        if (variantResult.success) {
+          logger.success(`Generated variant ${variantName}: ${variantResult.files.join(', ')}`);
+        }
       }
     }
   }
