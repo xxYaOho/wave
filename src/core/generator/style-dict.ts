@@ -114,7 +114,7 @@ export async function generateTokens(
     if (platform === undefined || platform === 'general') {
       generatedFiles.push(`${themeName}.json`, `${themeName}.jsonc`);
     }
-    if (platform === undefined || platform === 'css') {
+    if (platform === 'css') {
       generatedFiles.push(`${themeName}.css`);
     }
 
