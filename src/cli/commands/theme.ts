@@ -319,9 +319,17 @@ async function handleThemeGeneration(
     return;
   }
 
-  const outputDir = options.output
-    ? expandHomePath(options.output)
-    : path.join(process.env.HOME || '', 'Downloads', themeName);
+  let outputDir: string;
+  if (options.output) {
+    outputDir = expandHomePath(options.output);
+  } else if (parsedThemefile.PARAMETER?.output) {
+    const outputPath = parsedThemefile.PARAMETER.output;
+    outputDir = path.isAbsolute(outputPath)
+      ? outputPath
+      : path.join(themeDir, outputPath);
+  } else {
+    outputDir = path.join(process.env.HOME || '', 'Downloads', themeName);
+  }
 
   let paletteContent: string;
   let dimensionContent: string;
@@ -448,30 +456,49 @@ export const themeCommand = new Command('theme')
       process.exit(ExitCode.SUCCESS);
     }
 
-    if (!name) {
+    let themeName = name;
+
+    if (!themeName && !options.file) {
+      const defaultThemefile = 'themefile';
+      const file = Bun.file(defaultThemefile);
+      if (await file.exists()) {
+        options.file = defaultThemefile;
+        themeName = 'theme';
+      } else {
+        console.error('Error: No themefile found in current directory');
+        console.error('Usage: wave theme [path] or wave theme -f <path>');
+        console.error('Or create a themefile in current directory');
+        process.exit(ExitCode.FILE_NOT_FOUND);
+      }
+    }
+
+    if (!themeName && options.file) {
+      themeName = 'theme';
+    }
+
+    if (!themeName) {
       console.error('Error: Theme name is required');
-      console.log('Usage: wave theme <name>');
-      console.log('Try "wave help theme" for more information.');
+      console.error('Usage: wave theme [path] or wave theme -f <path>');
       process.exit(ExitCode.MISSING_PARAMETER);
     }
 
-    logger.info(`Generating theme: ${name}`);
+    logger.info(`Generating theme: ${themeName}`);
     logger.info(`Version: ${VERSION}`);
 
-    if (isBuiltinTheme(name) && !options.file) {
-      const config = BUILTIN_THEMES[name];
+    if (isBuiltinTheme(themeName) && !options.file) {
+      const config = BUILTIN_THEMES[themeName];
       if (!config) {
         process.exitCode = ExitCode.THEME_NOT_FOUND;
-        logger.error(`Theme not found: ${name}`);
+        logger.error(`Theme not found: ${themeName}`);
         return;
       }
-      await handleBuiltinTheme(name, config, options);
+      await handleBuiltinTheme(themeName, config, options);
       return;
     }
 
     const themeDir = options.file
       ? path.dirname(expandHomePath(options.file))
-      : path.join(process.env.HOME || '', 'Downloads', name);
+      : path.join(process.env.HOME || '', 'Downloads', themeName);
 
     const themefilePath = options.file
       ? expandHomePath(options.file)
@@ -484,10 +511,10 @@ export const themeCommand = new Command('theme')
         logger.error(`Themefile not found: ${themefilePath}`);
       } else {
         process.exitCode = ExitCode.THEME_NOT_FOUND;
-        logger.error(`Theme not found: ${name}`);
+        logger.error(`Theme not found: ${themeName}`);
       }
       return;
     }
 
-    await handleThemeGeneration(name, options);
+    await handleThemeGeneration(themeName, options);
   });

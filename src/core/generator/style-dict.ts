@@ -67,31 +67,31 @@ export async function generateTokens(
       platforms.json = {
         buildPath: outputDir,
         transforms: ['attribute/cti', nameKebabTransform.name],
-        options: { filterLayer },
         files: [{
           destination: `${themeName}.json`,
           format: flatJsonFormat.name,
+          options: { filterLayer },
         }],
       };
       platforms.jsonc = {
         buildPath: outputDir,
         transforms: ['attribute/cti', nameKebabTransform.name],
-        options: { filterLayer },
         files: [{
           destination: `${themeName}.jsonc`,
           format: flatJsoncFormat.name,
+          options: { filterLayer },
         }],
       };
     }
 
-    if (platform === undefined || platform === 'css') {
+    if (platform === 'css') {
       platforms.css = {
         buildPath: outputDir,
         transforms: ['attribute/cti', nameKebabTransform.name],
-        options: { filterLayer },
         files: [{
           destination: `${themeName}.css`,
           format: cssVariablesWithDescFormat.name,
+          options: { filterLayer },
         }],
       };
     }
