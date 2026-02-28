@@ -57,11 +57,19 @@ function processValue(value: DtcgValue): DtcgValue {
   return value;
 }
 
+export interface TransformResult {
+  tree: SdTokenTree;
+  order: string[];
+}
+
+let orderCounter = 0;
+
 export function transformToSDFormat(
   resolved: ResolvedTokenGroup,
   parentType?: string
-): SdTokenTree {
+): TransformResult {
   const result: SdTokenTree = {};
+  const order: string[] = [];
   const inheritedType = resolved.$type ?? parentType;
 
   for (const key of Object.keys(resolved)) {
@@ -80,26 +88,31 @@ export function transformToSDFormat(
     }
 
     if (isResolvedToken(value)) {
-      result[key] = transformToken(value, inheritedType);
+      result[key] = transformToken(value, inheritedType, orderCounter++);
+      order.push(key);
     } else {
-      result[key] = transformToSDFormat(
+      const nested = transformToSDFormat(
         value as ResolvedTokenGroup,
         inheritedType
       );
+      result[key] = nested.tree;
+      order.push(...nested.order.map(k => `${key}.${k}`));
     }
   }
 
-  return result;
+  return { tree: result, order };
 }
 
 function transformToken(
   token: ResolvedDtcgToken,
-  parentType: string | undefined
+  parentType: string | undefined,
+  order: number
 ): SdTokenValue {
   const processedValue = processValue(token.$value);
 
   const sdValue: SdTokenValue = {
     value: processedValue,
+    _order: order,
   };
 
   const typeValue = token.$type ?? parentType;
