@@ -4,7 +4,7 @@ Design Token CLI 工具，用于生成主题配置文件。
 
 ## 版本
 
-v0.2.1
+v0.3.0
 
 ## 安装
 
@@ -60,6 +60,33 @@ theme:
 |------|------|
 | `{leonardo.global.color.xxx.yyy}` | leonardo 色板颜色 |
 | `{wave.global.dimension.xxx.yyy}` | wave 维度数值 |
+| `{theme.xxx}` | 文件内部引用 (v0.3.0+) |
+
+#### 内部嵌套引用 (v0.3.0+)
+
+支持在 main.yaml 中使用 `{theme.path.to.token}` 进行文件内部引用：
+
+```yaml
+theme:
+  color:
+    text:
+      default: "{leonardo.global.color.deepGray.light.800}"
+      disabled:
+        $value:
+          color: "{theme.color.text.default}"
+          alpha: "{wave.global.dimension.alpha.400}"
+```
+
+**循环引用检测**：包含循环引用时会在构建时报错。
+
+#### 备注位置优化 (v0.3.0+)
+
+- 单行 `$description` 显示在 token 同一行末尾
+- 多行 `$description` 保持在 token 上方
+
+#### 排序保持 (v0.3.0+)
+
+输出的 token 顺序与 main.yaml 中的定义顺序一致。
 
 #### color+alpha 复合值
 
