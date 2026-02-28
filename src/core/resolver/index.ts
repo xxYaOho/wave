@@ -3,7 +3,7 @@ import type { ResourceType, ResolvedResource } from '../../types/index.ts';
 
 export { loadBuiltinPalette, loadBuiltinDimension, getBuiltinPalettePath, getBuiltinDimensionPath } from './builtin.ts';
 export { loadUserPalette, loadUserDimension, type UserPalette, type UserDimension } from './user.ts';
-export { resolveReferences } from './theme-reference.ts';
+export { resolveReferences, CircularReferenceError } from './theme-reference.ts';
 
 const RESOURCES_DIR = path.join(import.meta.dir, '..', '..', 'resources');
 

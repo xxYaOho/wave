@@ -1,4 +1,5 @@
 import { logger } from '../../utils/logger.ts';
+import { ExitCode } from '../../types/index.ts';
 import type {
   DtcgScalarValue,
   DtcgToken,
@@ -11,6 +12,14 @@ import type {
 import { isDtcgToken } from '../../types/index.ts';
 
 const REFERENCE_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)*)\}$/;
+
+export class CircularReferenceError extends Error {
+  public readonly exitCode = ExitCode.INVALID_PARAMETER;
+  constructor(public readonly path: string[]) {
+    super(`Circular reference detected: ${path.join(' -> ')}`);
+    this.name = 'CircularReferenceError';
+  }
+}
 
 function getValueAtPath(obj: unknown, path: string[]): unknown {
   let current: unknown = obj;
@@ -75,7 +84,7 @@ function extractValue(found: unknown): DtcgValue | undefined {
   return undefined;
 }
 
-function resolveReference(ref: string, sources: ReferenceDataSources): DtcgValue | undefined {
+function resolveExternalReference(ref: string, sources: ReferenceDataSources): DtcgValue | undefined {
   const match = ref.match(REFERENCE_PATTERN);
 
   if (!match) {
@@ -120,13 +129,43 @@ function resolveReference(ref: string, sources: ReferenceDataSources): DtcgValue
     return extracted;
   }
 
-  logger.warn(`Unknown reference prefix: ${prefix}`);
   return undefined;
 }
 
-function resolveDtcgValue(value: DtcgValue, sources: ReferenceDataSources): DtcgValue {
+function resolveThemeReference(
+  ref: string,
+  themeTree: ResolvedTokenGroup,
+  resolutionPath: string[]
+): DtcgValue | undefined {
+  const match = ref.match(REFERENCE_PATTERN);
+
+  if (!match) {
+    return undefined;
+  }
+
+  const pathStr = match[1];
+
+  if (pathStr === undefined) {
+    return undefined;
+  }
+
+  if (!pathStr.startsWith('theme.')) {
+    return undefined;
+  }
+
+  if (resolutionPath.includes(pathStr)) {
+    const cyclePath = [...resolutionPath, pathStr];
+    throw new CircularReferenceError(cyclePath);
+  }
+
+  const path = pathStr.split('.');
+  const found = getValueAtPath(themeTree, path);
+  return extractValue(found);
+}
+
+function resolveExternalDtcgValue(value: DtcgValue, sources: ReferenceDataSources): DtcgValue {
   if (typeof value === 'string') {
-    const resolved = resolveReference(value, sources);
+    const resolved = resolveExternalReference(value, sources);
     return resolved !== undefined ? resolved : value;
   }
 
@@ -137,7 +176,7 @@ function resolveDtcgValue(value: DtcgValue, sources: ReferenceDataSources): Dtcg
       if (Array.isArray(val)) {
         const resolvedArray: DtcgScalarValue[] = val.map((item) => {
           if (typeof item === 'string') {
-            const itemResolved = resolveReference(item, sources);
+            const itemResolved = resolveExternalReference(item, sources);
             if (itemResolved !== undefined && isDtcgScalarValue(itemResolved)) {
               return itemResolved;
             }
@@ -146,7 +185,7 @@ function resolveDtcgValue(value: DtcgValue, sources: ReferenceDataSources): Dtcg
         });
         resolved[key] = resolvedArray;
       } else if (typeof val === 'string') {
-        const valResolved = resolveReference(val, sources);
+        const valResolved = resolveExternalReference(val, sources);
         if (valResolved !== undefined) {
           if (isDtcgScalarValue(valResolved)) {
             resolved[key] = valResolved;
@@ -168,8 +207,56 @@ function resolveDtcgValue(value: DtcgValue, sources: ReferenceDataSources): Dtcg
   return value;
 }
 
-function processToken(token: DtcgToken, sources: ReferenceDataSources): ResolvedDtcgToken {
-  const resolvedValue = resolveDtcgValue(token.$value, sources);
+function resolveThemeDtcgValue(
+  value: DtcgValue,
+  themeTree: ResolvedTokenGroup,
+  resolutionPath: string[]
+): DtcgValue {
+  if (typeof value === 'string') {
+    const resolved = resolveThemeReference(value, themeTree, resolutionPath);
+    return resolved !== undefined ? resolved : value;
+  }
+
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const resolved: Record<string, DtcgScalarValue | DtcgScalarValue[]> = {};
+
+    for (const [key, val] of Object.entries(value)) {
+      if (Array.isArray(val)) {
+        const resolvedArray: DtcgScalarValue[] = val.map((item) => {
+          if (typeof item === 'string') {
+            const itemResolved = resolveThemeReference(item, themeTree, resolutionPath);
+            if (itemResolved !== undefined && isDtcgScalarValue(itemResolved)) {
+              return itemResolved;
+            }
+          }
+          return item;
+        });
+        resolved[key] = resolvedArray;
+      } else if (typeof val === 'string') {
+        const valResolved = resolveThemeReference(val, themeTree, resolutionPath);
+        if (valResolved !== undefined) {
+          if (isDtcgScalarValue(valResolved)) {
+            resolved[key] = valResolved;
+          } else {
+            logger.warn(`Theme reference resolved to object, expected scalar: ${val}`);
+            resolved[key] = val;
+          }
+        } else {
+          resolved[key] = val;
+        }
+      } else {
+        resolved[key] = val;
+      }
+    }
+
+    return resolved;
+  }
+
+  return value;
+}
+
+function processTokenExternal(token: DtcgToken, sources: ReferenceDataSources): ResolvedDtcgToken {
+  const resolvedValue = resolveExternalDtcgValue(token.$value, sources);
 
   return {
     $value: resolvedValue,
@@ -179,7 +266,7 @@ function processToken(token: DtcgToken, sources: ReferenceDataSources): Resolved
   };
 }
 
-function processTokenGroup(
+function processTokenGroupExternal(
   group: DtcgTokenGroup,
   sources: ReferenceDataSources
 ): ResolvedTokenGroup {
@@ -199,9 +286,9 @@ function processTokenGroup(
     }
 
     if (isDtcgToken(value)) {
-      result[key] = processToken(value, sources);
+      result[key] = processTokenExternal(value, sources);
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      result[key] = processTokenGroup(value as DtcgTokenGroup, sources);
+      result[key] = processTokenGroupExternal(value as DtcgTokenGroup, sources);
     } else {
       result[key] = value as string | number | boolean | undefined;
     }
@@ -210,9 +297,126 @@ function processTokenGroup(
   return result;
 }
 
+function processTokenTheme(
+  token: ResolvedDtcgToken,
+  themeTree: ResolvedTokenGroup,
+  currentPath: string
+): ResolvedDtcgToken {
+  const resolutionPath = currentPath ? [currentPath] : [];
+  const resolvedValue = resolveThemeDtcgValue(token.$value, themeTree, resolutionPath);
+
+  return {
+    $value: resolvedValue,
+    ...(token.$type !== undefined && { $type: token.$type }),
+    ...(token.$description !== undefined && { $description: token.$description }),
+    ...(token.$deprecated !== undefined && { $deprecated: token.$deprecated }),
+  };
+}
+
+function processTokenGroupTheme(
+  group: ResolvedTokenGroup,
+  themeTree: ResolvedTokenGroup,
+  parentPath: string
+): ResolvedTokenGroup {
+  const result: ResolvedTokenGroup = {};
+
+  if (group.$type !== undefined) {
+    result.$type = group.$type;
+  }
+
+  if (group.$description !== undefined) {
+    result.$description = group.$description;
+  }
+
+  for (const [key, value] of Object.entries(group)) {
+    if (key === '$type' || key === '$description') {
+      continue;
+    }
+
+    const currentPath = parentPath ? `${parentPath}.${key}` : key;
+
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      '$value' in value
+    ) {
+      result[key] = processTokenTheme(value as ResolvedDtcgToken, themeTree, currentPath);
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      result[key] = processTokenGroupTheme(value as ResolvedTokenGroup, themeTree, currentPath);
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
+
+function hasThemeReferences(value: DtcgValue): boolean {
+  if (typeof value === 'string') {
+    const match = value.match(REFERENCE_PATTERN);
+    if (match && match[1]?.startsWith('theme.')) {
+      return true;
+    }
+    return false;
+  }
+
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    for (const [, val] of Object.entries(value)) {
+      if (Array.isArray(val)) {
+        if (val.some((item) => typeof item === 'string' && hasThemeReferences(item))) {
+          return true;
+        }
+      } else if (typeof val === 'string' && hasThemeReferences(val)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function tokenHasThemeReferences(token: ResolvedDtcgToken): boolean {
+  return hasThemeReferences(token.$value);
+}
+
+function groupHasThemeReferences(group: ResolvedTokenGroup): boolean {
+  for (const [key, value] of Object.entries(group)) {
+    if (key === '$type' || key === '$description') {
+      continue;
+    }
+
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      '$value' in value
+    ) {
+      if (tokenHasThemeReferences(value as ResolvedDtcgToken)) {
+        return true;
+      }
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if (groupHasThemeReferences(value as ResolvedTokenGroup)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export function resolveReferences(
   tree: DtcgTokenGroup,
   sources: ReferenceDataSources
 ): ResolvedTokenGroup {
-  return processTokenGroup(tree, sources);
+  // Pass 1: Resolve external references (leonardo.*, wave.*)
+  let result = processTokenGroupExternal(tree, sources);
+
+  // Pass 2: Resolve internal theme references (theme.*)
+  // Iterate until no more theme references are found
+  let maxIterations = 10;
+  while (groupHasThemeReferences(result) && maxIterations > 0) {
+    result = processTokenGroupTheme(result, result, '');
+    maxIterations--;
+  }
+
+  return result;
 }
