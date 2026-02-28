@@ -198,7 +198,8 @@ export interface SdTokenValue {
   value: DtcgValue;
   type?: string;
   comment?: string;
-  deprecated?: boolean | string;
+  deprecated?: string | boolean;
+  _order?: number;
 }
 
 export type SdTokenTree = {

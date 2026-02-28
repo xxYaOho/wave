@@ -18,9 +18,7 @@ function formatFlatJson(
 ): string {
   const result: Record<string, unknown> = {};
   
-  const sortedTokens = [...tokens].sort((a, b) => a.name.localeCompare(b.name));
-  
-  for (const token of sortedTokens) {
+  for (const token of tokens) {
     const key = getFilteredName(token, filterLayer);
     const tokenValue = token.$value ?? token.value;
     result[key] = tokenValue;
@@ -44,10 +42,8 @@ export const flatJsoncFormat: Format = {
     const tokens = dictionary.allTokens;
     const lines: string[] = ['{'];
     
-    const sortedTokens = [...tokens].sort((a, b) => a.name.localeCompare(b.name));
-    
-    for (let i = 0; i < sortedTokens.length; i++) {
-      const token = sortedTokens[i];
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
       if (!token) continue;
       
       const key = getFilteredName(token, filterLayer);
@@ -58,7 +54,7 @@ export const flatJsoncFormat: Format = {
         lines.push(`  // ${description}`);
       }
       
-      const comma = i < sortedTokens.length - 1 ? ',' : '';
+      const comma = i < tokens.length - 1 ? ',' : '';
       lines.push(`  "${key}": ${JSON.stringify(tokenValue)}${comma}`);
     }
     

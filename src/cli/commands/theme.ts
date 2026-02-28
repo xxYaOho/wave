@@ -125,7 +125,7 @@ async function parseAndResolveThemeYaml(
   yamlPath: string,
   paletteResult: PaletteResult,
   dimensionResult: DimensionResult
-): Promise<SdTokenTree | null> {
+): Promise<{ tree: SdTokenTree; order: string[] } | null> {
   const file = Bun.file(yamlPath);
   if (!(await file.exists())) {
     return null;
@@ -146,13 +146,14 @@ async function parseAndResolveThemeYaml(
 
   try {
     const resolved = resolveReferences(parsed.raw, sources);
-    return transformToSDFormat(resolved);
+    const transformResult = transformToSDFormat(resolved);
+    return { tree: transformResult.tree, order: transformResult.order };
   } catch (err) {
     if (err instanceof CircularReferenceError) {
       logger.error(err.message);
-      process.exitCode = err.exitCode;
-      return null;
-    }
+    process.exitCode = err.exitCode;
+    return null;
+  }
     throw err;
   }
 }
@@ -427,14 +428,14 @@ async function handleThemeGeneration(
 
   if (hasMainYaml) {
     logger.info('Found main.yaml, parsing theme tokens...');
-    const sdTokens = await parseAndResolveThemeYaml(mainYamlPath, palette, dimension);
+    const parseResult = await parseAndResolveThemeYaml(mainYamlPath, palette, dimension);
 
-    if (sdTokens) {
+    if (parseResult) {
       await fs.mkdir(outputDir, { recursive: true });
       mainResult = await generateTokens({
         themeName,
         outputDir,
-        tokens: sdTokens,
+        tokens: parseResult.tree,
         platform,
         filterLayer,
       });
@@ -522,13 +523,13 @@ async function handleThemeGeneration(
 
     if (hasNightYaml) {
       logger.info('Found main@night.yaml, parsing night theme tokens...');
-      const nightTokens = await parseAndResolveThemeYaml(nightYamlPath, palette, dimension);
+      const nightResult = await parseAndResolveThemeYaml(nightYamlPath, palette, dimension);
 
-      if (nightTokens) {
+      if (nightResult) {
         const nightGenResult = await generateTokens({
           themeName: `${themeName}-night`,
           outputDir,
-          tokens: nightTokens,
+          tokens: nightResult.tree,
           platform,
           filterLayer,
         });
