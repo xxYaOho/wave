@@ -15,7 +15,7 @@ import { parseThemefile } from '../../core/parser/themefile.ts';
 import { parsePalette, validatePaletteSchema } from '../../core/parser/palette.ts';
 import { parseDimension, validateDimensionSchema } from '../../core/parser/dimension.ts';
 import { parseThemeYaml } from '../../core/parser/index.ts';
-import { resolveResource, resolveReferences, CircularReferenceError } from '../../core/resolver/index.ts';
+import { resolveResource, resolveReferences, CircularReferenceError, UnresolvedReferenceError } from '../../core/resolver/index.ts';
 import { transformToSDFormat } from '../../core/transformer/index.ts';
 import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
 import { generateTokens, type GeneratorResult } from '../../core/generator/index.ts';
@@ -151,9 +151,14 @@ async function parseAndResolveThemeYaml(
   } catch (err) {
     if (err instanceof CircularReferenceError) {
       logger.error(err.message);
-    process.exitCode = err.exitCode;
-    return null;
-  }
+      process.exitCode = err.exitCode;
+      return null;
+    }
+    if (err instanceof UnresolvedReferenceError) {
+      logger.error(err.message);
+      process.exitCode = err.exitCode;
+      return null;
+    }
     throw err;
   }
 }

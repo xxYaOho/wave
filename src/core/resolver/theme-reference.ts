@@ -21,6 +21,20 @@ export class CircularReferenceError extends Error {
   }
 }
 
+export interface UnresolvedReference {
+  ref: string;
+  location: string;
+}
+
+export class UnresolvedReferenceError extends Error {
+  public readonly exitCode = ExitCode.INVALID_PARAMETER;
+  constructor(public readonly references: UnresolvedReference[]) {
+    const details = references.map(r => `  - ${r.ref} at ${r.location}`).join('\n');
+    super(`Unresolved theme references found:\n${details}`);
+    this.name = 'UnresolvedReferenceError';
+  }
+}
+
 function getValueAtPath(obj: unknown, path: string[]): unknown {
   let current: unknown = obj;
 
@@ -135,7 +149,9 @@ function resolveExternalReference(ref: string, sources: ReferenceDataSources): D
 function resolveThemeReference(
   ref: string,
   themeTree: ResolvedTokenGroup,
-  resolutionPath: string[]
+  resolutionPath: string[],
+  unresolvedCollector: UnresolvedReference[],
+  currentLocation: string
 ): DtcgValue | undefined {
   const match = ref.match(REFERENCE_PATTERN);
 
@@ -160,7 +176,13 @@ function resolveThemeReference(
 
   const path = pathStr.split('.');
   const found = getValueAtPath(themeTree, path);
-  return extractValue(found);
+  const extracted = extractValue(found);
+  
+  if (extracted === undefined) {
+    unresolvedCollector.push({ ref, location: currentLocation });
+  }
+  
+  return extracted;
 }
 
 function resolveExternalDtcgValue(value: DtcgValue, sources: ReferenceDataSources): DtcgValue {
@@ -210,10 +232,12 @@ function resolveExternalDtcgValue(value: DtcgValue, sources: ReferenceDataSource
 function resolveThemeDtcgValue(
   value: DtcgValue,
   themeTree: ResolvedTokenGroup,
-  resolutionPath: string[]
+  resolutionPath: string[],
+  unresolvedCollector: UnresolvedReference[],
+  currentLocation: string
 ): DtcgValue {
   if (typeof value === 'string') {
-    const resolved = resolveThemeReference(value, themeTree, resolutionPath);
+    const resolved = resolveThemeReference(value, themeTree, resolutionPath, unresolvedCollector, currentLocation);
     return resolved !== undefined ? resolved : value;
   }
 
@@ -224,7 +248,7 @@ function resolveThemeDtcgValue(
       if (Array.isArray(val)) {
         const resolvedArray: DtcgScalarValue[] = val.map((item) => {
           if (typeof item === 'string') {
-            const itemResolved = resolveThemeReference(item, themeTree, resolutionPath);
+            const itemResolved = resolveThemeReference(item, themeTree, resolutionPath, unresolvedCollector, currentLocation);
             if (itemResolved !== undefined && isDtcgScalarValue(itemResolved)) {
               return itemResolved;
             }
@@ -233,7 +257,7 @@ function resolveThemeDtcgValue(
         });
         resolved[key] = resolvedArray;
       } else if (typeof val === 'string') {
-        const valResolved = resolveThemeReference(val, themeTree, resolutionPath);
+        const valResolved = resolveThemeReference(val, themeTree, resolutionPath, unresolvedCollector, currentLocation);
         if (valResolved !== undefined) {
           if (isDtcgScalarValue(valResolved)) {
             resolved[key] = valResolved;
@@ -300,10 +324,11 @@ function processTokenGroupExternal(
 function processTokenTheme(
   token: ResolvedDtcgToken,
   themeTree: ResolvedTokenGroup,
-  currentPath: string
+  currentPath: string,
+  unresolvedCollector: UnresolvedReference[]
 ): ResolvedDtcgToken {
   const resolutionPath = currentPath ? [currentPath] : [];
-  const resolvedValue = resolveThemeDtcgValue(token.$value, themeTree, resolutionPath);
+  const resolvedValue = resolveThemeDtcgValue(token.$value, themeTree, resolutionPath, unresolvedCollector, currentPath);
 
   return {
     $value: resolvedValue,
@@ -316,7 +341,8 @@ function processTokenTheme(
 function processTokenGroupTheme(
   group: ResolvedTokenGroup,
   themeTree: ResolvedTokenGroup,
-  parentPath: string
+  parentPath: string,
+  unresolvedCollector: UnresolvedReference[]
 ): ResolvedTokenGroup {
   const result: ResolvedTokenGroup = {};
 
@@ -340,9 +366,9 @@ function processTokenGroupTheme(
       value !== null &&
       '$value' in value
     ) {
-      result[key] = processTokenTheme(value as ResolvedDtcgToken, themeTree, currentPath);
+      result[key] = processTokenTheme(value as ResolvedDtcgToken, themeTree, currentPath, unresolvedCollector);
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      result[key] = processTokenGroupTheme(value as ResolvedTokenGroup, themeTree, currentPath);
+      result[key] = processTokenGroupTheme(value as ResolvedTokenGroup, themeTree, currentPath, unresolvedCollector);
     } else {
       result[key] = value;
     }
@@ -411,11 +437,20 @@ export function resolveReferences(
   let result = processTokenGroupExternal(tree, sources);
 
   // Pass 2: Resolve internal theme references (theme.*)
-  // Iterate until no more theme references are found
+  const unresolvedCollector: UnresolvedReference[] = [];
+  const unresolvedSet = new Set<string>();
   let maxIterations = 10;
   while (groupHasThemeReferences(result) && maxIterations > 0) {
-    result = processTokenGroupTheme(result, result, '');
+    result = processTokenGroupTheme(result, result, '', unresolvedCollector);
     maxIterations--;
+  }
+
+  if (unresolvedCollector.length > 0) {
+    const uniqueReferences = unresolvedCollector.filter((item, index, self) => {
+      const key = `${item.ref}|${item.location}`;
+      return unresolvedSet.has(key) ? false : (unresolvedSet.add(key), true);
+    });
+    throw new UnresolvedReferenceError(uniqueReferences);
   }
 
   return result;
