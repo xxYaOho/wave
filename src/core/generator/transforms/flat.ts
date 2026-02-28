@@ -54,12 +54,22 @@ export const flatJsoncFormat: Format = {
       const tokenValue = token.$value ?? token.value;
       
       const description = token.$description || token.description || token.comment;
-      if (description && typeof description === 'string' && description !== '~') {
-        lines.push(`  // ${description}`);
-      }
-      
+      const isMultilineDescription = description && typeof description === 'string' && description.includes('\n');
       const comma = i < sortedTokens.length - 1 ? ',' : '';
-      lines.push(`  "${key}": ${JSON.stringify(tokenValue)}${comma}`);
+      
+      if (description && typeof description === 'string' && description !== '~') {
+        if (isMultilineDescription) {
+          const descLines = description.split('\n');
+          for (const descLine of descLines) {
+            lines.push(`  // ${descLine}`);
+          }
+          lines.push(`  "${key}": ${JSON.stringify(tokenValue)}${comma}`);
+        } else {
+          lines.push(`  "${key}": ${JSON.stringify(tokenValue)}${comma} // ${description}`);
+        }
+      } else {
+        lines.push(`  "${key}": ${JSON.stringify(tokenValue)}${comma}`);
+      }
     }
     
     lines.push('}');
