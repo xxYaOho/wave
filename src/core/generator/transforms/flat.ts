@@ -18,9 +18,7 @@ function formatFlatJson(
 ): string {
   const result: Record<string, unknown> = {};
   
-  const sortedTokens = [...tokens].sort((a, b) => a.name.localeCompare(b.name));
-  
-  for (const token of sortedTokens) {
+  for (const token of tokens) {
     const key = getFilteredName(token, filterLayer);
     const tokenValue = token.$value ?? token.value;
     result[key] = tokenValue;
@@ -44,22 +42,30 @@ export const flatJsoncFormat: Format = {
     const tokens = dictionary.allTokens;
     const lines: string[] = ['{'];
     
-    const sortedTokens = [...tokens].sort((a, b) => a.name.localeCompare(b.name));
-    
-    for (let i = 0; i < sortedTokens.length; i++) {
-      const token = sortedTokens[i];
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
       if (!token) continue;
       
       const key = getFilteredName(token, filterLayer);
       const tokenValue = token.$value ?? token.value;
       
       const description = token.$description || token.description || token.comment;
-      if (description && typeof description === 'string' && description !== '~') {
-        lines.push(`  // ${description}`);
-      }
+      const isMultilineDescription = description && typeof description === 'string' && description.includes('\n');
+      const comma = i < tokens.length - 1 ? ',' : '';
       
-      const comma = i < sortedTokens.length - 1 ? ',' : '';
-      lines.push(`  "${key}": ${JSON.stringify(tokenValue)}${comma}`);
+      if (description && typeof description === 'string' && description !== '~') {
+        if (isMultilineDescription) {
+          const descLines = description.split('\n');
+          for (const descLine of descLines) {
+            lines.push(`  // ${descLine}`);
+          }
+          lines.push(`  "${key}": ${JSON.stringify(tokenValue)}${comma}`);
+        } else {
+          lines.push(`  "${key}": ${JSON.stringify(tokenValue)}${comma} // ${description}`);
+        }
+      } else {
+        lines.push(`  "${key}": ${JSON.stringify(tokenValue)}${comma}`);
+      }
     }
     
     lines.push('}');

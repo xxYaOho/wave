@@ -15,7 +15,7 @@ import { parseThemefile } from '../../core/parser/themefile.ts';
 import { parsePalette, validatePaletteSchema } from '../../core/parser/palette.ts';
 import { parseDimension, validateDimensionSchema } from '../../core/parser/dimension.ts';
 import { parseThemeYaml } from '../../core/parser/index.ts';
-import { resolveResource, resolveReferences } from '../../core/resolver/index.ts';
+import { resolveResource, resolveReferences, CircularReferenceError, UnresolvedReferenceError } from '../../core/resolver/index.ts';
 import { transformToSDFormat } from '../../core/transformer/index.ts';
 import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
 import { generateTokens, type GeneratorResult } from '../../core/generator/index.ts';
@@ -125,7 +125,7 @@ async function parseAndResolveThemeYaml(
   yamlPath: string,
   paletteResult: PaletteResult,
   dimensionResult: DimensionResult
-): Promise<SdTokenTree | null> {
+): Promise<{ tree: SdTokenTree; order: string[] } | null> {
   const file = Bun.file(yamlPath);
   if (!(await file.exists())) {
     return null;
@@ -144,8 +144,23 @@ async function parseAndResolveThemeYaml(
     dimension: { global: { dimension: dimensionResult.global.dimension } },
   };
 
-  const resolved = resolveReferences(parsed.raw, sources);
-  return transformToSDFormat(resolved);
+  try {
+    const resolved = resolveReferences(parsed.raw, sources);
+    const transformResult = transformToSDFormat(resolved);
+    return { tree: transformResult.tree, order: transformResult.order };
+  } catch (err) {
+    if (err instanceof CircularReferenceError) {
+      logger.error(err.message);
+      process.exitCode = err.exitCode;
+      return null;
+    }
+    if (err instanceof UnresolvedReferenceError) {
+      logger.error(err.message);
+      process.exitCode = err.exitCode;
+      return null;
+    }
+    throw err;
+  }
 }
 
 async function generateThemeTokens(
@@ -418,14 +433,14 @@ async function handleThemeGeneration(
 
   if (hasMainYaml) {
     logger.info('Found main.yaml, parsing theme tokens...');
-    const sdTokens = await parseAndResolveThemeYaml(mainYamlPath, palette, dimension);
+    const parseResult = await parseAndResolveThemeYaml(mainYamlPath, palette, dimension);
 
-    if (sdTokens) {
+    if (parseResult) {
       await fs.mkdir(outputDir, { recursive: true });
       mainResult = await generateTokens({
         themeName,
         outputDir,
-        tokens: sdTokens,
+        tokens: parseResult.tree,
         platform,
         filterLayer,
       });
@@ -513,13 +528,13 @@ async function handleThemeGeneration(
 
     if (hasNightYaml) {
       logger.info('Found main@night.yaml, parsing night theme tokens...');
-      const nightTokens = await parseAndResolveThemeYaml(nightYamlPath, palette, dimension);
+      const nightResult = await parseAndResolveThemeYaml(nightYamlPath, palette, dimension);
 
-      if (nightTokens) {
+      if (nightResult) {
         const nightGenResult = await generateTokens({
           themeName: `${themeName}-night`,
           outputDir,
-          tokens: nightTokens,
+          tokens: nightResult.tree,
           platform,
           filterLayer,
         });
