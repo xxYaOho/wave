@@ -591,7 +591,7 @@ async function handleThemeGeneration(
         const variantResult = await generateTokens({
           themeName: `${themeName}${suffix}`,
           outputDir,
-          tokens: variantTokens,
+          tokens: variantTokens.tree,
           platform,
           filterLayer,
         });
