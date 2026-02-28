@@ -15,7 +15,7 @@ import { parseThemefile } from '../../core/parser/themefile.ts';
 import { parsePalette, validatePaletteSchema } from '../../core/parser/palette.ts';
 import { parseDimension, validateDimensionSchema } from '../../core/parser/dimension.ts';
 import { parseThemeYaml } from '../../core/parser/index.ts';
-import { resolveResource, resolveReferences } from '../../core/resolver/index.ts';
+import { resolveResource, resolveReferences, CircularReferenceError } from '../../core/resolver/index.ts';
 import { transformToSDFormat } from '../../core/transformer/index.ts';
 import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
 import { generateTokens, type GeneratorResult } from '../../core/generator/index.ts';
@@ -144,8 +144,17 @@ async function parseAndResolveThemeYaml(
     dimension: { global: { dimension: dimensionResult.global.dimension } },
   };
 
-  const resolved = resolveReferences(parsed.raw, sources);
-  return transformToSDFormat(resolved);
+  try {
+    const resolved = resolveReferences(parsed.raw, sources);
+    return transformToSDFormat(resolved);
+  } catch (err) {
+    if (err instanceof CircularReferenceError) {
+      logger.error(err.message);
+      process.exitCode = err.exitCode;
+      return null;
+    }
+    throw err;
+  }
 }
 
 async function generateThemeTokens(
