@@ -9,6 +9,7 @@ import {
   type DimensionResult,
   type ReferenceDataSources,
   type SdTokenTree,
+  type ColorSpaceFormat,
 } from '../../types/index.ts';
 import { VERSION } from '../../config/index.ts';
 import { parseThemefile } from '../../core/parser/themefile.ts';
@@ -124,7 +125,8 @@ async function buildTokens(
 async function parseAndResolveThemeYaml(
   yamlPath: string,
   paletteResult: PaletteResult,
-  dimensionResult: DimensionResult
+  dimensionResult: DimensionResult,
+  colorSpace?: ColorSpaceFormat
 ): Promise<{ tree: SdTokenTree; order: string[] } | null> {
   const file = Bun.file(yamlPath);
   if (!(await file.exists())) {
@@ -146,7 +148,7 @@ async function parseAndResolveThemeYaml(
 
   try {
     const resolved = resolveReferences(parsed.raw, sources);
-    const transformResult = transformToSDFormat(resolved);
+    const transformResult = transformToSDFormat(resolved, undefined, colorSpace);
     return { tree: transformResult.tree, order: transformResult.order };
   } catch (err) {
     if (err instanceof CircularReferenceError) {
@@ -357,6 +359,12 @@ async function handleThemeGeneration(
     typeof filterLayerParam === 'string' ? parseInt(filterLayerParam, 10) :
     undefined;
 
+  const colorSpaceParam = parsedThemefile.PARAMETER?.colorSpace;
+  const colorSpace: ColorSpaceFormat | undefined =
+    colorSpaceParam && ['hex', 'oklch', 'srgb', 'hsl'].includes(colorSpaceParam)
+      ? (colorSpaceParam as ColorSpaceFormat)
+      : undefined;
+
   const paletteResource = resolveResource(paletteRef, 'palette', themeDir);
   const dimensionResource = resolveResource(dimensionRef, 'dimension', themeDir);
 
@@ -433,7 +441,7 @@ async function handleThemeGeneration(
 
   if (hasMainYaml) {
     logger.info('Found main.yaml, parsing theme tokens...');
-    const parseResult = await parseAndResolveThemeYaml(mainYamlPath, palette, dimension);
+    const parseResult = await parseAndResolveThemeYaml(mainYamlPath, palette, dimension, colorSpace);
 
     if (parseResult) {
       await fs.mkdir(outputDir, { recursive: true });
@@ -528,7 +536,7 @@ async function handleThemeGeneration(
 
     if (hasNightYaml) {
       logger.info('Found main@night.yaml, parsing night theme tokens...');
-      const nightResult = await parseAndResolveThemeYaml(nightYamlPath, palette, dimension);
+      const nightResult = await parseAndResolveThemeYaml(nightYamlPath, palette, dimension, colorSpace);
 
       if (nightResult) {
         const nightGenResult = await generateTokens({
@@ -585,7 +593,7 @@ async function handleThemeGeneration(
       const baseName = isNightVariant ? variantName.replace('@night', '') : variantName;
       const suffix = isNightVariant ? `-${baseName}-night` : `-${baseName}`;
 
-      const variantTokens = await parseAndResolveThemeYaml(variantFile, palette, dimension);
+      const variantTokens = await parseAndResolveThemeYaml(variantFile, palette, dimension, colorSpace);
 
       if (variantTokens) {
         const variantResult = await generateTokens({
