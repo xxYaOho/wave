@@ -62,7 +62,7 @@ function createColorFromSpace(colorSpace: ColorSpaceType, components: number[]):
 
   switch (colorSpace) {
     case 'oklch':
-      return chroma.oklch(a * 100, b, c);
+      return chroma.oklch(a, b, c);
     case 'srgb':
       return chroma.rgb(a * 255, b * 255, c * 255);
     case 'hsl':
