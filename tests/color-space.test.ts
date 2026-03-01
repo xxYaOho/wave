@@ -147,7 +147,7 @@ describe('convertColorSpace', () => {
     test('converts HSL to hex', () => {
       const value: DtcgColorSpaceValue = {
         colorSpace: 'hsl',
-        components: [330, 100, 50],
+        components: [300, 100, 50],
       };
       const result = convertColorSpace(value, 'hex');
       expect(result.success).toBe(true);
@@ -157,7 +157,7 @@ describe('convertColorSpace', () => {
     test('outputs HSL format when target is hsl', () => {
       const value: DtcgColorSpaceValue = {
         colorSpace: 'hsl',
-        components: [330, 100, 50],
+        components: [300, 100, 50],
       };
       const result = convertColorSpace(value, 'hsl');
       expect(result.success).toBe(true);
@@ -167,7 +167,7 @@ describe('convertColorSpace', () => {
     test('includes alpha in HSL output when alpha < 1', () => {
       const value: DtcgColorSpaceValue = {
         colorSpace: 'hsl',
-        components: [330, 100, 50],
+        components: [300, 100, 50],
         alpha: 0.5,
       };
       const result = convertColorSpace(value, 'hsl');

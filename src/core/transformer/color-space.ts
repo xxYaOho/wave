@@ -1,4 +1,4 @@
-import chroma from 'chroma.js';
+import chroma from 'chroma-js';
 import {
   type DtcgColorSpaceValue,
   type ColorSpaceFormat,
@@ -66,7 +66,7 @@ function createColorFromSpace(colorSpace: ColorSpaceType, components: number[]):
     case 'srgb':
       return chroma.rgb(a * 255, b * 255, c * 255);
     case 'hsl':
-      return chroma.hsl(a, b, c);
+      return chroma.hsl(a, b / 100, c / 100);
     default:
       throw new Error(`Unsupported color space: ${colorSpace}`);
   }
