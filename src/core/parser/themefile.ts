@@ -39,7 +39,7 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
           if (!result.PARAMETER) {
             result.PARAMETER = {};
           }
-            const validParams = ['night', 'variants', 'output', 'platform', 'brand', 'filter-layer', 'filterLayer'] as const;
+            const validParams = ['night', 'variants', 'output', 'platform', 'brand', 'filter-layer', 'filterLayer', 'colorSpace'] as const;
           type ValidParam = typeof validParams[number];
           if (validParams.includes(paramKey as ValidParam)) {
             const internalKey = paramKey === 'filter-layer' || paramKey === 'filterLayer' ? 'filterLayer' : paramKey;
