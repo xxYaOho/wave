@@ -4,8 +4,10 @@ import {
   type SdTokenTree,
   type SdTokenValue,
   type DtcgValue,
+  type ColorSpaceFormat,
   isResolvedToken,
 } from "../../types/index.ts";
+import { isDtcgColorSpaceValue, convertColorSpace } from "./color-space.ts";
 
 function isColorAlphaObject(value: unknown): value is { color: string; alpha: number } {
   if (typeof value !== "object" || value === null) {
@@ -50,7 +52,18 @@ function convertColorWithAlpha(value: { color: string; alpha: number | string })
   return color;
 }
 
-function processValue(value: DtcgValue): DtcgValue {
+function processValue(
+  value: DtcgValue,
+  targetFormat: ColorSpaceFormat = 'hex',
+  tokenPath?: string
+): DtcgValue {
+  if (isDtcgColorSpaceValue(value)) {
+    const result = convertColorSpace(value, targetFormat, tokenPath);
+    if (!result.success) {
+      throw new Error(result.error || 'Color space conversion failed');
+    }
+    return result.value as DtcgValue;
+  }
   if (isColorAlphaObject(value)) {
     return convertColorWithAlpha(value as { color: string; alpha: number | string });
   }
@@ -66,7 +79,9 @@ let orderCounter = 0;
 
 export function transformToSDFormat(
   resolved: ResolvedTokenGroup,
-  parentType?: string
+  parentType?: string,
+  targetColorSpace: ColorSpaceFormat = 'hex',
+  currentPath: string = ''
 ): TransformResult {
   const result: SdTokenTree = {};
   const order: string[] = [];
@@ -78,6 +93,7 @@ export function transformToSDFormat(
     }
 
     const value = resolved[key];
+    const tokenPath = currentPath ? `${currentPath}.${key}` : key;
 
     if (value === undefined || value === null) {
       continue;
@@ -88,12 +104,14 @@ export function transformToSDFormat(
     }
 
     if (isResolvedToken(value)) {
-      result[key] = transformToken(value, inheritedType, orderCounter++);
+      result[key] = transformToken(value, inheritedType, orderCounter++, targetColorSpace, tokenPath);
       order.push(key);
     } else {
       const nested = transformToSDFormat(
         value as ResolvedTokenGroup,
-        inheritedType
+        inheritedType,
+        targetColorSpace,
+        tokenPath
       );
       result[key] = nested.tree;
       order.push(...nested.order.map(k => `${key}.${k}`));
@@ -106,9 +124,11 @@ export function transformToSDFormat(
 function transformToken(
   token: ResolvedDtcgToken,
   parentType: string | undefined,
-  order: number
+  order: number,
+  targetColorSpace: ColorSpaceFormat = 'hex',
+  tokenPath?: string
 ): SdTokenValue {
-  const processedValue = processValue(token.$value);
+  const processedValue = processValue(token.$value, targetColorSpace, tokenPath);
 
   const sdValue: SdTokenValue = {
     value: processedValue,

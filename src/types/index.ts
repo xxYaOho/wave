@@ -26,6 +26,7 @@ export interface ParsedThemefile {
     platform?: string;
     brand?: string;
     filterLayer?: number | string;
+    colorSpace?: ColorSpaceFormat;
   };
 }
 
@@ -48,6 +49,7 @@ export interface GenerateOptions {
   variants?: string[] | undefined;
   brand?: string | undefined;
   platform?: 'general' | 'css';
+  colorSpace?: ColorSpaceFormat;
 }
 
 export interface ThemeInfo {
@@ -221,5 +223,30 @@ export function isResolvedToken(node: unknown): node is ResolvedDtcgToken {
     node !== null &&
     '$value' in node &&
     !Array.isArray(node)
+  );
+}
+
+export type ColorSpaceType = 'oklch' | 'srgb' | 'hsl';
+export type ColorSpaceFormat = 'hex' | ColorSpaceType;
+
+export interface DtcgColorSpaceValue {
+  colorSpace: ColorSpaceType;
+  components: number[];
+  alpha?: number;
+  hex?: string;
+}
+
+export function isDtcgColorSpaceValue(value: unknown): value is DtcgColorSpaceValue {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    'colorSpace' in obj &&
+    'components' in obj &&
+    typeof obj.colorSpace === 'string' &&
+    ['oklch', 'srgb', 'hsl'].includes(obj.colorSpace) &&
+    Array.isArray(obj.components) &&
+    obj.components.every(c => typeof c === 'number')
   );
 }
