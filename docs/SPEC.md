@@ -1,0 +1,264 @@
+# SPEC for wave
+
+> 本文件由 `/release` 流程自动维护，位于 `docs/SPEC.md`，记录当前版本的系统行为快照。
+
+---
+
+## Mental Model（agent 必读）
+
+wave 是面向 UI/UX 设计师的 CLI 工具集，当前核心能力是 design token 生成。
+
+**当前 token 生成的数据流：**
+
+```
+themefile（声明数据源 + 输出参数）
+    + main.yaml（定义 token 内容，DTCG 格式）
+    ↓
+引用解析（PALETTE / DIMENSION 作为数据源）
+    ↓
+颜色转换（colorSpace 在输出阶段介入）
+    ↓
+输出文件（.json / .jsonc / .css）
+```
+
+**认知边界：**
+
+- themefile：声明"用什么数据源、怎么输出"，不定义 token 内容
+- main.yaml：唯一的 token 内容来源
+- PALETTE / DIMENSION：只提供引用解析数据，不直接输出
+- colorSpace 转换发生在输出阶段，不影响引用解析过程
+
+**常见误区：**
+
+- ❌ 不要在 PALETTE/DIMENSION 里加输出逻辑
+- ❌ 不要绕过 main.yaml 直接从 palette 生成 token
+- ❌ 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
+
+---
+
+## CLI 命令
+
+- `wave theme`：读取当前目录 `themefile` 文件生成 token
+- `wave theme [path]`：指定 themefile 路径生成
+- `wave theme -f <path>`：使用 `-f` 指定 themefile 文件
+- `wave doctor`：健康检查
+- `wave help`：显示帮助
+- `wave --version`：显示版本号
+
+**参数选项：**
+
+- `--list`：列出内置主题（当前无内置主题，返回空列表）
+- `--no-night`：禁用 night 模式生成
+- `--no-variants`：禁用 variants 生成
+- `--variants [names]`：指定变体（逗号分隔）
+- `--init`：创建主题模板（未实现，显示 TODO）
+- `-o, --output <dir>`：指定输出目录
+
+---
+
+## Themefile 配置
+
+**必需字段：**
+
+- `THEME`：主题名称
+- `PALETTE`：调色板引用
+- `DIMENSION`：尺寸引用
+
+**可选参数 (PARAMETER)：**
+
+- `platform`：输出格式，`general`（默认）或 `css`
+- `filterLayer`：过滤层级（数字），输出扁平化 KV 结构
+- `output`：输出目录路径
+- `night`：Night 模式，`auto`（默认）或 `false`
+- `variants`：变体列表（逗号分隔）
+- `brand`：品牌名
+- `colorSpace`：全局输出色彩空间，`hex`（默认）、`oklch`、`srgb`、`hsl`
+
+**示例：**
+
+```
+THEME my-theme
+PALETTE leonardo
+DIMENSION wave
+
+PARAMETER platform general
+PARAMETER colorSpace oklch
+PARAMETER filterLayer 1
+PARAMETER output ./dist
+```
+
+---
+
+## 资源解析
+
+**内置资源路径：** `src/resources/`
+
+- Palette: `palettes/leonardo.yaml`, `palettes/tailwindcss4.yaml`
+- Dimension: `dimensions/wave.yaml`
+
+**解析顺序：**
+
+1. 内置资源名（如 `leonardo`）
+2. 相对路径（相对于 themefile 目录）
+3. 绝对路径
+
+**内置主题：**
+
+- `BUILTIN_THEMES` 已清空为 `{}`
+- `isBuiltinTheme()` 恒返回 `false`
+- 用户必须通过 themefile 指定 palette 和 dimension
+
+---
+
+## 引用解析
+
+### 外部引用
+
+- `{leonardo.xxx}`：引用 leonardo palette 颜色
+- `{wave.xxx}`：引用 wave dimension 尺寸
+
+### 内部引用（v0.3.0+）
+
+支持 `{theme.path.to.token}` 格式的文件内部嵌套引用：
+
+```yaml
+theme:
+  color:
+    text:
+      default: "{leonardo.global.color.deepGray.light.800}"
+      disabled:
+        $value:
+          color: "{theme.color.text.default}"
+          alpha: "{wave.global.dimension.alpha.400}"
+```
+
+**循环引用检测：**
+
+- 检测循环引用并在构建时报错
+- 错误信息示例：`Circular reference detected: theme.color.a -> theme.color.b -> theme.color.a`
+- 退出码：5
+
+**未解析引用提示：**
+
+- 无法解析的 `{theme.xxx}` 引用会显示详细信息
+- 错误信息示例：`Unresolved theme references found: - {theme.color.nonexistent} at theme.color.text.missing`
+- 退出码：5
+
+**性能：** 10 层嵌套以内 < 0.001ms/次，无深度限制
+
+---
+
+## DTCG 色彩空间支持（v0.4.0+）
+
+### 支持的格式
+
+- OKLCH：`oklch(L% C H)`，示例 `oklch(70% 0.3 328)`
+- sRGB：`rgb(R G B)`，示例 `rgb(255 0 255)`
+- HSL：`hsl(H S% L%)`，示例 `hsl(330 100% 50%)`
+
+### Token 定义格式
+
+```yaml
+theme:
+  color:
+    primary:
+      $value:
+        colorSpace: "oklch"
+        components: [0.7, 0.3, 328]
+        alpha: 1
+```
+
+### 色彩空间检测优先级
+
+1. DTCG colorSpace 对象：`{colorSpace: "oklch", components: [...], alpha?: number}`
+2. color+alpha 复合对象：`{color: "#xxx", alpha: 0.5}`
+3. 纯字符串：hex 字符串、palette 引用等
+
+### PARAMETER colorSpace 全局配置
+
+```
+PARAMETER colorSpace oklch
+```
+
+配置后所有颜色按指定格式输出，无需在每个 token 中单独指定。
+
+### Alpha 通道处理
+
+- alpha = 1：省略 alpha 通道
+- alpha ≠ 1：使用 CSS Color Level 4 语法，如 `oklch(L% C H / alpha)`
+
+### 输出精度
+
+- OKLCH：L 1位小数，C 3位小数，H 2位小数
+- HSL：全部 0 位小数
+- sRGB：整数
+
+### 特殊值处理
+
+- 灰度颜色（黑、白、透明）色相 NaN → 输出 0
+- 0 值优化：`0.0%` → `0%`，`0.200` → `0.2`
+
+### 错误处理
+
+- 不支持的色彩空间 → 退出码 5
+- components 格式错误 → 退出码 5
+- alpha 值超出范围（0-1）→ 退出码 5
+
+---
+
+## 输出格式
+
+- `general`（默认）：输出 `{theme}.json` + `{theme}.jsonc`，扁平化 KV，kebab-case 键名
+- `css`：输出 `{theme}.css`，CSS 变量，带描述注释
+
+**备注位置（v0.3.0+）：**
+
+- 单行 `$description`：显示在 token 同一行末尾
+- 多行 `$description`：保持在 token 上方
+
+**排序保持（v0.3.0+）：** 输出 token 顺序与 `main.yaml` 定义顺序一致
+
+---
+
+## 检测机制
+
+**Night 模式：**
+
+- 检测 `{themeDir}/main@night.yaml` 是否存在
+- 存在时生成 `{theme}-night` 主题
+- 可通过 `--no-night` 禁用
+
+**Variants：**
+
+- 检测 `{themeDir}/variants/*.yaml` 文件
+- 为每个变体生成 `{theme}-{variant}` 主题
+- `@night` 后缀变体生成 `{theme}-{variant}-night`
+- 可通过 `--no-variants` 禁用
+
+---
+
+## 退出码
+
+- `0`：SUCCESS
+- `1`：GENERAL_ERROR
+- `2`：INVALID_COMMAND
+- `3`：THEME_NOT_FOUND
+- `4`：MISSING_PARAMETER
+- `5`：INVALID_PARAMETER（含循环引用、未解析引用、不支持的色彩空间）
+- `10`：FILE_NOT_FOUND
+- `11`：PERMISSION_DENIED
+- `12`：FORMAT_ERROR
+- `13`：INVALID_RESOURCE
+- `14`：MISSING_BRAND
+- `15`：BRAND_FORMAT_ERROR
+
+---
+
+## 范围边界（明确不做）
+
+- `--init`：显示 "TODO: Implement --init"，不创建模板
+- 内置主题：已移除，不再支持 `wave theme beluga`
+- Windows/Linux 平台：未测试
+- 嵌套引用条件判断：`{theme.x ? a : b}` 格式不支持
+- 跨 variants 引用：Variant A 不能引用 Variant B 的 token
+- RGB 格式：仅支持 sRGB 组件格式
