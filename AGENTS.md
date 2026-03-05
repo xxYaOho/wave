@@ -23,17 +23,9 @@
 - **tailwindcss 4.0 color**, 内置基础色板
 - **leonardo**, 内置基础色板, 由 ttao 设计
 
-###
+### Reference
 
 - **DTCG**(Design Tokens Community Group), 关于 design token 设计规范的社区讨论组
   - [community group](https://github.com/design-tokens/community-group/tree/main)
   - [format](https://www.designtokens.org/tr/2025.10/format/)
   - [resolver](https://www.designtokens.org/tr/2025.10/resolver/)
-
-## Conventions
-
-### Code or Develop
-
-- 所有代码遵循 `dev-conventions` skill（LIMIT 原则）
-- 密钥/Token 禁止硬编码、禁止打印到日志
-- 提交前必须过快速检查清单
