@@ -36,7 +36,9 @@ function colorToRgba(colorVal: unknown): string {
   if (!components) return colorStr;
 
   const { red, green, blue, alpha } = components;
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  // 限制 alpha 为 2 位小数
+  const alphaRounded = Math.round(alpha * 100) / 100;
+  return `rgba(${red}, ${green}, ${blue}, ${alphaRounded})`;
 }
 
 // Shadow 转 CSS 字符串

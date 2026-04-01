@@ -1,4 +1,5 @@
 import type { Format, Dictionary, TransformedToken } from 'style-dictionary/types';
+import { shadowToCss, gradientToCss } from './css-var.ts';
 
 export interface CssVariablesWithDescOptions {
   filterLayer?: number;
@@ -12,6 +13,28 @@ function getFilteredName(token: TransformedToken, filterLayer: number): string {
   return path.slice(filterLayer).join('-');
 }
 
+function isShadowToken(token: TransformedToken): boolean {
+  return token.type === 'shadow' || token.$type === 'shadow';
+}
+
+function isGradientToken(token: TransformedToken): boolean {
+  return token.type === 'gradient' || token.$type === 'gradient';
+}
+
+function formatTokenValue(token: TransformedToken): string {
+  const tokenValue = token.$value ?? token.value;
+
+  if (isShadowToken(token) && Array.isArray(tokenValue)) {
+    return shadowToCss(tokenValue);
+  }
+
+  if (isGradientToken(token) && Array.isArray(tokenValue)) {
+    return gradientToCss(tokenValue);
+  }
+
+  return String(tokenValue);
+}
+
 function formatCssVariables(
   tokens: TransformedToken[],
   filterLayer: number = 0
@@ -22,14 +45,14 @@ function formatCssVariables(
 
   for (const token of sortedTokens) {
     const key = getFilteredName(token, filterLayer);
-    const tokenValue = token.$value ?? token.value;
+    const cssValue = formatTokenValue(token);
 
     const description = token.$description || token.description || token.comment;
     if (description && typeof description === 'string' && description !== '~') {
       lines.push(`  /* ${description} */`);
     }
 
-    lines.push(`  --${key}: ${tokenValue};`);
+    lines.push(`  --${key}: ${cssValue};`);
   }
 
   lines.push('}');
