@@ -157,7 +157,14 @@ export interface BuiltinDimension {
 
 export type DtcgScalarValue = string | number | boolean;
 export type DtcgObjectValue = Record<string, DtcgScalarValue | DtcgScalarValue[]>;
-export type DtcgValue = DtcgScalarValue | DtcgObjectValue;
+
+// DTCG $ref 引用类型 - 允许 $ref 与其他属性共存
+export interface DtcgRefValue {
+  $ref: string;
+  [key: string]: DtcgScalarValue | DtcgScalarValue[] | undefined;
+}
+
+export type DtcgValue = DtcgScalarValue | DtcgObjectValue | DtcgRefValue;
 
 export interface DtcgToken {
   $value: DtcgValue;
@@ -217,6 +224,16 @@ export function isDtcgToken(node: unknown): node is DtcgToken {
   );
 }
 
+// 类型守卫函数：检查是否为 DTCG $ref 引用
+export function isDtcgRefValue(value: unknown): value is DtcgRefValue {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    '$ref' in value &&
+    typeof (value as Record<string, unknown>).$ref === 'string'
+  );
+}
+
 export function isResolvedToken(node: unknown): node is ResolvedDtcgToken {
   return (
     typeof node === 'object' &&
@@ -248,5 +265,50 @@ export function isDtcgColorSpaceValue(value: unknown): value is DtcgColorSpaceVa
     ['oklch', 'srgb', 'hsl'].includes(obj.colorSpace) &&
     Array.isArray(obj.components) &&
     obj.components.every(c => typeof c === 'number')
+  );
+}
+
+// Shadow 相关类型
+export interface DtcgShadowLayer {
+  color: DtcgValue;
+  offsetX: DtcgValue | { value: number; unit?: string };
+  offsetY: DtcgValue | { value: number; unit?: string };
+  blur: DtcgValue | { value: number; unit?: string };
+  spread: DtcgValue | { value: number; unit?: string };
+  inset?: boolean;
+}
+
+export type DtcgShadowValue = DtcgShadowLayer | DtcgShadowLayer[];
+
+// Gradient 相关类型
+export interface DtcgGradientStop {
+  color: DtcgValue;
+  position: number;
+}
+
+export type DtcgGradientValue = DtcgGradientStop[];
+
+// 类型守卫函数：检查是否为 Shadow Layer
+export function isDtcgShadowLayer(value: unknown): value is DtcgShadowLayer {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    'color' in obj &&
+    ('offsetX' in obj || 'offsetY' in obj || 'blur' in obj || 'spread' in obj)
+  );
+}
+
+// 类型守卫函数：检查是否为 Gradient Stop
+export function isDtcgGradientStop(value: unknown): value is DtcgGradientStop {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    'color' in obj &&
+    'position' in obj &&
+    typeof obj.position === 'number'
   );
 }
