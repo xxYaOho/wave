@@ -2,6 +2,19 @@
 
 All notable changes to wave will be documented in this file.
 
+## v0.4.3 — 2026-04-01
+
+> 修复色彩空间转换不完整的问题
+
+### Fixed
+
+- **色彩空间转换修复**：`color+alpha` 复合值现在正确遵循 colorSpace 参数
+  - 修复 `interaction-hover` 等带 alpha 的颜色输出为 hex 而非 hsl 的问题
+  - `convertColorWithAlpha` 添加 `targetFormat` 参数支持色彩空间转换
+  - `flat.ts` 优先使用 `token.value`（转换后）而非 `token.$value`（原始值）
+
+---
+
 ## v0.4.1 — 2026-04-01
 
 > 修复 CSS 输出中 shadow 和 gradient 格式错误，添加 DTCG shadow/gradient 类型解析支持

@@ -20,14 +20,6 @@ function formatFlatJson(
 
   for (const token of tokens) {
     const key = getFilteredName(token, filterLayer);
-    // Debug: 检查 interaction 相关的 token
-    if (key.includes('interaction')) {
-      console.error(`[DEBUG] Token ${key}:`, {
-        value: token.value,
-        $value: token.$value,
-        original: token.original?.$value,
-      });
-    }
     const tokenValue = token.value ?? token.$value;
     result[key] = tokenValue;
   }
