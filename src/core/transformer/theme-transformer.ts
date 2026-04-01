@@ -27,7 +27,11 @@ function alphaToHex(alpha: number): string {
   return hex;
 }
 
-function convertColorWithAlpha(value: { color: string; alpha: number | string }): string {
+function convertColorWithAlpha(
+  value: { color: string; alpha: number | string },
+  targetFormat: ColorSpaceFormat = 'hex',
+  tokenPath?: string
+): string {
   const color = value.color;
   let alpha: number;
 
@@ -42,6 +46,22 @@ function convertColorWithAlpha(value: { color: string; alpha: number | string })
 
   if (alpha < 0 || alpha > 1) {
     return color;
+  }
+
+  // 如果目标格式不是 hex，先转换颜色，再应用 alpha
+  if (targetFormat !== 'hex' && color.startsWith("#")) {
+    const components = hexToRgbComponents(color);
+    if (components) {
+      const colorSpaceValue = {
+        colorSpace: 'srgb' as const,
+        components: [components.red / 255, components.green / 255, components.blue / 255],
+        alpha,
+      };
+      const result = convertColorSpace(colorSpaceValue, targetFormat, tokenPath);
+      if (result.success) {
+        return result.value as string;
+      }
+    }
   }
 
   if (color.startsWith("#") && (color.length === 7 || color.length === 4)) {
@@ -72,7 +92,7 @@ function processValue(
     return result.value as DtcgValue;
   }
   if (isColorAlphaObject(value)) {
-    return convertColorWithAlpha(value as { color: string; alpha: number | string });
+    return convertColorWithAlpha(value as { color: string; alpha: number | string }, targetFormat, tokenPath);
   }
   // 处理 hex 颜色字符串的颜色空间转换
   if (typeof value === 'string' && value.startsWith('#') && targetFormat !== 'hex') {

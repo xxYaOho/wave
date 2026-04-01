@@ -133,6 +133,6 @@ wave theme --no-night
 
 ---
 
-**当前版本**: v0.4.0
+**当前版本**: v0.4.1
 
 This project was created using `bun init` in bun v1.3.6. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.

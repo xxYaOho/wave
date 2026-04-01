@@ -2,6 +2,27 @@
 
 All notable changes to wave will be documented in this file.
 
+## v0.4.1 — 2026-04-01
+
+> 修复 CSS 输出中 shadow 和 gradient 格式错误，添加 DTCG shadow/gradient 类型解析支持
+
+### Added
+
+- **DTCG shadow 类型支持**：支持 `$type: shadow` 的复合值解析
+  - 支持 `color` + `alpha` 组合
+  - 支持 `offsetX`, `offsetY`, `blur`, `spread` 属性
+- **DTCG gradient 类型支持**：支持 `$type: gradient` 的复合值解析
+  - 支持颜色节点数组，每个节点可包含 `color`, `alpha`, `position`
+  - 支持 `$ref` 引用在渐变节点中
+
+### Fixed
+
+- **CSS 输出格式修复**：shadow 和 gradient 类型在 CSS 变量中正确格式化
+  - Shadow: 输出标准 CSS box-shadow 格式
+  - Gradient: 输出标准 CSS gradient 格式
+
+---
+
 ## v0.4.0 — 2026-04-01
 
 > 新增 DTCG `$ref` 引用支持和色彩空间转换，实现完整的 Design Token 工作流

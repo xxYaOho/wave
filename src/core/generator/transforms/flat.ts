@@ -17,13 +17,21 @@ function formatFlatJson(
   filterLayer: number = 0
 ): string {
   const result: Record<string, unknown> = {};
-  
+
   for (const token of tokens) {
     const key = getFilteredName(token, filterLayer);
-    const tokenValue = token.$value ?? token.value;
+    // Debug: 检查 interaction 相关的 token
+    if (key.includes('interaction')) {
+      console.error(`[DEBUG] Token ${key}:`, {
+        value: token.value,
+        $value: token.$value,
+        original: token.original?.$value,
+      });
+    }
+    const tokenValue = token.value ?? token.$value;
     result[key] = tokenValue;
   }
-  
+
   return JSON.stringify(result, null, 2);
 }
 
@@ -47,7 +55,7 @@ export const flatJsoncFormat: Format = {
       if (!token) continue;
       
       const key = getFilteredName(token, filterLayer);
-      const tokenValue = token.$value ?? token.value;
+      const tokenValue = token.value ?? token.$value;
       
       const description = token.$description || token.description || token.comment;
       const isMultilineDescription = description && typeof description === 'string' && description.includes('\n');
