@@ -1,4 +1,4 @@
-# wavev2
+# wave
 
 Design Token CLI 工具，用于生成主题配置文件。
 
@@ -56,11 +56,11 @@ theme:
 
 #### 引用语法
 
-| 引用 | 解析目标 |
-|------|------|
-| `{leonardo.global.color.xxx.yyy}` | leonardo 色板颜色 |
-| `{wave.global.dimension.xxx.yyy}` | wave 维度数值 |
-| `{theme.xxx}` | 文件内部引用 (v0.3.0+) |
+| 引用                              | 解析目标               |
+| --------------------------------- | ---------------------- |
+| `{leonardo.global.color.xxx.yyy}` | leonardo 色板颜色      |
+| `{wave.global.dimension.xxx.yyy}` | wave 维度数值          |
+| `{theme.xxx}`                     | 文件内部引用 (v0.3.0+) |
 
 #### 内部嵌套引用 (v0.3.0+)
 
@@ -96,6 +96,7 @@ alpha-1:
     color: "#000000"
     alpha: 0.36
 ```
+
 输出：`#0000005c`（带透明度的 hex 颜色）
 
 ### 内置资源

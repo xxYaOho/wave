@@ -85,9 +85,12 @@ function formatColorOutput(color: chroma.Color, format: ColorSpaceFormat, alpha:
       return color.hex();
 
     case 'oklch': {
-      const [l, c, h] = color.oklch();
+      let [l, c, h] = color.oklch();
+      // 处理纯黑/纯白时 hue 为 NaN 的情况
+      if (Number.isNaN(h)) h = 0;
       const lPercent = (l * 100).toFixed(0);
-      const cVal = c.toFixed(2);
+      // 对于 chroma，使用 parseFloat 去除末尾的 0
+      const cVal = parseFloat(c.toFixed(2));
       const hVal = h.toFixed(0);
       if (hasAlpha) {
         return `oklch(${lPercent}% ${cVal} ${hVal} / ${alpha})`;
@@ -104,7 +107,9 @@ function formatColorOutput(color: chroma.Color, format: ColorSpaceFormat, alpha:
     }
 
     case 'hsl': {
-      const [h, s, l] = color.hsl();
+      let [h, s, l] = color.hsl();
+      // 处理纯黑/纯白时 hue 为 NaN 的情况
+      if (Number.isNaN(h)) h = 0;
       const hVal = h.toFixed(0);
       const sPercent = (s * 100).toFixed(0);
       const lPercent = (l * 100).toFixed(0);
@@ -127,3 +132,38 @@ function formatError(message: string, tokenPath?: string): string {
 }
 
 export { isDtcgColorSpaceValue };
+
+// 将 hex 颜色转换为 RGB 分量（用于 CSS 输出）
+export function hexToRgbComponents(hex: string): { red: number; green: number; blue: number; alpha: number } | null {
+  // 处理 #RGB, #RGBA, #RRGGBB, #RRGGBBAA
+  const normalized = hex.replace('#', '');
+  let r: number, g: number, b: number, a = 1;
+
+  if (normalized.length === 3) {
+    r = parseInt(normalized[0]! + normalized[0]!, 16);
+    g = parseInt(normalized[1]! + normalized[1]!, 16);
+    b = parseInt(normalized[2]! + normalized[2]!, 16);
+  } else if (normalized.length === 4) {
+    r = parseInt(normalized[0]! + normalized[0]!, 16);
+    g = parseInt(normalized[1]! + normalized[1]!, 16);
+    b = parseInt(normalized[2]! + normalized[2]!, 16);
+    a = parseInt(normalized[3]! + normalized[3]!, 16) / 255;
+  } else if (normalized.length === 6) {
+    r = parseInt(normalized.slice(0, 2), 16);
+    g = parseInt(normalized.slice(2, 4), 16);
+    b = parseInt(normalized.slice(4, 6), 16);
+  } else if (normalized.length === 8) {
+    r = parseInt(normalized.slice(0, 2), 16);
+    g = parseInt(normalized.slice(2, 4), 16);
+    b = parseInt(normalized.slice(4, 6), 16);
+    a = parseInt(normalized.slice(6, 8), 16) / 255;
+  } else {
+    return null;
+  }
+
+  if (isNaN(r) || isNaN(g) || isNaN(b) || isNaN(a)) {
+    return null;
+  }
+
+  return { red: r, green: g, blue: b, alpha: a };
+}
