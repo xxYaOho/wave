@@ -49,3 +49,6 @@
 # Agent
 .sisyphus/
 temp-reference/
+
+# Bun build artifacts
+*.bun-build
