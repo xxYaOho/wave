@@ -146,9 +146,59 @@ theme:
 
 **性能：** 10 层嵌套以内 < 0.001ms/次，无深度限制
 
+### DTCG $ref 引用（v0.4.0+）
+
+支持 DTCG 规范的 JSON Pointer 格式引用，用于嵌套对象中的 token 引用。
+
+**语法格式：** `$ref: "#/source/path/$value"`
+
+**示例：**
+
+```yaml
+theme:
+  color:
+    shadow:
+      $value: "#2b3248"
+    gradient-mask:
+      $type: gradient
+      $value:
+        - color:
+            $ref: "#/theme/color/shadow/$value"
+            alpha: 0.5
+          position: 0
+```
+
+**特性：**
+
+- JSON Pointer 格式（RFC 6901）
+- 支持属性合并（`$ref` + `alpha`/`color`）
+- 支持嵌套对象和数组
+- 兼容外部源（`#/leonardo/...`, `#/wave/...`）
+- 自动循环引用检测
+
+**解析顺序：**
+
+1. Pass 1：解析外部引用（`#/leonardo/*`, `#/wave/*`）
+2. Pass 2：解析内部主题引用（`#/theme/*`）
+
+**属性合并规则：**
+
+- 标量值 + `alpha`/`color` → `{ color: 值, alpha: x }`
+- 标量值 + 其他属性 → `{ value: 值, ...其他 }`
+- 对象值 + 属性 → `{ ...原对象, ...新属性 }`（新属性覆盖）
+
+**与花括号引用的对比：**
+
+| 特性 | 花括号 `{...}` | DTCG `$ref` |
+|------|---------------|-------------|
+| 格式 | `{source.path}` | `$ref: "#/source/path/$value"` |
+| 适用场景 | 简单值替换 | 嵌套对象中的引用 |
+| 属性合并 | 不支持 | 支持 |
+| 标准符合 | Wave 特有 | DTCG 规范 |
+
 ---
 
-## DTCG 色彩空间支持（v0.4.0+）
+## DTCG 色彩空间支持
 
 ### 支持的格式
 

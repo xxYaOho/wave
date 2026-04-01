@@ -1,4 +1,4 @@
-# AGENTS
+# Wave
 
 ## About it (source of ideas)
 

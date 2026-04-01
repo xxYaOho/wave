@@ -1,114 +1,138 @@
-# wave
+# Wave
 
-Design Token CLI 工具，用于生成主题配置文件。
+面向 UI/UX 设计师的 Design Token CLI 工具。
 
-## 版本
+**一分钟生成专业级设计令牌。**
 
-v0.3.1
+```
+themefile → main.yaml → tokens.json
+```
+
+---
+
+## 一分钟预览
+
+定义主题（`main.yaml`）：
+
+```yaml
+theme:
+  color:
+    primary:
+      $value: "#0066cc"
+    text:
+      default:
+        $value: "#333333"
+```
+
+生成令牌：
+
+```bash
+$ wave theme
+✓ Generated: theme.json, theme.jsonc
+```
+
+输出（`theme.jsonc`）：
+
+```json
+{
+  "color-primary": "#0066cc",
+  "color-text-default": "#333333"
+}
+```
+
+---
 
 ## 安装
 
+**前置要求**: [Bun](https://bun.sh) 运行时
+
 ```bash
+# 克隆仓库
+git clone https://github.com/yourusername/wave.git
+cd wave
+
+# 安装依赖
 bun install
 ```
 
-## 使用
+---
 
-### CLI 命令
+## 第一个主题
 
-```bash
-# 生成主题（当前目录有 themefile 时）
-bun run src/cli/index.ts theme
+### 1. 创建 themefile
 
-# 指定 themefile 路径
-bun run src/cli/index.ts theme ./my-theme/themefile
+在项目目录创建 `themefile`：
 
-# 使用 -f 指定文件
-bun run src/cli/index.ts theme -f ./my-theme/themefile
 ```
-
-### Themefile 格式
-
-```yaml
 THEME my-theme
 PALETTE leonardo
 DIMENSION wave
-
-PARAMETER platform general
-PARAMETER filterLayer 1
 ```
 
-### YAML 主题配置（v0.2.1 新增）
+### 2. 创建 main.yaml
 
-支持通过 `main.yaml`、`main@night.yaml` 和 `variants/*.yaml` 定义主题配置：
-
-#### main.yaml
+同一目录创建 `main.yaml`：
 
 ```yaml
+$scheme: ~
 theme:
   color:
     $type: color
     primary:
       $value: "{leonardo.global.color.corerainBlue.light.600}"
-    secondary:
-      $value: "#666666"
+    background:
+      $value: "#ffffff"
 ```
 
-#### 引用语法
-
-| 引用                              | 解析目标               |
-| --------------------------------- | ---------------------- |
-| `{leonardo.global.color.xxx.yyy}` | leonardo 色板颜色      |
-| `{wave.global.dimension.xxx.yyy}` | wave 维度数值          |
-| `{theme.xxx}`                     | 文件内部引用 (v0.3.0+) |
-
-#### 内部嵌套引用 (v0.3.0+)
-
-支持在 main.yaml 中使用 `{theme.path.to.token}` 进行文件内部引用：
-
-```yaml
-theme:
-  color:
-    text:
-      default: "{leonardo.global.color.deepGray.light.800}"
-      disabled:
-        $value:
-          color: "{theme.color.text.default}"
-          alpha: "{wave.global.dimension.alpha.400}"
-```
-
-**循环引用检测**：包含循环引用时会在构建时报错。
-
-#### 备注位置优化 (v0.3.0+)
-
-- 单行 `$description` 显示在 token 同一行末尾
-- 多行 `$description` 保持在 token 上方
-
-#### 排序保持 (v0.3.0+)
-
-输出的 token 顺序与 main.yaml 中的定义顺序一致。
-
-#### color+alpha 复合值
-
-```yaml
-alpha-1:
-  $value:
-    color: "#000000"
-    alpha: 0.36
-```
-
-输出：`#0000005c`（带透明度的 hex 颜色）
-
-### 内置资源
-
-- **Palette**: leonardo, tailwindcss4
-- **Dimension**: wave
-
-## 开发
+### 3. 生成
 
 ```bash
-# TypeScript 类型检查
-bun run typecheck
+bun run wave theme
 ```
+
+输出：
+- `my-theme.json` - 紧凑格式
+- `my-theme.jsonc` - 带注释格式
+
+---
+
+## 核心概念
+
+| 概念 | 说明 | 示例 |
+|------|------|------|
+| **themefile** | 配置声明文件 | `THEME`, `PALETTE`, `PARAMETER` |
+| **main.yaml** | 主题内容定义 | `theme.color.primary.$value` |
+| **Palette** | 内置色板 | `leonardo`, `tailwindcss4` |
+| **Dimension** | 内置尺寸 | `wave` |
+
+---
+
+## 下一步
+
+- **完整指南**: [docs/GUIDE.md](./docs/GUIDE.md) - 学习所有功能
+- **技术规范**: [docs/SPEC.md](./docs/SPEC.md) - 系统行为参考
+- **变更记录**: [docs/CHANGELOG.md](./docs/CHANGELOG.md) - 版本更新
+
+---
+
+## 快速命令
+
+```bash
+# 生成主题（当前目录）
+wave theme
+
+# 指定 themefile
+wave theme -f ./path/to/themefile
+
+# 仅生成 CSS
+wave theme --platform css
+
+# 跳过 night 模式
+wave theme --no-night
+```
+
+---
+
+**当前版本**: v0.4.0
 
 This project was created using `bun init` in bun v1.3.6. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
