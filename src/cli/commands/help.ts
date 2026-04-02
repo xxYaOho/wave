@@ -56,7 +56,7 @@ Options:
   --variants [names]     Specify variants (comma separated)
   --init                 Create theme template
   -o, --output <dir>     Output directory
-  --platform <list>      Output platforms (comma separated): json, jsonc, css
+  --platform <list>      Output platforms (comma separated): json, jsonc, css, sketch
 
 Themefile example:
   THEME my-theme

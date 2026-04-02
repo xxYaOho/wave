@@ -103,10 +103,11 @@ bun run wave theme
 - `my-theme.json` - 紧凑格式（默认）
 - `my-theme.jsonc` - 带注释格式
 - `my-theme.css` - CSS 变量格式
+- `my-theme.sketch-colors.json` - Sketch 颜色调色板
 
 多平台输出：
 ```
-PARAMETER platform json,jsonc,css
+PARAMETER platform json,jsonc,css,sketch
 ```
 
 ---

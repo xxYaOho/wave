@@ -51,7 +51,7 @@ themefile（声明数据源 + 输出参数）
 - `--no-night`：禁用 night 模式生成
 - `--no-variants`：禁用 variants 生成
 - `--variants [names]`：指定变体（逗号分隔）
-- `--platform <list>`：指定输出平台（逗号分隔）：`json`、`jsonc`、`css`
+- `--platform <list>`：指定输出平台（逗号分隔）：`json`、`jsonc`、`css`、`sketch`
 - `--init`：创建主题模板（未实现，显示 TODO）
 - `-o, --output <dir>`：指定输出目录
 
@@ -90,7 +90,7 @@ RESOURCE custom ./tokens/brand.yml
 
 **可选参数 (PARAMETER)：**
 
-- `platform`：输出格式，`json`（默认）、`jsonc`、`css`，支持逗号分隔多平台
+- `platform`：输出格式，`json`（默认）、`jsonc`、`css`、`sketch`，支持逗号分隔多平台
 - `filterLayer`：过滤层级（数字），输出扁平化 KV 结构
 - `output`：输出目录路径
 - `night`：Night 模式，`auto`（默认）或 `false`
@@ -306,7 +306,8 @@ PARAMETER colorSpace oklch
 - `json`（默认）：输出 `{theme}.json`，扁平化 KV，kebab-case 键名
 - `jsonc`：输出 `{theme}.jsonc`，带描述注释的 JSON
 - `css`：输出 `{theme}.css`，CSS 变量，带描述注释
-- 多平台：`json,jsonc,css` 可同时输出三种格式
+- `sketch`：输出 `{theme}.sketch-colors.json`，嵌套 JSON 颜色调色板（供 Sketch Color Magic 等插件导入为 Color Variables）
+- 多平台：`json,jsonc,css,sketch` 可同时输出多种格式
 
 **备注位置（v0.3.0+）：**
 

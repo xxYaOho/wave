@@ -88,7 +88,7 @@ PARAMETER filterLayer 1
 | 参数 | 说明 | 默认值 | 可选值 |
 |------|------|--------|--------|
 | `output` | 输出目录 | `./theme` | 任意路径 |
-| `platform` | 输出格式 | `json` | `json`, `jsonc`, `css`（逗号分隔可多选） |
+| `platform` | 输出格式 | `json` | `json`, `jsonc`, `css`, `sketch`（逗号分隔可多选） |
 | `colorSpace` | 色彩空间 | `hex` | `hex`, `oklch`, `srgb`, `hsl` |
 | `filterLayer` | 过滤层级 | `0` | 数字 |
 | `night` | Night 模式 | `auto` | `auto`, `false` |
@@ -146,6 +146,7 @@ wave theme -f ./my-theme/themefile
 - `{theme}.json` - JSON 格式（紧凑，默认）
 - `{theme}.jsonc` - JSON with Comments（带注释）
 - `{theme}.css` - CSS 变量
+- `{theme}.sketch-colors.json` - Sketch 颜色调色板（供插件导入）
 
 ---
 
@@ -418,6 +419,34 @@ gradient:
     - color: "#0099ff"
       position: 1
 ```
+
+### Sketch 颜色调色板导出
+
+Wave 支持导出为 Sketch 颜色变量导入格式，配合插件（如 Color Magic）将颜色导入为 Sketch Color Variables。
+
+**配置方式:**
+
+```
+PARAMETER platform sketch
+```
+
+**输出文件:**
+
+`{theme}.sketch-colors.json` - 嵌套 JSON 颜色调色板
+
+**导入 Sketch:**
+
+1. 安装 Color Magic 插件（Sketch Extensions → Plugins）
+2. Plugins → Color Magic → Import JSON
+3. 选择生成的 `{theme}.sketch-colors.json`
+
+导入后，Sketch 会创建分组的颜色变量，变量名如 `theme/color/primary`、`theme/color/text/default`。
+
+**注意事项:**
+
+- 仅颜色 token（`$type: color`）会被导出
+- 非颜色 token（dimension、shadow 等）会被自动跳过
+- 输出顺序与 `main.yaml` 定义顺序一致
 
 ---
 
