@@ -1,4 +1,4 @@
-import type { ParsedThemefile, ParseError } from '../../types/index.ts';
+import type { ParsedThemefile, ParseError, ResourceDeclaration } from '../../types/index.ts';
 
 export function parseThemefile(content: string): ParsedThemefile | ParseError {
   const result: Partial<ParsedThemefile> = {
@@ -7,6 +7,9 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
 
   const lines = content.split('\n');
   let lineNum = 0;
+  let hasLegacyPalette = false;
+  let hasLegacyDimension = false;
+  let hasResource = false;
 
   for (const line of lines) {
     lineNum++;
@@ -26,8 +29,37 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
         };
       }
 
-      if (key === 'PALETTE' || key === 'DIMENSION' || key === 'THEME') {
-        result[key] = value;
+      if (key === 'PALETTE') {
+        result.PALETTE = value;
+        hasLegacyPalette = true;
+        continue;
+      }
+
+      if (key === 'DIMENSION') {
+        result.DIMENSION = value;
+        hasLegacyDimension = true;
+        continue;
+      }
+
+      if (key === 'THEME') {
+        result.THEME = value;
+        continue;
+      }
+
+      if (key === 'RESOURCE') {
+        const resourceMatch = value.match(/^(\S+)\s+(.+)$/);
+        if (!resourceMatch || !resourceMatch[1] || !resourceMatch[2]) {
+          return {
+            line: lineNum,
+            message: `Invalid RESOURCE format: ${trimmedLine}. Expected: RESOURCE <kind> <ref>`
+          };
+        }
+        const [, kind, ref] = resourceMatch;
+        if (!result.resources) {
+          result.resources = [];
+        }
+        result.resources.push({ kind, ref } as ResourceDeclaration);
+        hasResource = true;
         continue;
       }
 
@@ -66,13 +98,30 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
     }
   }
 
-  const requiredKeys: (keyof ParsedThemefile)[] = ['PALETTE', 'DIMENSION', 'THEME'];
-  for (const key of requiredKeys) {
-    if (!result[key]) {
+  if (hasResource && (hasLegacyPalette || hasLegacyDimension)) {
+    return {
+      line: 0,
+      message: 'Cannot mix RESOURCE with legacy PALETTE/DIMENSION directives'
+    };
+  }
+
+  if (result.resources && result.resources.length > 0) {
+    const hasTheme = result.THEME && result.THEME.trim() !== '';
+    if (!hasTheme) {
       return {
         line: 0,
-        message: `Missing required directive: ${key}`
+        message: 'Missing required directive: THEME'
       };
+    }
+  } else {
+    const requiredLegacyKeys: (keyof ParsedThemefile)[] = ['PALETTE', 'DIMENSION', 'THEME'];
+    for (const key of requiredLegacyKeys) {
+      if (!result[key]) {
+        return {
+          line: 0,
+          message: `Missing required directive: ${key}`
+        };
+      }
     }
   }
 

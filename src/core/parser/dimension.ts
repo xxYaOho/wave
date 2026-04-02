@@ -1,156 +1,112 @@
 import * as yaml from 'js-yaml';
 import type { DimensionResult, ParseError, DimensionCategory } from '../../types';
-
-function validateDimensionStructure(parsed: Record<string, unknown>): string[] {
-  const errors: string[] = [];
-
-  // Filter out $schema key if present
-  const rootKeys = Object.keys(parsed).filter((key) => key !== '$schema');
-
-  if (rootKeys.length === 0) {
-    errors.push('YAML file must contain a root key (e.g., wave)');
-    return errors;
-  }
-
-  const rootName = rootKeys[0];
-  if (!rootName) {
-    errors.push('Root key is empty');
-    return errors;
-  }
-
-  const rootData = parsed[rootName];
-
-  if (!rootData || typeof rootData !== 'object') {
-    errors.push(`Root "${rootName}" data format is invalid`);
-    return errors;
-  }
-
-  const rootObj = rootData as Record<string, unknown>;
-
-  if (!('global' in rootObj) || typeof rootObj.global !== 'object') {
-    errors.push('Missing required "global" configuration');
-    return errors;
-  }
-
-  const global = rootObj.global as Record<string, unknown>;
-
-  if (!('dimension' in global) || typeof global.dimension !== 'object') {
-    errors.push('Missing required "global.dimension" configuration');
-    return errors;
-  }
-
-  return errors;
-}
+import { dimensionSchema } from '../schema/dimension.ts';
+import { validateGenericResource } from '../schema/resource.ts';
 
 export async function validateDimensionSchema(
   content: string,
-  _resourcePath?: string
+  resourcePath?: string
 ): Promise<ParseError | null> {
+  let parsed: unknown;
   try {
-    const parsed = yaml.load(content) as Record<string, unknown>;
-
-    if (parsed && typeof parsed === 'object' && '$schema' in parsed) {
-      const schemaUri = parsed.$schema;
-
-      if (
-        typeof schemaUri === 'string' &&
-        (schemaUri.includes('dimension') || schemaUri === 'https://wave.tools/schemas/dimension.json')
-      ) {
-        const errors = validateDimensionStructure(parsed as Record<string, unknown>);
-
-        if (errors.length > 0) {
-          return {
-            line: 0,
-            message: `Schema validation failed: ${errors.join('; ')}`
-          };
-        }
-      }
-    }
-
-    return null;
+    parsed = yaml.load(content);
   } catch (err) {
     if (err instanceof yaml.YAMLException) {
       return {
         line: err.mark?.line ? err.mark.line + 1 : 1,
-        message: `YAML syntax error: ${err.message}`
+        message: `YAML syntax error: ${err.message}`,
       };
     }
-    return null;
+    return {
+      line: 1,
+      message: `Parse error: ${err instanceof Error ? err.message : String(err)}`,
+    };
   }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return {
+      line: 1,
+      message: 'Dimension root must be an object',
+    };
+  }
+
+  const generic = validateGenericResource(parsed as Record<string, unknown>, resourcePath);
+  if (!generic.success) {
+    return generic.error;
+  }
+
+  const result = dimensionSchema.safeParse(parsed);
+  if (!result.success) {
+    const issues = result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
+    return {
+      line: 1,
+      message: `Dimension validation failed: ${issues.join('; ')}`,
+    };
+  }
+
+  return null;
 }
 
 export function parseDimension(content: string): DimensionResult | ParseError {
   try {
-    const parsed = yaml.load(content);
-    
-    if (!parsed || typeof parsed !== 'object') {
-      return {
-        line: 0,
-        message: 'Invalid YAML: Root element must be an object'
-      };
-    }
+    const parsed = yaml.load(content) as unknown;
 
-    const parsedRecord = parsed as Record<string, unknown>;
-    // Filter out $schema key if present
-    const rootKeys = Object.keys(parsedRecord).filter((key) => key !== '$schema');
-    const waveData = parsedRecord[rootKeys[0] || 'wave'];
-    if (!waveData || typeof waveData !== 'object') {
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       return {
         line: 1,
-        message: 'Invalid dimension structure: Missing "wave" root object'
+        message: 'Invalid YAML: Root element must be an object',
       };
     }
 
-    const waveRecord = waveData as Record<string, unknown>;
-    const globalData = waveRecord.global;
-    if (!globalData || typeof globalData !== 'object') {
+    const generic = validateGenericResource(parsed as Record<string, unknown>);
+    if (!generic.success) {
+      return generic.error;
+    }
+
+    const result = dimensionSchema.safeParse(parsed);
+    if (!result.success) {
+      const issues = result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
       return {
-        line: 2,
-        message: 'Invalid dimension structure: Missing "global" object'
+        line: 1,
+        message: `Dimension 校验失败: ${issues.join('; ')}`,
       };
     }
 
-    const globalRecord = globalData as Record<string, unknown>;
-    const dimensionData = globalRecord.dimension;
-    if (!dimensionData || typeof dimensionData !== 'object') {
-      return {
-        line: 3,
-        message: 'Invalid dimension structure: Missing "dimension" object'
-      };
-    }
+    const rootName = generic.namespace;
+    const rootData = (parsed as Record<string, unknown>)[rootName] as Record<string, unknown>;
+    const globalData = rootData.global as Record<string, unknown>;
+    const dimensionData = globalData.dimension as Record<string, unknown>;
 
-    const result: DimensionResult = {
-      name: 'wave',
+    const resultObj: DimensionResult = {
+      name: rootName,
       global: {
-        dimension: {}
-      }
+        dimension: {},
+      },
     };
 
-    const dimensionObj = dimensionData as Record<string, unknown>;
-    for (const [dimensionKey, dimensionValue] of Object.entries(dimensionObj)) {
+    for (const [dimensionKey, dimensionValue] of Object.entries(dimensionData)) {
       if (typeof dimensionValue === 'object' && dimensionValue !== null) {
-        result.global.dimension[dimensionKey] = dimensionValue as DimensionCategory;
+        resultObj.global.dimension[dimensionKey] = dimensionValue as DimensionCategory;
       } else {
         return {
-          line: 0,
-          message: `Invalid dimension item at "${dimensionKey}": Must be an object`
+          line: 1,
+          message: `Invalid dimension item at "${dimensionKey}": Must be an object`,
         };
       }
     }
 
-    return result;
-
+    return resultObj;
   } catch (error) {
     if (error instanceof yaml.YAMLException) {
       return {
         line: error.mark?.line || 0,
-        message: `YAML syntax error: ${error.message}`
+        message: `YAML syntax error: ${error.message}`,
       };
     }
 
     return {
       line: 0,
-      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 }

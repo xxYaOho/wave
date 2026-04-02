@@ -1,0 +1,5 @@
+theme:
+  test:
+    $type: color
+    from:
+      $value: "{theme.nonexistent.path}"

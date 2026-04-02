@@ -65,8 +65,17 @@ bun install
 
 ```
 THEME my-theme
-PALETTE leonardo
-DIMENSION wave
+RESOURCE palette leonardo
+RESOURCE dimension wave
+```
+
+也支持自定义资源：
+
+```
+THEME my-theme
+RESOURCE palette leonardo
+RESOURCE dimension wave
+RESOURCE custom ./brand-colors.yml
 ```
 
 ### 2. 创建 main.yaml
@@ -100,10 +109,11 @@ bun run wave theme
 
 | 概念 | 说明 | 示例 |
 |------|------|------|
-| **themefile** | 配置声明文件 | `THEME`, `PALETTE`, `PARAMETER` |
+| **themefile** | 配置声明文件 | `THEME`, `RESOURCE`, `PARAMETER` |
 | **main.yaml** | 主题内容定义 | `theme.color.primary.$value` |
 | **Palette** | 内置色板 | `leonardo`, `tailwindcss4` |
 | **Dimension** | 内置尺寸 | `wave` |
+| **Custom** | 自定义资源 | `./tokens/brand.yml` |
 
 ---
 
@@ -112,6 +122,7 @@ bun run wave theme
 - **完整指南**: [docs/GUIDE.md](./docs/GUIDE.md) - 学习所有功能
 - **技术规范**: [docs/SPEC.md](./docs/SPEC.md) - 系统行为参考
 - **变更记录**: [docs/CHANGELOG.md](./docs/CHANGELOG.md) - 版本更新
+- **未来评估**: [docs/future-evaluations.md](./docs/future-evaluations.md) - 技术方向备忘
 
 ---
 

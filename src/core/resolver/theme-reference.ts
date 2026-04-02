@@ -13,7 +13,7 @@ import type {
 } from '../../types/index.ts';
 import { isDtcgToken, isDtcgRefValue } from '../../types/index.ts';
 
-const REFERENCE_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)*)\}$/;
+const REFERENCE_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/;
 
 // JSON Pointer 解析（RFC 6901）
 function parseJsonPointer(pointer: string): string[] | null {
@@ -37,7 +37,7 @@ function decodeJsonPointerSegment(segment: string): string {
 
 // 解析后的 $ref 结构
 interface ParsedDtcgRef {
-  source: 'theme' | 'leonardo' | 'wave';
+  source: string;
   path: string[];
   valuePath: string[];
 }
@@ -48,8 +48,8 @@ function parseDtcgRef(ref: string): ParsedDtcgRef | null {
   if (!segments || segments.length < 1) {
     return null;
   }
-  const source = segments[0] as 'theme' | 'leonardo' | 'wave';
-  if (!['theme', 'leonardo', 'wave'].includes(source)) {
+  const source = segments[0];
+  if (!source) {
     return null;
   }
   const path = segments.slice(1);
@@ -146,6 +146,11 @@ function extractValue(found: unknown): DtcgValue | undefined {
   return undefined;
 }
 
+function inferRootKey(tree: DtcgTokenGroup): string {
+  const keys = Object.keys(tree).filter((k) => !k.startsWith('$'));
+  return keys[0] || 'theme';
+}
+
 // 解析 DTCG $ref 引用
 function resolveDtcgRef(
   refValue: DtcgRefValue,
@@ -153,7 +158,8 @@ function resolveDtcgRef(
   themeTree: ResolvedTokenGroup,
   resolutionPath: string[],
   unresolvedCollector: UnresolvedReference[],
-  currentLocation: string
+  currentLocation: string,
+  rootKey: string
 ): DtcgValue | undefined {
   const parsed = parseDtcgRef(refValue.$ref);
 
@@ -172,13 +178,15 @@ function resolveDtcgRef(
 
   // 根据 source 选择数据源
   let found: unknown;
-  if (source === 'leonardo') {
-    found = getValueAtPath(sources.palette, path);
-  } else if (source === 'wave') {
-    found = getValueAtPath(sources.dimension, path);
-  } else {
-    // theme 引用需要包含 'theme' 前缀路径
+  if (source === rootKey) {
     found = getValueAtPath(themeTree, [source, ...path]);
+  } else {
+    const dataSource = sources[source];
+    if (dataSource === undefined) {
+      unresolvedCollector.push({ ref: refValue.$ref, location: currentLocation });
+      return undefined;
+    }
+    found = getValueAtPath(dataSource, path);
   }
 
   if (found === undefined) {
@@ -230,24 +238,29 @@ function resolveNestedRefs(
   themeTree: ResolvedTokenGroup,
   resolutionPath: string[],
   unresolvedCollector: UnresolvedReference[],
-  currentLocation: string
+  currentLocation: string,
+  rootKey: string
 ): NestedValue {
-  // 处理 $ref 对象
+  // 处理 $ref 对象（Pass 1 跳过指向文档根键的 $ref，留到 Pass 2 处理）
   if (isDtcgRefValue(value)) {
-    const result = resolveDtcgRef(value, sources, themeTree, resolutionPath, unresolvedCollector, currentLocation);
+    const parsed = parseDtcgRef(value.$ref);
+    if (parsed?.source === rootKey) {
+      return value;
+    }
+    const result = resolveDtcgRef(value, sources, themeTree, resolutionPath, unresolvedCollector, currentLocation, rootKey);
     return result ?? value;
   }
 
   // 处理字符串引用
   if (typeof value === 'string') {
-    const resolved = resolveExternalReference(value, sources);
+    const resolved = resolveExternalReference(value, sources, rootKey);
     return resolved !== undefined ? resolved : value;
   }
 
   // 处理数组
   if (Array.isArray(value)) {
     return value.map((item, index) =>
-      resolveNestedRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}[${index}]`)
+      resolveNestedRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}[${index}]`, rootKey)
     );
   }
 
@@ -255,7 +268,7 @@ function resolveNestedRefs(
   if (typeof value === 'object' && value !== null) {
     const resolved: { [key: string]: NestedValue } = {};
     for (const [key, val] of Object.entries(value)) {
-      resolved[key] = resolveNestedRefs(val, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}`);
+      resolved[key] = resolveNestedRefs(val, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}`, rootKey);
     }
     return resolved;
   }
@@ -264,35 +277,36 @@ function resolveNestedRefs(
   return value;
 }
 
-// 递归处理嵌套对象/数组中的 $ref（Pass 2：theme 引用）
-function resolveNestedThemeRefs(
+// 递归处理嵌套对象/数组中的 $ref（Pass 2：文档内部引用）
+function resolveNestedInternalRefs(
   value: NestedValue,
   sources: ReferenceDataSources,
   themeTree: ResolvedTokenGroup,
   resolutionPath: string[],
   unresolvedCollector: UnresolvedReference[],
-  currentLocation: string
+  currentLocation: string,
+  rootKey: string
 ): NestedValue {
-  // 处理 $ref 对象 - 只处理指向 theme 的 $ref
+  // 处理 $ref 对象 - 只处理指向文档根键的 $ref
   if (isDtcgRefValue(value)) {
     const parsed = parseDtcgRef(value.$ref);
-    if (parsed?.source === 'theme') {
-      return resolveDtcgRef(value, sources, themeTree, resolutionPath, unresolvedCollector, currentLocation) ?? value;
+    if (parsed?.source === rootKey) {
+      return resolveDtcgRef(value, sources, themeTree, resolutionPath, unresolvedCollector, currentLocation, rootKey) ?? value;
     }
-    // 对于非 theme 的 $ref，返回原值（已经在 Pass 1 中处理）
+    // 对于非根键的 $ref，返回原值（已经在 Pass 1 中处理）
     return value;
   }
 
   // 处理字符串引用
   if (typeof value === 'string') {
-    const resolved = resolveThemeReference(value, themeTree, resolutionPath, unresolvedCollector, currentLocation);
+    const resolved = resolveInternalReference(value, themeTree, resolutionPath, unresolvedCollector, currentLocation, rootKey);
     return resolved !== undefined ? resolved : value;
   }
 
   // 处理数组
   if (Array.isArray(value)) {
     return value.map((item, index) =>
-      resolveNestedThemeRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}[${index}]`)
+      resolveNestedInternalRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}[${index}]`, rootKey)
     );
   }
 
@@ -300,7 +314,7 @@ function resolveNestedThemeRefs(
   if (typeof value === 'object' && value !== null) {
     const resolved: { [key: string]: NestedValue } = {};
     for (const [key, val] of Object.entries(value)) {
-      resolved[key] = resolveNestedThemeRefs(val, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}`);
+      resolved[key] = resolveNestedInternalRefs(val, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}`, rootKey);
     }
     return resolved;
   }
@@ -309,7 +323,7 @@ function resolveNestedThemeRefs(
   return value;
 }
 
-function resolveExternalReference(ref: string, sources: ReferenceDataSources): DtcgValue | undefined {
+function resolveExternalReference(ref: string, sources: ReferenceDataSources, rootKey: string): DtcgValue | undefined {
   const match = ref.match(REFERENCE_PATTERN);
 
   if (!match) {
@@ -336,33 +350,30 @@ function resolveExternalReference(ref: string, sources: ReferenceDataSources): D
     return undefined;
   }
 
-  if (prefix === 'leonardo') {
-    const found = getValueAtPath(sources.palette, pathWithoutPrefix);
-    const extracted = extractValue(found);
-    if (extracted === undefined) {
-      logger.warn(`Reference not found: ${ref}`);
-    }
-    return extracted;
+  if (prefix === rootKey || !prefix) {
+    return undefined;
   }
 
-  if (prefix === 'wave') {
-    const found = getValueAtPath(sources.dimension, pathWithoutPrefix);
-    const extracted = extractValue(found);
-    if (extracted === undefined) {
-      logger.warn(`Reference not found: ${ref}`);
-    }
-    return extracted;
+  const dataSource = sources[prefix];
+  if (dataSource === undefined) {
+    return undefined;
   }
 
-  return undefined;
+  const found = getValueAtPath(dataSource, pathWithoutPrefix);
+  const extracted = extractValue(found);
+  if (extracted === undefined) {
+    logger.warn(`Reference not found: ${ref}`);
+  }
+  return extracted;
 }
 
-function resolveThemeReference(
+function resolveInternalReference(
   ref: string,
   themeTree: ResolvedTokenGroup,
   resolutionPath: string[],
   unresolvedCollector: UnresolvedReference[],
-  currentLocation: string
+  currentLocation: string,
+  rootKey: string
 ): DtcgValue | undefined {
   const match = ref.match(REFERENCE_PATTERN);
 
@@ -376,7 +387,7 @@ function resolveThemeReference(
     return undefined;
   }
 
-  if (!pathStr.startsWith('theme.')) {
+  if (!pathStr.startsWith(`${rootKey}.`)) {
     return undefined;
   }
 
@@ -388,11 +399,11 @@ function resolveThemeReference(
   const path = pathStr.split('.');
   const found = getValueAtPath(themeTree, path);
   const extracted = extractValue(found);
-  
+
   if (extracted === undefined) {
     unresolvedCollector.push({ ref, location: currentLocation });
   }
-  
+
   return extracted;
 }
 
@@ -402,22 +413,27 @@ function resolveExternalDtcgValue(
   themeTree: ResolvedTokenGroup,
   resolutionPath: string[] = [],
   unresolvedCollector: UnresolvedReference[] = [],
-  currentLocation: string = ''
+  currentLocation: string = '',
+  rootKey: string
 ): DtcgValue {
-  // 处理 $ref 对象
+  // 处理 $ref 对象（Pass 1 跳过指向文档根键的 $ref，留到 Pass 2 处理）
   if (isDtcgRefValue(value)) {
-    return resolveDtcgRef(value, sources, themeTree, resolutionPath, unresolvedCollector, currentLocation) ?? value;
+    const parsed = parseDtcgRef(value.$ref);
+    if (parsed?.source === rootKey) {
+      return value;
+    }
+    return resolveDtcgRef(value, sources, themeTree, resolutionPath, unresolvedCollector, currentLocation, rootKey) ?? value;
   }
 
   if (typeof value === 'string') {
-    const resolved = resolveExternalReference(value, sources);
+    const resolved = resolveExternalReference(value, sources, rootKey);
     return resolved !== undefined ? resolved : value;
   }
 
   // 处理数组类型的 $value
   if (Array.isArray(value)) {
     return value.map((item, index) =>
-      resolveNestedRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}[${index}]`)
+      resolveNestedRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}[${index}]`, rootKey)
     ) as unknown as DtcgValue;
   }
 
@@ -428,11 +444,16 @@ function resolveExternalDtcgValue(
       if (Array.isArray(val)) {
         // 使用 resolveNestedRefs 处理数组（包括嵌套对象中的 $ref）
         const resolvedArray = val.map((item, index) => {
-          return resolveNestedRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}[${index}]`);
+          return resolveNestedRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}[${index}]`, rootKey);
         });
         resolved[key] = resolvedArray as DtcgScalarValue[];
       } else if (isDtcgRefValue(val)) {
-        const valResolved = resolveDtcgRef(val, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}`);
+        const parsed = parseDtcgRef(val.$ref);
+        if (parsed?.source === rootKey) {
+          resolved[key] = val as unknown as DtcgScalarValue;
+          continue;
+        }
+        const valResolved = resolveDtcgRef(val, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}`, rootKey);
         if (valResolved !== undefined) {
           if (isDtcgScalarValue(valResolved)) {
             resolved[key] = valResolved;
@@ -447,7 +468,7 @@ function resolveExternalDtcgValue(
           resolved[key] = val;
         }
       } else if (typeof val === 'string') {
-        const valResolved = resolveExternalReference(val, sources);
+        const valResolved = resolveExternalReference(val, sources, rootKey);
         if (valResolved !== undefined) {
           if (isDtcgScalarValue(valResolved)) {
             resolved[key] = valResolved;
@@ -469,33 +490,34 @@ function resolveExternalDtcgValue(
   return value;
 }
 
-function resolveThemeDtcgValue(
+function resolveInternalDtcgValue(
   value: DtcgValue,
   sources: ReferenceDataSources,
   themeTree: ResolvedTokenGroup,
   resolutionPath: string[],
   unresolvedCollector: UnresolvedReference[],
-  currentLocation: string
+  currentLocation: string,
+  rootKey: string
 ): DtcgValue {
-  // 处理 $ref 对象 - 只处理指向 theme 的 $ref
+  // 处理 $ref 对象 - 只处理指向文档根键的 $ref
   if (isDtcgRefValue(value)) {
     const parsed = parseDtcgRef(value.$ref);
-    if (parsed?.source === 'theme') {
-      return resolveDtcgRef(value, sources, themeTree, resolutionPath, unresolvedCollector, currentLocation) ?? value;
+    if (parsed?.source === rootKey) {
+      return resolveDtcgRef(value, sources, themeTree, resolutionPath, unresolvedCollector, currentLocation, rootKey) ?? value;
     }
-    // 对于非 theme 的 $ref，返回原值（已经在 Pass 1 中处理）
+    // 对于非根键的 $ref，返回原值（已经在 Pass 1 中处理）
     return value;
   }
 
   if (typeof value === 'string') {
-    const resolved = resolveThemeReference(value, themeTree, resolutionPath, unresolvedCollector, currentLocation);
+    const resolved = resolveInternalReference(value, themeTree, resolutionPath, unresolvedCollector, currentLocation, rootKey);
     return resolved !== undefined ? resolved : value;
   }
 
   // 处理数组类型的 $value
   if (Array.isArray(value)) {
     return value.map((item, index) =>
-      resolveNestedThemeRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}[${index}]`)
+      resolveNestedInternalRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}[${index}]`, rootKey)
     ) as unknown as DtcgValue;
   }
 
@@ -504,15 +526,15 @@ function resolveThemeDtcgValue(
 
     for (const [key, val] of Object.entries(value)) {
       if (Array.isArray(val)) {
-        // 使用 resolveNestedThemeRefs 处理数组（包括嵌套对象中的 $ref）
+        // 使用 resolveNestedInternalRefs 处理数组（包括嵌套对象中的 $ref）
         const resolvedArray = val.map((item, index) =>
-          resolveNestedThemeRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}[${index}]`)
+          resolveNestedInternalRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}[${index}]`, rootKey)
         );
         resolved[key] = resolvedArray as DtcgScalarValue[];
       } else if (isDtcgRefValue(val)) {
         const parsed = parseDtcgRef(val.$ref);
-        if (parsed?.source === 'theme') {
-          const valResolved = resolveDtcgRef(val, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}`);
+        if (parsed?.source === rootKey) {
+          const valResolved = resolveDtcgRef(val, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}`, rootKey);
           if (valResolved !== undefined) {
             if (isDtcgScalarValue(valResolved)) {
               resolved[key] = valResolved;
@@ -528,12 +550,12 @@ function resolveThemeDtcgValue(
           resolved[key] = val as unknown as DtcgScalarValue;
         }
       } else if (typeof val === 'string') {
-        const valResolved = resolveThemeReference(val, themeTree, resolutionPath, unresolvedCollector, currentLocation);
+        const valResolved = resolveInternalReference(val, themeTree, resolutionPath, unresolvedCollector, currentLocation, rootKey);
         if (valResolved !== undefined) {
           if (isDtcgScalarValue(valResolved)) {
             resolved[key] = valResolved;
           } else {
-            logger.warn(`Theme reference resolved to object, expected scalar: ${val}`);
+            logger.warn(`Internal reference resolved to object, expected scalar: ${val}`);
             resolved[key] = val;
           }
         } else {
@@ -554,10 +576,12 @@ function processTokenExternal(
   token: DtcgToken,
   sources: ReferenceDataSources,
   themeTree: ResolvedTokenGroup,
-  currentPath: string = ''
+  unresolvedCollector: UnresolvedReference[],
+  currentPath: string = '',
+  rootKey: string
 ): ResolvedDtcgToken {
   const resolvedValue = resolveExternalDtcgValue(
-    token.$value, sources, themeTree, [], [], currentPath
+    token.$value, sources, themeTree, [], unresolvedCollector, currentPath, rootKey
   );
 
   return {
@@ -571,7 +595,9 @@ function processTokenExternal(
 function processTokenGroupExternal(
   group: DtcgTokenGroup,
   sources: ReferenceDataSources,
-  themeTree: ResolvedTokenGroup
+  themeTree: ResolvedTokenGroup,
+  unresolvedCollector: UnresolvedReference[],
+  rootKey: string
 ): ResolvedTokenGroup {
   const result: ResolvedTokenGroup = {};
 
@@ -589,9 +615,9 @@ function processTokenGroupExternal(
     }
 
     if (isDtcgToken(value)) {
-      result[key] = processTokenExternal(value, sources, themeTree, key);
+      result[key] = processTokenExternal(value, sources, themeTree, unresolvedCollector, key, rootKey);
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      result[key] = processTokenGroupExternal(value as DtcgTokenGroup, sources, themeTree);
+      result[key] = processTokenGroupExternal(value as DtcgTokenGroup, sources, themeTree, unresolvedCollector, rootKey);
     } else {
       result[key] = value as string | number | boolean | undefined;
     }
@@ -600,15 +626,16 @@ function processTokenGroupExternal(
   return result;
 }
 
-function processTokenTheme(
+function processTokenInternal(
   token: ResolvedDtcgToken,
   sources: ReferenceDataSources,
   themeTree: ResolvedTokenGroup,
   currentPath: string,
-  unresolvedCollector: UnresolvedReference[]
+  unresolvedCollector: UnresolvedReference[],
+  rootKey: string
 ): ResolvedDtcgToken {
   const resolutionPath = currentPath ? [currentPath] : [];
-  const resolvedValue = resolveThemeDtcgValue(token.$value, sources, themeTree, resolutionPath, unresolvedCollector, currentPath);
+  const resolvedValue = resolveInternalDtcgValue(token.$value, sources, themeTree, resolutionPath, unresolvedCollector, currentPath, rootKey);
 
   return {
     $value: resolvedValue,
@@ -618,12 +645,13 @@ function processTokenTheme(
   };
 }
 
-function processTokenGroupTheme(
+function processTokenGroupInternal(
   group: ResolvedTokenGroup,
   sources: ReferenceDataSources,
   themeTree: ResolvedTokenGroup,
   parentPath: string,
-  unresolvedCollector: UnresolvedReference[]
+  unresolvedCollector: UnresolvedReference[],
+  rootKey: string
 ): ResolvedTokenGroup {
   const result: ResolvedTokenGroup = {};
 
@@ -647,9 +675,9 @@ function processTokenGroupTheme(
       value !== null &&
       '$value' in value
     ) {
-      result[key] = processTokenTheme(value as ResolvedDtcgToken, sources, themeTree, currentPath, unresolvedCollector);
+      result[key] = processTokenInternal(value as ResolvedDtcgToken, sources, themeTree, currentPath, unresolvedCollector, rootKey);
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      result[key] = processTokenGroupTheme(value as ResolvedTokenGroup, sources, themeTree, currentPath, unresolvedCollector);
+      result[key] = processTokenGroupInternal(value as ResolvedTokenGroup, sources, themeTree, currentPath, unresolvedCollector, rootKey);
     } else {
       result[key] = value;
     }
@@ -660,16 +688,16 @@ function processTokenGroupTheme(
 
 type NestedDtcgValue = DtcgValue | NestedDtcgValue[] | { [key: string]: NestedDtcgValue };
 
-function hasThemeReferences(value: NestedDtcgValue): boolean {
+function hasInternalReferences(value: NestedDtcgValue, rootKey: string): boolean {
   // 检查 $ref 对象
   if (isDtcgRefValue(value)) {
     const parsed = parseDtcgRef(value.$ref);
-    return parsed?.source === 'theme';
+    return parsed?.source === rootKey;
   }
 
   if (typeof value === 'string') {
     const match = value.match(REFERENCE_PATTERN);
-    if (match && match[1]?.startsWith('theme.')) {
+    if (match && match[1]?.startsWith(`${rootKey}.`)) {
       return true;
     }
     return false;
@@ -677,13 +705,13 @@ function hasThemeReferences(value: NestedDtcgValue): boolean {
 
   // 处理数组
   if (Array.isArray(value)) {
-    return value.some((item) => hasThemeReferences(item));
+    return value.some((item) => hasInternalReferences(item, rootKey));
   }
 
   // 处理对象
   if (typeof value === 'object' && value !== null) {
     for (const [, val] of Object.entries(value)) {
-      if (hasThemeReferences(val)) {
+      if (hasInternalReferences(val, rootKey)) {
         return true;
       }
     }
@@ -692,11 +720,11 @@ function hasThemeReferences(value: NestedDtcgValue): boolean {
   return false;
 }
 
-function tokenHasThemeReferences(token: ResolvedDtcgToken): boolean {
-  return hasThemeReferences(token.$value);
+function tokenHasInternalReferences(token: ResolvedDtcgToken, rootKey: string): boolean {
+  return hasInternalReferences(token.$value, rootKey);
 }
 
-function groupHasThemeReferences(group: ResolvedTokenGroup): boolean {
+function groupHasInternalReferences(group: ResolvedTokenGroup, rootKey: string): boolean {
   for (const [key, value] of Object.entries(group)) {
     if (key === '$type' || key === '$description') {
       continue;
@@ -707,11 +735,11 @@ function groupHasThemeReferences(group: ResolvedTokenGroup): boolean {
       value !== null &&
       '$value' in value
     ) {
-      if (tokenHasThemeReferences(value as ResolvedDtcgToken)) {
+      if (tokenHasInternalReferences(value as ResolvedDtcgToken, rootKey)) {
         return true;
       }
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      if (groupHasThemeReferences(value as ResolvedTokenGroup)) {
+      if (groupHasInternalReferences(value as ResolvedTokenGroup, rootKey)) {
         return true;
       }
     }
@@ -724,19 +752,26 @@ export function resolveReferences(
   tree: DtcgTokenGroup,
   sources: ReferenceDataSources
 ): ResolvedTokenGroup {
+  const rootKey = inferRootKey(tree);
+
   // 首先创建一个空的 themeTree 占位符，用于 Pass 1
   // Pass 1 完成后，themeTree 会被更新为解析后的结果
   const emptyThemeTree: ResolvedTokenGroup = {};
 
   // Pass 1: Resolve external references (leonardo.*, wave.*, 以及所有 #/.../$value 格式的 $ref)
-  let result = processTokenGroupExternal(tree, sources, emptyThemeTree);
+  const pass1Unresolved: UnresolvedReference[] = [];
+  let result = processTokenGroupExternal(tree, sources, emptyThemeTree, pass1Unresolved, rootKey);
 
-  // Pass 2: Resolve internal theme references (theme.* 和指向 theme 的 $ref)
+  if (pass1Unresolved.length > 0) {
+    throw new UnresolvedReferenceError(pass1Unresolved);
+  }
+
+  // Pass 2: Resolve internal references (rootKey.* 和指向 rootKey 的 $ref)
   const unresolvedCollector: UnresolvedReference[] = [];
   const unresolvedSet = new Set<string>();
   let maxIterations = 10;
-  while (groupHasThemeReferences(result) && maxIterations > 0) {
-    result = processTokenGroupTheme(result, sources, result, '', unresolvedCollector);
+  while (groupHasInternalReferences(result, rootKey) && maxIterations > 0) {
+    result = processTokenGroupInternal(result, sources, result, '', unresolvedCollector, rootKey);
     maxIterations--;
   }
 

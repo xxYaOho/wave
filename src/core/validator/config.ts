@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import type { ParsedThemefile, ParseError, CheckResult } from '../../types/index.ts';
 import { parseThemefile } from '../parser/themefile.ts';
 import { resolveResource, getResourcesDir } from '../resolver/index.ts';
+import { validateCustomResourceExtension } from '../schema/resource.ts';
 
 export interface ValidationResult {
   valid: boolean;
@@ -67,21 +68,50 @@ export async function validateThemefile(options: ThemeValidationOptions): Promis
 
   config = parseResult as ParsedThemefile;
 
-  const paletteResult = resolveResource(config.PALETTE, 'palette', themefileDir);
-  if (!paletteResult.exists) {
-    if (paletteResult.isBuiltin) {
-      errors.push(`Built-in palette not found: ${config.PALETTE}`);
-    } else {
-      errors.push(`Palette file not found: ${paletteResult.path}`);
+  // Validate legacy mode resources
+  if (!config.resources || config.resources.length === 0) {
+    if (config.PALETTE) {
+      const paletteResult = resolveResource(config.PALETTE, 'palette', themefileDir);
+      if (!paletteResult.exists) {
+        if (paletteResult.isBuiltin) {
+          errors.push(`Built-in palette not found: ${config.PALETTE}`);
+        } else {
+          errors.push(`Palette file not found: ${paletteResult.path}`);
+        }
+      }
+    }
+    if (config.DIMENSION) {
+      const dimensionResult = resolveResource(config.DIMENSION, 'dimension', themefileDir);
+      if (!dimensionResult.exists) {
+        if (dimensionResult.isBuiltin) {
+          errors.push(`Built-in dimension not found: ${config.DIMENSION}`);
+        } else {
+          errors.push(`Dimension file not found: ${dimensionResult.path}`);
+        }
+      }
     }
   }
 
-  const dimensionResult = resolveResource(config.DIMENSION, 'dimension', themefileDir);
-  if (!dimensionResult.exists) {
-    if (dimensionResult.isBuiltin) {
-      errors.push(`Built-in dimension not found: ${config.DIMENSION}`);
-    } else {
-      errors.push(`Dimension file not found: ${dimensionResult.path}`);
+  // Validate RESOURCE mode
+  if (config.resources && config.resources.length > 0) {
+    const seenKinds = new Set<string>();
+    for (const res of config.resources) {
+      if (res.kind === 'custom') {
+        const extError = validateCustomResourceExtension(res.ref);
+        if (extError) {
+          errors.push(extError.message);
+          continue;
+        }
+      }
+
+      // Validate resource exists (for now, palette/dimension/custom all go through same existence check)
+      const resourceType = res.kind === 'palette' || res.kind === 'dimension' || res.kind === 'custom'
+        ? res.kind
+        : 'brand';
+      const resolved = resolveResource(res.ref, resourceType as 'palette' | 'dimension' | 'brand', themefileDir);
+      if (!resolved.exists) {
+        errors.push(`${res.kind} resource not found: ${res.ref}`);
+      }
     }
   }
 

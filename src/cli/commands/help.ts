@@ -28,11 +28,10 @@ Options:
   --help       Show help
 
 Examples:
-  wave theme beluga              Generate beluga theme
-  wave theme --list              List built-in themes
-  wave theme beluga --no-night   Skip night mode
-  wave theme beluga --no-variants   Skip variants generation
-  wave theme beluga --variants "dark, matrix"
+  wave theme                     Generate theme from current directory
+  wave theme -f ./themefile      Specify themefile path
+  wave theme --no-night          Skip night mode
+  wave theme --no-variants       Skip variants generation
   wave doctor                    Run diagnostics
 
 For more information about a command:
@@ -46,10 +45,7 @@ function showCommandHelp(command: string): void {
 wave theme - Generate theme tokens
 
 Usage:
-  wave theme [name] [options]
-
-Arguments:
-  name         Theme name to generate (required unless --list or --init)
+  wave theme [options]
 
 Options:
   -f, --file <path>      Themefile path
@@ -58,14 +54,23 @@ Options:
   --no-variants          Disable variants generation
   --variants [names]     Specify variants (comma separated)
   --init                 Create theme template
+  -o, --output <dir>     Output directory
+
+Themefile example:
+  THEME my-theme
+  RESOURCE palette leonardo
+  RESOURCE dimension wave
+  RESOURCE custom ./brand.yml
+
+  PARAMETER platform css
+  PARAMETER colorSpace oklch
 
 Examples:
-  wave theme beluga
-  wave theme --list
-  wave theme beluga --no-night
-  wave theme beluga --no-variants
-  wave theme beluga --variants "dark, matrix"
-  wave theme --file ./custom/themefile
+  wave theme
+  wave theme -f ./custom/themefile
+  wave theme --no-night
+  wave theme --no-variants
+  wave theme --variants "dark, matrix"
 `,
     doctor: `
 wave doctor - Check tool health status

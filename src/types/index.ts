@@ -15,9 +15,12 @@ export const ExitCode = {
 
 export type ExitCodeType = (typeof ExitCode)[keyof typeof ExitCode];
 
+export interface ResourceDeclaration {
+  kind: string;
+  ref: string;
+}
+
 export interface ParsedThemefile {
-  PALETTE: string;
-  DIMENSION: string;
   THEME: string;
   PARAMETER: {
     night?: 'auto' | 'false';
@@ -28,6 +31,12 @@ export interface ParsedThemefile {
     filterLayer?: number | string;
     colorSpace?: ColorSpaceFormat;
   };
+  /** @deprecated Legacy fields - use resources instead */
+  PALETTE?: string;
+  /** @deprecated Legacy fields - use resources instead */
+  DIMENSION?: string;
+  /** New mode: RESOURCE declarations */
+  resources?: ResourceDeclaration[];
 }
 
 export type ResourceType = 'palette' | 'dimension' | 'brand';
@@ -186,8 +195,7 @@ export interface ThemeYamlResult {
 }
 
 export interface ReferenceDataSources {
-  palette: { global: { color: ColorPalette } };
-  dimension: { global: { dimension: Record<string, DimensionCategory> } };
+  [namespace: string]: unknown;
 }
 
 export interface ResolvedDtcgToken {

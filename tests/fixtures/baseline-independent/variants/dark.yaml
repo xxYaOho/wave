@@ -1,0 +1,8 @@
+theme:
+  test:
+    $type: color
+    from:
+      $value: "#333333"
+      $description: defined in dark variant
+    shared:
+      $value: "{leonardo.global.color.white}"

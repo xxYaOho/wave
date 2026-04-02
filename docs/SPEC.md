@@ -14,7 +14,7 @@ wave 是面向 UI/UX 设计师的 CLI 工具集，当前核心能力是 design t
 themefile（声明数据源 + 输出参数）
     + main.yaml（定义 token 内容，DTCG 格式）
     ↓
-引用解析（PALETTE / DIMENSION 作为数据源）
+引用解析（RESOURCE 声明的数据源作为依赖字典）
     ↓
 颜色转换（colorSpace 在输出阶段介入）
     ↓
@@ -25,13 +25,13 @@ themefile（声明数据源 + 输出参数）
 
 - themefile：声明"用什么数据源、怎么输出"，不定义 token 内容
 - main.yaml：唯一的 token 内容来源
-- PALETTE / DIMENSION：只提供引用解析数据，不直接输出
+- RESOURCE：只提供引用解析数据，不直接输出
 - colorSpace 转换发生在输出阶段，不影响引用解析过程
 
 **常见误区：**
 
-- ❌ 不要在 PALETTE/DIMENSION 里加输出逻辑
-- ❌ 不要绕过 main.yaml 直接从 palette 生成 token
+- ❌ 不要在资源文件里加输出逻辑
+- ❌ 不要绕过 main.yaml 直接从资源生成 token
 - ❌ 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
 
 ---
@@ -61,8 +61,31 @@ themefile（声明数据源 + 输出参数）
 **必需字段：**
 
 - `THEME`：主题名称
+
+**资源声明（推荐）：**
+
+```
+RESOURCE <kind> <ref>
+```
+
+- `kind`：资源类型，支持 `palette`、`dimension`、`custom`
+- `ref`：资源引用，内置资源写名称，自定义资源写相对或绝对路径
+
+**示例：**
+
+```
+THEME my-theme
+RESOURCE palette leonardo
+RESOURCE dimension wave
+RESOURCE custom ./tokens/brand.yml
+```
+
+**旧语法（兼容但已弃用）：**
+
 - `PALETTE`：调色板引用
 - `DIMENSION`：尺寸引用
+
+旧语法会在内部自动转换为对应的 `RESOURCE` 声明。一旦使用 `RESOURCE`，禁止混用旧语法。
 
 **可选参数 (PARAMETER)：**
 
@@ -74,12 +97,13 @@ themefile（声明数据源 + 输出参数）
 - `brand`：品牌名
 - `colorSpace`：全局输出色彩空间，`hex`（默认）、`oklch`、`srgb`、`hsl`
 
-**示例：**
+**完整示例：**
 
 ```
 THEME my-theme
-PALETTE leonardo
-DIMENSION wave
+RESOURCE palette leonardo
+RESOURCE dimension wave
+RESOURCE custom ./brand-colors.yml
 
 PARAMETER platform general
 PARAMETER colorSpace oklch
@@ -96,17 +120,29 @@ PARAMETER output ./dist
 - Palette: `palettes/leonardo.yaml`, `palettes/tailwindcss4.yaml`
 - Dimension: `dimensions/wave.yaml`
 
-**解析顺序：**
+**解析规则：**
+
+1. 按 themefile 中 `RESOURCE` 声明顺序读取
+2. 每个资源文件解析后得到 `{ namespace, data }`
+3. 拒绝重复 namespace（直接报错，不覆盖）
+4. 资源来源元数据保留（用于错误定位）
+
+**引用查找顺序：**
 
 1. 内置资源名（如 `leonardo`）
 2. 相对路径（相对于 themefile 目录）
 3. 绝对路径
 
+**custom 资源限制：**
+
+- 仅限 `.yml`、`.yaml`、`.json` 文件
+- 文件结构与其他资源一致：根对象必须恰好有一个顶层 key（namespace）
+
 **内置主题：**
 
 - `BUILTIN_THEMES` 已清空为 `{}`
 - `isBuiltinTheme()` 恒返回 `false`
-- 用户必须通过 themefile 指定 palette 和 dimension
+- 用户必须通过 themefile 指定资源
 
 ---
 
@@ -116,6 +152,7 @@ PARAMETER output ./dist
 
 - `{leonardo.xxx}`：引用 leonardo palette 颜色
 - `{wave.xxx}`：引用 wave dimension 尺寸
+- `{namespace.xxx}`：引用任意 dependency namespace
 
 ### 内部引用（v0.3.0+）
 
@@ -143,6 +180,11 @@ theme:
 - 无法解析的 `{theme.xxx}` 引用会显示详细信息
 - 错误信息示例：`Unresolved theme references found: - {theme.color.nonexistent} at theme.color.text.missing`
 - 退出码：5
+
+**跨依赖引用限制：**
+
+- 资源文件（dependency）之间禁止互相引用
+- 检测到跨依赖引用时报错：`Cross-dependency reference detected`
 
 **性能：** 10 层嵌套以内 < 0.001ms/次，无深度限制
 
@@ -173,12 +215,12 @@ theme:
 - JSON Pointer 格式（RFC 6901）
 - 支持属性合并（`$ref` + `alpha`/`color`）
 - 支持嵌套对象和数组
-- 兼容外部源（`#/leonardo/...`, `#/wave/...`）
+- 兼容外部源（`#/leonardo/...`, `#/wave/...`, `#/{任意 namespace}/...`）
 - 自动循环引用检测
 
 **解析顺序：**
 
-1. Pass 1：解析外部引用（`#/leonardo/*`, `#/wave/*`）
+1. Pass 1：解析外部引用（`#/leonardo/*`, `#/wave/*`, `#/{任意 namespace}/*`）
 2. Pass 2：解析内部主题引用（`#/theme/*`）
 
 **属性合并规则：**
@@ -195,6 +237,7 @@ theme:
 | 适用场景 | 简单值替换 | 嵌套对象中的引用 |
 | 属性合并 | 不支持 | 支持 |
 | 标准符合 | Wave 特有 | DTCG 规范 |
+| 未知 namespace | 保留原字符串 | 解析失败报错 |
 
 ---
 
@@ -250,9 +293,10 @@ PARAMETER colorSpace oklch
 
 ### 错误处理
 
-- 不支持的色彩空间 → 退出码 5
-- components 格式错误 → 退出码 5
-- alpha 值超出范围（0-1）→ 退出码 5
+- 不支持的来源格式 → 原样输出
+- 不支持的 colorSpace → 原样输出
+- components 格式错误 → 原样输出
+- alpha 值超出范围（0-1）→ 原样输出
 
 ---
 
@@ -284,6 +328,13 @@ PARAMETER colorSpace oklch
 - 为每个变体生成 `{theme}-{variant}` 主题
 - `@night` 后缀变体生成 `{theme}-{variant}-night`
 - 可通过 `--no-variants` 禁用
+
+---
+
+## 错误处理（Fail-Fast）
+
+- 若 `main.yaml` 存在但解析失败（引用错误、格式错误等），直接返回非 0 退出码，**不再 fallback 到依赖直出**
+- 同样适用于 `main@night.yaml` 和 `variants/*.yaml`
 
 ---
 

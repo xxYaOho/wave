@@ -4,23 +4,22 @@ import { Command } from 'commander';
 import {
   ExitCode,
   type GenerateOptions,
-  type ParseError,
-  type PaletteResult,
-  type DimensionResult,
-  type ReferenceDataSources,
-  type SdTokenTree,
-  type ColorSpaceFormat,
 } from '../../types/index.ts';
+import type { GeneratorResult } from '../../core/generator/index.ts';
 import { VERSION } from '../../config/index.ts';
-import { parseThemefile } from '../../core/parser/themefile.ts';
-import { parsePalette, validatePaletteSchema } from '../../core/parser/palette.ts';
-import { parseDimension, validateDimensionSchema } from '../../core/parser/dimension.ts';
-import { parseThemeYaml } from '../../core/parser/index.ts';
-import { resolveResource, resolveReferences, CircularReferenceError, UnresolvedReferenceError } from '../../core/resolver/index.ts';
-import { transformToSDFormat } from '../../core/transformer/index.ts';
+import { generateTokens } from '../../core/generator/index.ts';
 import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
-import { generateTokens, type GeneratorResult } from '../../core/generator/index.ts';
 import { logger } from '../../utils/logger.ts';
+import {
+  loadThemefile,
+  buildDependencyDictionary,
+  processThemeDocument,
+  extractPlatform,
+  extractFilterLayer,
+  extractColorSpace,
+  resolveOutputDir,
+  expandHomePath,
+} from '../../core/pipeline/theme-pipeline.ts';
 
 interface BuiltinThemeConfig {
   palette: string;
@@ -47,28 +46,6 @@ interface ThemeCommandOptions {
   output?: string;
 }
 
-function isParseError(result: unknown): result is ParseError {
-  return typeof result === 'object' && result !== null && 'line' in result && 'message' in result;
-}
-
-function expandHomePath(filePath: string): string {
-  if (filePath.startsWith('~/')) {
-    return path.join(process.env.HOME || '', filePath.slice(2));
-  }
-  if (filePath.startsWith('${HOME}/')) {
-    return path.join(process.env.HOME || '', filePath.slice(7));
-  }
-  return filePath;
-}
-
-async function loadYamlFile(filePath: string): Promise<string> {
-  const file = Bun.file(filePath);
-  if (!(await file.exists())) {
-    throw new Error(`File not found: ${filePath}`);
-  }
-  return await file.text();
-}
-
 function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
   const result: GenerateOptions = {
     night: options.night !== false,
@@ -90,12 +67,18 @@ function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
   return result;
 }
 
-async function buildTokens(
+async function generateThemeTokens(
+  themeName: string,
+  outputDir: string,
   paletteContent: string,
   dimensionContent: string,
+  platform?: 'general' | 'css',
+  filterLayer?: number,
   palettePath?: string,
   dimensionPath?: string
-): Promise<Record<string, unknown>> {
+): Promise<GeneratorResult> {
+  const { parsePalette, validatePaletteSchema, parseDimension, validateDimensionSchema } = await import('../../core/parser/index.ts');
+
   const paletteSchemaError = await validatePaletteSchema(paletteContent, palettePath);
   if (paletteSchemaError) {
     throw new Error(`Palette schema error: ${paletteSchemaError.message}`);
@@ -107,75 +90,20 @@ async function buildTokens(
   }
 
   const palette = parsePalette(paletteContent);
-  if (isParseError(palette)) {
+  if (palette && 'line' in palette && 'message' in palette) {
     throw new Error(`Palette parse error at line ${palette.line}: ${palette.message}`);
   }
 
   const dimension = parseDimension(dimensionContent);
-  if (isParseError(dimension)) {
+  if (dimension && 'line' in dimension && 'message' in dimension) {
     throw new Error(`Dimension parse error: ${dimension.message}`);
   }
 
-  return {
-    color: palette.global.color,
-    dimension: dimension.global.dimension,
-  };
-}
-
-async function parseAndResolveThemeYaml(
-  yamlPath: string,
-  paletteResult: PaletteResult,
-  dimensionResult: DimensionResult,
-  colorSpace?: ColorSpaceFormat
-): Promise<{ tree: SdTokenTree; order: string[] } | null> {
-  const file = Bun.file(yamlPath);
-  if (!(await file.exists())) {
-    return null;
-  }
-
-  const content = await file.text();
-  const parsed = parseThemeYaml(content);
-
-  if (isParseError(parsed)) {
-    logger.warn(`Theme YAML parse error at line ${parsed.line}: ${parsed.message}`);
-    return null;
-  }
-
-  const sources: ReferenceDataSources = {
-    palette: { global: { color: paletteResult.global.color } },
-    dimension: { global: { dimension: dimensionResult.global.dimension } },
+  const tokens = {
+    color: (palette as { global: { color: unknown } }).global.color,
+    dimension: (dimension as { global: { dimension: unknown } }).global.dimension,
   };
 
-  try {
-    const resolved = resolveReferences(parsed.raw, sources);
-    const transformResult = transformToSDFormat(resolved, undefined, colorSpace);
-    return { tree: transformResult.tree, order: transformResult.order };
-  } catch (err) {
-    if (err instanceof CircularReferenceError) {
-      logger.error(err.message);
-      process.exitCode = err.exitCode;
-      return null;
-    }
-    if (err instanceof UnresolvedReferenceError) {
-      logger.error(err.message);
-      process.exitCode = err.exitCode;
-      return null;
-    }
-    throw err;
-  }
-}
-
-async function generateThemeTokens(
-  themeName: string,
-  outputDir: string,
-  paletteContent: string,
-  dimensionContent: string,
-  platform?: 'general' | 'css',
-  filterLayer?: number,
-  palettePath?: string,
-  dimensionPath?: string
-): Promise<GeneratorResult> {
-  const tokens = await buildTokens(paletteContent, dimensionContent, palettePath, dimensionPath);
   await fs.mkdir(outputDir, { recursive: true });
 
   return generateTokens({
@@ -198,6 +126,8 @@ async function handleBuiltinTheme(
     ? expandHomePath(options.output)
     : themeDir;
 
+  const { resolveResource } = await import('../../core/resolver/index.ts');
+
   const paletteResource = resolveResource(config.palette, 'palette', themeDir);
   const dimensionResource = resolveResource(config.dimension, 'dimension', themeDir);
 
@@ -215,8 +145,9 @@ async function handleBuiltinTheme(
   let paletteContent: string;
   let dimensionContent: string;
   try {
-    paletteContent = await loadYamlFile(paletteResource.path);
-    dimensionContent = await loadYamlFile(dimensionResource.path);
+    const { default: BunFile } = await import('bun');
+    paletteContent = await Bun.file(paletteResource.path).text();
+    dimensionContent = await Bun.file(dimensionResource.path).text();
   } catch (err) {
     process.exitCode = ExitCode.FILE_NOT_FOUND;
     logger.error(err instanceof Error ? err.message : String(err));
@@ -319,119 +250,59 @@ async function handleThemeGeneration(
 ): Promise<void> {
   const generateOptions = parseCliOptions(options);
 
-  const themeDir = options.file
-    ? path.dirname(expandHomePath(options.file))
-    : path.join(process.env.HOME || '', 'Downloads', name);
-
-  const themefilePath = options.file
+  const themePath = options.file
     ? expandHomePath(options.file)
-    : path.join(themeDir, 'themefile');
+    : undefined;
 
-  let themefileContent: string;
-  try {
-    themefileContent = await loadYamlFile(themefilePath);
-  } catch {
-    process.exitCode = ExitCode.FILE_NOT_FOUND;
-    logger.error(`Themefile not found: ${themefilePath}`);
+  const loadResult = await loadThemefile(themePath);
+  if ('error' in loadResult) {
+    const err = loadResult.error;
+    if (err.message.includes('not found')) {
+      process.exitCode = ExitCode.FILE_NOT_FOUND;
+    } else if ('line' in err) {
+      process.exitCode = ExitCode.FORMAT_ERROR;
+      logger.error(`Themefile parse error at line ${(err as { line: number }).line}: ${err.message}`);
+      return;
+    } else {
+      process.exitCode = ExitCode.GENERAL_ERROR;
+      logger.error(err.message);
+      return;
+    }
+    logger.error(err.message);
     return;
   }
 
-  const parsedThemefile = parseThemefile(themefileContent);
-  if (isParseError(parsedThemefile)) {
-    process.exitCode = ExitCode.FORMAT_ERROR;
-    logger.error(`Themefile parse error at line ${parsedThemefile.line}: ${parsedThemefile.message}`);
+  const { parsed, themeDir, themefilePath } = loadResult;
+  const themeName = parsed.THEME;
+
+  const platform = extractPlatform(parsed);
+  const filterLayer = extractFilterLayer(parsed);
+  const colorSpace = extractColorSpace(parsed);
+
+  const depResult = await buildDependencyDictionary(parsed, themeDir);
+  if ('error' in depResult) {
+    const errMsg = depResult.error.message;
+    process.exitCode = errMsg.includes('schema error')
+      ? ExitCode.INVALID_RESOURCE
+      : ExitCode.FILE_NOT_FOUND;
+    logger.error(errMsg);
     return;
   }
 
-  const paletteRef = parsedThemefile.PALETTE;
-  const dimensionRef = parsedThemefile.DIMENSION;
-  const themeName = parsedThemefile.THEME;
+  const {
+    palette,
+    dimension,
+    paletteContent,
+    dimensionContent,
+    palettePath,
+    dimensionPath,
+    dict,
+  } = depResult;
 
-  const platformParam = parsedThemefile.PARAMETER?.platform;
-  const platform: 'general' | 'css' | undefined = 
-    platformParam === 'css' ? 'css' : 
-    platformParam === 'general' ? 'general' : 
-    undefined;
+  const outputDir = resolveOutputDir(parsed, themeDir, options.output);
 
-  const filterLayerParam = parsedThemefile.PARAMETER?.filterLayer;
-  const filterLayer: number | undefined = 
-    typeof filterLayerParam === 'number' ? filterLayerParam :
-    typeof filterLayerParam === 'string' ? parseInt(filterLayerParam, 10) :
-    undefined;
-
-  const colorSpaceParam = parsedThemefile.PARAMETER?.colorSpace;
-  const colorSpace: ColorSpaceFormat | undefined =
-    colorSpaceParam && ['hex', 'oklch', 'srgb', 'hsl'].includes(colorSpaceParam)
-      ? (colorSpaceParam as ColorSpaceFormat)
-      : undefined;
-
-  const paletteResource = resolveResource(paletteRef, 'palette', themeDir);
-  const dimensionResource = resolveResource(dimensionRef, 'dimension', themeDir);
-
-  if (!paletteResource.exists) {
-    process.exitCode = ExitCode.INVALID_RESOURCE;
-    logger.error(`Palette not found: ${paletteResource.path}`);
-    return;
-  }
-  if (!dimensionResource.exists) {
-    process.exitCode = ExitCode.INVALID_RESOURCE;
-    logger.error(`Dimension not found: ${dimensionResource.path}`);
-    return;
-  }
-
-  let outputDir: string;
-  if (options.output) {
-    outputDir = expandHomePath(options.output);
-  } else if (parsedThemefile.PARAMETER?.output) {
-    const outputPath = parsedThemefile.PARAMETER.output;
-    outputDir = path.isAbsolute(outputPath)
-      ? outputPath
-      : path.join(themeDir, outputPath);
-  } else {
-    outputDir = path.join(process.env.HOME || '', 'Downloads', themeName);
-  }
-
-  let paletteContent: string;
-  let dimensionContent: string;
-  try {
-    paletteContent = await loadYamlFile(paletteResource.path);
-    dimensionContent = await loadYamlFile(dimensionResource.path);
-  } catch (err) {
-    process.exitCode = ExitCode.FILE_NOT_FOUND;
-    logger.error(err instanceof Error ? err.message : String(err));
-    return;
-  }
-
-  logger.success(`Palette: ${paletteRef} (${paletteResource.isBuiltin ? 'builtin' : 'user'})`);
-  logger.success(`Dimension: ${dimensionRef} (${dimensionResource.isBuiltin ? 'builtin' : 'user'})`);
-
-  const paletteSchemaError = await validatePaletteSchema(paletteContent, paletteResource.path);
-  if (paletteSchemaError) {
-    process.exitCode = ExitCode.INVALID_RESOURCE;
-    logger.error(`Palette schema error: ${paletteSchemaError.message}`);
-    return;
-  }
-
-  const dimensionSchemaError = await validateDimensionSchema(dimensionContent, dimensionResource.path);
-  if (dimensionSchemaError) {
-    process.exitCode = ExitCode.INVALID_RESOURCE;
-    logger.error(`Dimension schema error: ${dimensionSchemaError.message}`);
-    return;
-  }
-
-  const palette = parsePalette(paletteContent);
-  if (isParseError(palette)) {
-    process.exitCode = ExitCode.FORMAT_ERROR;
-    logger.error(`Palette parse error at line ${palette.line}: ${palette.message}`);
-    return;
-  }
-
-  const dimension = parseDimension(dimensionContent);
-  if (isParseError(dimension)) {
-    process.exitCode = ExitCode.FORMAT_ERROR;
-    logger.error(`Dimension parse error: ${dimension.message}`);
-    return;
-  }
+  logger.success(`Palette: ${parsed.PALETTE} (${palettePath.includes('src/resources') ? 'builtin' : 'user'})`);
+  logger.success(`Dimension: ${parsed.DIMENSION} (${dimensionPath.includes('src/resources') ? 'builtin' : 'user'})`);
 
   const mainYamlPath = path.join(themeDir, 'main.yaml');
   const mainYamlFile = Bun.file(mainYamlPath);
@@ -441,54 +312,31 @@ async function handleThemeGeneration(
 
   if (hasMainYaml) {
     logger.info('Found main.yaml, parsing theme tokens...');
-    const parseResult = await parseAndResolveThemeYaml(mainYamlPath, palette, dimension, colorSpace);
+    const parseResult = await processThemeDocument(mainYamlPath, dict, colorSpace);
 
-    if (parseResult) {
-      await fs.mkdir(outputDir, { recursive: true });
-      mainResult = await generateTokens({
-        themeName,
-        outputDir,
-        tokens: parseResult.tree,
-        platform,
-        filterLayer,
-      });
-
-      if (!mainResult.success) {
-        const errorMsg = mainResult.error || 'Failed to generate tokens';
-        process.exitCode = ExitCode.GENERAL_ERROR;
-        logger.error(errorMsg);
-        return;
-      }
-
-      logger.success(`Generated main: ${mainResult.files.join(', ')}`);
-    } else {
-      logger.warn('Failed to parse main.yaml, falling back to palette + dimension');
-      try {
-        mainResult = await generateThemeTokens(
-          themeName,
-          outputDir,
-          paletteContent,
-          dimensionContent,
-          platform,
-          filterLayer,
-          paletteResource.path,
-          dimensionResource.path
-        );
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        process.exitCode = errorMessage.includes('schema error') ? ExitCode.INVALID_RESOURCE : ExitCode.GENERAL_ERROR;
-        logger.error(errorMessage);
-        return;
-      }
-
-      if (!mainResult.success) {
-        process.exitCode = ExitCode.GENERAL_ERROR;
-        logger.error(mainResult.error || 'Failed to generate tokens');
-        return;
-      }
-
-      logger.success(`Generated main: ${mainResult.files.join(', ')}`);
+    if (!parseResult) {
+      process.exitCode = ExitCode.GENERAL_ERROR;
+      logger.error('Failed to parse main.yaml');
+      return;
     }
+
+    await fs.mkdir(outputDir, { recursive: true });
+    mainResult = await generateTokens({
+      themeName,
+      outputDir,
+      tokens: parseResult.tree,
+      platform,
+      filterLayer,
+    });
+
+    if (!mainResult.success) {
+      const errorMsg = mainResult.error || 'Failed to generate tokens';
+      process.exitCode = ExitCode.GENERAL_ERROR;
+      logger.error(errorMsg);
+      return;
+    }
+
+    logger.success(`Generated main: ${mainResult.files.join(', ')}`);
   } else {
     try {
       mainResult = await generateThemeTokens(
@@ -498,8 +346,8 @@ async function handleThemeGeneration(
         dimensionContent,
         platform,
         filterLayer,
-        paletteResource.path,
-        dimensionResource.path
+        palettePath,
+        dimensionPath
       );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -536,35 +384,24 @@ async function handleThemeGeneration(
 
     if (hasNightYaml) {
       logger.info('Found main@night.yaml, parsing night theme tokens...');
-      const nightResult = await parseAndResolveThemeYaml(nightYamlPath, palette, dimension, colorSpace);
+      const nightParseResult = await processThemeDocument(nightYamlPath, dict, colorSpace);
 
-      if (nightResult) {
-        const nightGenResult = await generateTokens({
-          themeName: `${themeName}-night`,
-          outputDir,
-          tokens: nightResult.tree,
-          platform,
-          filterLayer,
-        });
+      if (!nightParseResult) {
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        logger.error('Failed to parse main@night.yaml');
+        return;
+      }
 
-        if (nightGenResult.success) {
-          logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
-        }
-      } else {
-        logger.warn('Failed to parse main@night.yaml, falling back to palette + dimension');
-        const nightGenResult = await generateThemeTokens(
-          `${themeName}-night`,
-          outputDir,
-          paletteContent,
-          dimensionContent,
-          platform,
-          filterLayer,
-          paletteResource.path,
-          dimensionResource.path
-        );
-        if (nightGenResult.success) {
-          logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
-        }
+      const nightGenResult = await generateTokens({
+        themeName: `${themeName}-night`,
+        outputDir,
+        tokens: nightParseResult.tree,
+        platform,
+        filterLayer,
+      });
+
+      if (nightGenResult.success) {
+        logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
       }
     } else {
       const nightGenResult = await generateThemeTokens(
@@ -574,8 +411,8 @@ async function handleThemeGeneration(
         dimensionContent,
         platform,
         filterLayer,
-        paletteResource.path,
-        dimensionResource.path
+        palettePath,
+        dimensionPath
       );
       if (nightGenResult.success) {
         logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
@@ -593,35 +430,24 @@ async function handleThemeGeneration(
       const baseName = isNightVariant ? variantName.replace('@night', '') : variantName;
       const suffix = isNightVariant ? `-${baseName}-night` : `-${baseName}`;
 
-      const variantTokens = await parseAndResolveThemeYaml(variantFile, palette, dimension, colorSpace);
+      const variantTokens = await processThemeDocument(variantFile, dict, colorSpace);
 
-      if (variantTokens) {
-        const variantResult = await generateTokens({
-          themeName: `${themeName}${suffix}`,
-          outputDir,
-          tokens: variantTokens.tree,
-          platform,
-          filterLayer,
-        });
+      if (!variantTokens) {
+        process.exitCode = ExitCode.GENERAL_ERROR;
+        logger.error(`Failed to parse variant: ${variantFile}`);
+        return;
+      }
 
-        if (variantResult.success) {
-          logger.success(`Generated variant ${variantName}: ${variantResult.files.join(', ')}`);
-        }
-      } else {
-        const variantResult = await generateThemeTokens(
-          `${themeName}${suffix}`,
-          outputDir,
-          paletteContent,
-          dimensionContent,
-          platform,
-          filterLayer,
-          paletteResource.path,
-          dimensionResource.path
-        );
+      const variantResult = await generateTokens({
+        themeName: `${themeName}${suffix}`,
+        outputDir,
+        tokens: variantTokens.tree,
+        platform,
+        filterLayer,
+      });
 
-        if (variantResult.success) {
-          logger.success(`Generated variant ${variantName}: ${variantResult.files.join(', ')}`);
-        }
+      if (variantResult.success) {
+        logger.success(`Generated variant ${variantName}: ${variantResult.files.join(', ')}`);
       }
     }
   }
