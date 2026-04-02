@@ -41,7 +41,8 @@ function formatCssVariables(
 ): string {
   const lines: string[] = [':root {'];
 
-  const sortedTokens = [...tokens].sort((a, b) => a.name.localeCompare(b.name));
+  // 保持原始顺序（依赖 transformer 注入的 _order）
+  const sortedTokens = [...tokens].sort((a, b) => (a._order ?? 0) - (b._order ?? 0));
 
   for (const token of sortedTokens) {
     const key = getFilteredName(token, filterLayer);
@@ -49,10 +50,19 @@ function formatCssVariables(
 
     const description = token.$description || token.description || token.comment;
     if (description && typeof description === 'string' && description !== '~') {
-      lines.push(`  /* ${description} */`);
+      const isMultilineDescription = description.includes('\n');
+      if (isMultilineDescription) {
+        const descLines = description.split('\n');
+        for (const descLine of descLines) {
+          lines.push(`  /* ${descLine} */`);
+        }
+        lines.push(`  --${key}: ${cssValue};`);
+      } else {
+        lines.push(`  --${key}: ${cssValue}; /* ${description} */`);
+      }
+    } else {
+      lines.push(`  --${key}: ${cssValue};`);
     }
-
-    lines.push(`  --${key}: ${cssValue};`);
   }
 
   lines.push('}');

@@ -301,8 +301,18 @@ async function handleThemeGeneration(
 
   const outputDir = resolveOutputDir(parsed, themeDir, options.output);
 
-  logger.success(`Palette: ${parsed.PALETTE} (${palettePath.includes('src/resources') ? 'builtin' : 'user'})`);
-  logger.success(`Dimension: ${parsed.DIMENSION} (${dimensionPath.includes('src/resources') ? 'builtin' : 'user'})`);
+  const resourceLogEntries = parsed.resources?.length
+    ? parsed.resources
+    : [
+        { kind: 'palette', ref: parsed.PALETTE! },
+        { kind: 'dimension', ref: parsed.DIMENSION! },
+      ];
+
+  for (const { kind, ref } of resourceLogEntries) {
+    const loaded = Object.values(dict).find((e) => e.kind === kind);
+    const isBuiltin = loaded?.path.includes('src/resources') ?? false;
+    logger.success(`Resource [${kind}]: ${ref} (${isBuiltin ? 'builtin' : 'user'})`);
+  }
 
   const mainYamlPath = path.join(themeDir, 'main.yaml');
   const mainYamlFile = Bun.file(mainYamlPath);
