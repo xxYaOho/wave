@@ -44,6 +44,7 @@ export interface DependencyDictionary {
 export interface ThemeDocumentResult {
   tree: SdTokenTree;
   order: string[];
+  groupComments: Record<string, string>;
 }
 
 function expandHomePath(filePath: string): string {
@@ -211,7 +212,7 @@ export async function processThemeDocument(
   try {
     const resolved = resolveReferences(parsed.raw, sources);
     const transformResult = transformToSDFormat(resolved, undefined, colorSpace);
-    return { tree: transformResult.tree, order: transformResult.order };
+    return { tree: transformResult.tree, order: transformResult.order, groupComments: transformResult.groupComments };
   } catch (err) {
     if (err instanceof CircularReferenceError) {
       logger.error(err.message);

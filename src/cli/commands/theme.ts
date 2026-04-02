@@ -337,6 +337,7 @@ async function handleThemeGeneration(
       tokens: parseResult.tree,
       platform,
       filterLayer,
+      groupComments: parseResult.groupComments,
     });
 
     if (!mainResult.success) {
@@ -408,6 +409,7 @@ async function handleThemeGeneration(
         tokens: nightParseResult.tree,
         platform,
         filterLayer,
+        groupComments: nightParseResult.groupComments,
       });
 
       if (nightGenResult.success) {
@@ -454,6 +456,7 @@ async function handleThemeGeneration(
         tokens: variantTokens.tree,
         platform,
         filterLayer,
+        groupComments: variantTokens.groupComments,
       });
 
       if (variantResult.success) {

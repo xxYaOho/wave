@@ -141,6 +141,7 @@ function processArrayItem(
 export interface TransformResult {
   tree: SdTokenTree;
   order: string[];
+  groupComments: Record<string, string>;
 }
 
 let orderCounter = 0;
@@ -153,7 +154,12 @@ export function transformToSDFormat(
 ): TransformResult {
   const result: SdTokenTree = {};
   const order: string[] = [];
+  const groupComments: Record<string, string> = {};
   const inheritedType = resolved.$type ?? parentType;
+
+  if (resolved.$description !== undefined && currentPath) {
+    groupComments[currentPath] = resolved.$description;
+  }
 
   for (const key of Object.keys(resolved)) {
     if (key.startsWith("$")) {
@@ -183,10 +189,11 @@ export function transformToSDFormat(
       );
       result[key] = nested.tree;
       order.push(...nested.order.map(k => `${key}.${k}`));
+      Object.assign(groupComments, nested.groupComments);
     }
   }
 
-  return { tree: result, order };
+  return { tree: result, order, groupComments };
 }
 
 function transformToken(

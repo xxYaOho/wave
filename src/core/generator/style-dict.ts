@@ -13,6 +13,7 @@ export interface GeneratorOptions {
   tokens: Record<string, unknown>;
   platform?: 'general' | 'css';
   filterLayer?: number;
+  groupComments?: Record<string, string>;
 }
 
 export interface GeneratorResult {
@@ -91,7 +92,7 @@ export async function generateTokens(
         files: [{
           destination: `${themeName}.css`,
           format: cssVariablesWithDescFormat.name,
-          options: { filterLayer },
+          options: { filterLayer, groupComments: options.groupComments },
         }],
       };
     }
