@@ -1,4 +1,7 @@
-PALETTE leonardo
-DIMENSION wave
+THEME example
+RESOURCE palette tailwindcss4
+RESOURCE dimension wave
 
-THEME beluga
+PARAMETER output ./build
+PARAMETER format hsl
+PARAMETER platform css
