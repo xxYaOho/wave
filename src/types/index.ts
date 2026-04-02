@@ -57,7 +57,7 @@ export interface GenerateOptions {
   night: boolean;
   variants?: string[] | undefined;
   brand?: string | undefined;
-  platform?: 'general' | 'css';
+  platform?: string[];
   colorSpace?: ColorSpaceFormat;
 }
 

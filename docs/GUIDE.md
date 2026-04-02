@@ -78,7 +78,7 @@ PALETTE leonardo
 DIMENSION wave
 
 PARAMETER output ./dist
-PARAMETER platform general
+PARAMETER platform json
 PARAMETER colorSpace oklch
 PARAMETER filterLayer 1
 ```
@@ -88,7 +88,7 @@ PARAMETER filterLayer 1
 | 参数 | 说明 | 默认值 | 可选值 |
 |------|------|--------|--------|
 | `output` | 输出目录 | `./theme` | 任意路径 |
-| `platform` | 输出格式 | `general` | `general`, `css` |
+| `platform` | 输出格式 | `json` | `json`, `jsonc`, `css`（逗号分隔可多选） |
 | `colorSpace` | 色彩空间 | `hex` | `hex`, `oklch`, `srgb`, `hsl` |
 | `filterLayer` | 过滤层级 | `0` | 数字 |
 | `night` | Night 模式 | `auto` | `auto`, `false` |
@@ -143,9 +143,9 @@ wave theme -f ./my-theme/themefile
 
 **输出文件**:
 
-- `{theme}.json` - JSON 格式（紧凑）
+- `{theme}.json` - JSON 格式（紧凑，默认）
 - `{theme}.jsonc` - JSON with Comments（带注释）
-- `{theme}.css` - CSS 变量（当 `platform: css`）
+- `{theme}.css` - CSS 变量
 
 ---
 

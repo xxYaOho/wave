@@ -228,11 +228,18 @@ export async function processThemeDocument(
   }
 }
 
-export function extractPlatform(parsed: ParsedThemefile): 'general' | 'css' | undefined {
+export function extractPlatform(parsed: ParsedThemefile): string[] {
   const platformParam = parsed.PARAMETER?.platform;
-  if (platformParam === 'css') return 'css';
-  if (platformParam === 'general') return 'general';
-  return undefined;
+  if (!platformParam || platformParam === 'general') {
+    if (platformParam === 'general') {
+      logger.warn('PARAMETER platform "general" is deprecated, use "json,jsonc" instead');
+    }
+    return platformParam === 'general' ? ['json', 'jsonc'] : ['json'];
+  }
+  return platformParam
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 export function extractFilterLayer(parsed: ParsedThemefile): number | undefined {

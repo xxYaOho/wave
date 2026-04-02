@@ -32,6 +32,7 @@ Examples:
   wave theme -f ./themefile      Specify themefile path
   wave theme --no-night          Skip night mode
   wave theme --no-variants       Skip variants generation
+  wave theme --platform css      Output CSS variables
   wave doctor                    Run diagnostics
 
 For more information about a command:
@@ -55,6 +56,7 @@ Options:
   --variants [names]     Specify variants (comma separated)
   --init                 Create theme template
   -o, --output <dir>     Output directory
+  --platform <list>      Output platforms (comma separated): json, jsonc, css
 
 Themefile example:
   THEME my-theme
@@ -62,7 +64,7 @@ Themefile example:
   RESOURCE dimension wave
   RESOURCE custom ./brand.yml
 
-  PARAMETER platform css
+  PARAMETER platform json,css
   PARAMETER colorSpace oklch
 
 Examples:

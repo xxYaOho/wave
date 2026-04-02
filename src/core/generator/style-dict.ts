@@ -6,12 +6,13 @@ import { nameKebabTransform } from './transforms/kebab.ts';
 import { valueCssVarTransform } from './transforms/css-var.ts';
 import { jsoncFormat } from './transforms/jsonc.ts';
 import { flatJsonFormat, flatJsoncFormat, cssVariablesWithDescFormat } from './transforms/index.ts';
+import { logger } from '../../utils/logger.ts';
 
 export interface GeneratorOptions {
   themeName: string;
   outputDir: string;
   tokens: Record<string, unknown>;
-  platform?: 'general' | 'css';
+  platform?: string[];
   filterLayer?: number;
   groupComments?: Record<string, string>;
 }
@@ -64,37 +65,47 @@ export async function generateTokens(
 
     const platforms: Record<string, PlatformConfig> = {};
 
-    if (platform === undefined || platform === 'general') {
-      platforms.json = {
-        buildPath: outputDir,
-        transforms: ['attribute/cti', nameKebabTransform.name],
-        files: [{
-          destination: `${themeName}.json`,
-          format: flatJsonFormat.name,
-          options: { filterLayer },
-        }],
-      };
-      platforms.jsonc = {
-        buildPath: outputDir,
-        transforms: ['attribute/cti', nameKebabTransform.name],
-        files: [{
-          destination: `${themeName}.jsonc`,
-          format: flatJsoncFormat.name,
-          options: { filterLayer },
-        }],
-      };
-    }
+    const targetPlatforms = platform ?? ['json'];
+    const validPlatforms = new Set<string>();
 
-    if (platform === 'css') {
-      platforms.css = {
-        buildPath: outputDir,
-        transforms: ['attribute/cti', nameKebabTransform.name],
-        files: [{
-          destination: `${themeName}.css`,
-          format: cssVariablesWithDescFormat.name,
-          options: { filterLayer, groupComments: options.groupComments },
-        }],
-      };
+    for (const p of targetPlatforms) {
+      const normalized = p.trim();
+      if (normalized === 'json') {
+        platforms.json = {
+          buildPath: outputDir,
+          transforms: ['attribute/cti', nameKebabTransform.name],
+          files: [{
+            destination: `${themeName}.json`,
+            format: flatJsonFormat.name,
+            options: { filterLayer },
+          }],
+        };
+        validPlatforms.add('json');
+      } else if (normalized === 'jsonc') {
+        platforms.jsonc = {
+          buildPath: outputDir,
+          transforms: ['attribute/cti', nameKebabTransform.name],
+          files: [{
+            destination: `${themeName}.jsonc`,
+            format: flatJsoncFormat.name,
+            options: { filterLayer },
+          }],
+        };
+        validPlatforms.add('jsonc');
+      } else if (normalized === 'css') {
+        platforms.css = {
+          buildPath: outputDir,
+          transforms: ['attribute/cti', nameKebabTransform.name],
+          files: [{
+            destination: `${themeName}.css`,
+            format: cssVariablesWithDescFormat.name,
+            options: { filterLayer, groupComments: options.groupComments },
+          }],
+        };
+        validPlatforms.add('css');
+      } else {
+        logger.warn(`Unknown platform "${normalized}", skipping`);
+      }
     }
 
     if (Object.keys(platforms).length === 0) {
@@ -112,11 +123,8 @@ export async function generateTokens(
     const sd = new StyleDictionary(config);
     await sd.buildAllPlatforms();
 
-    if (platform === undefined || platform === 'general') {
-      generatedFiles.push(`${themeName}.json`, `${themeName}.jsonc`);
-    }
-    if (platform === 'css') {
-      generatedFiles.push(`${themeName}.css`);
+    for (const p of validPlatforms) {
+      generatedFiles.push(`${themeName}.${p}`);
     }
 
     try {

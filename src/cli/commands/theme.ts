@@ -44,6 +44,7 @@ interface ThemeCommandOptions {
   variants?: string | boolean;
   init?: boolean;
   output?: string;
+  platform?: string;
 }
 
 function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
@@ -72,7 +73,7 @@ async function generateThemeTokens(
   outputDir: string,
   paletteContent: string,
   dimensionContent: string,
-  platform?: 'general' | 'css',
+  platforms?: string[],
   filterLayer?: number,
   palettePath?: string,
   dimensionPath?: string
@@ -110,7 +111,7 @@ async function generateThemeTokens(
     themeName,
     outputDir,
     tokens,
-    platform,
+    platform: platforms,
     filterLayer,
   });
 }
@@ -121,6 +122,9 @@ async function handleBuiltinTheme(
   options: ThemeCommandOptions
 ): Promise<boolean> {
   const generateOptions = parseCliOptions(options);
+  const builtinPlatforms = options.platform
+    ? options.platform.split(',').map((s) => s.trim()).filter(Boolean)
+    : ['json', 'jsonc'];
   const themeDir = path.join(process.env.HOME || '', 'Downloads', name);
   const outputDir = options.output
     ? expandHomePath(options.output)
@@ -164,7 +168,7 @@ async function handleBuiltinTheme(
       outputDir,
       paletteContent,
       dimensionContent,
-      'general',
+      builtinPlatforms,
       undefined,
       paletteResource.path,
       dimensionResource.path
@@ -202,7 +206,7 @@ async function handleBuiltinTheme(
       outputDir,
       paletteContent,
       dimensionContent,
-      'general',
+      builtinPlatforms,
       undefined,
       paletteResource.path,
       dimensionResource.path
@@ -227,7 +231,7 @@ async function handleBuiltinTheme(
         outputDir,
         paletteContent,
         dimensionContent,
-        'general',
+        builtinPlatforms,
         undefined,
         paletteResource.path,
         dimensionResource.path
@@ -275,7 +279,9 @@ async function handleThemeGeneration(
   const { parsed, themeDir, themefilePath } = loadResult;
   const themeName = parsed.THEME;
 
-  const platform = extractPlatform(parsed);
+  const platforms = options.platform
+    ? options.platform.split(',').map((s) => s.trim()).filter(Boolean)
+    : extractPlatform(parsed);
   const filterLayer = extractFilterLayer(parsed);
   const colorSpace = extractColorSpace(parsed);
 
@@ -335,7 +341,7 @@ async function handleThemeGeneration(
       themeName,
       outputDir,
       tokens: parseResult.tree,
-      platform,
+      platform: platforms,
       filterLayer,
       groupComments: parseResult.groupComments,
     });
@@ -355,7 +361,7 @@ async function handleThemeGeneration(
         outputDir,
         paletteContent,
         dimensionContent,
-        platform,
+        platforms,
         filterLayer,
         palettePath,
         dimensionPath
@@ -407,7 +413,7 @@ async function handleThemeGeneration(
         themeName: `${themeName}-night`,
         outputDir,
         tokens: nightParseResult.tree,
-        platform,
+        platform: platforms,
         filterLayer,
         groupComments: nightParseResult.groupComments,
       });
@@ -421,7 +427,7 @@ async function handleThemeGeneration(
         outputDir,
         paletteContent,
         dimensionContent,
-        platform,
+        platforms,
         filterLayer,
         palettePath,
         dimensionPath
@@ -454,7 +460,7 @@ async function handleThemeGeneration(
         themeName: `${themeName}${suffix}`,
         outputDir,
         tokens: variantTokens.tree,
-        platform,
+        platform: platforms,
         filterLayer,
         groupComments: variantTokens.groupComments,
       });
@@ -479,6 +485,7 @@ export const themeCommand = new Command('theme')
   .option('--variants [names]', 'Specify variants (comma separated)')
   .option('--init', 'Create theme template')
   .option('-o, --output <dir>', 'Output directory')
+  .option('--platform <list>', 'Output platforms (comma separated): json, jsonc, css')
   .action(async (name: string | undefined, options: ThemeCommandOptions) => {
     if (options.list) {
       console.log('Built-in themes:');

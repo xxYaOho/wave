@@ -28,7 +28,7 @@ theme:
 
 ```bash
 $ wave theme
-✓ Generated: theme.json, theme.jsonc
+✓ Generated: theme.json
 ```
 
 输出（`theme.jsonc`）：
@@ -100,8 +100,14 @@ bun run wave theme
 ```
 
 输出：
-- `my-theme.json` - 紧凑格式
+- `my-theme.json` - 紧凑格式（默认）
 - `my-theme.jsonc` - 带注释格式
+- `my-theme.css` - CSS 变量格式
+
+多平台输出：
+```
+PARAMETER platform json,jsonc,css
+```
 
 ---
 
@@ -137,6 +143,9 @@ wave theme -f ./path/to/themefile
 
 # 仅生成 CSS
 wave theme --platform css
+
+# 生成多个格式
+wave theme --platform json,jsonc,css
 
 # 跳过 night 模式
 wave theme --no-night
