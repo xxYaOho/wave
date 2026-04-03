@@ -12,6 +12,47 @@ interface ShowCommandOptions {
   format?: string;
 }
 
+function isValueUnitPair(value: unknown): value is { value: number | string; unit: string } {
+  return (
+    value !== null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    'value' in value &&
+    'unit' in value &&
+    typeof (value as Record<string, unknown>).unit === 'string'
+  );
+}
+
+function formatValueForDisplay(value: unknown): unknown {
+  if (isValueUnitPair(value)) {
+    return `${value.value}${value.unit}`;
+  }
+  return value;
+}
+
+function transformDimensionDisplay(data: unknown): unknown {
+  if (Array.isArray(data)) {
+    return data.map(transformDimensionDisplay);
+  }
+  if (data !== null && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    if ('$value' in obj) {
+      return {
+        ...Object.fromEntries(
+          Object.entries(obj).map(([k, v]) => [
+            k,
+            k === '$value' ? formatValueForDisplay(v) : transformDimensionDisplay(v),
+          ])
+        ),
+      };
+    }
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [k, transformDimensionDisplay(v)])
+    );
+  }
+  return data;
+}
+
 function stringifyCompact(value: unknown, indent = 0): string {
   const spaces = ' '.repeat(indent);
   if (value === null || typeof value !== 'object') {
@@ -45,7 +86,7 @@ function flattenResource(
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       const obj = value as Record<string, unknown>;
       if ('$value' in obj) {
-        result[pathParts.concat(key).join('.')] = obj.$value;
+        result[pathParts.concat(key).join('.')] = formatValueForDisplay(obj.$value);
       } else {
         flattenResource(obj, pathParts.concat(key), result);
       }
@@ -86,7 +127,7 @@ export const showCommand = new Command('show')
         const content = await file.text();
         console.log(content);
       } else if (format === 'json') {
-        console.log(stringifyCompact(resourceData));
+        console.log(stringifyCompact(transformDimensionDisplay(resourceData)));
       } else {
         // flat-json
         const namespace = Object.keys(resourceData!)[0];
