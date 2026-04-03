@@ -48,7 +48,9 @@ wave:
     remBasic:
       $type: dimension
       $description: 全局维度，font-size=16
-      $value: 1rem
+      $value:
+        value: 1
+        unit: rem
     rem:
       $type: dimension
       1:
@@ -134,7 +136,9 @@ wave:
     pxBasic:
       $type: dimension
       $description: 全局维度, 最小基础像素
-      $value: 1px
+      $value:
+        value: 1
+        unit: px
     px:
       $type: dimension
       1:
