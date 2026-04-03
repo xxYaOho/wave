@@ -2,14 +2,12 @@ import type { ParsedThemefile, ParseError, ResourceDeclaration } from '../../typ
 
 export function parseThemefile(content: string): ParsedThemefile | ParseError {
   const result: Partial<ParsedThemefile> = {
-    PARAMETER: {}
+    PARAMETER: {},
+    resources: []
   };
 
   const lines = content.split('\n');
   let lineNum = 0;
-  let hasLegacyPalette = false;
-  let hasLegacyDimension = false;
-  let hasResource = false;
 
   for (const line of lines) {
     lineNum++;
@@ -29,18 +27,6 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
         };
       }
 
-      if (key === 'PALETTE') {
-        result.PALETTE = value;
-        hasLegacyPalette = true;
-        continue;
-      }
-
-      if (key === 'DIMENSION') {
-        result.DIMENSION = value;
-        hasLegacyDimension = true;
-        continue;
-      }
-
       if (key === 'THEME') {
         result.THEME = value;
         continue;
@@ -55,27 +41,19 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
           };
         }
         const [, kind, ref] = resourceMatch;
-        if (!result.resources) {
-          result.resources = [];
-        }
-        result.resources.push({ kind, ref } as ResourceDeclaration);
-        hasResource = true;
+        result.resources!.push({ kind, ref } as ResourceDeclaration);
         continue;
       }
 
       if (key === 'PARAMETER') {
-        const paramMatch = value.match(/^([\w-]+)\s+(.+)$/);
+        const paramMatch = value.match(/^(\w+)\s+(.+)$/);
         if (paramMatch && paramMatch[1] && paramMatch[2]) {
           const paramKey = paramMatch[1];
           const paramValue = paramMatch[2];
-          if (!result.PARAMETER) {
-            result.PARAMETER = {};
-          }
-            const validParams = ['night', 'variants', 'output', 'platform', 'brand', 'filter-layer', 'filterLayer', 'colorSpace'] as const;
+          const validParams = ['night', 'variants', 'output', 'platform', 'brand', 'filterLayer', 'colorSpace'] as const;
           type ValidParam = typeof validParams[number];
           if (validParams.includes(paramKey as ValidParam)) {
-            const internalKey = paramKey === 'filter-layer' || paramKey === 'filterLayer' ? 'filterLayer' : paramKey;
-            (result.PARAMETER as Record<string, string>)[internalKey] = paramValue;
+            (result.PARAMETER as Record<string, string>)[paramKey] = paramValue;
           }
         } else {
           return {
@@ -98,35 +76,20 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
     }
   }
 
-  if (hasResource && (hasLegacyPalette || hasLegacyDimension)) {
+  // Validation: require THEME
+  if (!result.THEME || result.THEME.trim() === '') {
     return {
       line: 0,
-      message: 'Cannot mix RESOURCE with legacy PALETTE/DIMENSION directives'
+      message: 'Missing required directive: THEME'
     };
   }
 
-  if (result.resources && result.resources.length > 0) {
-    const hasTheme = result.THEME && result.THEME.trim() !== '';
-    if (!hasTheme) {
-      return {
-        line: 0,
-        message: 'Missing required directive: THEME'
-      };
-    }
-  } else {
-    const requiredLegacyKeys: (keyof ParsedThemefile)[] = ['PALETTE', 'DIMENSION', 'THEME'];
-    for (const key of requiredLegacyKeys) {
-      if (!result[key]) {
-        return {
-          line: 0,
-          message: `Missing required directive: ${key}`
-        };
-      }
-    }
-  }
-
-  if (!result.PARAMETER) {
-    result.PARAMETER = {};
+  // Validation: require at least one RESOURCE
+  if (!result.resources || result.resources.length === 0) {
+    return {
+      line: 0,
+      message: 'Missing required RESOURCE declarations. At least one RESOURCE is required.'
+    };
   }
 
   return result as ParsedThemefile;

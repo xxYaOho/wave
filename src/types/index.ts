@@ -31,12 +31,7 @@ export interface ParsedThemefile {
     filterLayer?: number | string;
     colorSpace?: ColorSpaceFormat;
   };
-  /** @deprecated Legacy fields - use resources instead */
-  PALETTE?: string;
-  /** @deprecated Legacy fields - use resources instead */
-  DIMENSION?: string;
-  /** New mode: RESOURCE declarations */
-  resources?: ResourceDeclaration[];
+  resources: ResourceDeclaration[];
 }
 
 export type ResourceType = 'palette' | 'dimension' | 'brand';
@@ -193,6 +188,30 @@ export interface DtcgTokenGroup {
 export interface ThemeYamlResult {
   raw: DtcgTokenGroup;
 }
+
+// Theme document processing result types (CQ-001 fix)
+export type ThemeDocumentFailureReason =
+  | 'file_not_found'
+  | 'parse_error'
+  | 'circular_reference'
+  | 'unresolved_reference';
+
+export interface ThemeDocumentFailure {
+  ok: false;
+  reason: ThemeDocumentFailureReason;
+  message: string;
+  exitCode: ExitCodeType;
+  line?: number;
+}
+
+export interface ThemeDocumentSuccess {
+  ok: true;
+  tree: SdTokenTree;
+  order: string[];
+  groupComments: Record<string, string>;
+}
+
+export type ThemeDocumentResult = ThemeDocumentSuccess | ThemeDocumentFailure;
 
 export interface ReferenceDataSources {
   [namespace: string]: unknown;

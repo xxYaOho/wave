@@ -253,6 +253,30 @@ function resolveNestedRefs(
 
   // 处理字符串引用
   if (typeof value === 'string') {
+    // CQ-005: Check if this is a reference pattern before attempting resolution
+    const refMatch = value.match(/^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/);
+    if (refMatch) {
+      const refPath = refMatch[1]!;
+      const prefix = refPath.split('.')[0];
+
+      // Internal reference (same as rootKey) - keep for Pass 2, don't treat as error
+      if (prefix === rootKey) {
+        return value;
+      }
+
+      // External reference - attempt to resolve
+      const resolved = resolveExternalReference(value, sources, rootKey);
+      if (resolved === undefined) {
+        // External reference failed to resolve - collect as error (same as $ref behavior)
+        unresolvedCollector.push({
+          ref: `${refPath} (unresolved: ${value})`,
+          location: currentLocation,
+        });
+        return value as string; // Keep original but mark as unresolved
+      }
+      return resolved as string;
+    }
+    // Not a reference pattern, or inline reference - use original behavior
     const resolved = resolveExternalReference(value, sources, rootKey);
     return resolved !== undefined ? resolved : value;
   }
@@ -426,6 +450,30 @@ function resolveExternalDtcgValue(
   }
 
   if (typeof value === 'string') {
+    // CQ-005: Check if this is a reference pattern before attempting resolution
+    const refMatch = value.match(/^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/);
+    if (refMatch) {
+      const refPath = refMatch[1]!;
+      const prefix = refPath.split('.')[0];
+
+      // Internal reference (same as rootKey) - keep for Pass 2, don't treat as error
+      if (prefix === rootKey) {
+        return value;
+      }
+
+      // External reference - attempt to resolve
+      const resolved = resolveExternalReference(value, sources, rootKey);
+      if (resolved === undefined) {
+        // External reference failed to resolve - collect as error (same as $ref behavior)
+        unresolvedCollector.push({
+          ref: `${refPath} (unresolved: ${value})`,
+          location: currentLocation,
+        });
+        return value as string; // Keep original but mark as unresolved
+      }
+      return resolved;
+    }
+    // Not a reference pattern, or inline reference - use original behavior
     const resolved = resolveExternalReference(value, sources, rootKey);
     return resolved !== undefined ? resolved : value;
   }
@@ -468,16 +516,43 @@ function resolveExternalDtcgValue(
           resolved[key] = val;
         }
       } else if (typeof val === 'string') {
-        const valResolved = resolveExternalReference(val, sources, rootKey);
-        if (valResolved !== undefined) {
-          if (isDtcgScalarValue(valResolved)) {
-            resolved[key] = valResolved;
-          } else {
-            logger.warn(`Reference resolved to object, expected scalar: ${val}`);
+        // CQ-005: Check if this is a reference pattern
+        const refMatch = val.match(/^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/);
+        if (refMatch) {
+          const refPath = refMatch[1]!;
+          const prefix = refPath.split('.')[0];
+
+          // Internal reference (same as rootKey) - keep for Pass 2, don't treat as error
+          if (prefix === rootKey) {
             resolved[key] = val;
+          } else {
+            // External reference - attempt to resolve
+            const valResolved = resolveExternalReference(val, sources, rootKey);
+            if (valResolved === undefined) {
+              unresolvedCollector.push({
+                ref: `${refPath} (unresolved: ${val})`,
+                location: `${currentLocation}.${key}`,
+              });
+              resolved[key] = val;
+            } else if (isDtcgScalarValue(valResolved)) {
+              resolved[key] = valResolved;
+            } else {
+              logger.warn(`Reference resolved to object, expected scalar: ${val}`);
+              resolved[key] = val;
+            }
           }
         } else {
-          resolved[key] = val;
+          const valResolved = resolveExternalReference(val, sources, rootKey);
+          if (valResolved !== undefined) {
+            if (isDtcgScalarValue(valResolved)) {
+              resolved[key] = valResolved;
+            } else {
+              logger.warn(`Reference resolved to object, expected scalar: ${val}`);
+              resolved[key] = val;
+            }
+          } else {
+            resolved[key] = val;
+          }
         }
       } else {
         resolved[key] = val;
@@ -748,6 +823,65 @@ function groupHasInternalReferences(group: ResolvedTokenGroup, rootKey: string):
   return false;
 }
 
+// CQ-006: Collect remaining internal references when iteration is exhausted
+function collectInternalReferences(group: ResolvedTokenGroup, rootKey: string): string[] {
+  const refs: string[] = [];
+
+  function collectFromValue(value: unknown, path: string): void {
+    // Check $ref objects
+    if (isDtcgRefValue(value)) {
+      const parsed = parseDtcgRef(value.$ref);
+      if (parsed?.source === rootKey) {
+        refs.push(`${path}: ${value.$ref}`);
+      }
+      return;
+    }
+
+    // Check string values with {references}
+    if (typeof value === 'string') {
+      const matches = value.matchAll(/\{(\w+)\.([^}]+)\}/g);
+      for (const match of matches) {
+        if (match[1] === rootKey) {
+          refs.push(`${path}: {${match[1]}.${match[2]}}`);
+        }
+      }
+      return;
+    }
+
+    // Check arrays
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => collectFromValue(item, `${path}[${index}]`));
+      return;
+    }
+
+    // Check objects
+    if (typeof value === 'object' && value !== null) {
+      for (const [key, val] of Object.entries(value)) {
+        if (key === '$type' || key === '$description') continue;
+        collectFromValue(val, path ? `${path}.${key}` : key);
+      }
+    }
+  }
+
+  for (const [key, value] of Object.entries(group)) {
+    if (key === '$type' || key === '$description') continue;
+
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      '$value' in value
+    ) {
+      const token = value as ResolvedDtcgToken;
+      collectFromValue(token.$value, key);
+    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      const nested = collectInternalReferences(value as ResolvedTokenGroup, rootKey);
+      refs.push(...nested.map((r) => `${key}.${r}`));
+    }
+  }
+
+  return refs;
+}
+
 export function resolveReferences(
   tree: DtcgTokenGroup,
   sources: ReferenceDataSources
@@ -773,6 +907,19 @@ export function resolveReferences(
   while (groupHasInternalReferences(result, rootKey) && maxIterations > 0) {
     result = processTokenGroupInternal(result, sources, result, '', unresolvedCollector, rootKey);
     maxIterations--;
+  }
+
+  // CQ-006: Treat iteration exhaustion as failure (potential multi-node cycle)
+  if (maxIterations === 0 && groupHasInternalReferences(result, rootKey)) {
+    // Collect remaining unresolved references for error message
+    const remainingRefs = collectInternalReferences(result, rootKey);
+    throw new UnresolvedReferenceError(
+      remainingRefs.map((ref) => ({
+        ref,
+        location: rootKey,
+        message: `Reference resolution exhausted after max iterations (possible circular reference): ${ref}`,
+      }))
+    );
   }
 
   if (unresolvedCollector.length > 0) {

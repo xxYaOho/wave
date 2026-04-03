@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import {
+  ExitCode,
   type ColorSpaceFormat,
   type ParsedThemefile,
   type PaletteResult,
@@ -7,6 +8,7 @@ import {
   type ParseError,
   type ReferenceDataSources,
   type SdTokenTree,
+  type ThemeDocumentResult,
 } from '../../types/index.ts';
 import { parseThemefile } from '../parser/themefile.ts';
 import { parsePalette, validatePaletteSchema, parseDimension, validateDimensionSchema } from '../parser/index.ts';
@@ -39,12 +41,6 @@ export interface DependencyDictionary {
   dimensionContent: string;
   palettePath: string;
   dimensionPath: string;
-}
-
-export interface ThemeDocumentResult {
-  tree: SdTokenTree;
-  order: string[];
-  groupComments: Record<string, string>;
 }
 
 function expandHomePath(filePath: string): string {
@@ -97,14 +93,7 @@ export async function buildDependencyDictionary(
   parsed: ParsedThemefile,
   themeDir: string
 ): Promise<DependencyDictionary | { error: Error }> {
-  // Auto-convert legacy PALETTE/DIMENSION into RESOURCE declarations
-  const resources: Array<{ kind: string; ref: string }> =
-    parsed.resources && parsed.resources.length > 0
-      ? parsed.resources
-      : [
-          { kind: 'palette', ref: parsed.PALETTE! },
-          { kind: 'dimension', ref: parsed.DIMENSION! },
-        ];
+  const resources = parsed.resources;
 
   if (resources.length === 0) {
     return { error: new Error('No resources declared in themefile') };
@@ -190,18 +179,28 @@ export async function processThemeDocument(
   yamlPath: string,
   dict: DependencyDict,
   colorSpace?: ColorSpaceFormat
-): Promise<ThemeDocumentResult | null> {
+): Promise<ThemeDocumentResult> {
   const file = Bun.file(yamlPath);
   if (!(await file.exists())) {
-    return null;
+    return {
+      ok: false,
+      reason: 'file_not_found',
+      message: `File not found: ${yamlPath}`,
+      exitCode: ExitCode.FILE_NOT_FOUND,
+    };
   }
 
   const content = await file.text();
   const parsed = parseThemeYaml(content);
 
   if (isParseError(parsed)) {
-    logger.warn(`Theme YAML parse error at line ${parsed.line}: ${parsed.message}`);
-    return null;
+    return {
+      ok: false,
+      reason: 'parse_error',
+      message: `Theme YAML parse error: ${parsed.message}`,
+      exitCode: ExitCode.FORMAT_ERROR,
+      line: parsed.line,
+    };
   }
 
   const sources: ReferenceDataSources = {};
@@ -212,17 +211,28 @@ export async function processThemeDocument(
   try {
     const resolved = resolveReferences(parsed.raw, sources);
     const transformResult = transformToSDFormat(resolved, undefined, colorSpace);
-    return { tree: transformResult.tree, order: transformResult.order, groupComments: transformResult.groupComments };
+    return {
+      ok: true,
+      tree: transformResult.tree,
+      order: transformResult.order,
+      groupComments: transformResult.groupComments,
+    };
   } catch (err) {
     if (err instanceof CircularReferenceError) {
-      logger.error(err.message);
-      process.exitCode = err.exitCode;
-      return null;
+      return {
+        ok: false,
+        reason: 'circular_reference',
+        message: err.message,
+        exitCode: err.exitCode,
+      };
     }
     if (err instanceof UnresolvedReferenceError) {
-      logger.error(err.message);
-      process.exitCode = err.exitCode;
-      return null;
+      return {
+        ok: false,
+        reason: 'unresolved_reference',
+        message: err.message,
+        exitCode: err.exitCode,
+      };
     }
     throw err;
   }

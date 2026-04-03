@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { resolveReferences } from '../src/core/resolver/theme-reference.ts';
+import { resolveReferences, UnresolvedReferenceError } from '../src/core/resolver/theme-reference.ts';
 import type { DtcgTokenGroup, ReferenceDataSources } from '../src/types/index.ts';
 import { loadResource } from '../src/core/resolver/resource-loader.ts';
 import * as path from 'node:path';
@@ -89,7 +89,7 @@ describe('generalized resolver', () => {
     expect(((result.theme as unknown) as { color: { secondary: { $value: string } } }).color.secondary.$value).toBe('#ff00ff');
   });
 
-  test('returns undefined for unknown namespaces in curly-brace refs', () => {
+  test('throws UnresolvedReferenceError for unknown namespaces in curly-brace refs (CQ-005)', () => {
     const tree: DtcgTokenGroup = {
       color: {
         primary: {
@@ -108,10 +108,9 @@ describe('generalized resolver', () => {
       },
     };
 
-    // Unknown namespace refs should leave value unchanged during Pass 1, then result kept as string
-    // Actually resolveExternalReference returns undefined, so the string is kept unchanged
-    const result = resolveReferences(tree, sources);
-    expect((result.color as { primary: { $value: string } }).primary.$value).toBe('{unknown.global.color.primary}');
+    // CQ-005: Curly-brace refs with unknown namespaces should throw like $ref
+    // (unified failure strategy)
+    expect(() => resolveReferences(tree, sources)).toThrow(UnresolvedReferenceError);
   });
 
   test('throws UnresolvedReferenceError for unknown $ref namespaces', () => {
