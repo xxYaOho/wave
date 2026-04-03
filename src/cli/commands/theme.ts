@@ -5,40 +5,12 @@ import {
   ExitCode,
   type GenerateOptions,
 } from '../../types/index.ts';
-import type { GeneratorResult } from '../../core/generator/index.ts';
 import { VERSION } from '../../config/index.ts';
-import { generateTokens } from '../../core/generator/index.ts';
-import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
 import { logger } from '../../utils/logger.ts';
-import {
-  loadThemefile,
-  buildDependencyDictionary,
-  processThemeDocument,
-  extractPlatform,
-  extractFilterLayer,
-  extractColorSpace,
-  resolveOutputDir,
-  expandHomePath,
-} from '../../core/pipeline/theme-pipeline.ts';
-
-interface BuiltinThemeConfig {
-  palette: string;
-  dimension: string;
-}
-
-const BUILTIN_THEMES: Record<string, BuiltinThemeConfig> = {};
-
-function getBuiltinThemeNames(): string[] {
-  return Object.keys(BUILTIN_THEMES);
-}
-
-function isBuiltinTheme(_name: string): boolean {
-  return false;
-}
+import { generateTheme, type ThemeGenerationInput } from '../../core/pipeline/theme-service.ts';
 
 interface ThemeCommandOptions {
   file?: string;
-  list?: boolean;
   night?: boolean;
   noVariants?: boolean;
   variants?: string | boolean;
@@ -46,6 +18,119 @@ interface ThemeCommandOptions {
   output?: string;
   platform?: string;
 }
+
+// Template files embedded for standalone binary distribution
+const TEMPLATE_THEMEFILE = `THEME example
+RESOURCE palette tailwindcss4
+RESOURCE dimension wave
+
+PARAMETER output ./build
+PARAMETER platform json,css
+PARAMETER colorSpace oklch
+`;
+
+const TEMPLATE_MAIN_YAML = `theme:
+  color:
+    $type: color
+    primary:
+      $value: "{tailwindcss4.color.indigo.600}"
+`;
+
+const TEMPLATE_MANUAL_MD = `# Wave Theme 使用手册
+
+## themefile 配置
+
+### 基本结构
+
+\`\`\`
+THEME <主题名称>
+RESOURCE palette <调色板名称>
+RESOURCE dimension <尺寸系统名称>
+
+PARAMETER output <输出目录>
+PARAMETER platform <输出格式>
+PARAMETER colorSpace <颜色空间>
+\`\`\`
+
+### 参数说明
+
+#### THEME
+- **说明**: 定义主题名称
+- **示例**: \`THEME my-brand\`
+
+#### RESOURCE palette
+- **说明**: 指定调色板资源
+- **可选值**: \`tailwindcss4\`, \`leonardo\`, 或自定义路径
+
+#### RESOURCE dimension
+- **说明**: 指定尺寸系统资源
+- **可选值**: \`wave\` 或自定义路径
+
+#### PARAMETER output
+- **说明**: 指定生成文件的输出目录
+- **示例**: \`PARAMETER output ./dist\`
+- **默认值**: \`~/Downloads/<THEME>\`
+
+#### PARAMETER platform
+- **说明**: 指定输出平台格式，多个格式用逗号分隔
+- **可选值**: \`json\`, \`jsonc\`, \`css\`
+- **示例**: \`PARAMETER platform json,css\`
+- **默认值**: \`json\`
+
+#### PARAMETER colorSpace
+- **说明**: 指定颜色输出空间
+- **可选值**: \`hex\`, \`oklch\`, \`srgb\`, \`hsl\`
+- **示例**: \`PARAMETER colorSpace oklch\`
+- **默认值**: \`hex\`
+
+---
+
+## main.yaml 编写
+
+### 基本结构
+
+\`\`\`yaml
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "{tailwindcss4.color.indigo.600}"
+
+  dimension:
+    $type: dimension
+    spacing:
+      sm:
+        $value: "{wave.spacing.1}"
+\`\`\`
+
+### 引用语法
+
+使用花括号 \`{namespace.path.to.token}\` 引用 RESOURCE 定义的资源。
+
+---
+
+## 高级功能
+
+### Night 模式
+
+创建 \`main@night.yaml\` 文件定义夜间模式颜色。
+
+### Variants（变体主题）
+
+在同一目录下创建额外的 YAML 文件作为变体主题。
+
+---
+
+## 示例
+
+\`\`\`bash
+# 生成主题
+wave theme my-brand
+
+# 指定 themefile 路径
+wave theme -f ./path/to/themefile
+\`\`\`
+`;
 
 function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
   const result: GenerateOptions = {
@@ -68,437 +153,68 @@ function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
   return result;
 }
 
-async function generateThemeTokens(
-  themeName: string,
-  outputDir: string,
-  paletteContent: string,
-  dimensionContent: string,
-  platforms?: string[],
-  filterLayer?: number,
-  palettePath?: string,
-  dimensionPath?: string
-): Promise<GeneratorResult> {
-  const { parsePalette, validatePaletteSchema, parseDimension, validateDimensionSchema } = await import('../../core/parser/index.ts');
+async function initThemeTemplate(): Promise<boolean> {
+  const cwd = process.cwd();
+  const themefilePath = path.join(cwd, 'themefile');
 
-  const paletteSchemaError = await validatePaletteSchema(paletteContent, palettePath);
-  if (paletteSchemaError) {
-    throw new Error(`Palette schema error: ${paletteSchemaError.message}`);
-  }
-
-  const dimensionSchemaError = await validateDimensionSchema(dimensionContent, dimensionPath);
-  if (dimensionSchemaError) {
-    throw new Error(`Dimension schema error: ${dimensionSchemaError.message}`);
-  }
-
-  const palette = parsePalette(paletteContent);
-  if (palette && 'line' in palette && 'message' in palette) {
-    throw new Error(`Palette parse error at line ${palette.line}: ${palette.message}`);
-  }
-
-  const dimension = parseDimension(dimensionContent);
-  if (dimension && 'line' in dimension && 'message' in dimension) {
-    throw new Error(`Dimension parse error: ${dimension.message}`);
-  }
-
-  const tokens = {
-    color: (palette as { global: { color: unknown } }).global.color,
-    dimension: (dimension as { global: { dimension: unknown } }).global.dimension,
-  };
-
-  await fs.mkdir(outputDir, { recursive: true });
-
-  return generateTokens({
-    themeName,
-    outputDir,
-    tokens,
-    platform: platforms,
-    filterLayer,
-  });
-}
-
-async function handleBuiltinTheme(
-  name: string,
-  config: BuiltinThemeConfig,
-  options: ThemeCommandOptions
-): Promise<boolean> {
-  const generateOptions = parseCliOptions(options);
-  const builtinPlatforms = options.platform
-    ? options.platform.split(',').map((s) => s.trim()).filter(Boolean)
-    : ['json', 'jsonc'];
-  const themeDir = path.join(process.env.HOME || '', 'Downloads', name);
-  const outputDir = options.output
-    ? expandHomePath(options.output)
-    : themeDir;
-
-  const { resolveResource } = await import('../../core/resolver/index.ts');
-
-  const paletteResource = resolveResource(config.palette, 'palette', themeDir);
-  const dimensionResource = resolveResource(config.dimension, 'dimension', themeDir);
-
-  if (!paletteResource.exists) {
-    process.exitCode = ExitCode.INVALID_RESOURCE;
-    logger.error(`Built-in palette not found: ${config.palette}`);
-    return false;
-  }
-  if (!dimensionResource.exists) {
-    process.exitCode = ExitCode.INVALID_RESOURCE;
-    logger.error(`Built-in dimension not found: ${config.dimension}`);
-    return false;
-  }
-
-  let paletteContent: string;
-  let dimensionContent: string;
+  // Check if themefile already exists
   try {
-    const { default: BunFile } = await import('bun');
-    paletteContent = await Bun.file(paletteResource.path).text();
-    dimensionContent = await Bun.file(dimensionResource.path).text();
-  } catch (err) {
-    process.exitCode = ExitCode.FILE_NOT_FOUND;
-    logger.error(err instanceof Error ? err.message : String(err));
+    await fs.access(themefilePath);
+    logger.error('A themefile already exists in the current directory');
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return false;
+  } catch {
+    // File doesn't exist, proceed
   }
 
-  logger.success(`Palette: ${config.palette} (builtin)`);
-  logger.success(`Dimension: ${config.dimension} (builtin)`);
+  const files = [
+    { name: 'themefile', content: TEMPLATE_THEMEFILE },
+    { name: 'main.yaml', content: TEMPLATE_MAIN_YAML },
+    { name: 'manual.md', content: TEMPLATE_MANUAL_MD },
+  ];
 
-  let mainResult: GeneratorResult;
   try {
-    mainResult = await generateThemeTokens(
-      name,
-      outputDir,
-      paletteContent,
-      dimensionContent,
-      builtinPlatforms,
-      undefined,
-      paletteResource.path,
-      dimensionResource.path
-    );
+    for (const { name, content } of files) {
+      const destPath = path.join(cwd, name);
+      await fs.writeFile(destPath, content, 'utf-8');
+      logger.success(`Created: ${name}`);
+    }
+
+    logger.info('');
+    logger.success('Theme template initialized successfully!');
+    logger.info('');
+    logger.info('Next steps:');
+    logger.info('  1. Edit themefile to configure your theme');
+    logger.info('  2. Edit main.yaml to define your tokens');
+    logger.info('  3. See manual.md for detailed usage');
+    logger.info('  4. Run "wave theme" to generate tokens');
+    return true;
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    if (errorMessage.includes('schema error')) {
-      process.exitCode = ExitCode.INVALID_RESOURCE;
-    } else {
-      process.exitCode = ExitCode.GENERAL_ERROR;
-    }
-    logger.error(errorMessage);
+    logger.error(`Failed to initialize template: ${err instanceof Error ? err.message : String(err)}`);
+    process.exitCode = ExitCode.GENERAL_ERROR;
     return false;
   }
-
-  if (!mainResult.success) {
-    const errorMsg = mainResult.error || 'Failed to generate tokens';
-    if (errorMsg.includes('schema error')) {
-      process.exitCode = ExitCode.INVALID_RESOURCE;
-    } else {
-      process.exitCode = ExitCode.GENERAL_ERROR;
-    }
-    logger.error(errorMsg);
-    return false;
-  }
-
-  logger.success(`Generated main: ${mainResult.files.join(', ')}`);
-
-  const nightResult = detectNightMode(themeDir, generateOptions);
-  logger.info(nightResult.message);
-
-  if (nightResult.available) {
-    const nightGenResult = await generateThemeTokens(
-      `${name}-night`,
-      outputDir,
-      paletteContent,
-      dimensionContent,
-      builtinPlatforms,
-      undefined,
-      paletteResource.path,
-      dimensionResource.path
-    );
-    if (nightGenResult.success) {
-      logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
-    }
-  }
-
-  const variantsDetection = detectVariants(themeDir, generateOptions);
-  logger.info(variantsDetection.message);
-
-  if (variantsDetection.available) {
-    for (const variantFile of variantsDetection.files) {
-      const variantName = path.basename(variantFile, '.yaml');
-      const isNightVariant = variantName.endsWith('@night');
-      const baseName = isNightVariant ? variantName.replace('@night', '') : variantName;
-      const suffix = isNightVariant ? `-${baseName}-night` : `-${baseName}`;
-
-      const variantResult = await generateThemeTokens(
-        `${name}${suffix}`,
-        outputDir,
-        paletteContent,
-        dimensionContent,
-        builtinPlatforms,
-        undefined,
-        paletteResource.path,
-        dimensionResource.path
-      );
-
-      if (variantResult.success) {
-        logger.success(`Generated variant ${variantName}: ${variantResult.files.join(', ')}`);
-      }
-    }
-  }
-
-  logger.success(`Output directory: ${outputDir}`);
-  logger.success(`Theme generation complete: ${name}`);
-  return true;
 }
 
-async function handleThemeGeneration(
-  name: string,
-  options: ThemeCommandOptions
-): Promise<void> {
-  const generateOptions = parseCliOptions(options);
-
-  const themePath = options.file
-    ? expandHomePath(options.file)
-    : undefined;
-
-  const loadResult = await loadThemefile(themePath);
-  if ('error' in loadResult) {
-    const err = loadResult.error;
-    if (err.message.includes('not found')) {
-      process.exitCode = ExitCode.FILE_NOT_FOUND;
-    } else if ('line' in err) {
-      process.exitCode = ExitCode.FORMAT_ERROR;
-      logger.error(`Themefile parse error at line ${(err as { line: number }).line}: ${err.message}`);
-      return;
-    } else {
-      process.exitCode = ExitCode.GENERAL_ERROR;
-      logger.error(err.message);
-      return;
-    }
-    logger.error(err.message);
-    return;
-  }
-
-  const { parsed, themeDir, themefilePath } = loadResult;
-  const themeName = parsed.THEME;
-
-  const platforms = options.platform
-    ? options.platform.split(',').map((s) => s.trim()).filter(Boolean)
-    : extractPlatform(parsed);
-  const filterLayer = extractFilterLayer(parsed);
-  const colorSpace = extractColorSpace(parsed);
-
-  const depResult = await buildDependencyDictionary(parsed, themeDir);
-  if ('error' in depResult) {
-    const errMsg = depResult.error.message;
-    process.exitCode = errMsg.includes('schema error')
-      ? ExitCode.INVALID_RESOURCE
-      : ExitCode.FILE_NOT_FOUND;
-    logger.error(errMsg);
-    return;
-  }
-
-  const {
-    palette,
-    dimension,
-    paletteContent,
-    dimensionContent,
-    palettePath,
-    dimensionPath,
-    dict,
-  } = depResult;
-
-  const outputDir = resolveOutputDir(parsed, themeDir, options.output);
-
-  const resourceLogEntries = parsed.resources?.length
-    ? parsed.resources
-    : [
-        { kind: 'palette', ref: parsed.PALETTE! },
-        { kind: 'dimension', ref: parsed.DIMENSION! },
-      ];
-
-  for (const { kind, ref } of resourceLogEntries) {
-    const loaded = Object.values(dict).find((e) => e.kind === kind);
-    const isBuiltin = loaded?.path.includes('src/resources') ?? false;
-    logger.success(`Resource [${kind}]: ${ref} (${isBuiltin ? 'builtin' : 'user'})`);
-  }
-
-  const mainYamlPath = path.join(themeDir, 'main.yaml');
-  const mainYamlFile = Bun.file(mainYamlPath);
-  const hasMainYaml = await mainYamlFile.exists();
-
-  let mainResult: GeneratorResult;
-
-  if (hasMainYaml) {
-    logger.info('Found main.yaml, parsing theme tokens...');
-    const parseResult = await processThemeDocument(mainYamlPath, dict, colorSpace);
-
-    if (!parseResult) {
-      process.exitCode = ExitCode.GENERAL_ERROR;
-      logger.error('Failed to parse main.yaml');
-      return;
-    }
-
-    await fs.mkdir(outputDir, { recursive: true });
-    mainResult = await generateTokens({
-      themeName,
-      outputDir,
-      tokens: parseResult.tree,
-      platform: platforms,
-      filterLayer,
-      groupComments: parseResult.groupComments,
-    });
-
-    if (!mainResult.success) {
-      const errorMsg = mainResult.error || 'Failed to generate tokens';
-      process.exitCode = ExitCode.GENERAL_ERROR;
-      logger.error(errorMsg);
-      return;
-    }
-
-    logger.success(`Generated main: ${mainResult.files.join(', ')}`);
-  } else {
-    try {
-      mainResult = await generateThemeTokens(
-        themeName,
-        outputDir,
-        paletteContent,
-        dimensionContent,
-        platforms,
-        filterLayer,
-        palettePath,
-        dimensionPath
-      );
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      if (errorMessage.includes('schema error')) {
-        process.exitCode = ExitCode.INVALID_RESOURCE;
-      } else {
-        process.exitCode = ExitCode.GENERAL_ERROR;
-      }
-      logger.error(errorMessage);
-      return;
-    }
-
-    if (!mainResult.success) {
-      const errorMsg = mainResult.error || 'Failed to generate tokens';
-      if (errorMsg.includes('schema error')) {
-        process.exitCode = ExitCode.INVALID_RESOURCE;
-      } else {
-        process.exitCode = ExitCode.GENERAL_ERROR;
-      }
-      logger.error(errorMsg);
-      return;
-    }
-
-    logger.success(`Generated main: ${mainResult.files.join(', ')}`);
-  }
-
-  const nightResult = detectNightMode(themeDir, generateOptions);
-  logger.info(nightResult.message);
-
-  if (nightResult.available) {
-    const nightYamlPath = path.join(themeDir, 'main@night.yaml');
-    const nightYamlFile = Bun.file(nightYamlPath);
-    const hasNightYaml = await nightYamlFile.exists();
-
-    if (hasNightYaml) {
-      logger.info('Found main@night.yaml, parsing night theme tokens...');
-      const nightParseResult = await processThemeDocument(nightYamlPath, dict, colorSpace);
-
-      if (!nightParseResult) {
-        process.exitCode = ExitCode.GENERAL_ERROR;
-        logger.error('Failed to parse main@night.yaml');
-        return;
-      }
-
-      const nightGenResult = await generateTokens({
-        themeName: `${themeName}-night`,
-        outputDir,
-        tokens: nightParseResult.tree,
-        platform: platforms,
-        filterLayer,
-        groupComments: nightParseResult.groupComments,
-      });
-
-      if (nightGenResult.success) {
-        logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
-      }
-    } else {
-      const nightGenResult = await generateThemeTokens(
-        `${themeName}-night`,
-        outputDir,
-        paletteContent,
-        dimensionContent,
-        platforms,
-        filterLayer,
-        palettePath,
-        dimensionPath
-      );
-      if (nightGenResult.success) {
-        logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
-      }
-    }
-  }
-
-  const variantsDetection = detectVariants(themeDir, generateOptions);
-  logger.info(variantsDetection.message);
-
-  if (variantsDetection.available) {
-    for (const variantFile of variantsDetection.files) {
-      const variantName = path.basename(variantFile, '.yaml');
-      const isNightVariant = variantName.endsWith('@night');
-      const baseName = isNightVariant ? variantName.replace('@night', '') : variantName;
-      const suffix = isNightVariant ? `-${baseName}-night` : `-${baseName}`;
-
-      const variantTokens = await processThemeDocument(variantFile, dict, colorSpace);
-
-      if (!variantTokens) {
-        process.exitCode = ExitCode.GENERAL_ERROR;
-        logger.error(`Failed to parse variant: ${variantFile}`);
-        return;
-      }
-
-      const variantResult = await generateTokens({
-        themeName: `${themeName}${suffix}`,
-        outputDir,
-        tokens: variantTokens.tree,
-        platform: platforms,
-        filterLayer,
-        groupComments: variantTokens.groupComments,
-      });
-
-      if (variantResult.success) {
-        logger.success(`Generated variant ${variantName}: ${variantResult.files.join(', ')}`);
-      }
-    }
-  }
-
-  logger.success(`Output directory: ${outputDir}`);
-  logger.success(`Theme generation complete: ${themeName}`);
-}
-
+// CQ-007: CLI is now a thin shell over the core theme service
+// All orchestration logic has been moved to theme-service.ts
 export const themeCommand = new Command('theme')
   .description('Generate theme tokens')
   .argument('[name]', 'Theme name to generate')
   .option('-f, --file <path>', 'Themefile path')
-  .option('--list', 'List built-in themes')
   .option('--no-night', 'Disable night mode generation')
   .option('--no-variants', 'Disable variants generation')
   .option('--variants [names]', 'Specify variants (comma separated)')
-  .option('--init', 'Create theme template')
+  .option('--init', 'Create theme template in current directory')
   .option('-o, --output <dir>', 'Output directory')
   .option('--platform <list>', 'Output platforms (comma separated): json, jsonc, css')
   .action(async (name: string | undefined, options: ThemeCommandOptions) => {
-    if (options.list) {
-      console.log('Built-in themes:');
-      for (const themeName of getBuiltinThemeNames()) {
-        console.log(`  ${themeName}`);
-      }
-      process.exit(ExitCode.SUCCESS);
-    }
-
     if (options.init) {
-      console.log('Creating theme template...');
-      console.log('TODO: Implement --init');
-      process.exit(ExitCode.SUCCESS);
+      const success = await initThemeTemplate();
+      if (success) {
+        process.exitCode = ExitCode.SUCCESS;
+      }
+      return;
     }
 
     let themeName = name;
@@ -512,8 +228,9 @@ export const themeCommand = new Command('theme')
       } else {
         console.error('Error: No themefile found in current directory');
         console.error('Usage: wave theme [path] or wave theme -f <path>');
-        console.error('Or create a themefile in current directory');
-        process.exit(ExitCode.FILE_NOT_FOUND);
+        console.error('Run "wave theme --init" to create a theme template');
+        process.exitCode = ExitCode.FILE_NOT_FOUND;
+        return;
       }
     }
 
@@ -524,42 +241,33 @@ export const themeCommand = new Command('theme')
     if (!themeName) {
       console.error('Error: Theme name is required');
       console.error('Usage: wave theme [path] or wave theme -f <path>');
-      process.exit(ExitCode.MISSING_PARAMETER);
+      process.exitCode = ExitCode.MISSING_PARAMETER;
+      return;
     }
 
     logger.info(`Generating theme: ${themeName}`);
     logger.info(`Version: ${VERSION}`);
 
-    if (isBuiltinTheme(themeName) && !options.file) {
-      const config = BUILTIN_THEMES[themeName];
-      if (!config) {
-        process.exitCode = ExitCode.THEME_NOT_FOUND;
-        logger.error(`Theme not found: ${themeName}`);
-        return;
-      }
-      await handleBuiltinTheme(themeName, config, options);
-      return;
-    }
+    // Use the core theme service for generation
+    const input: ThemeGenerationInput = {
+      themeName,
+      themePath: options.file,
+      cliOutput: options.output,
+      cliPlatform: options.platform,
+      generateOptions: parseCliOptions(options),
+    };
 
-    const themeDir = options.file
-      ? path.dirname(expandHomePath(options.file))
-      : path.join(process.env.HOME || '', 'Downloads', themeName);
+    const result = await generateTheme(input);
 
-    const themefilePath = options.file
-      ? expandHomePath(options.file)
-      : path.join(themeDir, 'themefile');
-
-    const file = Bun.file(themefilePath);
-    if (!(await file.exists())) {
-      if (options.file) {
-        process.exitCode = ExitCode.FILE_NOT_FOUND;
-        logger.error(`Themefile not found: ${themefilePath}`);
+    if (!result.ok) {
+      process.exitCode = result.exitCode;
+      if (result.line) {
+        logger.error(`${result.message} at line ${result.line}`);
       } else {
-        process.exitCode = ExitCode.THEME_NOT_FOUND;
-        logger.error(`Theme not found: ${themeName}`);
+        logger.error(result.message);
       }
       return;
     }
 
-    await handleThemeGeneration(themeName, options);
+    process.exitCode = ExitCode.SUCCESS;
   });
