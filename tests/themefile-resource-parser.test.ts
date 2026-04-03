@@ -14,57 +14,13 @@ RESOURCE custom ./tokens.json
     if ('resources' in result) {
       expect(result.THEME).toBe('orca');
       expect(result.resources).toHaveLength(3);
-      expect(result.resources![0]).toEqual({ kind: 'palette', ref: 'leonardo' });
-      expect(result.resources![1]).toEqual({ kind: 'dimension', ref: 'wave' });
-      expect(result.resources![2]).toEqual({ kind: 'custom', ref: './tokens.json' });
-      expect(result.PALETTE).toBeUndefined();
-      expect(result.DIMENSION).toBeUndefined();
+      expect(result.resources[0]).toEqual({ kind: 'palette', ref: 'leonardo' });
+      expect(result.resources[1]).toEqual({ kind: 'dimension', ref: 'wave' });
+      expect(result.resources[2]).toEqual({ kind: 'custom', ref: './tokens.json' });
     }
   });
 
-  test('parses legacy PALETTE/DIMENSION themefile correctly', () => {
-    const content = `
-PALETTE leonardo
-DIMENSION wave
-THEME legacy-theme
-`;
-    const result = parseThemefile(content);
-    expect('THEME' in result).toBe(true);
-    if ('THEME' in result) {
-      expect(result.PALETTE).toBe('leonardo');
-      expect(result.DIMENSION).toBe('wave');
-      expect(result.THEME).toBe('legacy-theme');
-      expect(result.resources).toBeUndefined();
-    }
-  });
-
-  test('returns error when mixing RESOURCE and PALETTE', () => {
-    const content = `
-RESOURCE palette leonardo
-PALETTE leonardo
-THEME mixed
-`;
-    const result = parseThemefile(content);
-    expect('line' in result).toBe(true);
-    if ('line' in result) {
-      expect(result.message).toContain('Cannot mix RESOURCE with legacy');
-    }
-  });
-
-  test('returns error when mixing RESOURCE and DIMENSION', () => {
-    const content = `
-RESOURCE palette leonardo
-DIMENSION wave
-THEME mixed
-`;
-    const result = parseThemefile(content);
-    expect('line' in result).toBe(true);
-    if ('line' in result) {
-      expect(result.message).toContain('Cannot mix RESOURCE with legacy');
-    }
-  });
-
-  test('returns error when THEME is missing in RESOURCE mode', () => {
+  test('returns error when THEME is missing', () => {
     const content = `
 RESOURCE palette leonardo
 RESOURCE dimension wave
@@ -73,6 +29,17 @@ RESOURCE dimension wave
     expect('line' in result).toBe(true);
     if ('line' in result) {
       expect(result.message).toContain('THEME');
+    }
+  });
+
+  test('returns error when RESOURCE is missing', () => {
+    const content = `
+THEME broken
+`;
+    const result = parseThemefile(content);
+    expect('line' in result).toBe(true);
+    if ('line' in result) {
+      expect(result.message).toContain('RESOURCE');
     }
   });
 
@@ -85,6 +52,34 @@ RESOURCE palette
     expect('line' in result).toBe(true);
     if ('line' in result) {
       expect(result.message).toContain('Invalid RESOURCE format');
+    }
+  });
+
+  test('returns error for unknown directive', () => {
+    const content = `
+THEME test
+PALETTE leonardo
+`;
+    const result = parseThemefile(content);
+    expect('line' in result).toBe(true);
+    if ('line' in result) {
+      expect(result.message).toContain('Unknown directive');
+    }
+  });
+
+  test('returns error for invalid RESOURCE kind (CQ-004)', () => {
+    const content = `
+THEME test
+RESOURCE unknown-kind some-ref
+`;
+    const result = parseThemefile(content);
+    expect('line' in result).toBe(true);
+    if ('line' in result) {
+      expect(result.message).toContain('Invalid RESOURCE kind');
+      expect(result.message).toContain('unknown-kind');
+      expect(result.message).toContain('palette');
+      expect(result.message).toContain('dimension');
+      expect(result.message).toContain('custom');
     }
   });
 });

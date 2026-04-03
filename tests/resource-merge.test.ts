@@ -7,24 +7,6 @@ import type { ParsedThemefile } from '../src/types/index.ts';
 const rootDir = path.resolve(__dirname, '..');
 
 describe('buildDependencyDictionary', () => {
-  test('builds deterministic dictionary from legacy PALETTE + DIMENSION', async () => {
-    const parsed: ParsedThemefile = {
-      THEME: 'test',
-      PARAMETER: {},
-      PALETTE: 'leonardo',
-      DIMENSION: 'wave',
-    };
-
-    const result = await buildDependencyDictionary(parsed, rootDir);
-    expect('error' in result).toBe(false);
-    if ('error' in result) return;
-
-    expect(result.dict['leonardo']).toBeDefined();
-    expect(result.dict['wave']).toBeDefined();
-    expect(result.palette.name).toBe('leonardo');
-    expect(result.dimension.name).toBe('wave');
-  });
-
   test('builds dictionary from RESOURCE declarations', async () => {
     const parsed: ParsedThemefile = {
       THEME: 'test',
