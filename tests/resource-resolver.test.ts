@@ -270,6 +270,44 @@ describe('generalized resolver', () => {
     expect(alias.blur).toEqual({ value: 8 });
     expect(alias.spread).toEqual({ value: -2 });
   });
+
+  test('resolves curly-brace reference to dimension {value, unit} inside shadow $value', () => {
+    const tree: DtcgTokenGroup = {
+      theme: {
+        style: {
+          shadow1: {
+            $type: 'shadow',
+            $value: {
+              color: { value: '#2b3248', alpha: 0.08 },
+              offsetX: { value: 0, unit: 'px' },
+              offsetY: '{wave.dimension.px.6}',
+              blur: { value: 8, unit: 'px' },
+              spread: { value: -2, unit: 'px' },
+            },
+          },
+        },
+      },
+    };
+
+    const sources: ReferenceDataSources = {
+      wave: {
+        dimension: {
+          px: {
+            6: {
+              $type: 'dimension',
+              $value: { value: 12, unit: 'px' },
+            },
+          },
+        },
+      },
+    };
+
+    const result = resolveReferences(tree, sources);
+    const shadow = ((result.theme as unknown) as { style: { shadow1: { $value: Record<string, unknown> } } }).style
+      .shadow1.$value;
+
+    expect(shadow.offsetY).toEqual({ value: 12, unit: 'px' });
+  });
 });
 
 describe('dependency to dependency reference detection', () => {

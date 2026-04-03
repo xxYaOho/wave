@@ -490,7 +490,7 @@ function resolveExternalDtcgValue(
   }
 
   if (typeof value === 'object' && value !== null) {
-    const resolved: Record<string, DtcgScalarValue | DtcgScalarValue[]> = {};
+    const resolved: Record<string, NestedValue> = {};
 
     for (const [key, val] of Object.entries(value)) {
       if (Array.isArray(val)) {
@@ -498,11 +498,11 @@ function resolveExternalDtcgValue(
         const resolvedArray = val.map((item, index) => {
           return resolveNestedRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}[${index}]`, rootKey);
         });
-        resolved[key] = resolvedArray as DtcgScalarValue[];
+        resolved[key] = resolvedArray;
       } else if (isDtcgRefValue(val)) {
         const parsed = parseDtcgRef(val.$ref);
         if (parsed?.source === rootKey) {
-          resolved[key] = val as unknown as DtcgScalarValue;
+          resolved[key] = val;
           continue;
         }
         const valResolved = resolveDtcgRef(val, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}`, rootKey);
@@ -510,9 +510,7 @@ function resolveExternalDtcgValue(
           if (isDtcgScalarValue(valResolved)) {
             resolved[key] = valResolved;
           } else if (typeof valResolved === 'object' && !Array.isArray(valResolved)) {
-            // $ref 解析为对象，但我们需要存储为标量或对象
-            // 这里保持原值，让后续处理决定
-            resolved[key] = valResolved as unknown as DtcgScalarValue;
+            resolved[key] = valResolved;
           } else {
             resolved[key] = val;
           }
@@ -538,20 +536,18 @@ function resolveExternalDtcgValue(
                 location: `${currentLocation}.${key}`,
               });
               resolved[key] = val;
-            } else if (isDtcgScalarValue(valResolved)) {
+            } else if (isDtcgValue(valResolved)) {
               resolved[key] = valResolved;
             } else {
-              logger.warn(`Reference resolved to object, expected scalar: ${val}`);
               resolved[key] = val;
             }
           }
         } else {
           const valResolved = resolveExternalReference(val, sources, rootKey);
           if (valResolved !== undefined) {
-            if (isDtcgScalarValue(valResolved)) {
+            if (isDtcgValue(valResolved)) {
               resolved[key] = valResolved;
             } else {
-              logger.warn(`Reference resolved to object, expected scalar: ${val}`);
               resolved[key] = val;
             }
           } else {
@@ -601,7 +597,7 @@ function resolveInternalDtcgValue(
   }
 
   if (typeof value === 'object' && value !== null) {
-    const resolved: Record<string, DtcgScalarValue | DtcgScalarValue[]> = {};
+    const resolved: Record<string, NestedValue> = {};
 
     for (const [key, val] of Object.entries(value)) {
       if (Array.isArray(val)) {
@@ -609,7 +605,7 @@ function resolveInternalDtcgValue(
         const resolvedArray = val.map((item, index) =>
           resolveNestedInternalRefs(item, sources, themeTree, resolutionPath, unresolvedCollector, `${currentLocation}.${key}[${index}]`, rootKey)
         );
-        resolved[key] = resolvedArray as DtcgScalarValue[];
+        resolved[key] = resolvedArray;
       } else if (isDtcgRefValue(val)) {
         const parsed = parseDtcgRef(val.$ref);
         if (parsed?.source === rootKey) {
@@ -618,7 +614,7 @@ function resolveInternalDtcgValue(
             if (isDtcgScalarValue(valResolved)) {
               resolved[key] = valResolved;
             } else if (typeof valResolved === 'object' && !Array.isArray(valResolved)) {
-              resolved[key] = valResolved as unknown as DtcgScalarValue;
+              resolved[key] = valResolved;
             } else {
               resolved[key] = val;
             }
@@ -626,15 +622,14 @@ function resolveInternalDtcgValue(
             resolved[key] = val;
           }
         } else {
-          resolved[key] = val as unknown as DtcgScalarValue;
+          resolved[key] = val;
         }
       } else if (typeof val === 'string') {
         const valResolved = resolveInternalReference(val, themeTree, resolutionPath, unresolvedCollector, currentLocation, rootKey);
         if (valResolved !== undefined) {
-          if (isDtcgScalarValue(valResolved)) {
+          if (isDtcgValue(valResolved)) {
             resolved[key] = valResolved;
           } else {
-            logger.warn(`Internal reference resolved to object, expected scalar: ${val}`);
             resolved[key] = val;
           }
         } else {
