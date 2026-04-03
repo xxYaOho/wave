@@ -21,6 +21,8 @@ Usage:
 Commands:
   theme     Generate theme tokens
   doctor    Check tool health status
+  list      List built-in resources
+  show      Show a built-in resource
   help      Show usage instructions
 
 Options:
@@ -73,6 +75,34 @@ Examples:
   wave theme --no-night
   wave theme --no-variants
   wave theme --variants "dark, matrix"
+`,
+    list: `
+wave list - List built-in resources
+
+Usage:
+  wave list
+
+Displays all built-in palettes and dimensions.
+
+Examples:
+  wave list
+`,
+    show: `
+wave show - Show a built-in resource
+
+Usage:
+  wave show <name> [options]
+
+Arguments:
+  name      Resource name (e.g. tailwindcss4, leonardo, wave)
+
+Options:
+  --format <type>   Output format: flat-json (default), json, yaml
+
+Examples:
+  wave show tailwindcss4
+  wave show tailwindcss4 --format flat-json
+  wave show wave --format yaml
 `,
     doctor: `
 wave doctor - Check tool health status
