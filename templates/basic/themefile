@@ -3,5 +3,5 @@ RESOURCE palette tailwindcss4
 RESOURCE dimension wave
 
 PARAMETER output ./build
-PARAMETER format hsl
 PARAMETER platform json,css
+PARAMETER colorSpace oklch

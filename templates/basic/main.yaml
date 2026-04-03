@@ -1,6 +1,3 @@
-# 使用 Leonardo Color Tool 生成色彩内容，重新替换为 tailwind 色彩
-# 目前已停止更新，后续将使用新的色彩管理和主题配置
-#
 theme:
   color:
     $type: color
