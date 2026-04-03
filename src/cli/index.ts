@@ -15,12 +15,14 @@ program
   .exitOverride((err) => {
     if (err instanceof CommanderError) {
       if (err.code === 'commander.unknownCommand') {
-        process.exit(ExitCode.INVALID_COMMAND);
+        process.exitCode = ExitCode.INVALID_COMMAND;
+        return;
       } else if (err.code === 'commander.help' || err.code === 'commander.version') {
-        process.exit(ExitCode.SUCCESS);
+        process.exitCode = ExitCode.SUCCESS;
+        return;
       }
     }
-    process.exit(ExitCode.GENERAL_ERROR);
+    process.exitCode = ExitCode.GENERAL_ERROR;
   });
 
 program.addCommand(themeCommand);

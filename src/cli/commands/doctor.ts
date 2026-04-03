@@ -32,10 +32,10 @@ export const doctorCommand = new Command('doctor')
     console.log('');
     if (allPassed) {
       console.log('All checks passed! 🎉');
-      process.exit(ExitCode.SUCCESS);
+      process.exitCode = ExitCode.SUCCESS;
     } else {
       console.log('Some checks failed. Please fix the issues above.');
-      process.exit(ExitCode.GENERAL_ERROR);
+      process.exitCode = ExitCode.GENERAL_ERROR;
     }
   });
 
