@@ -187,4 +187,97 @@ describe('smoothGradient transformation', () => {
     expect(token.value).toHaveLength(3);
     expect('$extensions' in token).toBe(false);
   });
+
+  test('scales positions within original range [0, 0.5]', () => {
+    const input: ResolvedTokenGroup = {
+      gradient: {
+        $type: 'gradient',
+        smooth: {
+          $value: [
+            { color: '#ff0000', position: 0 },
+            { color: '#0000ff', position: 0.5 },
+          ],
+          $extensions: {
+            smoothGradient: {
+              cubicBezier: [0, 0, 1, 1],
+              step: 5,
+            },
+          },
+        },
+      },
+    };
+
+    const result = transformToSDFormat(input);
+    const stops = ((result.tree.gradient as SdTokenTree).smooth as SdTokenValue).value as {
+      color: string;
+      position: number;
+    }[];
+
+    expect(stops).toHaveLength(5);
+    expect(stops[0]?.position).toBe(0);
+    expect(stops[1]?.position).toBe(0.13);
+    expect(stops[2]?.position).toBe(0.25);
+    expect(stops[3]?.position).toBe(0.38);
+    expect(stops[4]?.position).toBe(0.5);
+  });
+
+  test('supports reverse position range [0.5, 0]', () => {
+    const input: ResolvedTokenGroup = {
+      gradient: {
+        $type: 'gradient',
+        smooth: {
+          $value: [
+            { color: '#ff0000', position: 0.5 },
+            { color: '#0000ff', position: 0 },
+          ],
+          $extensions: {
+            smoothGradient: {
+              cubicBezier: [0, 0, 1, 1],
+              step: 5,
+            },
+          },
+        },
+      },
+    };
+
+    const result = transformToSDFormat(input);
+    const stops = ((result.tree.gradient as SdTokenTree).smooth as SdTokenValue).value as {
+      color: string;
+      position: number;
+    }[];
+
+    expect(stops).toHaveLength(5);
+    expect(stops[0]?.position).toBe(0.5);
+    expect(stops[1]?.position).toBe(0.38);
+    expect(stops[2]?.position).toBe(0.25);
+    expect(stops[3]?.position).toBe(0.13);
+    expect(stops[4]?.position).toBe(0);
+  });
+
+  test('defaults missing position to 0 or 1', () => {
+    const input: ResolvedTokenGroup = {
+      gradient: {
+        $type: 'gradient',
+        smooth: {
+          $value: [{ color: '#ff0000' }, { color: '#0000ff', position: 0.75 }],
+          $extensions: {
+            smoothGradient: {
+              cubicBezier: [0, 0, 1, 1],
+              step: 5,
+            },
+          },
+        },
+      },
+    };
+
+    const result = transformToSDFormat(input);
+    const stops = ((result.tree.gradient as SdTokenTree).smooth as SdTokenValue).value as {
+      color: string;
+      position: number;
+    }[];
+
+    expect(stops).toHaveLength(5);
+    expect(stops[0]?.position).toBe(0);
+    expect(stops[4]?.position).toBe(0.75);
+  });
 });

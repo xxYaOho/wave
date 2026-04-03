@@ -191,13 +191,16 @@ function deriveSmoothGradient(
   const endColor = end.color;
   const startAlpha = extractColorAlpha(startColor);
   const endAlpha = extractColorAlpha(endColor);
+  const startPos = typeof start.position === 'number' ? start.position : 0;
+  const endPos = typeof end.position === 'number' ? end.position : 1;
 
   const ratios = sampleCubicBezier(cubicBezier, step);
   const midIndex = Math.floor(step / 2);
 
   const derived = [];
   for (let i = 0; i < step; i++) {
-    const position = roundTo(i / (step - 1), 2);
+    const t = i / (step - 1);
+    const position = roundTo(startPos + (endPos - startPos) * t, 2);
     const ratio = ratios[i]!;
     const alpha = roundTo(startAlpha + (endAlpha - startAlpha) * ratio, 2);
     // v1: do not generate intermediate blended colors; use endpoint colors only
