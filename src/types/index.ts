@@ -87,9 +87,7 @@ export interface ParseError {
 
 export interface PaletteResult {
   name: string;
-  global: {
-    color: ColorPalette;
-  };
+  color: ColorPalette;
 }
 
 export interface ColorPalette {
@@ -125,33 +123,27 @@ export interface DimensionCategory {
 
 export interface DimensionResult {
   name: string;
-  global: {
-    dimension: Record<string, DimensionCategory>;
-  };
+  dimension: Record<string, DimensionCategory>;
 }
 
 export interface BuiltinPalette {
   [paletteName: string]: {
-    global?: {
-      color?: {
-        $type: string;
-        $description?: string;
-        [colorName: string]: unknown;
-      };
+    color?: {
+      $type: string;
+      $description?: string;
+      [colorName: string]: unknown;
     };
   };
 }
 
 export interface BuiltinDimension {
   [dimensionName: string]: {
-    global?: {
-      dimension?: {
-        [dimensionKey: string]: {
-          $description?: string;
-          $type?: string;
-          $value?: unknown;
-          [variantName: string]: unknown;
-        };
+    dimension?: {
+      [dimensionKey: string]: {
+        $description?: string;
+        $type?: string;
+        $value?: unknown;
+        [variantName: string]: unknown;
       };
     };
   };
@@ -168,13 +160,14 @@ export interface DtcgRefValue {
   [key: string]: DtcgScalarValue | DtcgScalarValue[] | undefined;
 }
 
-export type DtcgValue = DtcgScalarValue | DtcgObjectValue | DtcgRefValue;
+export type DtcgValue = DtcgScalarValue | DtcgObjectValue | DtcgRefValue | DtcgValue[];
 
 export interface DtcgToken {
   $value: DtcgValue;
   $type?: string;
   $description?: string;
   $deprecated?: boolean | string;
+  $extensions?: Record<string, unknown>;
 }
 
 export type DtcgTokenNode = DtcgToken | DtcgTokenGroup | string | number;
@@ -222,6 +215,7 @@ export interface ResolvedDtcgToken {
   $type?: string;
   $description?: string;
   $deprecated?: boolean | string;
+  $extensions?: Record<string, unknown>;
 }
 
 export interface ResolvedTokenGroup {

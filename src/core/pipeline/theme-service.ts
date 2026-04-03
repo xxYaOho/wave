@@ -320,8 +320,8 @@ async function generateThemeTokens(
   }
 
   const tokens = {
-    color: (palette as { global: { color: unknown } }).global.color,
-    dimension: (dimension as { global: { dimension: unknown } }).global.dimension,
+    color: (palette as { color: unknown }).color,
+    dimension: (dimension as { dimension: unknown }).dimension,
   };
 
   await fs.mkdir(outputDir, { recursive: true });

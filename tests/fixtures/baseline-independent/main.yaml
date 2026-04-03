@@ -5,4 +5,4 @@ theme:
       $value: "#111111"
       $description: defined in main
     shared:
-      $value: "{leonardo.global.color.white}"
+      $value: "{leonardo.color.white}"

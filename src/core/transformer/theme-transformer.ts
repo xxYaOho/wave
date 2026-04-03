@@ -1,3 +1,4 @@
+import chroma from 'chroma-js';
 import {
   type ResolvedDtcgToken,
   type ResolvedTokenGroup,
@@ -7,7 +8,9 @@ import {
   type ColorSpaceFormat,
   isResolvedToken,
 } from "../../types/index.ts";
-import { isDtcgColorSpaceValue, convertColorSpace, hexToRgbComponents } from "./color-space.ts";
+import { isDtcgColorSpaceValue, convertColorSpace, hexToRgbComponents, formatColorOutput } from "./color-space.ts";
+import { sampleCubicBezier } from "./cubic-bezier.ts";
+import { roundTo } from "./number-format.ts";
 
 function isColorAlphaObject(value: unknown): value is { color: string; alpha: number } {
   if (typeof value !== "object" || value === null) {
@@ -138,6 +141,77 @@ function processArrayItem(
   return result;
 }
 
+function extractColorAlpha(color: string): number {
+  try {
+    return chroma(color).alpha();
+  } catch {
+    return 1;
+  }
+}
+
+function applyColorAlpha(color: string, alpha: number, targetFormat: ColorSpaceFormat): string {
+  try {
+    return formatColorOutput(chroma(color), targetFormat, alpha);
+  } catch {
+    return color;
+  }
+}
+
+function deriveSmoothGradient(
+  processedValue: unknown,
+  extension: unknown,
+  targetFormat: ColorSpaceFormat,
+  tokenPath?: string
+): unknown {
+  if (!Array.isArray(processedValue) || processedValue.length !== 2) {
+    throw new Error(
+      `smoothGradient requires exactly 2 stops (found ${Array.isArray(processedValue) ? processedValue.length : 'non-array'}${tokenPath ? ` at ${tokenPath}` : ''})`
+    );
+  }
+
+  const ext = extension as { cubicBezier?: unknown; step?: unknown };
+  if (!Array.isArray(ext.cubicBezier) || ext.cubicBezier.length !== 4 || !ext.cubicBezier.every(n => typeof n === 'number')) {
+    throw new Error(`smoothGradient.cubicBezier must be an array of 4 numbers${tokenPath ? ` at ${tokenPath}` : ''}`);
+  }
+  const cubicBezier = ext.cubicBezier as [number, number, number, number];
+
+  if (!Number.isInteger(ext.step) || (ext.step as number) < 2) {
+    throw new Error(`smoothGradient.step must be an integer >= 2${tokenPath ? ` at ${tokenPath}` : ''}`);
+  }
+  const step = ext.step as number;
+
+  const start = processedValue[0] as Record<string, unknown>;
+  const end = processedValue[1] as Record<string, unknown>;
+
+  if (typeof start.color !== 'string' || typeof end.color !== 'string') {
+    throw new Error(`smoothGradient stops must have string colors${tokenPath ? ` at ${tokenPath}` : ''}`);
+  }
+
+  const startColor = start.color;
+  const endColor = end.color;
+  const startAlpha = extractColorAlpha(startColor);
+  const endAlpha = extractColorAlpha(endColor);
+
+  const ratios = sampleCubicBezier(cubicBezier, step);
+  const midIndex = Math.floor(step / 2);
+
+  const derived = [];
+  for (let i = 0; i < step; i++) {
+    const position = roundTo(i / (step - 1), 2);
+    const ratio = ratios[i]!;
+    const alpha = roundTo(startAlpha + (endAlpha - startAlpha) * ratio, 2);
+    // v1: do not generate intermediate blended colors; use endpoint colors only
+    const baseColor = i < midIndex ? startColor : endColor;
+
+    derived.push({
+      color: applyColorAlpha(baseColor, alpha, targetFormat),
+      position,
+    });
+  }
+
+  return derived;
+}
+
 export interface TransformResult {
   tree: SdTokenTree;
   order: string[];
@@ -203,14 +277,26 @@ function transformToken(
   targetColorSpace: ColorSpaceFormat = 'hex',
   tokenPath?: string
 ): SdTokenValue {
-  const processedValue = processValue(token.$value, targetColorSpace, tokenPath);
+  let processedValue = processValue(token.$value, targetColorSpace, tokenPath);
+  const typeValue = token.$type ?? parentType;
+
+  // Guardrail: smoothShadow is not implemented
+  const smoothShadow = token.$extensions?.smoothShadow;
+  if (smoothShadow !== undefined) {
+    throw new Error(`smoothShadow is not implemented${tokenPath ? ` at ${tokenPath}` : ''}`);
+  }
+
+  // smoothGradient derivation
+  const smoothGradient = token.$extensions?.smoothGradient;
+  if (smoothGradient !== undefined && typeValue === 'gradient') {
+    processedValue = deriveSmoothGradient(processedValue, smoothGradient, targetColorSpace, tokenPath) as DtcgValue;
+  }
 
   const sdValue: SdTokenValue = {
     value: processedValue,
     _order: order,
   };
 
-  const typeValue = token.$type ?? parentType;
   if (typeValue !== undefined) {
     sdValue.type = typeValue;
   }

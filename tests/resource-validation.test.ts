@@ -4,7 +4,7 @@ import { validatePaletteSchema, validateDimensionSchema } from '../src/core/pars
 
 describe('validateGenericResource', () => {
   test('accepts a valid resource with exactly one namespace', () => {
-    const result = validateGenericResource({ leonardo: { global: { color: {} } } });
+    const result = validateGenericResource({ leonardo: { color: {} } });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.namespace).toBe('leonardo');
@@ -22,8 +22,8 @@ describe('validateGenericResource', () => {
 
   test('rejects multiple top-level namespaces', () => {
     const result = validateGenericResource({
-      leonardo: { global: { color: {} } },
-      tailwind: { global: { color: {} } },
+      leonardo: { color: {} },
+      tailwind: { color: {} },
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -35,7 +35,7 @@ describe('validateGenericResource', () => {
   test('ignores $schema when counting namespaces', () => {
     const result = validateGenericResource({
       $schema: 'http://json-schema.org/draft-07/schema#',
-      leonardo: { global: { color: {} } },
+      leonardo: { color: {} },
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -85,11 +85,10 @@ describe('validatePaletteSchema', () => {
   test('accepts a valid palette YAML', async () => {
     const yaml = `
 leonardo:
-  global:
-    color:
-      $type: color
-      black:
-        $value: "#000000"
+  color:
+    $type: color
+    black:
+      $value: "#000000"
 `;
     const error = await validatePaletteSchema(yaml);
     expect(error).toBeNull();
@@ -98,23 +97,20 @@ leonardo:
   test('rejects palette with multiple namespaces', async () => {
     const yaml = `
 leonardo:
-  global:
-    color:
-      $type: color
+  color:
+    $type: color
 tailwind:
-  global:
-    color:
-      $type: color
+  color:
+    $type: color
 `;
     const error = await validatePaletteSchema(yaml);
     expect(error).not.toBeNull();
     expect(error!.message).toContain('exactly one top-level namespace');
   });
 
-  test('rejects palette missing global.color', async () => {
+  test('rejects palette missing color', async () => {
     const yaml = `
-leonardo:
-  global: {}
+leonardo: {}
 `;
     const error = await validatePaletteSchema(yaml);
     expect(error).not.toBeNull();
@@ -122,7 +118,7 @@ leonardo:
   });
 
   test('reports YAML syntax error with line number', async () => {
-    const yaml = 'leonardo:\n  global:\n    color: [ : invalid';
+    const yaml = 'leonardo:\n  color: [ : invalid';
     const error = await validatePaletteSchema(yaml);
     expect(error).not.toBeNull();
     expect(error!.line).toBeGreaterThanOrEqual(1);
@@ -134,11 +130,10 @@ describe('validateDimensionSchema', () => {
   test('accepts a valid dimension YAML', async () => {
     const yaml = `
 wave:
-  global:
-    dimension:
-      alpha:
-        50:
-          $value: 0
+  dimension:
+    alpha:
+      50:
+        $value: 0
 `;
     const error = await validateDimensionSchema(yaml);
     expect(error).toBeNull();
@@ -147,21 +142,18 @@ wave:
   test('rejects dimension with multiple namespaces', async () => {
     const yaml = `
 wave:
-  global:
-    dimension: {}
+  dimension: {}
 other:
-  global:
-    dimension: {}
+  dimension: {}
 `;
     const error = await validateDimensionSchema(yaml);
     expect(error).not.toBeNull();
     expect(error!.message).toContain('exactly one top-level namespace');
   });
 
-  test('rejects dimension missing global.dimension', async () => {
+  test('rejects dimension missing dimension', async () => {
     const yaml = `
-wave:
-  global: {}
+wave: {}
 `;
     const error = await validateDimensionSchema(yaml);
     expect(error).not.toBeNull();
@@ -169,7 +161,7 @@ wave:
   });
 
   test('reports YAML syntax error with line number', async () => {
-    const yaml = 'wave:\n  global:\n    dimension: [ : invalid';
+    const yaml = 'wave:\n  dimension: [ : invalid';
     const error = await validateDimensionSchema(yaml);
     expect(error).not.toBeNull();
     expect(error!.line).toBeGreaterThanOrEqual(1);

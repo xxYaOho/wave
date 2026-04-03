@@ -1,6 +1,5 @@
 test:
-  global:
-    color:
+  color:
       $type: color
       primary:
         $description: Primary brand color

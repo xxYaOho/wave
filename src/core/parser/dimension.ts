@@ -74,19 +74,16 @@ export function parseDimension(content: string): DimensionResult | ParseError {
 
     const rootName = generic.namespace;
     const rootData = (parsed as Record<string, unknown>)[rootName] as Record<string, unknown>;
-    const globalData = rootData.global as Record<string, unknown>;
-    const dimensionData = globalData.dimension as Record<string, unknown>;
+    const dimensionData = rootData.dimension as Record<string, unknown>;
 
     const resultObj: DimensionResult = {
       name: rootName,
-      global: {
-        dimension: {},
-      },
+      dimension: {},
     };
 
     for (const [dimensionKey, dimensionValue] of Object.entries(dimensionData)) {
       if (typeof dimensionValue === 'object' && dimensionValue !== null) {
-        resultObj.global.dimension[dimensionKey] = dimensionValue as DimensionCategory;
+        resultObj.dimension[dimensionKey] = dimensionValue as DimensionCategory;
       } else {
         return {
           line: 1,

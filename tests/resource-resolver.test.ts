@@ -176,6 +176,57 @@ describe('generalized resolver', () => {
       ((result['theme-1'] as unknown) as { color: { secondary: { $value: string } } }).color.secondary.$value
     ).toBe('#00ff00');
   });
+
+  test('resolves references inside $extensions', () => {
+    const tree: DtcgTokenGroup = {
+      theme: {
+        gradient: {
+          $type: 'gradient',
+          hero: {
+            $value: [
+              { color: '#ff0000', position: 0 },
+              { color: '#0000ff', position: 1 },
+            ],
+            $extensions: {
+              smoothGradient: {
+                cubicBezier: '{wave.global.dimension.cubicBezier.easeInCubic}',
+                step: 5,
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const sources: ReferenceDataSources = {
+      wave: {
+        global: {
+          dimension: {
+            cubicBezier: {
+              easeInCubic: { $value: [0.32, 0, 0.67, 1] },
+            },
+          },
+        },
+      },
+    };
+
+    const result = resolveReferences(tree, sources);
+    const token = (result.theme as unknown) as {
+      gradient: {
+        hero: {
+          $extensions: {
+            smoothGradient: {
+              cubicBezier: unknown;
+              step: number;
+            };
+          };
+        };
+      };
+    };
+
+    expect(token.gradient.hero.$extensions.smoothGradient.cubicBezier).toEqual([0.32, 0, 0.67, 1]);
+    expect(token.gradient.hero.$extensions.smoothGradient.step).toBe(5);
+  });
 });
 
 describe('dependency to dependency reference detection', () => {

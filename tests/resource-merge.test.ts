@@ -36,8 +36,8 @@ describe('buildDependencyDictionary', () => {
     const dimFile = path.join(tempDir, 'dim-a.yaml');
 
     // Both files expose the same top-level namespace 'shared'
-    await fs.writeFile(paletteFile, 'shared:\n  global:\n    color:\n      $type: color\n');
-    await fs.writeFile(dimFile, 'shared:\n  global:\n    dimension:\n      a: {}\n');
+    await fs.writeFile(paletteFile, 'shared:\n  color:\n    $type: color\n');
+    await fs.writeFile(dimFile, 'shared:\n  dimension:\n    a: {}\n');
 
     const parsed: ParsedThemefile = {
       THEME: 'test',

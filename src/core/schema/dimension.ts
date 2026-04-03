@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
 export const dimensionEntrySchema = z.object({
-  global: z.object({
-    dimension: z.record(z.string(), z.unknown()),
-  }),
+  dimension: z.record(z.string(), z.unknown()),
 });
 
 export const dimensionSchema = z.record(z.string(), dimensionEntrySchema).refine(

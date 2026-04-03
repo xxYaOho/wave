@@ -301,6 +301,78 @@ PARAMETER colorSpace oklch
 
 ---
 
+## Wave 扩展
+
+### smoothGradient（v1）
+
+为标准 `gradient` token 增加平滑过渡能力。通过在 token 上附加 `$extensions.smoothGradient`，transformer 会在输出前自动将 2 个端点扩展为按 cubic-bezier 曲线采样后的 stops 列表。
+
+**声明格式：**
+
+```yaml
+theme:
+  overlay:
+    $type: gradient
+    hero:
+      $value:
+        - color: "#ff0000"
+          position: 0
+        - color: "#0000ff"
+          position: 1
+      $extensions:
+        smoothGradient:
+          cubicBezier: [0.4, 0, 0.2, 1]
+          step: 5
+```
+
+`cubicBezier` 也支持引用 wave dimension 中的预定义曲线（resolver 会自动解析 `$extensions` 中的引用）：
+
+```yaml
+      $extensions:
+        smoothGradient:
+          cubicBezier: "{wave.dimension.cubicBezier.easeInCubic}"
+          step: 9
+```
+
+**规则：**
+
+- `cubicBezier`：长度为 4 的数组 `[x1, y1, x2, y2]`，与 CSS cubic-bezier 控制点语义一致；支持直接写数组或引用 dimension 资源
+- `step`：总节点数（包含起点和终点），必须为整数且 `>= 2`
+- 输入 gradient 必须恰好包含 **2 个 stop**，否则报错
+- 所有生成 stop 的 `position` 线性等距分布，输出时保留 **2 位小数**
+- `alpha` 按曲线采样值在两端点 alpha 之间插值，并 `clamp` 到 `[0, 1]`
+- v1 **不做中间颜色插值**：生成 stop 的颜色只使用端点原色
+- `$extensions` 在 transform 阶段被消费，**不会泄漏**到最终 json / css / sketch 输出
+
+**与标准 gradient 的关系：**
+
+`smoothGradient` 不改变 token 的 `$type`，输出仍然是标准 gradient 数组。CSS formatter 会沿用现有 `gradientToCss` 逻辑，无需在 generator 层做任何修改。
+
+### smoothShadow
+
+扩展格式已预留，但**当前版本未实现运行时派生**。如果源码中出现 `$extensions.smoothShadow`，CLI 会直接报错：
+
+```
+smoothShadow is not implemented
+```
+
+**预留格式（供未来参考）：**
+
+```yaml
+$extensions:
+  smoothShadow:
+    cubicBezier: [0.4, 0, 0.2, 1]
+    step: 5
+```
+
+**设计边界：**
+
+- `smoothShadow` 与 `smoothGradient` 将共享通用 cubic-bezier 采样内核
+- 最终 shadow layer 的组装逻辑独立，不共享
+- 当前不会静默忽略该扩展，防止用户误以为已生效
+
+---
+
 ## 输出格式
 
 - `json`（默认）：输出 `{theme}.json`，扁平化 KV，kebab-case 键名

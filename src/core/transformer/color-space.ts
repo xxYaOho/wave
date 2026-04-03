@@ -72,7 +72,7 @@ function createColorFromSpace(colorSpace: ColorSpaceType, components: number[]):
   }
 }
 
-function formatColorOutput(color: chroma.Color, format: ColorSpaceFormat, alpha: number): string {
+export function formatColorOutput(color: chroma.Color, format: ColorSpaceFormat, alpha: number): string {
   const hasAlpha = alpha < 1;
 
   switch (format) {

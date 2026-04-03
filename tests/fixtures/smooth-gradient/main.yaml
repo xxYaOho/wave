@@ -1,0 +1,13 @@
+theme:
+  gradient:
+    $type: gradient
+    hero:
+      $value:
+        - color: "#ff0000"
+          position: 0
+        - color: "#0000ff"
+          position: 1
+      $extensions:
+        smoothGradient:
+          cubicBezier: [0.4, 0, 0.2, 1]
+          step: 5

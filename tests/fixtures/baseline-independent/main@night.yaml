@@ -5,4 +5,4 @@ theme:
       $value: "#222222"
       $description: defined in night
     shared:
-      $value: "{leonardo.global.color.white}"
+      $value: "{leonardo.color.white}"

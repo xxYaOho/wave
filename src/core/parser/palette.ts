@@ -74,12 +74,11 @@ export function parsePalette(content: string): PaletteResult | ParseError {
 
     const paletteName = generic.namespace;
     const paletteData = (parsed as Record<string, unknown>)[paletteName] as Record<string, unknown>;
-    const global = paletteData.global as Record<string, unknown>;
-    const color = global.color as ColorPalette;
+    const color = paletteData.color as ColorPalette;
 
     return {
       name: paletteName,
-      global: { color },
+      color,
     };
   } catch (error) {
     if (error instanceof yaml.YAMLException) {

@@ -110,7 +110,11 @@ function isDtcgValue(value: unknown): value is DtcgValue {
     return true;
   }
 
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+  if (Array.isArray(value)) {
+    return value.every(isDtcgValue);
+  }
+
+  if (typeof value === 'object' && value !== null) {
     for (const [, val] of Object.entries(value)) {
       if (Array.isArray(val)) {
         if (!val.every(isDtcgScalarValue)) {
@@ -659,11 +663,29 @@ function processTokenExternal(
     token.$value, sources, themeTree, [], unresolvedCollector, currentPath, rootKey
   );
 
+  const resolvedExtensions = token.$extensions
+    ? Object.fromEntries(
+        Object.entries(token.$extensions).map(([k, v]) => [
+          k,
+          resolveNestedRefs(
+            v as NestedValue,
+            sources,
+            themeTree,
+            [],
+            unresolvedCollector,
+            `${currentPath}.$extensions.${k}`,
+            rootKey
+          ),
+        ])
+      )
+    : undefined;
+
   return {
     $value: resolvedValue,
     ...(token.$type !== undefined && { $type: token.$type }),
     ...(token.$description !== undefined && { $description: token.$description }),
     ...(token.$deprecated !== undefined && { $deprecated: token.$deprecated }),
+    ...(resolvedExtensions !== undefined && { $extensions: resolvedExtensions }),
   };
 }
 
@@ -712,11 +734,29 @@ function processTokenInternal(
   const resolutionPath = currentPath ? [currentPath] : [];
   const resolvedValue = resolveInternalDtcgValue(token.$value, sources, themeTree, resolutionPath, unresolvedCollector, currentPath, rootKey);
 
+  const resolvedExtensions = token.$extensions
+    ? Object.fromEntries(
+        Object.entries(token.$extensions).map(([k, v]) => [
+          k,
+          resolveNestedInternalRefs(
+            v as NestedValue,
+            sources,
+            themeTree,
+            resolutionPath,
+            unresolvedCollector,
+            `${currentPath}.$extensions.${k}`,
+            rootKey
+          ),
+        ])
+      )
+    : undefined;
+
   return {
     $value: resolvedValue,
     ...(token.$type !== undefined && { $type: token.$type }),
     ...(token.$description !== undefined && { $description: token.$description }),
     ...(token.$deprecated !== undefined && { $deprecated: token.$deprecated }),
+    ...(resolvedExtensions !== undefined && { $extensions: resolvedExtensions }),
   };
 }
 
@@ -796,7 +836,10 @@ function hasInternalReferences(value: NestedDtcgValue, rootKey: string): boolean
 }
 
 function tokenHasInternalReferences(token: ResolvedDtcgToken, rootKey: string): boolean {
-  return hasInternalReferences(token.$value, rootKey);
+  return (
+    hasInternalReferences(token.$value, rootKey) ||
+    (token.$extensions !== undefined && hasInternalReferences(token.$extensions as unknown as NestedDtcgValue, rootKey))
+  );
 }
 
 function groupHasInternalReferences(group: ResolvedTokenGroup, rootKey: string): boolean {
@@ -873,6 +916,9 @@ function collectInternalReferences(group: ResolvedTokenGroup, rootKey: string): 
     ) {
       const token = value as ResolvedDtcgToken;
       collectFromValue(token.$value, key);
+      if (token.$extensions !== undefined) {
+        collectFromValue(token.$extensions as unknown as NestedDtcgValue, key);
+      }
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       const nested = collectInternalReferences(value as ResolvedTokenGroup, rootKey);
       refs.push(...nested.map((r) => `${key}.${r}`));
