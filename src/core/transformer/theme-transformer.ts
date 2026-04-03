@@ -215,6 +215,76 @@ function deriveSmoothGradient(
   return derived;
 }
 
+function interpolateShadowValue(base: unknown, coeff: number): string | number {
+  if (typeof base === 'string') {
+    const match = base.trim().match(/^(-?\d+(\.\d+)?)\s*([a-z%]*)$/i);
+    if (match) {
+      const value = parseFloat(match[1]);
+      const unit = match[3] || '';
+      if (unit === 'rem') {
+        return `${roundTo(value * coeff, 3)}rem`;
+      }
+      return `${Math.round(value * coeff)}${unit}`;
+    }
+    return base;
+  }
+  if (typeof base === 'number') {
+    return Math.round(base * coeff);
+  }
+  return 0;
+}
+
+function deriveSmoothShadow(
+  processedValue: unknown,
+  extension: unknown,
+  targetFormat: ColorSpaceFormat,
+  tokenPath?: string
+): unknown {
+  if (typeof processedValue !== 'object' || processedValue === null || Array.isArray(processedValue)) {
+    throw new Error(
+      `smoothShadow requires a single shadow layer object${tokenPath ? ` at ${tokenPath}` : ''}`
+    );
+  }
+
+  const ext = extension as { cubicBezier?: unknown; step?: unknown };
+  if (!Array.isArray(ext.cubicBezier) || ext.cubicBezier.length !== 4 || !ext.cubicBezier.every(n => typeof n === 'number')) {
+    throw new Error(`smoothShadow.cubicBezier must be an array of 4 numbers${tokenPath ? ` at ${tokenPath}` : ''}`);
+  }
+  const cubicBezier = ext.cubicBezier as [number, number, number, number];
+
+  if (!Number.isInteger(ext.step) || (ext.step as number) < 1) {
+    throw new Error(`smoothShadow.step must be an integer >= 1${tokenPath ? ` at ${tokenPath}` : ''}`);
+  }
+  const step = ext.step as number;
+
+  const layer = processedValue as Record<string, unknown>;
+  const baseColor = typeof layer.color === 'string' ? layer.color : '#000000';
+  const baseAlpha = extractColorAlpha(baseColor);
+  const inset = layer.inset === true;
+
+  // Sample step+1 points and drop the last one (zero layer)
+  const ratios = sampleCubicBezier(cubicBezier, step + 1);
+  const visibleRatios = ratios.slice(0, step);
+
+  const derived = [];
+  // Iterate backwards to produce layers ordered from small to large
+  for (let i = visibleRatios.length - 1; i >= 0; i--) {
+    const ratio = visibleRatios[i]!;
+    const coeff = 1 - ratio;
+
+    derived.push({
+      color: applyColorAlpha(baseColor, roundTo(baseAlpha * coeff, 2), targetFormat),
+      offsetX: interpolateShadowValue(layer.offsetX, coeff),
+      offsetY: interpolateShadowValue(layer.offsetY, coeff),
+      blur: interpolateShadowValue(layer.blur, coeff),
+      spread: interpolateShadowValue(layer.spread, coeff),
+      ...(inset && { inset: true }),
+    });
+  }
+
+  return derived;
+}
+
 export interface TransformResult {
   tree: SdTokenTree;
   order: string[];
@@ -283,10 +353,13 @@ function transformToken(
   let processedValue = processValue(token.$value, targetColorSpace, tokenPath);
   const typeValue = token.$type ?? parentType;
 
-  // Guardrail: smoothShadow is not implemented
+  // smoothShadow derivation
   const smoothShadow = token.$extensions?.smoothShadow;
-  if (smoothShadow !== undefined) {
-    throw new Error(`smoothShadow is not implemented${tokenPath ? ` at ${tokenPath}` : ''}`);
+  if (smoothShadow !== undefined && typeValue === 'shadow') {
+    const processedLayer = typeof processedValue === 'object' && processedValue !== null && !Array.isArray(processedValue)
+      ? processArrayItem(processedValue, targetColorSpace, tokenPath)
+      : processedValue;
+    processedValue = deriveSmoothShadow(processedLayer, smoothShadow, targetColorSpace, tokenPath) as DtcgValue;
   }
 
   // smoothGradient derivation

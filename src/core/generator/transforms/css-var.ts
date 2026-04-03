@@ -42,6 +42,12 @@ function colorToRgba(colorVal: unknown): string {
 }
 
 // Shadow 转 CSS 字符串
+function formatShadowLength(val: unknown): string {
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number') return `${Math.round(val)}px`;
+  return String(val);
+}
+
 export function shadowToCss(value: unknown): string {
   if (!Array.isArray(value)) {
     return String(value);
@@ -53,14 +59,14 @@ export function shadowToCss(value: unknown): string {
     }
 
     const l = layer as Record<string, unknown>;
-    const offsetX = extractNumber(l.offsetX);
-    const offsetY = extractNumber(l.offsetY);
-    const blur = extractNumber(l.blur);
-    const spread = extractNumber(l.spread);
+    const offsetX = formatShadowLength(l.offsetX);
+    const offsetY = formatShadowLength(l.offsetY);
+    const blur = formatShadowLength(l.blur);
+    const spread = formatShadowLength(l.spread);
     const color = colorToRgba(l.color);
     const inset = l.inset === true ? 'inset ' : '';
 
-    return `${inset}${offsetX}px ${offsetY}px ${blur}px ${spread}px ${color}`;
+    return `${inset}${offsetX} ${offsetY} ${blur} ${spread} ${color}`;
   });
 
   return layers.join(', ');

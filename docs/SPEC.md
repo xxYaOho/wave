@@ -348,28 +348,56 @@ theme:
 
 `smoothGradient` 不改变 token 的 `$type`，输出仍然是标准 gradient 数组。CSS formatter 会沿用现有 `gradientToCss` 逻辑，无需在 generator 层做任何修改。
 
-### smoothShadow
+### smoothShadow（v1）
 
-扩展格式已预留，但**当前版本未实现运行时派生**。如果源码中出现 `$extensions.smoothShadow`，CLI 会直接报错：
+为标准 `shadow` token 增加平滑过渡能力。通过在 token 上附加 `$extensions.smoothShadow`，transformer 会在输出前自动将单个 shadow layer 扩展为按 cubic-bezier 曲线采样后的 layers 数组。
 
-```
-smoothShadow is not implemented
-```
-
-**预留格式（供未来参考）：**
+**声明格式：**
 
 ```yaml
-$extensions:
-  smoothShadow:
-    cubicBezier: [0.4, 0, 0.2, 1]
-    step: 5
+theme:
+  shadow:
+    $type: shadow
+    raised:
+      $value:
+        color: "#000000cc"
+        offsetX: 0
+        offsetY: 6
+        blur: 12
+        spread: 0
+      $extensions:
+        smoothShadow:
+          cubicBezier: [0.4, 0, 0.2, 1]
+          step: 3
 ```
 
-**设计边界：**
+`cubicBezier` 也支持引用 wave dimension 中的预定义曲线（resolver 会自动解析 `$extensions` 中的引用）：
 
-- `smoothShadow` 与 `smoothGradient` 将共享通用 cubic-bezier 采样内核
-- 最终 shadow layer 的组装逻辑独立，不共享
-- 当前不会静默忽略该扩展，防止用户误以为已生效
+```yaml
+      $extensions:
+        smoothShadow:
+          cubicBezier: "{wave.dimension.cubicBezier.easeInCubic}"
+          step: 3
+```
+
+**规则：**
+
+- `cubicBezier`：长度为 4 的数组 `[x1, y1, x2, y2]`，与 CSS cubic-bezier 控制点语义一致；支持直接写数组或引用 dimension 资源
+- `step`：可见层数，必须为整数且 `>= 1`
+- 输入 shadow 必须是**单个 layer 对象**（非数组），否则报错
+- 内部采样逻辑：按 `step + 1` 采样并舍去最后一个零层（`offset/blur/spread/alpha = 0`），只输出 N 个可见层
+- **从小到大排列**：第 0 层最接近零层，最后一层保持原始 base 值，与 CSS `box-shadow: small, medium, large` 的书写顺序一致
+- `offsetX`、`offsetY`、`blur`、`spread` 线性衰减至 0
+  - `number` 类型取整输出（默认 `px`）
+  - `rem` 字符串保留 **3 位小数**
+  - 其他单位字符串取整输出
+- `alpha` 按曲线采样值从 `0` 到 `baseAlpha` 插值，保留 **2 位小数**
+- `inset: true` 会被复制到所有派生层
+- `$extensions` 在 transform 阶段被消费，**不会泄漏**到最终 json / css / sketch 输出
+
+**与标准 shadow 的关系：**
+
+`smoothShadow` 不改变 token 的 `$type`，输出仍然是标准 shadow 数组。CSS formatter 沿用现有 `shadowToCss` 逻辑，支持带单位的数值，无需在 generator 层做额外修改。
 
 ---
 
