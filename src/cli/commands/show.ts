@@ -12,6 +12,30 @@ interface ShowCommandOptions {
   format?: string;
 }
 
+function stringifyCompact(value: unknown, indent = 0): string {
+  const spaces = ' '.repeat(indent);
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    const items = value.map((v) => stringifyCompact(v, 0));
+    return `[${items.join(', ')}]`;
+  }
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length === 0) return '{}';
+  const items = entries.map(([k, v]) => {
+    const str = stringifyCompact(v, indent + 2);
+    if (str.includes('\n')) {
+      return `${JSON.stringify(k)}:\n${str}`;
+    }
+    return `${JSON.stringify(k)}: ${str}`;
+  });
+  return `{\n${items.map((item) => {
+    const lines = item.split('\n');
+    return lines.map((line, i) => (i === 0 ? `  ${line}` : `${spaces}  ${line}`)).join('\n');
+  }).join(',\n')}\n${spaces}}`;
+}
+
 function flattenResource(
   data: Record<string, unknown>,
   pathParts: string[] = [],
@@ -62,7 +86,7 @@ export const showCommand = new Command('show')
         const content = await file.text();
         console.log(content);
       } else if (format === 'json') {
-        console.log(JSON.stringify(resourceData, null, 2));
+        console.log(stringifyCompact(resourceData));
       } else {
         // flat-json
         const namespace = Object.keys(resourceData!)[0];
@@ -70,7 +94,7 @@ export const showCommand = new Command('show')
           (resourceData as Record<string, Record<string, unknown>>)[namespace] ?? {},
           [namespace]
         );
-        console.log(JSON.stringify(flattened, null, 2));
+        console.log(stringifyCompact(flattened));
       }
 
       process.exitCode = ExitCode.SUCCESS;
