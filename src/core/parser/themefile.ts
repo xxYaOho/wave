@@ -41,6 +41,16 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
           };
         }
         const [, kind, ref] = resourceMatch;
+
+        // CQ-004: Validate RESOURCE kind
+        const validKinds = ['palette', 'dimension', 'custom'] as const;
+        if (!validKinds.includes(kind as typeof validKinds[number])) {
+          return {
+            line: lineNum,
+            message: `Invalid RESOURCE kind: "${kind}". Valid kinds are: ${validKinds.join(', ')}`
+          };
+        }
+
         result.resources!.push({ kind, ref } as ResourceDeclaration);
         continue;
       }

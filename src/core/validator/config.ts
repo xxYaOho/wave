@@ -68,30 +68,6 @@ export async function validateThemefile(options: ThemeValidationOptions): Promis
 
   config = parseResult as ParsedThemefile;
 
-  // Validate legacy mode resources
-  if (!config.resources || config.resources.length === 0) {
-    if (config.PALETTE) {
-      const paletteResult = resolveResource(config.PALETTE, 'palette', themefileDir);
-      if (!paletteResult.exists) {
-        if (paletteResult.isBuiltin) {
-          errors.push(`Built-in palette not found: ${config.PALETTE}`);
-        } else {
-          errors.push(`Palette file not found: ${paletteResult.path}`);
-        }
-      }
-    }
-    if (config.DIMENSION) {
-      const dimensionResult = resolveResource(config.DIMENSION, 'dimension', themefileDir);
-      if (!dimensionResult.exists) {
-        if (dimensionResult.isBuiltin) {
-          errors.push(`Built-in dimension not found: ${config.DIMENSION}`);
-        } else {
-          errors.push(`Dimension file not found: ${dimensionResult.path}`);
-        }
-      }
-    }
-  }
-
   // Validate RESOURCE mode
   if (config.resources && config.resources.length > 0) {
     const seenKinds = new Set<string>();
@@ -104,11 +80,9 @@ export async function validateThemefile(options: ThemeValidationOptions): Promis
         }
       }
 
-      // Validate resource exists (for now, palette/dimension/custom all go through same existence check)
-      const resourceType = res.kind === 'palette' || res.kind === 'dimension' || res.kind === 'custom'
-        ? res.kind
-        : 'brand';
-      const resolved = resolveResource(res.ref, resourceType as 'palette' | 'dimension' | 'brand', themefileDir);
+      // Validate resource exists
+      // CQ-004: kind is already validated by parser, only palette/dimension/custom allowed
+      const resolved = resolveResource(res.ref, res.kind as 'palette' | 'dimension' | 'brand', themefileDir);
       if (!resolved.exists) {
         errors.push(`${res.kind} resource not found: ${res.ref}`);
       }
