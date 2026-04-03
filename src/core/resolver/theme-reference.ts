@@ -117,10 +117,10 @@ function isDtcgValue(value: unknown): value is DtcgValue {
   if (typeof value === 'object' && value !== null) {
     for (const [, val] of Object.entries(value)) {
       if (Array.isArray(val)) {
-        if (!val.every(isDtcgScalarValue)) {
+        if (!val.every(isDtcgValue)) {
           return false;
         }
-      } else if (!isDtcgScalarValue(val)) {
+      } else if (!isDtcgValue(val)) {
         return false;
       }
     }

@@ -227,6 +227,49 @@ describe('generalized resolver', () => {
     expect(token.gradient.hero.$extensions.smoothGradient.cubicBezier).toEqual([0.32, 0, 0.67, 1]);
     expect(token.gradient.hero.$extensions.smoothGradient.step).toBe(5);
   });
+
+  test('resolves $ref to shadow token containing nested {value, unit} objects', () => {
+    const tree: DtcgTokenGroup = {
+      theme: {
+        color: {
+          $type: 'color',
+          shadow: {
+            $value: '#2b3248',
+          },
+        },
+        style: {
+          shadowBase: {
+            $type: 'shadow',
+            $value: {
+              color: { $ref: '#/theme/color/shadow/$value', alpha: 0.08 },
+              offsetX: { value: 0 },
+              offsetY: { value: '4px', unit: 'px' },
+              blur: { value: 8 },
+              spread: { value: -2 },
+            },
+          },
+          shadowAlias: {
+            $type: 'shadow',
+            $value: {
+              $ref: '#/theme/style/shadowBase/$value',
+            },
+          },
+        },
+      },
+    };
+
+    const sources: ReferenceDataSources = {};
+
+    const result = resolveReferences(tree, sources);
+    const alias = ((result.theme as unknown) as { style: { shadowAlias: { $value: unknown } } }).style
+      .shadowAlias.$value as Record<string, unknown>;
+
+    expect(alias.color).toEqual({ color: '#2b3248', alpha: 0.08 });
+    expect(alias.offsetX).toEqual({ value: 0 });
+    expect(alias.offsetY).toEqual({ value: '4px', unit: 'px' });
+    expect(alias.blur).toEqual({ value: 8 });
+    expect(alias.spread).toEqual({ value: -2 });
+  });
 });
 
 describe('dependency to dependency reference detection', () => {

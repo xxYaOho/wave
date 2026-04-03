@@ -53,52 +53,84 @@ wave:
       $type: dimension
       1:
         $description: 全局维度，递进基数 0.125rem（递进值 2px）
-        $value: 0.125rem
+        $value:
+          value: 0.125
+          unit: rem
       2:
         $description: 全局维度，递进基数 0.125rem（递进值 2px）
-        $value: 0.25rem
+        $value:
+          value: 0.25
+          unit: rem
       3:
         $description: 全局维度，递进基数 0.125rem（递进值 2px）
-        $value: 0.375rem
+        $value:
+          value: 0.375
+          unit: rem
       4:
         $description: 全局维度，递进基数 0.125rem（递进值 2px）
-        $value: 0.5rem
+        $value:
+          value: 0.5
+          unit: rem
       5:
         $description: 全局维度，递进基数 0.125rem（递进值 2px）
-        $value: 0.625rem
+        $value:
+          value: 0.625
+          unit: rem
       6:
         $description: 全局维度，递进基数 0.125rem（递进值 2px）
-        $value: 0.75rem
+        $value:
+          value: 0.75
+          unit: rem
       7:
         $description: 全局维度，递进基数 0.125rem（递进值 2px）
-        $value: 0.875rem
+        $value:
+          value: 0.875
+          unit: rem
       8:
         $description: 全局维度，递进基数 0.125rem（递进值 2px）
-        $value: 1rem
+        $value:
+          value: 1
+          unit: rem
       9:
         $description: 全局维度，递进基数 0.5rem（递进值 8px）
-        $value: 1.25rem
+        $value:
+          value: 1.25
+          unit: rem
       10:
         $description: 全局维度，递进基数 0.25rem（递进值 4px）
-        $value: 1.5rem
+        $value:
+          value: 1.5
+          unit: rem
       11:
         $description: 全局维度，递进基数 0.25rem（递进值 4px）
-        $value: 1.75rem
+        $value:
+          value: 1.75
+          unit: rem
       12:
         $description: 全局维度，递进基数 0.25rem（递进值 4px）
-        $value: 2rem
+        $value:
+          value: 2
+          unit: rem
       13:
         $description: 全局维度，递进基数 0.5rem（递进值 8px）
-        $value: 2.5rem
+        $value:
+          value: 2.5
+          unit: rem
       14:
         $description: 全局维度，递进基数 0.5rem（递进值 8px）
-        $value: 3rem
+        $value:
+          value: 3
+          unit: rem
       15:
         $description: 全局维度，递进基数 0.5rem（递进值 8px）
-        $value: 3.5rem
+        $value:
+          value: 3.5
+          unit: rem
       16:
         $description: 全局维度，递进基数 0.5rem（递进值 8px）
-        $value: 4rem
+        $value:
+          value: 4
+          unit: rem
     pxBasic:
       $type: dimension
       $description: 全局维度, 最小基础像素
@@ -107,52 +139,84 @@ wave:
       $type: dimension
       1:
         $description: 全局维度, 递进基数 2px
-        $value: 2px
+        $value:
+          value: 2
+          unit: px
       2:
         $description: 全局维度, 递进基数 2px
-        $value: 4px
+        $value:
+          value: 4
+          unit: px
       3:
         $description: 全局维度, 递进基数 2px
-        $value: 6px
+        $value:
+          value: 6
+          unit: px
       4:
         $description: 全局维度, 递进基数 2px
-        $value: 8px
+        $value:
+          value: 8
+          unit: px
       5:
         $description: 全局维度, 递进基数 2px
-        $value: 10px
+        $value:
+          value: 10
+          unit: px
       6:
         $description: 全局维度, 递进基数 2px
-        $value: 12px
+        $value:
+          value: 12
+          unit: px
       7:
         $description: 全局维度, 递进基数 4px
-        $value: 16px
+        $value:
+          value: 16
+          unit: px
       8:
         $description: 全局维度, 递进基数 4px
-        $value: 20px
+        $value:
+          value: 20
+          unit: px
       9:
         $description: 全局维度, 递进基数 4px
-        $value: 24px
+        $value:
+          value: 24
+          unit: px
       10:
         $description: 全局维度, 递进基数 4px
-        $value: 28px
+        $value:
+          value: 28
+          unit: px
       11:
         $description: 全局维度, 递进基数 4px
-        $value: 32px
+        $value:
+          value: 32
+          unit: px
       12:
         $description: 全局维度, 递进基数 4px
-        $value: 36px
+        $value:
+          value: 36
+          unit: px
       13:
         $description: 全局维度, 递进基数 4px
-        $value: 40px
+        $value:
+          value: 40
+          unit: px
       14:
         $description: 全局维度, 递进基数 8px
-        $value: 48px
+        $value:
+          value: 48
+          unit: px
       15:
         $description: 全局维度, 递进基数 8px
-        $value: 56px
+        $value:
+          value: 56
+          unit: px
       16:
         $description: 全局维度, 递进基数 8px
-        $value: 64px
+        $value:
+          value: 64
+          unit: px
     cubicBezier:
       linear:
         $type: cubicBezier
