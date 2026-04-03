@@ -154,7 +154,7 @@ wave:
         16:
           $description: 全局维度, 递进基数 8px
           $value: 64px
-      cubic-bezier:
+      cubicBezier:
         linear:
           $type: cubicBezier
           $value: [0, 0, 1, 1]
