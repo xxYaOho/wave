@@ -25,7 +25,7 @@ function extractNumber(val: unknown): number {
   return 0;
 }
 
-// 将颜色值转换为 rgba() 格式
+// 将颜色值转换为现代 CSS rgb() 格式: rgb(r g b / alpha)
 function colorToRgba(colorVal: unknown): string {
   const colorStr = String(colorVal);
   if (!colorStr.startsWith('#')) {
@@ -38,7 +38,7 @@ function colorToRgba(colorVal: unknown): string {
   const { red, green, blue, alpha } = components;
   // 限制 alpha 为 2 位小数
   const alphaRounded = Math.round(alpha * 100) / 100;
-  return `rgba(${red}, ${green}, ${blue}, ${alphaRounded})`;
+  return `rgb(${red} ${green} ${blue} / ${alphaRounded})`;
 }
 
 // Shadow 转 CSS 字符串
