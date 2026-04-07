@@ -216,21 +216,35 @@ function resolveDtcgRef(
   // 属性合并：$ref 解析的值作为基础，其他属性可以覆盖
   const { $ref, ...overrides } = refValue;
 
-  if (Object.keys(overrides).length === 0) {
+  // 解析 overrides 中的外部字符串引用
+  let resolvedOverrides: Record<string, unknown> = overrides;
+  for (const [key, val] of Object.entries(overrides)) {
+    if (typeof val === 'string') {
+      const resolved = resolveExternalReference(val, sources, rootKey);
+      if (resolved !== undefined) {
+        if (resolvedOverrides === overrides) {
+          resolvedOverrides = { ...overrides };
+        }
+        resolvedOverrides[key] = resolved;
+      }
+    }
+  }
+
+  if (Object.keys(resolvedOverrides).length === 0) {
     return extractedValue;
   }
 
   // 合并策略
   if (typeof extractedValue === 'object' && extractedValue !== null && !Array.isArray(extractedValue)) {
-    return { ...extractedValue, ...overrides } as DtcgObjectValue;
+    return { ...extractedValue, ...resolvedOverrides } as DtcgObjectValue;
   }
 
   // 标量值，根据上下文包装
-  if ('color' in overrides || 'alpha' in overrides) {
-    return { color: String(extractedValue), ...overrides } as DtcgObjectValue;
+  if ('color' in resolvedOverrides || 'alpha' in resolvedOverrides) {
+    return { color: String(extractedValue), ...resolvedOverrides } as DtcgObjectValue;
   }
 
-  return { value: extractedValue, ...overrides } as DtcgObjectValue;
+  return { value: extractedValue, ...resolvedOverrides } as DtcgObjectValue;
 }
 
 // 递归处理嵌套对象/数组中的 $ref（Pass 1：外部引用）
