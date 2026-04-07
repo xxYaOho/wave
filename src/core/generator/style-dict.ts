@@ -111,12 +111,12 @@ export async function generateTokens(
           buildPath: outputDir,
           transforms: ['attribute/cti', nameKebabTransform.name],
           files: [{
-            destination: `${themeName}.sketch.json`,
+            destination: `${themeName}2sketch.json`,
             format: sketchFormat.name,
             options: { filterLayer },
           }],
         };
-        validPlatforms.add('sketch.json');
+        validPlatforms.add('2sketch.json');
       } else {
         logger.warn(`Unknown platform "${normalized}", skipping`);
       }

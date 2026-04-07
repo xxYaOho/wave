@@ -382,7 +382,9 @@ function transformToken(
         ? (opacityData as Record<string, unknown>).$value
         : opacityData;
       if (typeof opacityRaw === 'number' && opacityRaw >= 0 && opacityRaw <= 1) {
-        processedValue = { opacity: opacityRaw };
+        // 保存原始颜色值供后续使用（如 sketch 格式）
+        const originalColor = typeof processedValue === 'string' ? processedValue : undefined;
+        processedValue = { opacity: opacityRaw, ...(originalColor !== undefined && { _color: originalColor }) };
         currentColorOpacity = opacityRaw;
       }
     }

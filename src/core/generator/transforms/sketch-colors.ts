@@ -47,16 +47,39 @@ function isInteractionToken(token: TransformedToken): boolean {
   return path.length >= 2 && path[0] === 'style' && path[1] === 'interaction';
 }
 
+// 将 6位hex 转为 8位hex（添加 alpha）
+function hexToSketchColor(hex: string): string {
+  // 如果已经是 8位，直接返回
+  if (hex.length === 9) return hex;
+  // 如果是 6位，添加 ff alpha
+  if (hex.length === 7) return `${hex}ff`;
+  return hex;
+}
+
+// 首字母大写
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}
+
+// 清理数值（将 "0px" 转为 0，保留 rem 等相对单位）
+function cleanValue(val: number | string): number | string {
+  if (typeof val === 'string' && val.endsWith('px')) {
+    const num = parseFloat(val);
+    return isNaN(num) ? val : num;
+  }
+  return val;
+}
+
 // 将 Wave shadow 转换为 Sketch API 格式
 function transformShadowToSketchFormat(
   waveShadow: WaveShadowLayer[]
 ): SketchShadowLayer[] {
   return waveShadow.map((layer) => ({
-    x: layer.offsetX,
-    y: layer.offsetY,
-    blur: layer.blur,
-    spread: layer.spread,
-    color: layer.color,
+    x: cleanValue(layer.offsetX),
+    y: cleanValue(layer.offsetY),
+    blur: cleanValue(layer.blur),
+    spread: cleanValue(layer.spread),
+    color: hexToSketchColor(layer.color),
   }));
 }
 
@@ -84,9 +107,9 @@ function transformBorderToSketchFormat(waveBorder: WaveBorderValue): SketchBorde
 
   return {
     fillType: 'Color',
-    color: waveBorder.color,
+    color: hexToSketchColor(waveBorder.color),
     thickness: width,
-    position: waveBorder.position || 'center',
+    position: capitalize(waveBorder.position || 'center'),
   };
 }
 
@@ -173,10 +196,10 @@ function buildFullSketchOutput(
 
     const type = effectivePath[0];
 
-    // 颜色：扁平键名
+    // 颜色：扁平键名，转为 8位hex
     if (type === 'color' && isColorToken(token)) {
       const key = generateFlatKey(effectivePath);
-      result[key] = tokenValue;
+      result[key] = hexToSketchColor(String(tokenValue));
     }
     // border 类型
     else if (isBorderToken(token)) {
@@ -243,9 +266,9 @@ export const sketchColorsFormat: Format = {
   },
 };
 
-// 新的完整 sketch 格式（支持 color + shadow + gradient + interaction）
-export const sketchFormat: Format = {
-  name: 'wave/sketch',
+// 保留的 sketch-colors 格式（仅颜色，嵌套结构）
+export const sketchColorsFullFormat: Format = {
+  name: 'wave/sketch-colors-full',
   format: ({ dictionary, options }: { dictionary: Dictionary; options: Record<string, unknown> }) => {
     const filterLayer = (options?.filterLayer as number) ?? 0;
 
