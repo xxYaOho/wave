@@ -193,19 +193,33 @@ function buildFullSketchOutput(
       const styleType = effectivePath[1];
       const key = generateFlatKey(effectivePath);
 
-      // interaction：提取 opacity 为扁平数字
+      // interaction：保留 opacity 对象结构
       if (styleType === 'interaction') {
         const value = tokenValue as { opacity: number };
-        result[key] = value.opacity;
+        result[key] = { opacity: value.opacity };
       }
-      // shadow：转换为 Sketch API 格式
-      else if (styleType === 'shadow' && isShadowToken(token)) {
-        const shadowValue = tokenValue as WaveShadowLayer[];
+      // shadow：通过前缀匹配（如 shadow-1, shadow-2）
+      else if (styleType.startsWith('shadow')) {
+        // Shadow 值可能是数组（smoothShadow 扩展后）或对象（单层）
+        let shadowValue: WaveShadowLayer[];
+        if (Array.isArray(tokenValue)) {
+          shadowValue = tokenValue as WaveShadowLayer[];
+        } else if (typeof tokenValue === 'object' && tokenValue !== null) {
+          // 单层 shadow 转换为数组
+          shadowValue = [tokenValue as WaveShadowLayer];
+        } else {
+          shadowValue = [];
+        }
         result[key] = transformShadowToSketchFormat(shadowValue);
       }
-      // gradient：保持数组格式
-      else if (styleType === 'gradient' && isGradientToken(token)) {
-        result[key] = tokenValue;
+      // gradient：通过前缀匹配（如 gradient-mask-smooth）
+      else if (styleType.startsWith('gradient')) {
+        // Gradient 值可能是数组或需要包装为数组
+        if (Array.isArray(tokenValue)) {
+          result[key] = tokenValue;
+        } else if (typeof tokenValue === 'object' && tokenValue !== null) {
+          result[key] = [tokenValue];
+        }
       }
     }
   }
