@@ -4,10 +4,114 @@ export interface SketchColorsFormatOptions {
   filterLayer?: number;
 }
 
+// Sketch API shadow 结构
+interface SketchShadowLayer {
+  x: number;
+  y: number;
+  blur: number;
+  spread: number;
+  color: string;
+}
+
+// Wave shadow 结构
+interface WaveShadowLayer {
+  color: string;
+  offsetX: number;
+  offsetY: number;
+  blur: number;
+  spread: number;
+}
+
 function isColorToken(token: TransformedToken): boolean {
   return token.type === 'color' || token.$type === 'color';
 }
 
+function isShadowToken(token: TransformedToken): boolean {
+  return token.type === 'shadow' || token.$type === 'shadow';
+}
+
+function isGradientToken(token: TransformedToken): boolean {
+  return token.type === 'gradient' || token.$type === 'gradient';
+}
+
+function isBorderToken(token: TransformedToken): boolean {
+  return token.type === 'border' || token.$type === 'border';
+}
+
+function isOpacityToken(token: TransformedToken): boolean {
+  return token.type === 'opacity' || token.$type === 'opacity';
+}
+
+function isInteractionToken(token: TransformedToken): boolean {
+  const path = token.path;
+  return path.length >= 2 && path[0] === 'style' && path[1] === 'interaction';
+}
+
+// 将 Wave shadow 转换为 Sketch API 格式
+function transformShadowToSketchFormat(
+  waveShadow: WaveShadowLayer[]
+): SketchShadowLayer[] {
+  return waveShadow.map((layer) => ({
+    x: layer.offsetX,
+    y: layer.offsetY,
+    blur: layer.blur,
+    spread: layer.spread,
+    color: layer.color,
+  }));
+}
+
+// Wave border 结构
+interface WaveBorderValue {
+  color: string;
+  width: number | { value: number; unit?: string };
+  style?: string;
+  position?: 'inside' | 'center' | 'outside';
+}
+
+// Sketch API border 结构
+interface SketchBorder {
+  fillType: 'Color';
+  color: string;
+  thickness: number;
+  position: 'inside' | 'center' | 'outside';
+}
+
+// 将 Wave border 转换为 Sketch API 格式
+function transformBorderToSketchFormat(waveBorder: WaveBorderValue): SketchBorder {
+  const width = typeof waveBorder.width === 'number'
+    ? waveBorder.width
+    : waveBorder.width.value;
+
+  return {
+    fillType: 'Color',
+    color: waveBorder.color,
+    thickness: width,
+    position: waveBorder.position || 'center',
+  };
+}
+
+// Wave opacity 结构 (0-1 数字或对象)
+interface WaveOpacityValue {
+  opacity: number;
+}
+
+// 提取 opacity 值
+function extractOpacity(value: unknown): number {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'object' && value !== null && 'opacity' in value) {
+    return (value as WaveOpacityValue).opacity;
+  }
+  return 1;
+}
+
+// 生成扁平键名
+function generateFlatKey(path: string[]): string {
+  return path.join('-');
+}
+
+// 构建嵌套颜色树（保持向后兼容）
 function buildNestedTree(
   tokens: TransformedToken[],
   filterLayer: number
@@ -47,6 +151,69 @@ function buildNestedTree(
   return root;
 }
 
+// 构建完整的 sketch 格式输出（扁平 + 嵌套混合）
+function buildFullSketchOutput(
+  tokens: TransformedToken[],
+  filterLayer: number
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  for (const token of tokens) {
+    const tokenValue = token.$value ?? token.value;
+    if (tokenValue === undefined) {
+      continue;
+    }
+
+    const path = token.path;
+    const effectivePath = filterLayer > 0 ? path.slice(filterLayer) : path;
+
+    if (effectivePath.length === 0) {
+      continue;
+    }
+
+    const type = effectivePath[0];
+
+    // 颜色：扁平键名
+    if (type === 'color' && isColorToken(token)) {
+      const key = generateFlatKey(effectivePath);
+      result[key] = tokenValue;
+    }
+    // border 类型
+    else if (isBorderToken(token)) {
+      const key = generateFlatKey(effectivePath);
+      result[key] = transformBorderToSketchFormat(tokenValue as WaveBorderValue);
+    }
+    // opacity 类型
+    else if (isOpacityToken(token)) {
+      const key = generateFlatKey(effectivePath);
+      result[key] = extractOpacity(tokenValue);
+    }
+    // style 命名空间下的令牌
+    else if (type === 'style' && effectivePath.length >= 2) {
+      const styleType = effectivePath[1];
+      const key = generateFlatKey(effectivePath);
+
+      // interaction：提取 opacity 为扁平数字
+      if (styleType === 'interaction') {
+        const value = tokenValue as { opacity: number };
+        result[key] = value.opacity;
+      }
+      // shadow：转换为 Sketch API 格式
+      else if (styleType === 'shadow' && isShadowToken(token)) {
+        const shadowValue = tokenValue as WaveShadowLayer[];
+        result[key] = transformShadowToSketchFormat(shadowValue);
+      }
+      // gradient：保持数组格式
+      else if (styleType === 'gradient' && isGradientToken(token)) {
+        result[key] = tokenValue;
+      }
+    }
+  }
+
+  return result;
+}
+
+// 保留旧的 sketch-colors 格式（仅颜色，嵌套结构）
 export const sketchColorsFormat: Format = {
   name: 'wave/sketch-colors',
   format: ({ dictionary, options }: { dictionary: Dictionary; options: Record<string, unknown> }) => {
@@ -59,6 +226,22 @@ export const sketchColorsFormat: Format = {
     const tree = buildNestedTree(sortedTokens, filterLayer);
 
     return JSON.stringify(tree, null, 2);
+  },
+};
+
+// 新的完整 sketch 格式（支持 color + shadow + gradient + interaction）
+export const sketchFormat: Format = {
+  name: 'wave/sketch',
+  format: ({ dictionary, options }: { dictionary: Dictionary; options: Record<string, unknown> }) => {
+    const filterLayer = (options?.filterLayer as number) ?? 0;
+
+    const sortedTokens = [...dictionary.allTokens].sort(
+      (a, b) => (a._order ?? 0) - (b._order ?? 0)
+    );
+
+    const output = buildFullSketchOutput(sortedTokens, filterLayer);
+
+    return JSON.stringify(output, null, 2);
   },
 };
 

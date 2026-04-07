@@ -6,6 +6,7 @@ import { nameKebabTransform } from './transforms/kebab.ts';
 import { valueCssVarTransform } from './transforms/css-var.ts';
 import { jsoncFormat } from './transforms/jsonc.ts';
 import { flatJsonFormat, flatJsoncFormat, cssVariablesWithDescFormat, sketchColorsFormat } from './transforms/index.ts';
+import { sketchFormat } from './transforms/sketch-colors.ts';
 import { logger } from '../../utils/logger.ts';
 
 export interface GeneratorOptions {
@@ -33,6 +34,7 @@ function registerWaveExtensions(): void {
   StyleDictionary.registerFormat(flatJsoncFormat);
   StyleDictionary.registerFormat(cssVariablesWithDescFormat);
   StyleDictionary.registerFormat(sketchColorsFormat);
+  StyleDictionary.registerFormat(sketchFormat);
 
   StyleDictionary.registerTransformGroup({
     name: WAVE_TRANSFORM_GROUP,
@@ -109,12 +111,12 @@ export async function generateTokens(
           buildPath: outputDir,
           transforms: ['attribute/cti', nameKebabTransform.name],
           files: [{
-            destination: `${themeName}.sketch-colors.json`,
-            format: sketchColorsFormat.name,
+            destination: `${themeName}.sketch.json`,
+            format: sketchFormat.name,
             options: { filterLayer },
           }],
         };
-        validPlatforms.add('sketch-colors.json');
+        validPlatforms.add('sketch.json');
       } else {
         logger.warn(`Unknown platform "${normalized}", skipping`);
       }
@@ -181,5 +183,6 @@ export {
   flatJsoncFormat,
   cssVariablesWithDescFormat,
   sketchColorsFormat,
+  sketchFormat,
   WAVE_TRANSFORM_GROUP,
 };

@@ -11,7 +11,7 @@ export interface ThemeSchemaResult {
   issues: ThemeSchemaIssue[];
 }
 
-const KNOWN_TYPES = new Set(['color', 'shadow', 'gradient']);
+const KNOWN_TYPES = new Set(['color', 'shadow', 'gradient', 'border', 'opacity']);
 
 const KNOWN_EXTENSIONS = new Set(['smoothShadow', 'smoothGradient', 'currentColor']);
 
