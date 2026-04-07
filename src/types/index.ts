@@ -186,6 +186,7 @@ export interface ThemeYamlResult {
 export type ThemeDocumentFailureReason =
   | 'file_not_found'
   | 'parse_error'
+  | 'schema_error'
   | 'circular_reference'
   | 'unresolved_reference';
 
@@ -230,6 +231,7 @@ export interface SdTokenValue {
   comment?: string;
   deprecated?: string | boolean;
   _order?: number;
+  currentColorOpacity?: number;
 }
 
 export type SdTokenTree = {

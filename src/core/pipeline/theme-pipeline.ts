@@ -16,6 +16,7 @@ import { parseThemeYaml } from '../parser/theme-yaml.ts';
 import { resolveReferences, CircularReferenceError, UnresolvedReferenceError } from '../resolver/index.ts';
 import { loadResource } from '../resolver/resource-loader.ts';
 import { transformToSDFormat } from '../transformer/index.ts';
+import { validateThemeSchema } from '../schema/theme.ts';
 import { logger } from '../../utils/logger.ts';
 
 export interface ThemefileLoadResult {
@@ -201,6 +202,25 @@ export async function processThemeDocument(
       exitCode: ExitCode.FORMAT_ERROR,
       line: parsed.line,
     };
+  }
+
+  const schemaResult = validateThemeSchema(parsed.raw);
+  if (!schemaResult.valid) {
+    const errorMessages = schemaResult.issues
+      .filter((i) => i.level === 'error')
+      .map((i) => `  [${i.path}] ${i.message}`)
+      .join('\n');
+    return {
+      ok: false,
+      reason: 'schema_error',
+      message: `Theme schema validation failed:\n${errorMessages}`,
+      exitCode: ExitCode.FORMAT_ERROR,
+    };
+  }
+  for (const issue of schemaResult.issues) {
+    if (issue.level === 'warning') {
+      logger.warn(`[${issue.path}] ${issue.message}`);
+    }
   }
 
   const sources: ReferenceDataSources = {};
