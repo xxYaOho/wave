@@ -30,6 +30,35 @@ describe('smoothShadow contract', () => {
     expect(layers[2]!.blur).toBe(16);
   });
 
+  test('preserves 8-digit hex when base color already has alpha', () => {
+    const input: ResolvedTokenGroup = {
+      shadow: {
+        $type: 'shadow',
+        raised: {
+          $value: { color: '#000000cc', offsetX: 0, offsetY: 8, blur: 16, spread: 0 },
+          $extensions: {
+            smoothShadow: { cubicBezier: [0, 0, 1, 1], step: 3 },
+          },
+        },
+      },
+    };
+
+    const result = transformToSDFormat(input);
+    const layers = ((result.tree.shadow as SdTokenTree).raised as SdTokenValue).value as {
+      color: string;
+      offsetX: number;
+      offsetY: number;
+      blur: number;
+      spread: number;
+    }[];
+
+    for (const layer of layers) {
+      // 8-digit hex (with #) = 9 chars, not 10+
+      expect(layer.color).toHaveLength(9);
+      expect(layer.color).toMatch(/^#[0-9a-f]{8}$/);
+    }
+  });
+
   test('$extensions is consumed and not present in output tree', () => {
     const input: ResolvedTokenGroup = {
       shadow: {
