@@ -6,7 +6,7 @@ import { nameKebabTransform } from './transforms/kebab.ts';
 import { valueCssVarTransform } from './transforms/css-var.ts';
 import { jsoncFormat } from './transforms/jsonc.ts';
 import { flatJsonFormat, flatJsoncFormat, cssVariablesWithDescFormat, sketchColorsFormat } from './transforms/index.ts';
-import { sketchFormat } from './transforms/sketch-colors.ts';
+import { sketchFormat } from './transforms/sketch-format.ts';
 import { logger } from '../../utils/logger.ts';
 
 export interface GeneratorOptions {
@@ -183,6 +183,5 @@ export {
   flatJsoncFormat,
   cssVariablesWithDescFormat,
   sketchColorsFormat,
-  sketchFormat,
   WAVE_TRANSFORM_GROUP,
 };
