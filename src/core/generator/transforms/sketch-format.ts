@@ -115,8 +115,11 @@ export const sketchFormat: Format = {
             shadowArray = [tokenValue as Record<string, unknown>];
           }
 
+          // Sketch UI 中 shadow 列表从上到下对应数组从后到前
+          // 即：数组[0] 显示在 UI 最底部，数组[last] 显示在 UI 最顶部
+          // 反转数组使小阴影(y=0, blur=1)在 UI 顶部，大阴影在底部
           styleGroup[styleKey] = {
-            shadow: shadowArray.map(processShadowLayer)
+            shadow: shadowArray.reverse().map(processShadowLayer)
           };
         }
         // gradient: { gradient: [...] }
