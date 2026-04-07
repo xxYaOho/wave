@@ -4,12 +4,48 @@ export interface FlatFormatOptions {
   filterLayer?: number;
 }
 
+// 清理 shadow 中的 px 单位（rem 等相对单位保留）
+export function cleanShadowZeroPx(value: unknown): unknown {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  return value.map((layer: unknown) => {
+    if (typeof layer !== 'object' || layer === null) {
+      return layer;
+    }
+
+    const l = layer as Record<string, unknown>;
+    const cleaned: Record<string, unknown> = {};
+
+    for (const [key, val] of Object.entries(l)) {
+      if (key === 'color') {
+        cleaned[key] = val;
+      } else if (typeof val === 'string' && val.endsWith('px')) {
+        // 清理 px 单位转为数字
+        const num = parseFloat(val);
+        cleaned[key] = isNaN(num) ? val : num;
+      } else if (typeof val === 'number' && val === 0) {
+        cleaned[key] = 0;
+      } else {
+        cleaned[key] = val;
+      }
+    }
+
+    return cleaned;
+  });
+}
+
 function getFilteredName(token: TransformedToken, filterLayer: number): string {
   const path = token.path;
   if (filterLayer <= 0 || path.length <= filterLayer) {
     return token.name;
   }
   return path.slice(filterLayer).join('-');
+}
+
+function isShadowToken(token: TransformedToken): boolean {
+  return token.type === 'shadow' || token.$type === 'shadow';
 }
 
 function formatFlatJson(
@@ -20,7 +56,13 @@ function formatFlatJson(
 
   for (const token of tokens) {
     const key = getFilteredName(token, filterLayer);
-    const tokenValue = token.value ?? token.$value;
+    let tokenValue = token.value ?? token.$value;
+
+    // 对 shadow 类型清理 0px
+    if (isShadowToken(token)) {
+      tokenValue = cleanShadowZeroPx(tokenValue);
+    }
+
     result[key] = tokenValue;
   }
 
@@ -41,13 +83,18 @@ export const flatJsoncFormat: Format = {
     const filterLayer = (options?.filterLayer as number) ?? 0;
     const tokens = dictionary.allTokens;
     const lines: string[] = ['{'];
-    
+
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
       if (!token) continue;
-      
+
       const key = getFilteredName(token, filterLayer);
-      const tokenValue = token.value ?? token.$value;
+      let tokenValue = token.value ?? token.$value;
+
+      // 对 shadow 类型清理 0px
+      if (isShadowToken(token)) {
+        tokenValue = cleanShadowZeroPx(tokenValue);
+      }
       
       const description = token.$description || token.description || token.comment;
       const isMultilineDescription = description && typeof description === 'string' && description.includes('\n');

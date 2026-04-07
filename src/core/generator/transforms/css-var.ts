@@ -43,8 +43,15 @@ function colorToRgba(colorVal: unknown): string {
 
 // Shadow 转 CSS 字符串
 function formatShadowLength(val: unknown): string {
-  if (typeof val === 'string') return val;
-  if (typeof val === 'number') return `${Math.round(val)}px`;
+  if (typeof val === 'string') {
+    // 清理 px 单位为纯数字（CSS 中数字默认就是 px 逻辑），但保留 rem 等相对单位
+    if (val.endsWith('px')) {
+      const num = parseFloat(val);
+      return isNaN(num) ? val : String(num);
+    }
+    return val;
+  }
+  if (typeof val === 'number') return String(Math.round(val));
   return String(val);
 }
 
