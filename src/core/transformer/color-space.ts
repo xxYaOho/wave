@@ -78,9 +78,7 @@ export function formatColorOutput(color: chroma.Color, format: ColorSpaceFormat,
   switch (format) {
     case 'hex':
       if (hasAlpha) {
-        const hexColor = color.hex();
-        const alphaHex = Math.round(alpha * 255).toString(16).padStart(2, '0');
-        return `${hexColor}${alphaHex}`;
+        return color.alpha(alpha).hex();
       }
       return color.hex();
 

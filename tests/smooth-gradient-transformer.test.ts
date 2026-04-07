@@ -98,6 +98,11 @@ describe('smoothGradient transformation', () => {
     // With curve [0,0,1,1], alpha should linearly interpolate from 1 to 1 => all alphas are 1
     expect(stops[0]?.color).toMatch(/^#ff0000/); // full opacity
     expect(stops[4]?.color).toMatch(/^#0000ff/); // full opacity
+
+    // All stops must be valid hex (7 or 9 chars with #), never 10+
+    for (const stop of stops) {
+      expect(stop.color).toMatch(/^#[0-9a-f]{6}([0-9a-f]{2})?$/);
+    }
   });
 
   test('throws if stops count is not 2', () => {
