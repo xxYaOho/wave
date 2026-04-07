@@ -232,6 +232,7 @@ export interface SdTokenValue {
   deprecated?: string | boolean;
   _order?: number;
   currentColorOpacity?: number;
+  currentColorShadowAlpha?: number;
 }
 
 export type SdTokenTree = {

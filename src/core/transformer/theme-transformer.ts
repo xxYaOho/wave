@@ -368,18 +368,41 @@ function transformToken(
     processedValue = deriveSmoothGradient(processedValue, smoothGradient, targetColorSpace, tokenPath) as DtcgValue;
   }
 
-  // currentColor: output { opacity } object, store opacity for CSS formatter
+  // currentColor extension
   let currentColorOpacity: number | undefined;
+  let currentColorShadowAlpha: number | undefined;
   const currentColorExt = token.$extensions?.currentColor;
   if (currentColorExt !== undefined && typeof currentColorExt === 'object' && currentColorExt !== null) {
     const extObj = currentColorExt as Record<string, unknown>;
-    const extData = typeof extObj.$value === 'object' && extObj.$value !== null
-      ? extObj.$value as Record<string, unknown>
-      : extObj;
-    const opacity = extData.opacity;
-    if (typeof opacity === 'number' && opacity >= 0 && opacity <= 1) {
-      processedValue = { opacity };
-      currentColorOpacity = opacity;
+
+    // opacity — for non-shadow tokens
+    const opacityData = extObj.opacity;
+    if (opacityData !== undefined && typeValue !== 'shadow') {
+      const opacityRaw = typeof opacityData === 'object' && opacityData !== null && '$value' in (opacityData as object)
+        ? (opacityData as Record<string, unknown>).$value
+        : opacityData;
+      if (typeof opacityRaw === 'number' && opacityRaw >= 0 && opacityRaw <= 1) {
+        processedValue = { opacity: opacityRaw };
+        currentColorOpacity = opacityRaw;
+      }
+    }
+
+    // shadow — for shadow tokens
+    const shadowData = extObj.shadow;
+    if (shadowData !== undefined && typeValue === 'shadow') {
+      const shadowRaw = typeof shadowData === 'object' && shadowData !== null && '$value' in (shadowData as object)
+        ? (shadowData as Record<string, unknown>).$value
+        : shadowData;
+      if (typeof shadowRaw === 'object' && shadowRaw !== null && !Array.isArray(shadowRaw)) {
+        const processedLayer = processArrayItem(shadowRaw, targetColorSpace, tokenPath) as Record<string, unknown>;
+        const layerColor = processedLayer.color;
+        if (typeof layerColor === 'string') {
+          const alpha = extractColorAlpha(layerColor);
+          processedLayer.color = { opacity: roundTo(alpha, 2) };
+          currentColorShadowAlpha = alpha;
+        }
+        processedValue = [processedLayer];
+      }
     }
   }
 
@@ -387,6 +410,7 @@ function transformToken(
     value: processedValue,
     _order: order,
     ...(currentColorOpacity !== undefined && { currentColorOpacity }),
+    ...(currentColorShadowAlpha !== undefined && { currentColorShadowAlpha }),
   };
 
   if (typeValue !== undefined) {

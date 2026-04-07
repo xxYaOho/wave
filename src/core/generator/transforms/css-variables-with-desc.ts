@@ -31,6 +31,19 @@ function formatTokenValue(token: TransformedToken): string {
 
   const tokenValue = token.$value ?? token.value;
 
+  // currentColor shadow: replace color with color-mix
+  const currentColorShadowAlpha = (token as Record<string, unknown>).currentColorShadowAlpha;
+  if (typeof currentColorShadowAlpha === 'number' && Array.isArray(tokenValue)) {
+    const percent = Math.round(currentColorShadowAlpha * 100);
+    const layers = (tokenValue as unknown[]).map(layer => {
+      if (typeof layer !== 'object' || layer === null) return layer;
+      const l = { ...layer } as Record<string, unknown>;
+      l.color = `color-mix(in srgb, currentColor ${percent}%, transparent)`;
+      return l;
+    });
+    return shadowToCss(layers);
+  }
+
   if (isShadowToken(token) && Array.isArray(tokenValue)) {
     return shadowToCss(tokenValue);
   }
