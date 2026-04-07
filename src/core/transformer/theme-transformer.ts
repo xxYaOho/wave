@@ -368,9 +368,25 @@ function transformToken(
     processedValue = deriveSmoothGradient(processedValue, smoothGradient, targetColorSpace, tokenPath) as DtcgValue;
   }
 
+  // currentColor: output { opacity } object, store opacity for CSS formatter
+  let currentColorOpacity: number | undefined;
+  const currentColorExt = token.$extensions?.currentColor;
+  if (currentColorExt !== undefined && typeof currentColorExt === 'object' && currentColorExt !== null) {
+    const extObj = currentColorExt as Record<string, unknown>;
+    const extData = typeof extObj.$value === 'object' && extObj.$value !== null
+      ? extObj.$value as Record<string, unknown>
+      : extObj;
+    const opacity = extData.opacity;
+    if (typeof opacity === 'number' && opacity >= 0 && opacity <= 1) {
+      processedValue = { opacity };
+      currentColorOpacity = opacity;
+    }
+  }
+
   const sdValue: SdTokenValue = {
     value: processedValue,
     _order: order,
+    ...(currentColorOpacity !== undefined && { currentColorOpacity }),
   };
 
   if (typeValue !== undefined) {

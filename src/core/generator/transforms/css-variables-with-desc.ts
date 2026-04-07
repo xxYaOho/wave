@@ -23,6 +23,12 @@ function isGradientToken(token: TransformedToken): boolean {
 }
 
 function formatTokenValue(token: TransformedToken): string {
+  const currentColorOpacity = (token as Record<string, unknown>).currentColorOpacity;
+  if (typeof currentColorOpacity === 'number') {
+    const percent = Math.round(currentColorOpacity * 100);
+    return `color-mix(in srgb, currentColor ${percent}%, transparent)`;
+  }
+
   const tokenValue = token.$value ?? token.value;
 
   if (isShadowToken(token) && Array.isArray(tokenValue)) {
