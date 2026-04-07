@@ -44,6 +44,25 @@ function getFilteredName(token: TransformedToken, filterLayer: number): string {
   return path.slice(filterLayer).join('-');
 }
 
+// 清理内部字段（以下划线开头的字段）
+function cleanInternalFields(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(cleanInternalFields);
+  }
+
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (!key.startsWith('_')) {
+      cleaned[key] = cleanInternalFields(val);
+    }
+  }
+  return cleaned;
+}
+
 function isShadowToken(token: TransformedToken): boolean {
   return token.type === 'shadow' || token.$type === 'shadow';
 }
@@ -62,6 +81,9 @@ function formatFlatJson(
     if (isShadowToken(token)) {
       tokenValue = cleanShadowZeroPx(tokenValue);
     }
+
+    // 清理内部字段
+    tokenValue = cleanInternalFields(tokenValue);
 
     result[key] = tokenValue;
   }
@@ -95,7 +117,10 @@ export const flatJsoncFormat: Format = {
       if (isShadowToken(token)) {
         tokenValue = cleanShadowZeroPx(tokenValue);
       }
-      
+
+      // 清理内部字段
+      tokenValue = cleanInternalFields(tokenValue);
+
       const description = token.$description || token.description || token.comment;
       const isMultilineDescription = description && typeof description === 'string' && description.includes('\n');
       const comma = i < tokens.length - 1 ? ',' : '';
