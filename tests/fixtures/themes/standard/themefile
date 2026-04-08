@@ -1,0 +1,7 @@
+THEME test-standard
+RESOURCE palette tailwindcss4
+RESOURCE dimension wave
+
+PARAMETER output ./dist
+PARAMETER platform json,css
+PARAMETER colorSpace hex

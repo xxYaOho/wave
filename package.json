@@ -1,6 +1,6 @@
 {
   "name": "wave",
-  "version": "0.10.3",
+  "version": "0.11.0",
   "description": "A CLI tool for generating design tokens",
   "type": "module",
   "module": "src/index.ts",

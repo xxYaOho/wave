@@ -1,0 +1,6 @@
+THEME test-ref
+RESOURCE palette tailwindcss4
+RESOURCE dimension wave
+
+PARAMETER output ./dist
+PARAMETER platform json

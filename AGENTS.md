@@ -29,3 +29,12 @@
   - [community group](https://github.com/design-tokens/community-group/tree/main)
   - [format](https://www.designtokens.org/tr/2025.10/format/)
   - [resolver](https://www.designtokens.org/tr/2025.10/resolver/)
+
+## Development
+
+### 测试
+
+- 使用 Bun 内置测试运行器: `bun test`
+- 测试固件位于 `tests/fixtures/themes/`
+- 测试工具: `tests/utils/fixture-loader.ts`
+- 详细说明见 `tests/README.md` 和 `docs/SPEC.md`

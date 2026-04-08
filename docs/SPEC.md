@@ -470,6 +470,50 @@ theme:
 
 ---
 
+## 测试固件系统
+
+### 目录结构
+
+```
+tests/
+├── fixtures/themes/    # 标准主题模板
+├── integration/        # 集成测试
+└── utils/              # 测试工具
+```
+
+### Fixture 加载工具
+
+`tests/utils/fixture-loader.ts` 提供：
+
+- `loadTestTheme(name)` - 加载 `fixtures/themes/{name}/` 下的标准主题
+- `createTempTheme(config)` - 动态创建临时主题（用于边界测试）
+- `cleanupTempTheme(theme)` - 清理临时目录
+- `expectOutputToMatch(actual, expected)` - 断言输出匹配
+
+### 标准主题固件
+
+| 固件名称 | 用途 |
+|----------|------|
+| `standard` | 标准主题（颜色、阴影、dimension 引用） |
+| `ref-test` | $ref 引用测试（内部/外部/属性合并） |
+
+### 添加新测试
+
+```typescript
+import { loadTestTheme, createTempTheme } from '../utils/fixture-loader.ts';
+
+test('应处理 xxx', async () => {
+  const theme = await loadTestTheme('standard');
+  // 或使用临时主题
+  const temp = await createTempTheme({
+    name: 'test',
+    tokens: { color: { /* ... */ } }
+  });
+});
+```
+
+---
+
 ## 范围边界（明确不做）
 
 - 内置主题：已移除，不再支持 `wave theme beluga`

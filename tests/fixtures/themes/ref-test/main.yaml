@@ -1,0 +1,28 @@
+theme:
+  color:
+    $type: color
+    base:
+      $value: "#0066cc"
+    # 内部引用测试
+    hover:
+      $ref: "#/theme/color/base/$value"
+    # 属性合并测试
+    semi-transparent:
+      $ref: "#/theme/color/base/$value"
+      alpha: 0.5
+    # 链式引用测试
+    derived:
+      $ref: "#/theme/color/hover/$value"
+  # 外部引用测试
+  style:
+    shadow:
+      $type: shadow
+      elevated:
+        $value:
+          - color:
+              $ref: "#/tailwindcss4/color/indigo/600/$value"
+              alpha: 0.2
+            offsetX: 0
+            offsetY: 8
+            blur: 16
+            spread: 0
