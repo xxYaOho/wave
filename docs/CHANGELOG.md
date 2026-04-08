@@ -2,6 +2,143 @@
 
 All notable changes to wave will be documented in this file.
 
+## v0.10.3 — 2026-04-07
+
+> 修复 flat-json 输出中内部字段泄露问题
+
+### Fixed
+
+- **过滤内部字段**: flat-json 输出时过滤内部使用的 `_color` 字段
+
+---
+
+## v0.10.2 — 2026-04-07
+
+> 使用现代 CSS rgb() 语法
+
+### Changed
+
+- **CSS 输出格式**: 更新为现代 CSS Color Module Level 4 语法 `rgb(R G B / A)`
+
+---
+
+## v0.10.1 — 2026-04-07
+
+> 修复 shadow 数组顺序以匹配 Sketch UI
+
+### Fixed
+
+- **Sketch shadow 顺序**: 反转 shadow 数组顺序，与 Sketch UI 中从下到上的层级顺序一致
+
+---
+
+## v0.10.0 — 2026-04-07
+
+> 实现 Sketch API 兼容的分组输出格式
+
+### Added
+
+- **Sketch 分组格式**: 新增 `{theme}.sketch.json` 输出，支持嵌套分组结构
+  - 颜色按 `theme/color/primary` 路径分组
+  - 完整保留层级关系，便于 Sketch 变量管理
+
+### Changed
+
+- **Sketch 格式重构**: 重写 sketch format transform，统一处理颜色 token
+- **完整设计令牌支持**: Sketch 输出支持所有颜色相关设计令牌
+
+---
+
+## v0.9.2 — 2026-04-06
+
+> shadow 输出内置清理 px 单位
+
+### Changed
+
+- **shadow 格式优化**: 自动清理 px 单位，输出干净数值
+
+---
+
+## v0.9.1 — 2026-04-06
+
+> currentColor 扩展支持 shadow 子属性
+
+### Added
+
+- **shadow 引用支持**: currentColor 扩展现在支持 shadow 的 color 属性引用
+
+---
+
+## v0.9.0 — 2026-04-06
+
+> 修复 $ref 覆盖时外部字符串引用解析问题
+
+### Fixed
+
+- **$ref 覆盖解析**: 修复 `$ref` override 中外部字符串引用（如 `{leonardo.xxx}`）未被正确解析的问题
+
+---
+
+## v0.8.0 — 2026-04-04
+
+> 新增 list 和 show 命令用于查看内置资源
+
+### Added
+
+- **`wave list` 命令**: 列出所有内置调色板和尺寸系统
+- **`wave show <name>` 命令**: 查看指定内置资源的详细内容
+  - 支持 `--format flat-json|json|yaml` 输出格式
+  - 自动合并 dimension 的 value 与 unit
+
+---
+
+## v0.7.0 — 2026-04-03
+
+> 实现 smoothShadow shadow layer 平滑派生
+
+### Added
+
+- **smoothShadow 扩展**: 支持 shadow token 的平滑过渡派生
+  - 通过 `$extensions.smoothShadow` 配置
+  - 支持 cubic-bezier 曲线采样
+  - 自动生成多层阴影实现平滑效果
+
+---
+
+## v0.6.0 — 2026-04-03
+
+> RESOURCE 语法重构，引入 theme-service 架构
+
+### Changed
+
+- **CLI 架构重构**: 分离 CLI 编排逻辑与核心服务
+- **统一退出策略**: 所有命令使用统一的退出码处理
+- **引用失败策略**: 统一引用解析失败时的错误处理
+
+### Added
+
+- **RESOURCE 语法**: 统一使用 `RESOURCE <kind> <ref>` 声明资源
+  - `kind`: palette, dimension, custom
+  - 旧 PALETTE/DIMENSION 语法仍兼容但已弃用
+
+---
+
+## v0.5.0 — 2026-04-02
+
+> 支持多平台输出，默认仅生成 json
+
+### Changed
+
+- **默认输出**: 默认仅生成 `json` 格式（之前生成全部格式）
+- **platform 参数**: 支持 `json,jsonc,css,sketch` 多平台同时输出
+
+### Added
+
+- **Sketch 颜色调色板**: 初步支持 Sketch 颜色变量导出
+- **YAML 结构校验**: 使用 Zod 添加主题 YAML 结构校验
+
+---
+
 ## v0.4.3 — 2026-04-01
 
 > 修复色彩空间转换不完整的问题

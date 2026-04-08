@@ -94,6 +94,25 @@ PARAMETER filterLayer 1
 | `night` | Night 模式 | `auto` | `auto`, `false` |
 | `variants` | 启用变体 | - | 逗号分隔的变体名 |
 
+### 内置资源查看命令
+
+使用 `list` 和 `show` 命令查看内置资源：
+
+```bash
+# 列出所有内置资源
+wave list
+
+# 查看指定资源（支持 palette 和 dimension）
+wave show tailwindcss4
+wave show leonardo
+wave show wave
+
+# 指定输出格式
+wave show tailwindcss4 --format yaml
+wave show wave --format json
+wave show leonardo --format flat-json  # 扁平化的 key-value 格式
+```
+
 ### main.yaml 基础
 
 `main.yaml` 定义主题的具体内容，使用 DTCG (Design Tokens Community Group) 格式。
@@ -146,7 +165,8 @@ wave theme -f ./my-theme/themefile
 - `{theme}.json` - JSON 格式（紧凑，默认）
 - `{theme}.jsonc` - JSON with Comments（带注释）
 - `{theme}.css` - CSS 变量
-- `{theme}.sketch-colors.json` - Sketch 颜色调色板（供插件导入）
+- `{theme}.sketch-colors.json` - Sketch 颜色调色板（扁平格式，供插件导入）
+- `{theme}.sketch.json` - Sketch API 兼容格式（分组层级结构）
 
 ---
 
@@ -545,7 +565,8 @@ Unresolved theme references found:
 ---
 
 ## 最佳实践
-n### 项目组织
+
+### 项目组织
 
 **推荐结构**:
 

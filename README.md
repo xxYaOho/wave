@@ -103,7 +103,8 @@ bun run wave theme
 - `my-theme.json` - 紧凑格式（默认）
 - `my-theme.jsonc` - 带注释格式
 - `my-theme.css` - CSS 变量格式
-- `my-theme.sketch-colors.json` - Sketch 颜色调色板
+- `my-theme.sketch-colors.json` - Sketch 颜色调色板（扁平格式）
+- `my-theme.sketch.json` - Sketch API 兼容格式（分组层级）
 
 多平台输出：
 ```
@@ -146,14 +147,24 @@ wave theme -f ./path/to/themefile
 wave theme --platform css
 
 # 生成多个格式
-wave theme --platform json,jsonc,css
+wave theme --platform json,jsonc,css,sketch
 
 # 跳过 night 模式
 wave theme --no-night
+
+# 查看内置资源列表
+wave list
+
+# 查看内置资源详情
+wave show tailwindcss4
+wave show wave
+
+# 创建主题模板
+wave theme --init
 ```
 
 ---
 
-**当前版本**: v0.4.1
+**当前版本**: v0.10.3
 
 This project was created using `bun init` in bun v1.3.6. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.

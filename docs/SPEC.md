@@ -45,14 +45,25 @@ themefile（声明数据源 + 输出参数）
 - `wave help`：显示帮助
 - `wave --version`：显示版本号
 
+### list 命令
+
+- `wave list`：列出所有内置调色板（palettes）和尺寸系统（dimensions）
+
+### show 命令
+
+- `wave show <name>`：显示指定内置资源的详细内容
+  - `--format flat-json`（默认）：扁平化的 key-value 格式
+  - `--format json`：嵌套 JSON 格式
+  - `--format yaml`：原始 YAML 文件内容
+
 **参数选项：**
 
-- `--list`：列出内置主题（当前无内置主题，返回空列表）
+- `--list`：列出内置资源（调色板和尺寸系统）
 - `--no-night`：禁用 night 模式生成
 - `--no-variants`：禁用 variants 生成
 - `--variants [names]`：指定变体（逗号分隔）
 - `--platform <list>`：指定输出平台（逗号分隔）：`json`、`jsonc`、`css`、`sketch`
-- `--init`：创建主题模板（未实现，显示 TODO）
+- `--init`：创建主题模板（生成 themefile、main.yaml、manual.md）
 - `-o, --output <dir>`：指定输出目录
 
 ---
@@ -90,7 +101,7 @@ RESOURCE custom ./tokens/brand.yml
 
 **可选参数 (PARAMETER)：**
 
-- `platform`：输出格式，`json`（默认）、`jsonc`、`css`、`sketch`，支持逗号分隔多平台
+- `platform`：输出格式，`json`（默认）、`jsonc`、`css`、`sketch`，支持逗号分隔多平台（如 `json,css,sketch`）
 - `filterLayer`：过滤层级（数字），输出扁平化 KV 结构
 - `output`：输出目录路径
 - `night`：Night 模式，`auto`（默认）或 `false`
@@ -406,7 +417,9 @@ theme:
 - `json`（默认）：输出 `{theme}.json`，扁平化 KV，kebab-case 键名
 - `jsonc`：输出 `{theme}.jsonc`，带描述注释的 JSON
 - `css`：输出 `{theme}.css`，CSS 变量，带描述注释
-- `sketch`：输出 `{theme}.sketch-colors.json`，嵌套 JSON 颜色调色板（供 Sketch Color Magic 等插件导入为 Color Variables）
+- `sketch`：输出两种 Sketch 格式
+  - `{theme}.sketch-colors.json`：扁平颜色列表（供 Sketch Color Magic 插件导入）
+  - `{theme}.sketch.json`：Sketch API 兼容的分组格式（支持嵌套层级）
 - 多平台：`json,jsonc,css,sketch` 可同时输出多种格式
 
 **备注位置（v0.3.0+）：**
@@ -461,7 +474,6 @@ theme:
 
 ## 范围边界（明确不做）
 
-- `--init`：显示 "TODO: Implement --init"，不创建模板
 - 内置主题：已移除，不再支持 `wave theme beluga`
 - Windows/Linux 平台：未测试
 - 嵌套引用条件判断：`{theme.x ? a : b}` 格式不支持
