@@ -3,3 +3,18 @@ theme:
     $type: color
     primary:
       $value: "{tailwindcss4.color.indigo.600}"
+  style:
+    shadow:
+      $type: shadow
+      $value:
+        color:
+          $ref: "#/tailwindcss4/color/indigo/600/$value"
+          alpha: "{wave.dimension.alpha.400}"
+        offsetX: 0
+        offsetY: "{wave.dimension.px.6}"
+        blur: "{wave.dimension.px.6}"
+        spread: 0
+      $extensions:
+        smoothShadow:
+          cubicBezier: "{wave.dimension.cubicBezier.easeInCubic}"
+          step: 3

@@ -417,9 +417,7 @@ theme:
 - `json`（默认）：输出 `{theme}.json`，扁平化 KV，kebab-case 键名
 - `jsonc`：输出 `{theme}.jsonc`，带描述注释的 JSON
 - `css`：输出 `{theme}.css`，CSS 变量，带描述注释
-- `sketch`：输出两种 Sketch 格式
-  - `{theme}.sketch-colors.json`：扁平颜色列表（供 Sketch Color Magic 插件导入）
-  - `{theme}.sketch.json`：Sketch API 兼容的分组格式（支持嵌套层级）
+- `sketch`：输出 Sketch API 兼容格式 `{theme}2sketch.json`
 - 多平台：`json,jsonc,css,sketch` 可同时输出多种格式
 
 **备注位置（v0.3.0+）：**

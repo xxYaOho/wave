@@ -165,8 +165,7 @@ wave theme -f ./my-theme/themefile
 - `{theme}.json` - JSON 格式（紧凑，默认）
 - `{theme}.jsonc` - JSON with Comments（带注释）
 - `{theme}.css` - CSS 变量
-- `{theme}.sketch-colors.json` - Sketch 颜色调色板（扁平格式，供插件导入）
-- `{theme}.sketch.json` - Sketch API 兼容格式（分组层级结构）
+- `{theme}2sketch.json` - Sketch API 兼容格式
 
 ---
 
@@ -440,9 +439,9 @@ gradient:
       position: 1
 ```
 
-### Sketch 颜色调色板导出
+### Sketch API 格式导出
 
-Wave 支持导出为 Sketch 颜色变量导入格式，配合插件（如 Color Magic）将颜色导入为 Sketch Color Variables。
+Wave 支持导出为 Sketch API 兼容格式，包含颜色、阴影、渐变等完整设计令牌。
 
 **配置方式:**
 
@@ -452,20 +451,17 @@ PARAMETER platform sketch
 
 **输出文件:**
 
-`{theme}.sketch-colors.json` - 嵌套 JSON 颜色调色板
+`{theme}2sketch.json` - Sketch API 兼容格式
 
-**导入 Sketch:**
+**输出内容:**
 
-1. 安装 Color Magic 插件（Sketch Extensions → Plugins）
-2. Plugins → Color Magic → Import JSON
-3. 选择生成的 `{theme}.sketch-colors.json`
-
-导入后，Sketch 会创建分组的颜色变量，变量名如 `theme/color/primary`、`theme/color/text/default`。
+- `color` 组：扁平键值对，如 `primary-main`、`text-default`
+- `style` 组：嵌套结构，包含 interaction、shadow、gradient 等
 
 **注意事项:**
 
-- 仅颜色 token（`$type: color`）会被导出
-- 非颜色 token（dimension、shadow 等）会被自动跳过
+- 颜色自动转换为 8位 hex（如 `#0066ccff`）
+- shadow 支持多层（通过 smoothShadow 扩展生成）
 - 输出顺序与 `main.yaml` 定义顺序一致
 
 ---

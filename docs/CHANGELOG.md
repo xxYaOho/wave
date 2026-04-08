@@ -38,8 +38,9 @@ All notable changes to wave will be documented in this file.
 
 ### Added
 
-- **Sketch 分组格式**: 新增 `{theme}.sketch.json` 输出，支持嵌套分组结构
-  - 颜色按 `theme/color/primary` 路径分组
+- **Sketch API 格式**: 新增 `{theme}2sketch.json` 输出，支持嵌套分组结构
+  - 颜色按 `color/primary-main` 路径扁平化
+  - style 组保留嵌套层级，包含 interaction、shadow、gradient
   - 完整保留层级关系，便于 Sketch 变量管理
 
 ### Changed

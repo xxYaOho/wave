@@ -103,8 +103,7 @@ bun run wave theme
 - `my-theme.json` - 紧凑格式（默认）
 - `my-theme.jsonc` - 带注释格式
 - `my-theme.css` - CSS 变量格式
-- `my-theme.sketch-colors.json` - Sketch 颜色调色板（扁平格式）
-- `my-theme.sketch.json` - Sketch API 兼容格式（分组层级）
+- `my-theme2sketch.json` - Sketch API 兼容格式
 
 多平台输出：
 ```
