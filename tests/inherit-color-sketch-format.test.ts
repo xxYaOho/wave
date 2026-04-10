@@ -14,6 +14,7 @@ function createMockDictionary(tokens: Partial<TransformedToken>[]): Dictionary {
       ...t,
     })) as TransformedToken[],
     tokens: {},
+    tokenMap: new Map(),
   };
 }
 
@@ -38,9 +39,9 @@ describe('inheritColor Sketch Format', () => {
       },
     ]);
 
-    const result = sketchFormat.format({ dictionary, options: {}, file: {} as any });
-    const parsed = JSON.parse(result);
-    
+    const result = sketchFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
+    const parsed = JSON.parse(result as string);
+
     // Should use sibling label color
     expect(parsed.style['interaction-danger-border'].color).toBe('#cc0000ff');
   });
@@ -58,9 +59,9 @@ describe('inheritColor Sketch Format', () => {
       },
     ]);
 
-    const result = sketchFormat.format({ dictionary, options: {}, file: {} as any });
-    const parsed = JSON.parse(result);
-    
+    const result = sketchFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
+    const parsed = JSON.parse(result as string);
+
     // Should fallback to #ff00ff
     expect(parsed.style['interaction-danger-border'].color).toBe('#ff00ffff');
   });
@@ -86,9 +87,9 @@ describe('inheritColor Sketch Format', () => {
       },
     ]);
 
-    const result = sketchFormat.format({ dictionary, options: {}, file: {} as any });
-    const parsed = JSON.parse(result);
-    
+    const result = sketchFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
+    const parsed = JSON.parse(result as string);
+
     expect(parsed.style['interaction-danger-border'].color).toBe('#cc0000ff');
     expect(parsed.style['interaction-danger-border'].opacity).toBe(0.3);
   });
@@ -106,7 +107,7 @@ describe('inheritColor Sketch Format', () => {
       },
     ]);
 
-    const result = sketchFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = sketchFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     
     expect(result).not.toContain('inheritColor');
     expect(result).not.toContain('siblingSlot');

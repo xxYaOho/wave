@@ -240,6 +240,7 @@ export interface SdTokenValue {
   /** inheritColor metadata: true if this token uses inheritColor */
   inheritColor?: boolean;
   /** inheritColor metadata: Sketch siblingSlot hint */
+  inheritColorSiblingSlot?: string;
 }
 
 export type SdTokenTree = {

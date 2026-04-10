@@ -15,6 +15,7 @@ function createMockDictionary(tokens: Partial<TransformedToken>[]): Dictionary {
       ...t,
     })) as TransformedToken[],
     tokens: {},
+    tokenMap: new Map(),
   };
 }
 
@@ -31,7 +32,7 @@ describe("inheritColor CSS Format", () => {
       },
     ]);
 
-    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain("currentColor");
     expect(result).not.toContain("color-mix");
   });
@@ -49,7 +50,7 @@ describe("inheritColor CSS Format", () => {
       },
     ]);
 
-    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain("color-mix(in srgb, currentColor 12%, transparent)");
   });
 
@@ -66,7 +67,7 @@ describe("inheritColor CSS Format", () => {
       },
     ]);
 
-    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain("color-mix(in srgb, currentColor 50%, transparent)");
   });
 
@@ -82,7 +83,7 @@ describe("inheritColor CSS Format", () => {
       },
     ]);
 
-    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain("color-mix(in srgb, currentColor 30%, transparent)");
   });
 
@@ -97,7 +98,7 @@ describe("inheritColor CSS Format", () => {
       },
     ]);
 
-    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain("#ff0000");
     expect(result).not.toContain("currentColor");
   });
@@ -115,7 +116,7 @@ describe("inheritColor CSS Format", () => {
       },
     ]);
 
-    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = cssVariablesWithDescFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain("currentColor");
     expect(result).not.toContain("label");
     expect(result).not.toContain("siblingSlot");

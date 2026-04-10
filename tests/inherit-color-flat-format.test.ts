@@ -14,6 +14,7 @@ function createMockDictionary(tokens: Partial<TransformedToken>[]): Dictionary {
       ...t,
     })) as TransformedToken[],
     tokens: {},
+    tokenMap: new Map(),
   };
 }
 
@@ -30,7 +31,7 @@ describe('inheritColor JSON Format', () => {
       },
     ]);
 
-    const result = flatJsonFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = flatJsonFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain('$COLOR_FOREGROUND');
     expect(result).not.toContain('#0066cc');
   });
@@ -48,7 +49,7 @@ describe('inheritColor JSON Format', () => {
       },
     ]);
 
-    const result = flatJsonFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = flatJsonFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain('$COLOR_FOREGROUND');
     expect(result).toMatch(/opacity.*0.5/);
   });
@@ -66,7 +67,7 @@ describe('inheritColor JSON Format', () => {
       },
     ]);
 
-    const result = flatJsonFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = flatJsonFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain('$COLOR_FOREGROUND');
     expect(result).not.toContain('label');
     expect(result).not.toContain('siblingSlot');
@@ -83,7 +84,7 @@ describe('inheritColor JSON Format', () => {
       },
     ]);
 
-    const result = flatJsonFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = flatJsonFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain('#ff0000');
     expect(result).not.toContain('$COLOR_FOREGROUND');
   });
@@ -101,7 +102,7 @@ describe('inheritColor JSON Format', () => {
       },
     ]);
 
-    const result = flatJsoncFormat.format({ dictionary, options: {}, file: {} as any });
+    const result = flatJsoncFormat.format({ dictionary, options: {}, file: {} as any, platform: {} as any });
     expect(result).toContain('$COLOR_FOREGROUND');
     expect(result).toMatch(/opacity.*0.3/);
   });

@@ -20,7 +20,8 @@ describe("inheritColor Transformer", () => {
       };
 
       const result = transformToSDFormat(resolved);
-      const token = result.tree.theme?.color?.primary as { inheritColor?: boolean; value: unknown };
+      const tree = result.tree as Record<string, Record<string, Record<string, unknown>>>;
+      const token = tree.theme?.color?.primary as { inheritColor?: boolean; value: unknown };
 
       expect(token?.inheritColor).toBe(true);
       expect(token?.value).toBe("#0066cc");
@@ -46,7 +47,8 @@ describe("inheritColor Transformer", () => {
       };
 
       const result = transformToSDFormat(resolved);
-      const token = result.tree.theme?.color?.primary as {
+      const tree = result.tree as Record<string, Record<string, Record<string, unknown>>>;
+      const token = tree.theme?.color?.primary as {
         inheritColor?: boolean;
         inheritColorOpacity?: number;
         value: unknown;
@@ -75,7 +77,8 @@ describe("inheritColor Transformer", () => {
       };
 
       const result = transformToSDFormat(resolved);
-      const token = result.tree.theme?.color?.primary as {
+      const tree = result.tree as Record<string, Record<string, Record<string, unknown>>>;
+      const token = tree.theme?.color?.primary as {
         inheritColorOpacity?: number;
       };
 
@@ -102,7 +105,8 @@ describe("inheritColor Transformer", () => {
       };
 
       const result = transformToSDFormat(resolved);
-      const token = result.tree.theme?.color?.border as {
+      const tree = result.tree as Record<string, Record<string, Record<string, unknown>>>;
+      const token = tree.theme?.color?.border as {
         inheritColor?: boolean;
         inheritColorSiblingSlot?: string;
       };
@@ -130,7 +134,8 @@ describe("inheritColor Transformer", () => {
       };
 
       const result = transformToSDFormat(resolved);
-      const token = result.tree.theme?.color?.border as {
+      const tree = result.tree as Record<string, Record<string, Record<string, unknown>>>;
+      const token = tree.theme?.color?.border as {
         inheritColor?: boolean;
         inheritColorOpacity?: number;
         inheritColorSiblingSlot?: string;
@@ -163,7 +168,8 @@ describe("inheritColor Transformer", () => {
       };
 
       const result = transformToSDFormat(resolved);
-      const token = result.tree.theme?.color?.primary as {
+      const tree = result.tree as Record<string, Record<string, Record<string, unknown>>>;
+      const token = tree.theme?.color?.primary as {
         currentColorOpacity?: number;
         inheritColor?: boolean;
       };
