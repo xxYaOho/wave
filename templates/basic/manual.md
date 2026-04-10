@@ -237,6 +237,52 @@ theme:
       alpha: 0.5  # 输出: "#00000080"
 ```
 
+#### Group 继承（$extends）
+
+使用 `$extends` 让一个 Group 继承另一个 Group 的所有属性，适用于创建组件变体：
+
+```yaml
+theme:
+  component:
+    button:
+      base:
+        $type: color
+        background:
+          $value: "{tailwindcss4.color.gray.200}"
+        text:
+          $value: "{tailwindcss4.color.gray.700}"
+        radius:
+          $type: dimension
+          $value: { value: 4, unit: px }
+
+      primary:
+        $extends: "{theme.component.button.base}"
+        background:
+          $value: "{tailwindcss4.color.indigo.600}"
+        # text 和 radius 从 base 继承
+```
+
+**继承规则：**
+
+- `$extends` 只能在 Group 上使用（不能在有 `$value` 的对象上使用）
+- 使用完整路径格式 `{theme.path.to.group}`
+- 子 Group 的属性会覆盖父 Group 的同名属性
+- `$type` 和 `$description` 可以被继承或覆盖
+
+**无效示例：**
+
+```yaml
+# 错误：$extends 不能用在 token 上
+color:
+  primary:
+    $extends: "{theme.color.base}"  # ❌ 错误
+    $value: "#ff0000"
+
+# 错误：路径必须是完整路径
+button:
+  $extends: "{component.button.base}"  # ❌ 缺少 rootKey
+```
+
 ---
 
 ## 高级功能

@@ -204,7 +204,10 @@ theme:
 
 支持 DTCG 规范的 JSON Pointer 格式引用，用于嵌套对象中的 token 引用。
 
-**语法格式：** `$ref: "#/source/path/$value"`
+**语法格式：** `$ref: "#/source/path"` 或 `$ref: "#/source/path/$value"`
+
+- `#/source/path` - 返回引用的完整对象（包括 `$type`, `$description`, `$value` 等）
+- `#/source/path/$value` - 仅返回 token 的 `$value` 值
 
 **示例：**
 
@@ -250,6 +253,60 @@ theme:
 | 属性合并 | 不支持 | 支持 |
 | 标准符合 | Wave 特有 | DTCG 规范 |
 | 未知 namespace | 保留原字符串 | 解析失败报错 |
+
+### Group $extends 继承（v0.5.0+）
+
+支持 DTCG 规范的 Group 继承机制，允许一个 Group 继承另一个 Group 的所有属性。
+
+**语法格式：** `$extends: "{rootKey.path.to.group}"`
+
+**规则：**
+
+- `$extends` 只能在 Group 对象上使用（不能在有 `$value` 的 Token 上使用）
+- 路径必须使用完整路径格式 `{rootKey.path.to.group}`（如 `{theme.component.button.base}`）
+- 支持链式继承（A → B → C）
+- 子 Group 的属性会覆盖父 Group 的同名属性
+- 嵌套 Group 会深度合并（deep merge）
+- `$type` 和 `$description` 可以被继承，也可以被子 Group 覆盖
+
+**示例：**
+
+```yaml
+theme:
+  component:
+    button:
+      base:
+        $type: color
+        $description: 基础按钮样式
+        background:
+          $value: "{tailwindcss4.color.gray.200}"
+        text:
+          $value: "{tailwindcss4.color.gray.700}"
+        radius:
+          $type: dimension
+          $value: { value: 4, unit: px }
+
+      primary:
+        $extends: "{theme.component.button.base}"
+        $description: 主要按钮样式（继承自基础）
+        background:
+          $value: "{tailwindcss4.color.indigo.600}"
+        # text 和 radius 从 base 继承
+```
+
+**继承结果：**
+
+- `primary` 继承了 `base` 的 `text` 和 `radius`
+- `primary` 覆盖了 `background` 和 `$description`
+- 最终 `primary` 包含：background（新值）、text（继承）、radius（继承）
+
+**错误处理：**
+
+- `$extends` 在 Token 上：schema 错误
+- `$extends` 路径格式错误：schema 错误
+- `$extends` 目标不存在：展开错误
+- `$extends` 目标是一个 Token（不是 Group）：展开错误
+- 循环继承（A → B → A）：circular_reference 错误
 
 ---
 

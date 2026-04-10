@@ -13,7 +13,7 @@ import {
 import { parseThemefile } from '../parser/themefile.ts';
 import { parsePalette, validatePaletteSchema, parseDimension, validateDimensionSchema } from '../parser/index.ts';
 import { parseThemeYaml } from '../parser/theme-yaml.ts';
-import { resolveReferences, CircularReferenceError, UnresolvedReferenceError } from '../resolver/index.ts';
+import { resolveReferences, CircularReferenceError, UnresolvedReferenceError, expandExtends, ExtendsCycleError } from '../resolver/index.ts';
 import { loadResource } from '../resolver/resource-loader.ts';
 import { transformToSDFormat } from '../transformer/index.ts';
 import { validateThemeSchema } from '../schema/theme.ts';
@@ -229,7 +229,11 @@ export async function processThemeDocument(
   }
 
   try {
-    const resolved = resolveReferences(parsed.raw, sources);
+    // 展开 $extends 继承（在引用解析之前）
+    const rootKey = Object.keys(parsed.raw).find(k => !k.startsWith('$')) || 'theme';
+    const expanded = expandExtends(parsed.raw, rootKey);
+
+    const resolved = resolveReferences(expanded, sources);
     const transformResult = transformToSDFormat(resolved, undefined, colorSpace);
     return {
       ok: true,
@@ -239,6 +243,14 @@ export async function processThemeDocument(
     };
   } catch (err) {
     if (err instanceof CircularReferenceError) {
+      return {
+        ok: false,
+        reason: 'circular_reference',
+        message: err.message,
+        exitCode: err.exitCode,
+      };
+    }
+    if (err instanceof ExtendsCycleError) {
       return {
         ok: false,
         reason: 'circular_reference',
