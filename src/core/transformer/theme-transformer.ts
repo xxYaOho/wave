@@ -343,6 +343,55 @@ export function transformToSDFormat(
   return { tree: result, order, groupComments };
 }
 
+
+/**
+ * Extract normalized opacity value from inheritColor.opacity
+ * Handles: number, alias, $ref object
+ */
+function extractInheritColorOpacity(
+  opacityData: unknown,
+  _tokenPath?: string
+): number | undefined {
+  if (opacityData === undefined) {
+    return undefined;
+  }
+
+  // Direct number
+  if (typeof opacityData === 'number') {
+    return opacityData >= 0 && opacityData <= 1 ? opacityData : undefined;
+  }
+
+  // Resolved alias or $ref - should have $value after resolution
+  if (typeof opacityData === 'object' && opacityData !== null) {
+    const obj = opacityData as Record<string, unknown>;
+    if ('$value' in obj) {
+      const resolvedValue = obj.$value;
+      if (typeof resolvedValue === 'number') {
+        return resolvedValue >= 0 && resolvedValue <= 1 ? resolvedValue : undefined;
+      }
+      if (typeof resolvedValue === 'string') {
+        const parsed = parseFloat(resolvedValue);
+        return !isNaN(parsed) && parsed >= 0 && parsed <= 1 ? parsed : undefined;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Extract siblingSlot from inheritColor object
+ */
+function extractSiblingSlot(inheritColor: unknown): string | undefined {
+  if (typeof inheritColor === 'object' && inheritColor !== null) {
+    const obj = inheritColor as Record<string, unknown>;
+    if (typeof obj.siblingSlot === 'string') {
+      return obj.siblingSlot;
+    }
+  }
+  return undefined;
+}
+
 function transformToken(
   token: ResolvedDtcgToken,
   parentType: string | undefined,
@@ -367,8 +416,44 @@ function transformToken(
   if (smoothGradient !== undefined && typeValue === 'gradient') {
     processedValue = deriveSmoothGradient(processedValue, smoothGradient, targetColorSpace, tokenPath) as DtcgValue;
   }
+  // inheritColor extension (v1)
+  let inheritColor: boolean | undefined;
+  let inheritColorOpacity: number | undefined;
+  let inheritColorSiblingSlot: string | undefined;
+  const inheritColorExt = token.$extensions?.inheritColor;
+  if (inheritColorExt !== undefined && typeValue === 'color') {
+    // Boolean form: inheritColor: true
+    if (typeof inheritColorExt === 'boolean') {
+      inheritColor = inheritColorExt;
+    }
+    // Object form: inheritColor: { opacity?, siblingSlot? }
+    else if (typeof inheritColorExt === 'object' && inheritColorExt !== null) {
+      inheritColor = true;
+      const extObj = inheritColorExt as Record<string, unknown>;
 
-  // currentColor extension
+      // Extract opacity (handles number, alias, $ref)
+      if ('opacity' in extObj) {
+        inheritColorOpacity = extractInheritColorOpacity(extObj.opacity, tokenPath);
+      }
+
+      // Extract siblingSlot for Sketch
+      inheritColorSiblingSlot = extractSiblingSlot(inheritColorExt);
+    }
+
+    // Store original color for potential fallback use
+    const originalColor = typeof processedValue === 'string' ? processedValue : undefined;
+
+    // If opacity is specified, format as object with _color preserved
+    if (inheritColorOpacity !== undefined) {
+      processedValue = {
+        opacity: inheritColorOpacity,
+        ...(originalColor !== undefined && { _color: originalColor })
+      };
+    }
+  }
+
+
+  // currentColor extension (deprecated, use inheritColor instead)
   let currentColorOpacity: number | undefined;
   let currentColorShadowAlpha: number | undefined;
   const currentColorExt = token.$extensions?.currentColor;
@@ -411,6 +496,11 @@ function transformToken(
   const sdValue: SdTokenValue = {
     value: processedValue,
     _order: order,
+    // inheritColor v1 metadata
+    ...(inheritColor !== undefined && { inheritColor }),
+    ...(inheritColorOpacity !== undefined && { inheritColorOpacity }),
+    ...(inheritColorSiblingSlot !== undefined && { inheritColorSiblingSlot }),
+    // Legacy currentColor metadata (deprecated)
     ...(currentColorOpacity !== undefined && { currentColorOpacity }),
     ...(currentColorShadowAlpha !== undefined && { currentColorShadowAlpha }),
   };

@@ -350,7 +350,35 @@ theme:
 
 - `step`: 总节点数（包含起点和终点，≥2）
 
-#### currentColor - 当前颜色扩展
+#### inheritColor - 继承色扩展
+
+用于表达"从父级/上下文继承颜色"的设计意图。
+
+**布尔简写（最常见）：**
+```yaml
+theme:
+  color:
+    interactive:
+      $type: color
+      $value: "#0066cc"
+      $extensions:
+        inheritColor: true
+```
+
+**带透明度：**
+```yaml
+theme:
+  color:
+    semiTransparent:
+      $type: color
+      $value: "#cc0000"
+      $extensions:
+        inheritColor:
+          opacity: 0.5
+```
+
+
+#### currentColor - 当前颜色扩展（已弃用，请使用 inheritColor）
 
 支持在运行时应用当前颜色：
 

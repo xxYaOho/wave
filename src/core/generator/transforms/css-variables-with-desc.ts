@@ -23,6 +23,20 @@ function isGradientToken(token: TransformedToken): boolean {
 }
 
 function formatTokenValue(token: TransformedToken): string {
+  // inheritColor v1: check inheritColor metadata first
+  const inheritColor = (token as Record<string, unknown>).inheritColor;
+  const inheritColorOpacity = (token as Record<string, unknown>).inheritColorOpacity;
+
+  if (inheritColor === true) {
+    if (typeof inheritColorOpacity === 'number') {
+      const percent = Math.round(inheritColorOpacity * 100);
+      return `color-mix(in srgb, currentColor ${percent}%, transparent)`;
+    }
+    // Plain inheritColor without opacity
+    return 'currentColor';
+  }
+
+  // Legacy currentColor support (deprecated)
   const currentColorOpacity = (token as Record<string, unknown>).currentColorOpacity;
   if (typeof currentColorOpacity === 'number') {
     const percent = Math.round(currentColorOpacity * 100);

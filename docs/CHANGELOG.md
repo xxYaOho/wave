@@ -2,6 +2,29 @@
 
 All notable changes to wave will be documented in this file.
 
+## v0.11.0 — 2026-04-10
+
+> 新增 inheritColor 扩展，currentColor 标记为 deprecated
+
+### Added
+
+- **inheritColor 扩展**: 为 color token 提供继承色语义
+  - 支持布尔简写 inheritColor: true
+  - 支持对象形式带 opacity 和 siblingSlot
+  - CSS 输出：currentColor 或 color-mix(...)
+  - JSON 输出：\$COLOR_FOREGROUND 哨兵或带 opacity 的对象
+  - Sketch 输出：支持 siblingSlot 同级查找，失败回退 #ff00ff
+- **siblingSlot**: Sketch 平台专用，用于绑定同组 color token
+
+### Deprecated
+
+- **currentColor 扩展**: 建议使用 inheritColor 替代
+  - 保留 currentColor.shadow 的 legacy 兼容
+  - schema 会对 currentColor 使用发出 warning
+
+---
+
+
 ## v0.10.3 — 2026-04-07
 
 > 修复 flat-json 输出中内部字段泄露问题

@@ -412,6 +412,44 @@ theme:
 
 ---
 
+### inheritColor（v1）
+
+为 color token 提供继承色语义，用于表达"从父级/上下文继承颜色"的设计意图。
+
+**声明格式：**
+
+布尔简写（最常见）：
+```yaml
+theme:
+  color:
+    $type: color
+    inheritPlain:
+      $value: "#0066cc"
+      $extensions:
+        inheritColor: true
+```
+
+对象形式（带透明度）：
+```yaml
+theme:
+  color:
+    $type: color
+    inheritSemi:
+      $value: "#cc0000"
+      $extensions:
+        inheritColor:
+          opacity: 0.5
+```
+
+**规则：**
+- inheritColor 只能用于 \$type: color 的 token
+- opacity 支持数字、alias 或 \$ref
+- siblingSlot 仅用于 Sketch 平台
+
+---
+
+
+
 ## 输出格式
 
 - `json`（默认）：输出 `{theme}.json`，扁平化 KV，kebab-case 键名

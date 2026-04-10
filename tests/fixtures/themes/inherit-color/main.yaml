@@ -1,0 +1,62 @@
+theme:
+  color:
+    # 基础颜色（非 inheritColor）
+    base:
+      primary:
+        $type: color
+        $value: '#0066cc'
+      danger:
+        $type: color
+        $value: '#cc0000'
+    
+    # inheritColor: true（无 opacity）
+    interaction:
+      inheritPlain:
+        $type: color
+        $value: '#0066cc'
+        $extensions:
+          inheritColor: true
+      
+      # inheritColor + opacity number
+      inheritWithOpacity:
+        $type: color
+        $value: '#0066cc'
+        $extensions:
+          inheritColor:
+            opacity: 0.5
+      
+      # inheritColor + siblingSlot
+      inheritWithSibling:
+        $type: color
+        $value: '#cc0000'
+        $extensions:
+          inheritColor:
+            siblingSlot: 'referenceColor'
+      
+      # 参考颜色（用于 siblingSlot 查找）
+      referenceColor:
+        $type: color
+        $value: '#00cc00'
+      
+      # inheritColor + opacity + siblingSlot
+      inheritFull:
+        $type: color
+        $value: '#cc0000'
+        $extensions:
+          inheritColor:
+            opacity: 0.3
+            siblingSlot: 'referenceColor'
+      
+      # inheritColor + siblingSlot 失败情况
+      inheritMissingSibling:
+        $type: color
+        $value: '#cc0000'
+        $extensions:
+          inheritColor:
+            siblingSlot: 'nonexistent'
+
+themefile:
+  name: inherit-color
+  resources: []
+  generate:
+    platforms: [json, css, sketch]
