@@ -5,7 +5,7 @@ import type { Config, PlatformConfig } from 'style-dictionary/types';
 import { nameKebabTransform } from './transforms/kebab.ts';
 import { valueCssVarTransform } from './transforms/css-var.ts';
 import { jsoncFormat } from './transforms/jsonc.ts';
-import { flatJsonFormat, flatJsoncFormat, cssVariablesWithDescFormat, sketchColorsFormat } from './transforms/index.ts';
+import { flatJsonFormat, flatJsoncFormat, cssVariablesWithDescFormat, sketchColorsFormat, inheritColorAttributeTransform } from './transforms/index.ts';
 import { sketchFormat } from './transforms/sketch-format.ts';
 import { logger } from '../../utils/logger.ts';
 
@@ -28,6 +28,7 @@ const WAVE_TRANSFORM_GROUP = 'wave/css';
 
 function registerWaveExtensions(): void {
   StyleDictionary.registerTransform(nameKebabTransform);
+  StyleDictionary.registerTransform(inheritColorAttributeTransform);
   StyleDictionary.registerTransform(valueCssVarTransform);
   StyleDictionary.registerFormat(jsoncFormat);
   StyleDictionary.registerFormat(flatJsonFormat);

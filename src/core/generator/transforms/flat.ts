@@ -67,6 +67,26 @@ function isShadowToken(token: TransformedToken): boolean {
   return token.type === 'shadow' || token.$type === 'shadow';
 }
 
+
+// Check if token uses inheritColor
+function isInheritColorToken(token: TransformedToken): boolean {
+  return (token as Record<string, unknown>).inheritColor === true;
+}
+
+// Get inheritColor opacity if present
+function getInheritColorOpacity(token: TransformedToken): number | undefined {
+  return (token as Record<string, unknown>).inheritColorOpacity as number | undefined;
+}
+
+// Format value for fast-json protocol
+function formatInheritColorValue(token: TransformedToken): unknown {
+  const opacity = getInheritColorOpacity(token);
+  if (typeof opacity === 'number') {
+    return { color: '$COLOR_FOREGROUND', opacity };
+  }
+  return '$COLOR_FOREGROUND';
+}
+
 function formatFlatJson(
   tokens: TransformedToken[],
   filterLayer: number = 0
@@ -75,15 +95,22 @@ function formatFlatJson(
 
   for (const token of tokens) {
     const key = getFilteredName(token, filterLayer);
-    let tokenValue = token.value ?? token.$value;
+    let tokenValue: unknown;
 
-    // 对 shadow 类型清理 0px
-    if (isShadowToken(token)) {
-      tokenValue = cleanShadowZeroPx(tokenValue);
+    // Handle inheritColor tokens
+    if (isInheritColorToken(token)) {
+      tokenValue = formatInheritColorValue(token);
+    } else {
+      tokenValue = token.value ?? token.$value;
+
+      // 对 shadow 类型清理 0px
+      if (isShadowToken(token)) {
+        tokenValue = cleanShadowZeroPx(tokenValue);
+      }
+
+      // 清理内部字段
+      tokenValue = cleanInternalFields(tokenValue);
     }
-
-    // 清理内部字段
-    tokenValue = cleanInternalFields(tokenValue);
 
     result[key] = tokenValue;
   }
@@ -111,15 +138,22 @@ export const flatJsoncFormat: Format = {
       if (!token) continue;
 
       const key = getFilteredName(token, filterLayer);
-      let tokenValue = token.value ?? token.$value;
+      let tokenValue: unknown;
 
-      // 对 shadow 类型清理 0px
-      if (isShadowToken(token)) {
-        tokenValue = cleanShadowZeroPx(tokenValue);
+      // Handle inheritColor tokens
+      if (isInheritColorToken(token)) {
+        tokenValue = formatInheritColorValue(token);
+      } else {
+        tokenValue = token.value ?? token.$value;
+
+        // 对 shadow 类型清理 0px
+        if (isShadowToken(token)) {
+          tokenValue = cleanShadowZeroPx(tokenValue);
+        }
+
+        // 清理内部字段
+        tokenValue = cleanInternalFields(tokenValue);
       }
-
-      // 清理内部字段
-      tokenValue = cleanInternalFields(tokenValue);
 
       const description = token.$description || token.description || token.comment;
       const isMultilineDescription = description && typeof description === 'string' && description.includes('\n');

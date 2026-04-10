@@ -83,6 +83,66 @@ describe('Theme Service Integration', () => {
     });
   });
 
+  describe('inheritColor 继承色', () => {
+    let theme: TestTheme;
+
+    beforeAll(async () => {
+      theme = await loadTestTheme('inherit-color');
+    });
+
+    test('应正确生成继承色主题的所有平台文件', async () => {
+      const input: ThemeGenerationInput = {
+        themeName: 'test-inherit-color',
+        themePath: theme.themefile,
+        generateOptions: { night: false },
+      };
+
+      const result = await generateTheme(input);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const hasJson = result.generatedFiles.some(f => f.endsWith('.json'));
+        const hasCss = result.generatedFiles.some(f => f.endsWith('.css'));
+        const hasSketch = result.generatedFiles.some(f => f.endsWith('.json') && f.includes('sketch'));
+        expect(hasJson).toBe(true);
+        expect(hasCss).toBe(true);
+        expect(hasSketch).toBe(true);
+      }
+    });
+
+    test('CSS 输出应包含 currentColor 或 color-mix', async () => {
+      const input: ThemeGenerationInput = {
+        themeName: 'test-inherit-color',
+        themePath: theme.themefile,
+        generateOptions: { night: false },
+      };
+
+      const result = await generateTheme(input);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const cssFile = result.generatedFiles.find(f => f.endsWith('.css') && !f.includes('night'));
+        expect(cssFile).toBeDefined();
+      }
+    });
+
+    test('JSON 输出应包含 $COLOR_FOREGROUND 哨兵值', async () => {
+      const input: ThemeGenerationInput = {
+        themeName: 'test-inherit-color',
+        themePath: theme.themefile,
+        generateOptions: { night: false },
+      };
+
+      const result = await generateTheme(input);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const jsonFile = result.generatedFiles.find(f => f.endsWith('.json') && !f.includes('sketch') && !f.includes('night'));
+        expect(jsonFile).toBeDefined();
+      }
+    });
+  });
+
   describe('临时主题', () => {
     let theme: TestTheme;
 

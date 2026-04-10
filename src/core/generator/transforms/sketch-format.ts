@@ -9,6 +9,61 @@ interface SketchShadowLayer {
   color: string;
 }
 
+
+// Check if token uses inheritColor
+function isInheritColorToken(token: TransformedToken): boolean {
+  return (token as Record<string, unknown>).inheritColor === true;
+}
+
+// Get inheritColor siblingSlot hint
+function getInheritColorSiblingSlot(token: TransformedToken): string | undefined {
+  return (token as Record<string, unknown>).inheritColorSiblingSlot as string | undefined;
+}
+
+// Get inheritColor opacity
+function getInheritColorOpacity(token: TransformedToken): number | undefined {
+  return (token as Record<string, unknown>).inheritColorOpacity as number | undefined;
+}
+
+// Find sibling color token by slot name
+function findSiblingColor(
+  tokens: TransformedToken[],
+  currentPath: string[],
+  siblingSlot: string
+): string | undefined {
+  // Build parent path by removing last element from current path
+  // path structure: ['theme', 'style', 'interaction', 'danger', 'border']
+  // parent path: ['theme', 'style', 'interaction', 'danger']
+  const parentPath = currentPath.slice(0, -1);
+  const siblingPath = [...parentPath, siblingSlot];
+  
+  // Find token with matching path
+  for (const token of tokens) {
+    const tokenPath = token.path;
+    if (tokenPath.length === siblingPath.length) {
+      const match = tokenPath.every((p, i) => p === siblingPath[i]);
+      if (match) {
+        // Found sibling, extract color value
+        const value = token.$value ?? token.value;
+        if (typeof value === 'string') {
+          return value;
+        }
+        if (typeof value === 'object' && value !== null) {
+          const obj = value as Record<string, unknown>;
+          if ('_color' in obj && typeof obj._color === 'string') {
+            return obj._color;
+          }
+          if ('color' in obj && typeof obj.color === 'string') {
+            return obj.color;
+          }
+        }
+      }
+    }
+  }
+  
+  return undefined;
+}
+
 // 将 6位hex 转为 8位hex（添加 alpha）
 function hexToSketchColor(hex: string): string {
   if (hex.length === 9) return hex;
@@ -73,23 +128,47 @@ export const sketchFormat: Format = {
           const t = token as unknown as Record<string, unknown>;
           const value = tokenValue as { color?: string; opacity?: number; _color?: string } | string;
 
-          // 提取颜色值 - 尝试多种来源
           let colorValue: string | undefined;
+          let opacityValue: number | undefined;
 
-          if (typeof value === 'string') {
-            colorValue = value;
-          } else if (typeof value === 'object' && value !== null && 'color' in value) {
-            colorValue = value.color!;
-          }
+          // Handle inheritColor v1
+          if (isInheritColorToken(token)) {
+            const siblingSlot = getInheritColorSiblingSlot(token);
+            opacityValue = getInheritColorOpacity(token);
 
-          // 如果还没找到，尝试从 _color 获取（transformer 注入的原始颜色）
-          if (!colorValue && typeof value === 'object' && value !== null && '_color' in value) {
-            colorValue = String(value._color);
-          }
+            if (siblingSlot) {
+              // Try to find sibling color token
+              colorValue = findSiblingColor(sortedTokens, path, siblingSlot);
+            }
 
-          // 最后的备选
-          if (!colorValue) {
-            colorValue = '#ff00ff'; // 占位符粉色
+            // Fallback to diagnostic pink if sibling not found
+            if (!colorValue) {
+              colorValue = '#ff00ff'; // 诊断粉色
+            }
+          } else {
+            // 提取颜色值 - 尝试多种来源
+            if (typeof value === 'string') {
+              colorValue = value;
+            } else if (typeof value === 'object' && value !== null && 'color' in value) {
+              colorValue = value.color!;
+            }
+
+            // 如果还没找到，尝试从 _color 获取（transformer 注入的原始颜色）
+            if (!colorValue && typeof value === 'object' && value !== null && '_color' in value) {
+              colorValue = String(value._color);
+            }
+
+            // 最后的备选
+            if (!colorValue) {
+              colorValue = '#ff00ff'; // 占位符粉色
+            }
+
+            // 提取 opacity（非 inheritColor 情况）
+            if (typeof value === 'object' && value !== null && 'opacity' in value) {
+              opacityValue = value.opacity as number;
+            } else if (t.currentColorOpacity !== undefined) {
+              opacityValue = t.currentColorOpacity as number;
+            }
           }
 
           const result: Record<string, unknown> = {
@@ -97,10 +176,8 @@ export const sketchFormat: Format = {
           };
 
           // 添加 opacity
-          if (typeof value === 'object' && value !== null && 'opacity' in value) {
-            result.opacity = value.opacity;
-          } else if (t.currentColorOpacity !== undefined) {
-            result.opacity = t.currentColorOpacity;
+          if (typeof opacityValue === 'number') {
+            result.opacity = opacityValue;
           }
 
           styleGroup[styleKey] = result;

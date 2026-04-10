@@ -231,8 +231,16 @@ export interface SdTokenValue {
   comment?: string;
   deprecated?: string | boolean;
   _order?: number;
+  /** @deprecated Use inheritColor instead */
   currentColorOpacity?: number;
+  /** @deprecated Use inheritColor instead */
   currentColorShadowAlpha?: number;
+  /** inheritColor metadata: normalized opacity value (0..1) */
+  inheritColorOpacity?: number;
+  /** inheritColor metadata: true if this token uses inheritColor */
+  inheritColor?: boolean;
+  /** inheritColor metadata: Sketch siblingSlot hint */
+  inheritColorSiblingSlot?: string;
 }
 
 export type SdTokenTree = {

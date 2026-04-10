@@ -39,7 +39,7 @@ describe('css-var transform', () => {
 
       const result = shadowToCss(shadowValue);
 
-      expect(result).toContain('rgba(0, 0, 0, 0.8)');
+      expect(result).toContain("rgb(0 0 0 / 0.8)");
     });
 
     test('handles inset flag', () => {

@@ -4,3 +4,4 @@ export { jsoncFormat } from './jsonc.ts';
 export { flatJsonFormat, flatJsoncFormat } from './flat.ts';
 export { cssVariablesWithDescFormat } from './css-variables-with-desc.ts';
 export { sketchColorsFormat } from './sketch-colors.ts';
+export { inheritColorAttributeTransform } from "./inherit-color-attr.ts";

@@ -13,11 +13,17 @@ export interface ThemeSchemaResult {
 
 const KNOWN_TYPES = new Set(['color', 'shadow', 'gradient', 'border', 'opacity']);
 
-const KNOWN_EXTENSIONS = new Set(['smoothShadow', 'smoothGradient', 'currentColor']);
+const KNOWN_EXTENSIONS = new Set([
+  'smoothShadow',
+  'smoothGradient',
+  'currentColor', // deprecated: use inheritColor instead
+  'inheritColor',
+]);
 
 const EXTENSION_TYPE_MAP: Record<string, string> = {
   smoothShadow: 'shadow',
   smoothGradient: 'gradient',
+  inheritColor: 'color',
 };
 
 function checkDanglingJsonPointer(
@@ -66,6 +72,64 @@ function checkValueDeep(
   }
 }
 
+function validateInheritColor(
+  extensions: Record<string, unknown>,
+  tokenType: string | undefined,
+  tokenPath: string,
+  issues: ThemeSchemaIssue[]
+): void {
+  if (!('inheritColor' in extensions)) return;
+
+  // Rule: inheritColor only applies to color tokens
+  if (tokenType !== undefined && tokenType !== 'color') {
+    issues.push({
+      path: tokenPath,
+      level: 'error',
+      message: `inheritColor can only be used with $type "color", got "${tokenType}"`,
+    });
+    return;
+  }
+
+  const inheritColor = extensions.inheritColor;
+
+  // Accept boolean form: inheritColor: true
+  if (typeof inheritColor === 'boolean') {
+    return;
+  }
+
+  // Accept object form: inheritColor: { opacity?: number | alias | $ref, siblingSlot?: string }
+  if (typeof inheritColor === 'object' && inheritColor !== null) {
+    const obj = inheritColor as Record<string, unknown>;
+
+    // Validate opacity if present
+    if ('opacity' in obj) {
+      const opacity = obj.opacity;
+      const isValidOpacity =
+        typeof opacity === 'number' ||
+        (typeof opacity === 'string' && opacity.startsWith('{') && opacity.endsWith('}')) ||
+        (typeof opacity === 'object' && opacity !== null && '$ref' in opacity);
+
+      if (!isValidOpacity) {
+        issues.push({
+          path: `${tokenPath}.$extensions.inheritColor.opacity`,
+          level: 'error',
+          message: `inheritColor.opacity must be a number, alias (string), or $ref object`,
+        });
+      }
+    }
+
+    // siblingSlot is Sketch-specific hint, no validation needed for value type
+    return;
+  }
+
+  // Invalid form
+  issues.push({
+    path: `${tokenPath}.$extensions.inheritColor`,
+    level: 'error',
+    message: `inheritColor must be a boolean (true) or an object with optional opacity and siblingSlot`,
+  });
+}
+
 function validateToken(
   token: Record<string, unknown>,
   tokenPath: string,
@@ -106,6 +170,16 @@ function validateToken(
     token.$extensions !== null
   ) {
     const extensions = token.$extensions as Record<string, unknown>;
+
+    // Check for deprecated currentColor
+    if ('currentColor' in extensions) {
+      issues.push({
+        path: `${tokenPath}.$extensions`,
+        level: 'warning',
+        message: `currentColor is deprecated, use inheritColor instead`,
+      });
+    }
+
     for (const extKey of Object.keys(extensions)) {
       if (!KNOWN_EXTENSIONS.has(extKey)) {
         issues.push({
@@ -126,6 +200,9 @@ function validateToken(
         });
       }
     }
+
+    // Validate inheritColor specifics
+    validateInheritColor(extensions, tokenType, tokenPath, issues);
   }
 }
 
