@@ -11,7 +11,7 @@ export interface ThemeSchemaResult {
   issues: ThemeSchemaIssue[];
 }
 
-const KNOWN_TYPES = new Set(['color', 'shadow', 'gradient', 'border', 'opacity']);
+const KNOWN_TYPES = new Set(['color', 'shadow', 'gradient', 'border', 'opacity', 'dimension']);
 
 // $extends 格式验证：必须是 {group.path.to.group} 格式
 const EXTENDS_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/;
