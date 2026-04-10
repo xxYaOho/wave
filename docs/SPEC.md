@@ -258,16 +258,35 @@ theme:
 
 支持 DTCG 规范的 Group 继承机制，允许一个 Group 继承另一个 Group 的所有属性。
 
-**语法格式：** `$extends: "{rootKey.path.to.group}"`
+**语法格式：** `$extends: "{path.to.group}"`
 
 **规则：**
 
 - `$extends` 只能在 Group 对象上使用（不能在有 `$value` 的 Token 上使用）
-- 路径必须使用完整路径格式 `{rootKey.path.to.group}`（如 `{theme.component.button.base}`）
+- 路径使用完整路径格式 `{path.to.group}`，首段必须是文档顶层 key（如 `theme`、`component`）
 - 支持链式继承（A → B → C）
 - 子 Group 的属性会覆盖父 Group 的同名属性
 - 嵌套 Group 会深度合并（deep merge）
 - `$type` 和 `$description` 可以被继承，也可以被子 Group 覆盖
+- `$extensions` 深度合并：子覆盖同名扩展属性，保留父的其他扩展
+
+**多顶层 group 支持（v0.13.0+）：**
+
+文档的所有顶层非 `$` key 均视为内部根 key。`{theme.xxx}` 和 `{component.xxx}` 都是内部引用，`{wave.xxx}` 等非顶层 key 为外部引用。
+
+```yaml
+# 两个顶层 group：theme 和 component
+theme:
+  color:
+    primary:
+      $value: "#0066cc"
+
+component:
+  button:
+    outline:
+      fill:
+        $value: "{theme.color.primary}"
+```
 
 **示例：**
 
@@ -370,6 +389,45 @@ PARAMETER colorSpace oklch
 ---
 
 ## Wave 扩展
+
+### composite（v0.13.0）
+
+标记 Group 为复合 token，输出为嵌套对象而非扁平 key-value。适用于组件变体等需要将多个属性作为一个整体输出的场景。
+
+**声明格式：**
+
+```yaml
+component:
+  button:
+    outline:
+      $extensions:
+        composite: true
+      fill:
+        $value: "{theme.color.container.low}"
+      border:
+        $value: "{theme.color.border.emphasis}"
+
+    outline-max:
+      $extends: "{component.button.outline}"
+      radius:
+        $value: "9999px"
+```
+
+**输出结果：**
+
+```json
+{
+  "button-outline": { "fill": "#ffffff", "border": "#1d293d3d" },
+  "button-outline-max": { "fill": "#ffffff", "border": "#1d293d3d", "radius": "9999px" }
+}
+```
+
+**规则：**
+
+- composite group 的直接子节点必须都是 token（有 `$value`），出现子 group 则 schema 报错
+- 可通过 `$extends` 继承 composite 标记
+- 仅影响 JSON/JSONC 输出格式，CSS 和 Sketch 输出不受影响
+- 与普通 flat token 可在同一个文档中混合使用
 
 ### smoothGradient（v1）
 

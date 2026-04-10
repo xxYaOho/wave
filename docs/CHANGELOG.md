@@ -2,24 +2,23 @@
 
 All notable changes to wave will be documented in this file.
 
-## v0.12.0 — 2026-04-10
+## v0.13.0 — 2026-04-11
 
-> 实现 Group $extends 继承，收紧 $ref 为严格 DTCG 语义
+> composite token 嵌套输出，修复 $extends 跨顶层 group 引用
 
 ### Added
 
-- **Group $extends 继承**: 支持 Group 级别的属性继承，适用于组件变体场景
-  - 使用完整路径格式 `{theme.path.to.group}`
-  - 支持链式继承（A → B → C）
-  - 子 Group 属性覆盖父 Group 同名属性，嵌套 Group 深度合并
-  - 循环继承检测，schema 层格式校验
-- **严格 $ref 语义**: `#/token` 返回完整对象，`#/token/$value` 仅返回值
-  - 不再对 bare $ref 隐式提取 $value
+- **composite token**: 标记 `$extensions.composite: true` 的 group 输出为嵌套对象，适用于组件变体场景
+  - composite group 的直接子节点必须都是 token，schema 校验非法子 group
+  - 通过 `$extends` 继承 composite 标记
+  - JSON 输出为 `{ "group-name": { "prop": "value" } }` 嵌套结构
 
 ### Changed
 
-- **$ref 解析**: 移除隐式 $value 提取，严格遵循 JSON Pointer 语义
-- **$extends 展开**: 在引用解析之前执行，确保继承的引用正常解析
+- **rootKeys**: `rootKey: string` 重构为 `rootKeys: Set<string>`，支持文档多顶层 group（如 theme、component）的内部引用和 $extends
+- **$extends 继承**: `$extensions` 改为深度合并（子覆盖同名属性，保留父的其他扩展）
+- **dimension 值序列化**: `{ value: 9999, unit: "px" }` 格式正确输出为 `"9999px"` 字符串
+- **CLI 版本号**: 修复为 0.13.0
 
 ---
 
