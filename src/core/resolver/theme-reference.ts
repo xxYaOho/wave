@@ -1121,8 +1121,21 @@ function deepMergeGroups(
   // 再用子的属性覆盖
   for (const [key, childValue] of Object.entries(child)) {
     if (key.startsWith('$')) {
-      // $type, $description 等：子直接覆盖父
-      result[key] = childValue;
+      if (key === '$extensions') {
+        // $extensions 深度合并：父的扩展 + 子的覆盖
+        const parentExtensions = result.$extensions;
+        if (
+          typeof parentExtensions === 'object' && parentExtensions !== null &&
+          typeof childValue === 'object' && childValue !== null
+        ) {
+          result[key] = { ...parentExtensions, ...childValue };
+        } else {
+          result[key] = childValue;
+        }
+      } else {
+        // $type, $description 等：子直接覆盖父
+        result[key] = childValue;
+      }
     } else if (
       typeof childValue === 'object' &&
       childValue !== null &&

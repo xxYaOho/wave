@@ -176,6 +176,7 @@ export interface DtcgTokenGroup {
   $extends?: string;
   $type?: string;
   $description?: string;
+  $extensions?: Record<string, unknown>;
   [key: string]: DtcgTokenNode | string | number | boolean | undefined;
 }
 
