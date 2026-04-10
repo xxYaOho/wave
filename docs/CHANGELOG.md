@@ -2,6 +2,27 @@
 
 All notable changes to wave will be documented in this file.
 
+## v0.12.0 — 2026-04-10
+
+> 实现 Group $extends 继承，收紧 $ref 为严格 DTCG 语义
+
+### Added
+
+- **Group $extends 继承**: 支持 Group 级别的属性继承，适用于组件变体场景
+  - 使用完整路径格式 `{theme.path.to.group}`
+  - 支持链式继承（A → B → C）
+  - 子 Group 属性覆盖父 Group 同名属性，嵌套 Group 深度合并
+  - 循环继承检测，schema 层格式校验
+- **严格 $ref 语义**: `#/token` 返回完整对象，`#/token/$value` 仅返回值
+  - 不再对 bare $ref 隐式提取 $value
+
+### Changed
+
+- **$ref 解析**: 移除隐式 $value 提取，严格遵循 JSON Pointer 语义
+- **$extends 展开**: 在引用解析之前执行，确保继承的引用正常解析
+
+---
+
 ## v0.11.0 — 2026-04-10
 
 > 新增 inheritColor 扩展，currentColor 标记为 deprecated

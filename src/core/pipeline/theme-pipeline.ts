@@ -230,8 +230,9 @@ export async function processThemeDocument(
 
   try {
     // 展开 $extends 继承（在引用解析之前）
-    const rootKey = Object.keys(parsed.raw).find(k => !k.startsWith('$')) || 'theme';
-    const expanded = expandExtends(parsed.raw, rootKey);
+    const rootKeys = new Set(Object.keys(parsed.raw).filter(k => !k.startsWith('$')));
+    if (rootKeys.size === 0) rootKeys.add('theme');
+    const expanded = expandExtends(parsed.raw, rootKeys);
 
     const resolved = resolveReferences(expanded, sources);
     const transformResult = transformToSDFormat(resolved, undefined, colorSpace);

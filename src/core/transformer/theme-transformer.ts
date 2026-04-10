@@ -112,6 +112,11 @@ function processValue(
       }
     }
   }
+  // 处理 { value: number, unit?: string } 格式的 dimension 值
+  if (typeof value === 'object' && value !== null && !Array.isArray(value) && 'value' in value) {
+    const obj = value as { value: number; unit?: string };
+    return (obj.unit ? `${obj.value}${obj.unit}` : String(obj.value)) as unknown as DtcgValue;
+  }
   return value;
 }
 

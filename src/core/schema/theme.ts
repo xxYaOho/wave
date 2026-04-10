@@ -13,7 +13,7 @@ export interface ThemeSchemaResult {
 
 const KNOWN_TYPES = new Set(['color', 'shadow', 'gradient', 'border', 'opacity']);
 
-// $extends 格式验证：必须是 {rootKey.path.to.group} 格式
+// $extends 格式验证：必须是 {group.path.to.group} 格式
 const EXTENDS_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/;
 
 const KNOWN_EXTENSIONS = new Set([
@@ -247,7 +247,7 @@ function validateExtends(
     issues.push({
       path: groupPath,
       level: 'error',
-      message: `$extends must be in the form "{rootKey.path.to.group}", got "${extendsValue}"`,
+      message: `$extends must be in the form "{group.path.to.group}", got "${extendsValue}"`,
     });
     return;
   }

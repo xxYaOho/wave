@@ -20,7 +20,7 @@ describe('group $extends inheritance', () => {
       },
     };
 
-    const result = expandExtends(tree, 'theme');
+    const result = expandExtends(tree, new Set(['theme']));
     const primary = (result.theme as { button: { primary: { background: { $value: string }; text: { $value: string } } } }).button.primary;
 
     // Should inherit text from base
@@ -43,7 +43,7 @@ describe('group $extends inheritance', () => {
       },
     };
 
-    const result = expandExtends(tree, 'theme');
+    const result = expandExtends(tree, new Set(['theme']));
     const derived = (result.theme as Record<string, unknown>)?.derived as Record<string, unknown>;
 
     expect('$extends' in derived).toBe(false);
@@ -64,6 +64,6 @@ describe('group $extends inheritance', () => {
       },
     };
 
-    expect(() => expandExtends(tree, 'theme')).toThrow(ExtendsCycleError);
+    expect(() => expandExtends(tree, new Set(['theme']))).toThrow(ExtendsCycleError);
   });
 });
