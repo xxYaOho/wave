@@ -92,9 +92,13 @@ function formatFlatJson(
   filterLayer: number = 0
 ): string {
   const result: Record<string, unknown> = {};
+  // 收集 composite groups
+  const compositeGroups: Record<string, Record<string, unknown>> = {};
 
   for (const token of tokens) {
-    const key = getFilteredName(token, filterLayer);
+    const tokenRecord = token as Record<string, unknown>;
+    const compositePath = tokenRecord._composite as string | undefined;
+
     let tokenValue: unknown;
 
     // Handle inheritColor tokens
@@ -112,7 +116,24 @@ function formatFlatJson(
       tokenValue = cleanInternalFields(tokenValue);
     }
 
-    result[key] = tokenValue;
+    if (compositePath) {
+      // 属于 composite group：用属性名作为 key，不使用 flat name
+      const path = token.path;
+      const propKey = path[path.length - 1]; // 最后一段是属性名（fill, border, radius）
+      if (!compositeGroups[compositePath]) {
+        compositeGroups[compositePath] = {};
+      }
+      compositeGroups[compositePath][propKey] = tokenValue;
+    } else {
+      const key = getFilteredName(token, filterLayer);
+      result[key] = tokenValue;
+    }
+  }
+
+  // 将 composite groups 合并到 result
+  for (const [compositePath, compositeObj] of Object.entries(compositeGroups)) {
+    const key = compositePath.split('.').slice(filterLayer).join('-');
+    result[key] = compositeObj;
   }
 
   return JSON.stringify(result, null, 2);

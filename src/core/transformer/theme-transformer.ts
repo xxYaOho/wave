@@ -333,15 +333,32 @@ export function transformToSDFormat(
       result[key] = transformToken(value, inheritedType, orderCounter++, targetColorSpace, tokenPath);
       order.push(key);
     } else {
-      const nested = transformToSDFormat(
-        value as ResolvedTokenGroup,
-        inheritedType,
-        targetColorSpace,
-        tokenPath
-      );
-      result[key] = nested.tree;
-      order.push(...nested.order.map(k => `${key}.${k}`));
-      Object.assign(groupComments, nested.groupComments);
+      const group = value as ResolvedTokenGroup;
+
+      // composite group: 输出为嵌套对象，子 token 作为属性
+      if (group.$extensions?.composite === true) {
+        const compositeObj: SdTokenTree = {};
+        for (const [propKey, propValue] of Object.entries(group)) {
+          if (propKey.startsWith('$')) continue;
+          if (propValue === undefined || propValue === null || typeof propValue !== 'object') continue;
+          if (!isResolvedToken(propValue)) continue;
+          const sdValue = transformToken(propValue, inheritedType, orderCounter++, targetColorSpace, `${tokenPath}.${propKey}`);
+          sdValue._composite = tokenPath; // 标记所属 composite group path
+          compositeObj[propKey] = sdValue;
+        }
+        result[key] = compositeObj;
+        order.push(`${key}.{composite}`);
+      } else {
+        const nested = transformToSDFormat(
+          group,
+          inheritedType,
+          targetColorSpace,
+          tokenPath
+        );
+        result[key] = nested.tree;
+        order.push(...nested.order.map(k => `${key}.${k}`));
+        Object.assign(groupComments, nested.groupComments);
+      }
     }
   }
 

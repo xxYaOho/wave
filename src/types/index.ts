@@ -223,6 +223,7 @@ export interface ResolvedDtcgToken {
 export interface ResolvedTokenGroup {
   $type?: string;
   $description?: string;
+  $extensions?: Record<string, unknown>;
   [key: string]: ResolvedDtcgToken | ResolvedTokenGroup | string | number | boolean | undefined;
 }
 
@@ -232,6 +233,8 @@ export interface SdTokenValue {
   comment?: string;
   deprecated?: string | boolean;
   _order?: number;
+  /** composite group path, used to group tokens into nested output */
+  _composite?: string;
   /** @deprecated Use inheritColor instead */
   currentColorOpacity?: number;
   /** @deprecated Use inheritColor instead */

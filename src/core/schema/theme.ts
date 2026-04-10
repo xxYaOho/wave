@@ -253,6 +253,32 @@ function validateExtends(
   }
 }
 
+function validateComposite(obj: Record<string, unknown>, groupPath: string, issues: ThemeSchemaIssue[]): void {
+  const extensions = obj.$extensions;
+  if (typeof extensions !== 'object' || extensions === null) return;
+
+  const ext = extensions as Record<string, unknown>;
+  if (ext.composite !== true) return;
+
+  // composite group 的直接子节点必须都是 token
+  for (const [key, child] of Object.entries(obj)) {
+    if (key.startsWith('$')) continue;
+    if (typeof child !== 'object' || child === null || Array.isArray(child)) {
+      issues.push({
+        path: groupPath,
+        level: 'error',
+        message: `composite group "${groupPath}" child "${key}" must be a token ($value required)`,
+      });
+    } else if (!('$value' in child)) {
+      issues.push({
+        path: groupPath,
+        level: 'error',
+        message: `composite group "${groupPath}" child "${key}" must be a token, not a group`,
+      });
+    }
+  }
+}
+
 function walkNode(
   node: unknown,
   path: string,
@@ -270,6 +296,7 @@ function walkNode(
 
     // Group node — validate $extends and recurse into non-meta children
     validateExtends(obj, path, issues);
+    validateComposite(obj, path, issues);
 
     for (const [key, child] of Object.entries(obj)) {
       if (key.startsWith('$')) continue;

@@ -727,8 +727,12 @@ function processTokenGroupExternal(
     result.$description = group.$description;
   }
 
+  if (group.$extensions !== undefined) {
+    result.$extensions = group.$extensions;
+  }
+
   for (const [key, value] of Object.entries(group)) {
-    if (key === '$type' || key === '$description') {
+    if (key === '$type' || key === '$description' || key === '$extensions') {
       continue;
     }
 
@@ -799,8 +803,12 @@ function processTokenGroupInternal(
     result.$description = group.$description;
   }
 
+  if (group.$extensions !== undefined) {
+    result.$extensions = group.$extensions;
+  }
+
   for (const [key, value] of Object.entries(group)) {
-    if (key === '$type' || key === '$description') {
+    if (key === '$type' || key === '$description' || key === '$extensions') {
       continue;
     }
 
