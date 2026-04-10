@@ -173,6 +173,7 @@ export interface DtcgToken {
 export type DtcgTokenNode = DtcgToken | DtcgTokenGroup | string | number;
 
 export interface DtcgTokenGroup {
+  $extends?: string;
   $type?: string;
   $description?: string;
   [key: string]: DtcgTokenNode | string | number | boolean | undefined;

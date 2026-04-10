@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { resolveReferences, UnresolvedReferenceError } from '../src/core/resolver/theme-reference.ts';
+import { resolveReferences, UnresolvedReferenceError, expandExtends, ExtendsCycleError } from '../src/core/resolver/theme-reference.ts';
 import type { DtcgTokenGroup, ReferenceDataSources } from '../src/types/index.ts';
 import { loadResource } from '../src/core/resolver/resource-loader.ts';
 import * as path from 'node:path';

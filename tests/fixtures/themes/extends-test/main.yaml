@@ -1,0 +1,61 @@
+theme:
+  component:
+    button:
+      outline:
+        $type: color
+        $description: Outline button style
+        fill:
+          $value: "{tailwindcss4.color.white}"
+        border:
+          $value: "{tailwindcss4.color.gray.300}"
+        text:
+          $value: "{tailwindcss4.color.gray.700}"
+        radius:
+          $type: dimension
+          $value:
+            value: 4
+            unit: px
+
+      outline-primary:
+        $extends: "{theme.component.button.outline}"
+        $description: Primary outline button (inherits from outline)
+        border:
+          $value: "{tailwindcss4.color.indigo.500}"
+        text:
+          $value: "{tailwindcss4.color.indigo.600}"
+
+      outline-danger:
+        $extends: "{theme.component.button.outline}"
+        $description: Danger outline button (inherits from outline)
+        border:
+          $value: "{tailwindcss4.color.red.500}"
+        text:
+          $value: "{tailwindcss4.color.red.600}"
+
+      filled:
+        $type: color
+        $description: Filled button style
+        fill:
+          $value: "{tailwindcss4.color.indigo.600}"
+        text:
+          $value: "{tailwindcss4.color.white}"
+        radius:
+          $type: dimension
+          $value:
+            value: 4
+            unit: px
+
+      filled-secondary:
+        $extends: "{theme.component.button.filled}"
+        $description: Secondary filled button
+        fill:
+          $value: "{tailwindcss4.color.gray.600}"
+
+      filled-lg:
+        $extends: "{theme.component.button.filled}"
+        $description: Large filled button with max radius
+        radius:
+          $type: dimension
+          $value:
+            value: 9999
+            unit: px

@@ -13,6 +13,9 @@ export interface ThemeSchemaResult {
 
 const KNOWN_TYPES = new Set(['color', 'shadow', 'gradient', 'border', 'opacity']);
 
+// $extends 格式验证：必须是 {rootKey.path.to.group} 格式
+const EXTENDS_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/;
+
 const KNOWN_EXTENSIONS = new Set([
   'smoothShadow',
   'smoothGradient',
@@ -140,6 +143,15 @@ function validateToken(
     checkValueDeep(value, `${tokenPath}.$value`, issues);
   }
 
+  // Rule: $extends is NOT allowed on tokens (group-only)
+  if ('$extends' in token) {
+    issues.push({
+      path: tokenPath,
+      level: 'error',
+      message: `$extends is only allowed on groups, not on tokens (objects with $value)`,
+    });
+  }
+
   // Rule 2: $ref format
   if ('$ref' in token && typeof token.$ref === 'string') {
     const ref = token.$ref;
@@ -206,6 +218,37 @@ function validateToken(
   }
 }
 
+function validateExtends(
+  group: Record<string, unknown>,
+  groupPath: string,
+  issues: ThemeSchemaIssue[]
+): void {
+  if (!('$extends' in group)) return;
+
+  const extendsValue = group.$extends;
+
+  // Rule: $extends must be a string
+  if (typeof extendsValue !== 'string') {
+    issues.push({
+      path: groupPath,
+      level: 'error',
+      message: `$extends must be a string in the form "{path.to.group}", got ${typeof extendsValue}`,
+    });
+    return;
+  }
+
+  // Rule: $extends must match {path.to.group} format
+  const match = extendsValue.match(EXTENDS_PATTERN);
+  if (!match) {
+    issues.push({
+      path: groupPath,
+      level: 'error',
+      message: `$extends must be in the form "{rootKey.path.to.group}", got "${extendsValue}"`,
+    });
+    return;
+  }
+}
+
 function walkNode(
   node: unknown,
   path: string,
@@ -221,7 +264,9 @@ function walkNode(
       return;
     }
 
-    // Group node — recurse into non-meta children
+    // Group node — validate $extends and recurse into non-meta children
+    validateExtends(obj, path, issues);
+
     for (const [key, child] of Object.entries(obj)) {
       if (key.startsWith('$')) continue;
       walkNode(child, path ? `${path}.${key}` : key, issues);
