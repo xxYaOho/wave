@@ -246,15 +246,15 @@ theme:
 
 **与花括号引用的对比：**
 
-| 特性 | 花括号 `{...}` | DTCG `$ref` |
-|------|---------------|-------------|
-| 格式 | `{source.path}` | `$ref: "#/source/path/$value"` |
-| 适用场景 | 简单值替换 | 嵌套对象中的引用 |
-| 属性合并 | 不支持 | 支持 |
-| 标准符合 | Wave 特有 | DTCG 规范 |
-| 未知 namespace | 保留原字符串 | 解析失败报错 |
+| 特性           | 花括号 `{...}`  | DTCG `$ref`                    |
+| -------------- | --------------- | ------------------------------ |
+| 格式           | `{source.path}` | `$ref: "#/source/path/$value"` |
+| 适用场景       | 简单值替换      | 嵌套对象中的引用               |
+| 属性合并       | 不支持          | 支持                           |
+| 标准符合       | Wave 特有       | DTCG 规范                      |
+| 未知 namespace | 保留原字符串    | 解析失败报错                   |
 
-### Group $extends 继承（v0.5.0+）
+### Group $extends 继承（v0.12.0+）
 
 支持 DTCG 规范的 Group 继承机制，允许一个 Group 继承另一个 Group 的所有属性。
 
@@ -396,10 +396,10 @@ theme:
 `cubicBezier` 也支持引用 wave dimension 中的预定义曲线（resolver 会自动解析 `$extensions` 中的引用）：
 
 ```yaml
-      $extensions:
-        smoothGradient:
-          cubicBezier: "{wave.dimension.cubicBezier.easeInCubic}"
-          step: 9
+$extensions:
+  smoothGradient:
+    cubicBezier: "{wave.dimension.cubicBezier.easeInCubic}"
+    step: 9
 ```
 
 **规则：**
@@ -442,10 +442,10 @@ theme:
 `cubicBezier` 也支持引用 wave dimension 中的预定义曲线（resolver 会自动解析 `$extensions` 中的引用）：
 
 ```yaml
-      $extensions:
-        smoothShadow:
-          cubicBezier: "{wave.dimension.cubicBezier.easeInCubic}"
-          step: 3
+$extensions:
+  smoothShadow:
+    cubicBezier: "{wave.dimension.cubicBezier.easeInCubic}"
+    step: 3
 ```
 
 **规则：**
@@ -476,6 +476,7 @@ theme:
 **声明格式：**
 
 布尔简写（最常见）：
+
 ```yaml
 theme:
   color:
@@ -487,6 +488,7 @@ theme:
 ```
 
 对象形式（带透明度）：
+
 ```yaml
 theme:
   color:
@@ -495,17 +497,17 @@ theme:
       $value: "#cc0000"
       $extensions:
         inheritColor:
-          opacity: 0.5
+          property:
+            opacity: 0.5
 ```
 
 **规则：**
+
 - inheritColor 只能用于 \$type: color 的 token
 - opacity 支持数字、alias 或 \$ref
 - siblingSlot 仅用于 Sketch 平台
 
 ---
-
-
 
 ## 输出格式
 
@@ -587,22 +589,28 @@ tests/
 
 ### 标准主题固件
 
-| 固件名称 | 用途 |
-|----------|------|
-| `standard` | 标准主题（颜色、阴影、dimension 引用） |
-| `ref-test` | $ref 引用测试（内部/外部/属性合并） |
+| 固件名称        | 用途                                                   |
+| --------------- | ------------------------------------------------------ |
+| `standard`      | 标准主题（颜色、阴影、dimension 引用）                 |
+| `ref-test`      | $ref 引用测试（内部/外部/属性合并）                    |
+| `inherit-color` | inheritColor 扩展测试（布尔/对象/siblingSlot/opacity） |
+| `extends-test`  | $extends 继承测试（组件变体/链式继承/deep merge）      |
 
 ### 添加新测试
 
 ```typescript
-import { loadTestTheme, createTempTheme } from '../utils/fixture-loader.ts';
+import { loadTestTheme, createTempTheme } from "../utils/fixture-loader.ts";
 
-test('应处理 xxx', async () => {
-  const theme = await loadTestTheme('standard');
+test("应处理 xxx", async () => {
+  const theme = await loadTestTheme("standard");
   // 或使用临时主题
   const temp = await createTempTheme({
-    name: 'test',
-    tokens: { color: { /* ... */ } }
+    name: "test",
+    tokens: {
+      color: {
+        /* ... */
+      },
+    },
   });
 });
 ```

@@ -431,9 +431,10 @@ function transformToken(
       inheritColor = true;
       const extObj = inheritColorExt as Record<string, unknown>;
 
-      // Extract opacity (handles number, alias, $ref)
-      if ('opacity' in extObj) {
-        inheritColorOpacity = extractInheritColorOpacity(extObj.opacity, tokenPath);
+      // Extract opacity from property.opacity (handles number, alias, $ref)
+      const propertyObj = extObj.property as Record<string, unknown> | undefined;
+      if (propertyObj && typeof propertyObj === 'object' && 'opacity' in propertyObj) {
+        inheritColorOpacity = extractInheritColorOpacity(propertyObj.opacity, tokenPath);
       }
 
       // Extract siblingSlot for Sketch

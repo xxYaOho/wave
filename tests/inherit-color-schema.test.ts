@@ -33,7 +33,9 @@ describe('inheritColor Schema Validation', () => {
               $value: '#0066cc',
               $extensions: {
                 inheritColor: {
-                  opacity: 0.5,
+                  property: {
+                    opacity: 0.5,
+                  },
                 },
               },
             },
@@ -55,7 +57,9 @@ describe('inheritColor Schema Validation', () => {
               $value: '#0066cc',
               $extensions: {
                 inheritColor: {
-                  opacity: '{theme.opacity.medium}',
+                  property: {
+                    opacity: '{theme.opacity.medium}',
+                  },
                 },
               },
             },
@@ -77,7 +81,9 @@ describe('inheritColor Schema Validation', () => {
               $value: '#0066cc',
               $extensions: {
                 inheritColor: {
-                  opacity: { $ref: '#/theme/opacity/medium/$value' },
+                  property: {
+                    opacity: { $ref: '#/theme/opacity/medium/$value' },
+                  },
                 },
               },
             },
@@ -121,7 +127,9 @@ describe('inheritColor Schema Validation', () => {
               $value: '#0066cc',
               $extensions: {
                 inheritColor: {
-                  opacity: 0.5,
+                  property: {
+                    opacity: 0.5,
+                  },
                   siblingSlot: 'label',
                 },
               },
@@ -208,7 +216,9 @@ describe('inheritColor Schema Validation', () => {
               $value: '#0066cc',
               $extensions: {
                 inheritColor: {
-                  opacity: true, // invalid type
+                  property: {
+                    opacity: true, // invalid type
+                  },
                 },
               },
             },
@@ -221,8 +231,8 @@ describe('inheritColor Schema Validation', () => {
       expect(result.issues).toContainEqual(
         expect.objectContaining({
           level: 'error',
-          path: 'theme.color.primary.$extensions.inheritColor.opacity',
-          message: 'inheritColor.opacity must be a number, alias (string), or $ref object',
+          path: 'theme.color.primary.$extensions.inheritColor.property.opacity',
+          message: 'inheritColor.property.opacity must be a number, alias (string), or $ref object',
         })
       );
     });
@@ -236,7 +246,9 @@ describe('inheritColor Schema Validation', () => {
               $value: '#0066cc',
               $extensions: {
                 inheritColor: {
-                  opacity: 'not-an-alias', // invalid string
+                  property: {
+                    opacity: 'not-an-alias', // invalid string
+                  },
                 },
               },
             },
@@ -249,8 +261,8 @@ describe('inheritColor Schema Validation', () => {
       expect(result.issues).toContainEqual(
         expect.objectContaining({
           level: 'error',
-          path: 'theme.color.primary.$extensions.inheritColor.opacity',
-          message: 'inheritColor.opacity must be a number, alias (string), or $ref object',
+          path: 'theme.color.primary.$extensions.inheritColor.property.opacity',
+          message: 'inheritColor.property.opacity must be a number, alias (string), or $ref object',
         })
       );
     });

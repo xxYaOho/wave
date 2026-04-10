@@ -50,7 +50,7 @@
 .sisyphus/
 temp-reference/
 .claude/
-docs/plan
+# docs/plan
 
 # Bun build artifacts
 *.bun-build

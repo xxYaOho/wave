@@ -23,7 +23,8 @@ theme:
         $value: '#0066cc'
         $extensions:
           inheritColor:
-            opacity: 0.5
+            property:
+              opacity: 0.5
       
       # inheritColor + siblingSlot
       inheritWithSibling:
@@ -44,7 +45,8 @@ theme:
         $value: '#cc0000'
         $extensions:
           inheritColor:
-            opacity: 0.3
+            property:
+              opacity: 0.3
             siblingSlot: 'referenceColor'
       
       # inheritColor + siblingSlot 失败情况

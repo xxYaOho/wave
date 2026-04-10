@@ -77,7 +77,7 @@ export async function generateTokens(
       if (normalized === 'json') {
         platforms.json = {
           buildPath: outputDir,
-          transforms: ['attribute/cti', nameKebabTransform.name],
+          transforms: ['attribute/cti', nameKebabTransform.name, inheritColorAttributeTransform.name],
           files: [{
             destination: `${themeName}.json`,
             format: flatJsonFormat.name,
@@ -88,7 +88,7 @@ export async function generateTokens(
       } else if (normalized === 'jsonc') {
         platforms.jsonc = {
           buildPath: outputDir,
-          transforms: ['attribute/cti', nameKebabTransform.name],
+          transforms: ['attribute/cti', nameKebabTransform.name, inheritColorAttributeTransform.name],
           files: [{
             destination: `${themeName}.jsonc`,
             format: flatJsoncFormat.name,
@@ -99,7 +99,7 @@ export async function generateTokens(
       } else if (normalized === 'css') {
         platforms.css = {
           buildPath: outputDir,
-          transforms: ['attribute/cti', nameKebabTransform.name],
+          transforms: ['attribute/cti', nameKebabTransform.name, inheritColorAttributeTransform.name],
           files: [{
             destination: `${themeName}.css`,
             format: cssVariablesWithDescFormat.name,
@@ -110,7 +110,7 @@ export async function generateTokens(
       } else if (normalized === 'sketch') {
         platforms.sketch = {
           buildPath: outputDir,
-          transforms: ['attribute/cti', nameKebabTransform.name],
+          transforms: ['attribute/cti', nameKebabTransform.name, inheritColorAttributeTransform.name],
           files: [{
             destination: `${themeName}2sketch.json`,
             format: sketchFormat.name,

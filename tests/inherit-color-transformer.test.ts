@@ -38,7 +38,9 @@ describe("inheritColor Transformer", () => {
               $type: "color",
               $extensions: {
                 inheritColor: {
-                  opacity: 0.5,
+                  property: {
+                    opacity: 0.5,
+                  },
                 },
               },
             },
@@ -68,7 +70,9 @@ describe("inheritColor Transformer", () => {
               $type: "color",
               $extensions: {
                 inheritColor: {
-                  opacity: { $value: 0.75 },
+                  property: {
+                    opacity: { $value: 0.75 },
+                  },
                 },
               },
             },
@@ -124,7 +128,9 @@ describe("inheritColor Transformer", () => {
               $type: "color",
               $extensions: {
                 inheritColor: {
-                  opacity: 0.3,
+                  property: {
+                    opacity: 0.3,
+                  },
                   siblingSlot: "label",
                 },
               },

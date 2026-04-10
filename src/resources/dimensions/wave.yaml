@@ -1,56 +1,30 @@
 wave:
   dimension:
     alpha:
+      $type: number
+      $description: 全局维度，色彩 alpha 透明度，范围 0～1
       50:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 0
       100:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 0.08
       200:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 0.16
       300:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 0.24
       400:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 0.36
       500:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 0.48
       600:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 0.60
       700:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 0.75
       800:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 0.85
       900:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 0.92
       950:
-        $description: 全局维度，色彩透明度，范围 0～1
-        $type: number
         $value: 1
-    remBasic:
-      $type: dimension
-      $description: 全局维度，font-size=16
-      $value:
-        value: 1
-        unit: rem
     rem:
       $type: dimension
       1:
@@ -89,7 +63,7 @@ wave:
           value: 0.875
           unit: rem
       8:
-        $description: 全局维度，递进基数 0.125rem（递进值 2px）
+        $description: 全局维度，基准值
         $value:
           value: 1
           unit: rem
@@ -133,14 +107,13 @@ wave:
         $value:
           value: 4
           unit: rem
-    pxBasic:
-      $type: dimension
-      $description: 全局维度, 最小基础像素
-      $value:
-        value: 1
-        unit: px
     px:
       $type: dimension
+      0:
+        $description: 全局维度, 最小基础像素
+        $value:
+          value: 1
+          unit: px
       1:
         $description: 全局维度, 递进基数 2px
         $value:
