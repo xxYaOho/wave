@@ -1144,67 +1144,6 @@ function deepMergeGroups(
   return result;
 }
 
-// CQ-006: Collect remaining internal references when iteration is exhausted
-function collectInternalReferences(group: ResolvedTokenGroup, rootKey: string): string[] {
-  const refs: string[] = [];
-
-  function collectFromValue(value: unknown, path: string): void {
-    // Check $ref objects
-    if (isDtcgRefValue(value)) {
-      const parsed = parseDtcgRef(value.$ref);
-      if (parsed?.source === rootKey) {
-        refs.push(`${path}: ${value.$ref}`);
-      }
-      return;
-    }
-
-    // Check string values with {references}
-    if (typeof value === 'string') {
-      const matches = value.matchAll(/\{(\w+)\.([^}]+)\}/g);
-      for (const match of matches) {
-        if (match[1] === rootKey) {
-          refs.push(`${path}: {${match[1]}.${match[2]}}`);
-        }
-      }
-      return;
-    }
-
-    // Check arrays
-    if (Array.isArray(value)) {
-      value.forEach((item, index) => collectFromValue(item, `${path}[${index}]`));
-      return;
-    }
-
-    // Check objects
-    if (typeof value === 'object' && value !== null) {
-      for (const [key, val] of Object.entries(value)) {
-        if (key === '$type' || key === '$description') continue;
-        collectFromValue(val, path ? `${path}.${key}` : key);
-      }
-    }
-  }
-
-  for (const [key, value] of Object.entries(group)) {
-    if (key === '$type' || key === '$description') continue;
-
-    if (
-      typeof value === 'object' &&
-      value !== null &&
-      '$value' in value
-    ) {
-      const token = value as ResolvedDtcgToken;
-      collectFromValue(token.$value, key);
-      if (token.$extensions !== undefined) {
-        collectFromValue(token.$extensions as unknown as NestedDtcgValue, key);
-      }
-    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      const nested = collectInternalReferences(value as ResolvedTokenGroup, rootKey);
-      refs.push(...nested.map((r) => `${key}.${r}`));
-    }
-  }
-
-  return refs;
-}
 
 export function resolveReferences(
   tree: DtcgTokenGroup,

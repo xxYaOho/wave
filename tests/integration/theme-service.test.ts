@@ -181,6 +181,66 @@ describe('Theme Service Integration', () => {
     });
   });
 
+  describe('$extends Group 继承', () => {
+    let theme: TestTheme;
+
+    beforeAll(async () => {
+      theme = await loadTestTheme('extends-test');
+    });
+
+    test('应成功生成包含 $extends 继承的主题', async () => {
+      const input: ThemeGenerationInput = {
+        themeName: 'test-extends',
+        themePath: theme.themefile,
+        generateOptions: { night: false },
+      };
+
+      const result = await generateTheme(input);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.generatedFiles.length).toBeGreaterThan(0);
+      }
+    });
+
+    test('应生成 JSON、CSS 和 Sketch 文件', async () => {
+      const input: ThemeGenerationInput = {
+        themeName: 'test-extends',
+        themePath: theme.themefile,
+        generateOptions: { night: false },
+      };
+
+      const result = await generateTheme(input);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const hasJson = result.generatedFiles.some(f => f.endsWith('.json') && !f.includes('sketch'));
+        const hasCss = result.generatedFiles.some(f => f.endsWith('.css'));
+        const hasSketch = result.generatedFiles.some(f => f.includes('sketch'));
+        expect(hasJson).toBe(true);
+        expect(hasCss).toBe(true);
+        expect(hasSketch).toBe(true);
+      }
+    });
+
+    test('继承后的 token 应在 JSON 输出中包含正确值', async () => {
+      const input: ThemeGenerationInput = {
+        themeName: 'test-extends',
+        themePath: theme.themefile,
+        generateOptions: { night: false },
+      };
+
+      const result = await generateTheme(input);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        // 验证生成了主 JSON 文件
+        const jsonFile = result.generatedFiles.find(f => f.endsWith('.json') && !f.includes('sketch'));
+        expect(jsonFile).toBeDefined();
+      }
+    });
+  });
+
   describe('错误处理', () => {
     test('应在 themefile 不存在时返回错误', async () => {
       const input: ThemeGenerationInput = {

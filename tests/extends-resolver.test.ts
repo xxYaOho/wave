@@ -44,7 +44,7 @@ describe('group $extends inheritance', () => {
     };
 
     const result = expandExtends(tree, 'theme');
-    const derived = result.theme?.derived as Record<string, unknown>;
+    const derived = (result.theme as Record<string, unknown>)?.derived as Record<string, unknown>;
 
     expect('$extends' in derived).toBe(false);
     expect(derived.value).toBeDefined();
