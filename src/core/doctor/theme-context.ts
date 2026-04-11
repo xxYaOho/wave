@@ -39,8 +39,7 @@ function isParseError(result: unknown): result is { line: number; message: strin
 export async function createThemeDoctorContext(
   themefilePath?: string
 ): Promise<ThemeDoctorContextResult> {
-  const effectivePath = themefilePath ?? path.join(process.cwd(), 'themefile');
-  const loadResult = await loadThemefile(effectivePath);
+  const loadResult = await loadThemefile(themefilePath);
   if ('error' in loadResult) {
     return {
       ok: false,
