@@ -21,12 +21,14 @@ const KNOWN_EXTENSIONS = new Set([
   'smoothGradient',
   'currentColor', // deprecated: use inheritColor instead
   'inheritColor',
+  'doctorPairs',
 ]);
 
 const EXTENSION_TYPE_MAP: Record<string, string> = {
   smoothShadow: 'shadow',
   smoothGradient: 'gradient',
   inheritColor: 'color',
+  doctorPairs: 'color',
 };
 
 function checkDanglingJsonPointer(
@@ -72,6 +74,36 @@ function checkValueDeep(
       if (key.startsWith('$')) continue;
       checkValueDeep(val, `${parentPath}.${key}`, issues);
     }
+  }
+}
+
+const ALIAS_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/;
+
+function validateDoctorPairs(
+  extensions: Record<string, unknown>,
+  tokenType: string | undefined,
+  tokenPath: string,
+  issues: ThemeSchemaIssue[]
+): void {
+  if (!('doctorPairs' in extensions)) return;
+
+  if (tokenType !== undefined && tokenType !== 'color') {
+    issues.push({
+      path: tokenPath,
+      level: 'error',
+      message: `doctorPairs can only be used with $type "color", got "${tokenType}"`,
+    });
+    return;
+  }
+
+  const doctorPairs = extensions.doctorPairs;
+
+  if (typeof doctorPairs !== 'string' || !ALIAS_PATTERN.test(doctorPairs)) {
+    issues.push({
+      path: `${tokenPath}.$extensions.doctorPairs`,
+      level: 'error',
+      message: `doctorPairs must be a single alias string in "{path.to.token}" format`,
+    });
   }
 }
 
@@ -219,6 +251,9 @@ function validateToken(
 
     // Validate inheritColor specifics
     validateInheritColor(extensions, tokenType, tokenPath, issues);
+
+    // Validate doctorPairs specifics
+    validateDoctorPairs(extensions, tokenType, tokenPath, issues);
   }
 }
 

@@ -565,6 +565,55 @@ theme:
 - opacity 支持数字、alias 或 \$ref
 - siblingSlot 仅用于 Sketch 平台
 
+### doctorPairs（v1）
+
+为 color token 声明 WCAG 对比度检查 pair。当前 token 视为 background，`doctorPairs` 指向的 token 视为 foreground。
+
+**声明格式：**
+
+```yaml
+theme:
+  color:
+    $type: color
+    surface:
+      $value: "#000000"
+    on-surface:
+      $value: "#ffffff"
+      $extensions:
+        doctorPairs: "{theme.color.surface}"
+```
+
+**规则：**
+
+- `doctorPairs` 只能用于 \$type: color 的 token
+- 值必须是单个 alias 字符串，格式为 `{path.to.token}`
+- pair 语义无向，允许单边声明；若两边互指，`wave doctor --theme` 会自动去重
+- 当前 token 默认是 background；引用 token 默认是 foreground
+- 不支持数组、对象或其他形式
+
+**评分维度与阈值（WCAG 2.2）：**
+
+- Normal Text：AA=4.5 / AAA=7
+- Large Text：AA=3 / AAA=4.5
+- UI Components：AA=3（无 AAA 判定）
+
+**评分规则：**
+
+- 对比计算基于 resolved theme data，阈值判定使用**未四舍五入**的 ratio
+- v1 不做半透明合成；若 background/foreground 任一存在 alpha \< 1，会作为执行错误报告
+- 红色评分仅做报告，**不阻断命令**（退出码仍为 0）
+- 非法 schema、无效引用、非 color 使用等会返回**非零退出码**
+
+**使用方式：**
+
+```bash
+# 默认读取当前目录 themefile
+wave doctor --theme
+
+# 显式指定 themefile 路径
+wave doctor --theme --file ./my-theme/themefile
+```
+
 ---
 
 ## 输出格式
