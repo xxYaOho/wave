@@ -1,0 +1,13 @@
+theme:
+  color:
+    background:
+      $type: color
+      $value: "#aaaaaa"
+    foreground:
+      $type: color
+      $value: "#ffffff"
+    surface:
+      $type: color
+      $value: "#aaaaaa"
+      $extensions:
+        doctorPairs: "{theme.color.foreground}"

@@ -74,6 +74,46 @@ export interface CheckResult {
   suggestion?: string;
 }
 
+export type DoctorFindingLevel = 'error' | 'warning' | 'info';
+
+export interface DoctorFinding {
+  level: DoctorFindingLevel;
+  message: string;
+  path?: string;
+  pair?: DoctorThemePair;
+}
+
+export interface DoctorThemePair {
+  backgroundPath: string;
+  foregroundPath: string;
+}
+
+export interface DoctorScoreLine {
+  dimension: 'Normal Text' | 'Large Text' | 'UI Components';
+  level: 'AA' | 'AAA';
+  pass: boolean;
+}
+
+export interface DoctorThemeReport {
+  pair: DoctorThemePair;
+  ratio: number;
+  scores: DoctorScoreLine[];
+  findings: DoctorFinding[];
+}
+
+export interface DoctorRunResult {
+  ok: boolean;
+  blockingErrors: DoctorFinding[];
+  reports: DoctorThemeReport[];
+}
+
+export interface ContrastEvaluationResult {
+  success: boolean;
+  ratio?: number;
+  scores?: DoctorScoreLine[];
+  error?: string;
+}
+
 export interface WaveConfig {
   version: string;
   defaultOutput: string;

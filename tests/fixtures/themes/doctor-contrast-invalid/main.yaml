@@ -1,0 +1,12 @@
+theme:
+  shadow:
+    raised:
+      $type: shadow
+      $value:
+        color: "#000000"
+        offsetX: 0
+        offsetY: 4
+        blur: 8
+        spread: 0
+      $extensions:
+        doctorPairs: "{theme.color.doesNotExist}"

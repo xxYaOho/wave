@@ -69,7 +69,7 @@ function isParseError(result: unknown): result is ParseError {
 export async function loadThemefile(themePath?: string): Promise<ThemefileLoadResult | { error: ParseError | Error }> {
   const themeDir = themePath
     ? path.dirname(expandHomePath(themePath))
-    : path.join(process.env.HOME || '', 'Downloads', 'theme');
+    : process.cwd();
 
   const themefilePath = themePath
     ? expandHomePath(themePath)
