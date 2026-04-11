@@ -164,6 +164,6 @@ wave theme --init
 
 ---
 
-**当前版本**: v0.10.3
+**当前版本**: 运行 `wave --version` 查看
 
 This project was created using `bun init` in bun v1.3.6. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
