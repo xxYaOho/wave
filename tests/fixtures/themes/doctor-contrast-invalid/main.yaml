@@ -1,12 +1,10 @@
 theme:
-  shadow:
-    raised:
-      $type: shadow
-      $value:
-        color: "#000000"
-        offsetX: 0
-        offsetY: 4
-        blur: 8
-        spread: 0
-      $extensions:
-        doctorPairs: "{theme.color.doesNotExist}"
+  color:
+    surface:
+      $type: color
+      $value: "#000000"
+doctor:
+  wcagPairs:
+    bad-pair:
+      foreground: "{theme.color.missing}"
+      background: "{theme.color.surface}"

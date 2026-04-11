@@ -2,28 +2,40 @@ import { describe, test, expect } from 'bun:test';
 import { validateThemeSchema } from '../src/core/schema/theme.ts';
 import type { DtcgTokenGroup } from '../src/types/index.ts';
 
-function buildThemeWithToken(tokenPath: string, token: Record<string, unknown>): DtcgTokenGroup {
-  const parts = tokenPath.split('.');
-  const group: Record<string, unknown> = {};
-  let current = group;
-  for (let i = 0; i < parts.length - 1; i++) {
-    const next: Record<string, unknown> = {};
-    current[parts[i]!] = next;
-    current = next;
-  }
-  current[parts[parts.length - 1]!] = token;
-  return group as DtcgTokenGroup;
-}
-
-describe('doctorPairs schema validation', () => {
-  test('passes for valid doctorPairs alias on color token', () => {
-    const tree = buildThemeWithToken('theme.color.primary', {
-      $type: 'color',
-      $value: '#0066cc',
-      $extensions: {
-        doctorPairs: '{theme.color.primary.on-main}',
+describe('doctor section schema validation', () => {
+  test('passes when no doctor key exists', () => {
+    const tree = {
+      theme: {
+        color: {
+          primary: {
+            $type: 'color',
+            $value: '#0066cc',
+          },
+        },
       },
-    });
+    } as DtcgTokenGroup;
+
+    const result = validateThemeSchema(tree);
+    expect(result.valid).toBe(true);
+  });
+
+  test('passes for valid doctor.wcagPairs with alias strings', () => {
+    const tree = {
+      theme: {
+        color: {
+          primary: { $type: 'color', $value: '#0066cc' },
+          onPrimary: { $type: 'color', $value: '#ffffff' },
+        },
+      },
+      doctor: {
+        wcagPairs: {
+          'primary-on': {
+            foreground: '{theme.color.onPrimary}',
+            background: '{theme.color.primary}',
+          },
+        },
+      },
+    } as DtcgTokenGroup;
 
     const result = validateThemeSchema(tree);
     expect(result.valid).toBe(true);
@@ -31,89 +43,83 @@ describe('doctorPairs schema validation', () => {
     expect(errors).toHaveLength(0);
   });
 
-  test('errors when doctorPairs is an array', () => {
-    const tree = buildThemeWithToken('theme.color.primary', {
-      $type: 'color',
-      $value: '#0066cc',
-      $extensions: {
-        doctorPairs: ['{theme.color.primary.on-main}'],
-      },
-    });
+  test('errors when doctor exists but has no wcagPairs', () => {
+    const tree = {
+      theme: { color: { primary: { $type: 'color', $value: '#000' } } },
+      doctor: {},
+    } as DtcgTokenGroup;
 
     const result = validateThemeSchema(tree);
     expect(result.valid).toBe(false);
     const error = result.issues.find((i) => i.level === 'error');
     expect(error).toBeDefined();
-    expect(error!.message).toContain('doctorPairs must be a single alias string');
+    expect(error!.message).toContain('must contain "wcagPairs"');
   });
 
-  test('errors when doctorPairs is an object', () => {
-    const tree = buildThemeWithToken('theme.color.primary', {
-      $type: 'color',
-      $value: '#0066cc',
-      $extensions: {
-        doctorPairs: { target: '{theme.color.primary.on-main}' },
-      },
-    });
+  test('errors when wcagPairs is not an object', () => {
+    const tree = {
+      theme: { color: { primary: { $type: 'color', $value: '#000' } } },
+      doctor: { wcagPairs: 'invalid' },
+    } as DtcgTokenGroup;
 
     const result = validateThemeSchema(tree);
     expect(result.valid).toBe(false);
     const error = result.issues.find((i) => i.level === 'error');
     expect(error).toBeDefined();
-    expect(error!.message).toContain('doctorPairs must be a single alias string');
+    expect(error!.message).toContain('wcagPairs must be an object');
   });
 
-  test('errors when doctorPairs is a number', () => {
-    const tree = buildThemeWithToken('theme.color.primary', {
-      $type: 'color',
-      $value: '#0066cc',
-      $extensions: {
-        doctorPairs: 42,
+  test('errors when pair entry is not an object', () => {
+    const tree = {
+      theme: { color: { primary: { $type: 'color', $value: '#000' } } },
+      doctor: {
+        wcagPairs: {
+          'my-pair': 'not-an-object',
+        },
       },
-    });
+    } as DtcgTokenGroup;
 
     const result = validateThemeSchema(tree);
     expect(result.valid).toBe(false);
     const error = result.issues.find((i) => i.level === 'error');
     expect(error).toBeDefined();
-    expect(error!.message).toContain('doctorPairs must be a single alias string');
+    expect(error!.message).toContain('must be an object');
   });
 
-  test('errors when doctorPairs is an invalid string format', () => {
-    const tree = buildThemeWithToken('theme.color.primary', {
-      $type: 'color',
-      $value: '#0066cc',
-      $extensions: {
-        doctorPairs: 'theme.color.primary.on-main',
+  test('errors when foreground is not an alias string', () => {
+    const tree = {
+      theme: { color: { primary: { $type: 'color', $value: '#000' } } },
+      doctor: {
+        wcagPairs: {
+          'my-pair': {
+            foreground: 'not-an-alias',
+            background: '{theme.color.primary}',
+          },
+        },
       },
-    });
+    } as DtcgTokenGroup;
 
     const result = validateThemeSchema(tree);
     expect(result.valid).toBe(false);
-    const error = result.issues.find((i) => i.level === 'error');
-    expect(error).toBeDefined();
-    expect(error!.message).toContain('doctorPairs must be a single alias string');
+    const errors = result.issues.filter((i) => i.level === 'error');
+    expect(errors.some((e) => e.message.includes('foreground')));
   });
 
-  test('errors when doctorPairs is used on non-color token', () => {
-    const tree = buildThemeWithToken('theme.shadow.raised', {
-      $type: 'shadow',
-      $value: {
-        color: '#000000',
-        offsetX: 0,
-        offsetY: 4,
-        blur: 8,
-        spread: 0,
+  test('errors when background is missing', () => {
+    const tree = {
+      theme: { color: { primary: { $type: 'color', $value: '#000' } } },
+      doctor: {
+        wcagPairs: {
+          'my-pair': {
+            foreground: '{theme.color.primary}',
+          },
+        },
       },
-      $extensions: {
-        doctorPairs: '{theme.color.background}',
-      },
-    });
+    } as DtcgTokenGroup;
 
     const result = validateThemeSchema(tree);
     expect(result.valid).toBe(false);
-    const error = result.issues.find((i) => i.level === 'error');
-    expect(error).toBeDefined();
-    expect(error!.message).toContain('doctorPairs can only be used with $type "color"');
+    const errors = result.issues.filter((i) => i.level === 'error');
+    expect(errors.some((e) => e.message.includes('background')));
   });
 });

@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import * as fs from 'node:fs/promises';
 import {
   type DoctorFinding,
   type DtcgTokenGroup,
@@ -26,47 +27,56 @@ export interface ThemeDoctorContext {
   dict: DependencyDict;
   expandedTree: DtcgTokenGroup;
   resolvedTree: ResolvedTokenGroup;
+  doctorConfig?: Record<string, unknown>;
 }
 
 export type ThemeDoctorContextResult =
   | { ok: true; context: ThemeDoctorContext }
   | { ok: false; findings: DoctorFinding[]; exitCode: number };
 
+export interface ThemeFileEntry {
+  name: string;
+  path: string;
+  /** Suffix appended to THEME for output naming: '' for main, '-night' for night, '-{variant}' for variants */
+  suffix: string;
+}
+
 function isParseError(result: unknown): result is { line: number; message: string } {
   return typeof result === 'object' && result !== null && 'line' in result && 'message' in result;
 }
 
+export async function detectThemeFiles(themeDir: string): Promise<ThemeFileEntry[]> {
+  const files: ThemeFileEntry[] = [];
+
+  const mainPath = path.join(themeDir, 'main.yaml');
+  if (await fs.access(mainPath).then(() => true).catch(() => false)) {
+    files.push({ name: 'main', path: mainPath, suffix: '' });
+  }
+
+  const nightPath = path.join(themeDir, 'main@night.yaml');
+  if (await fs.access(nightPath).then(() => true).catch(() => false)) {
+    files.push({ name: 'main@night', path: nightPath, suffix: '-night' });
+  }
+
+  const variantsDir = path.join(themeDir, 'variants');
+  if (await fs.access(variantsDir).then(() => true).catch(() => false)) {
+    const entries = await fs.readdir(variantsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile() && entry.name.endsWith('.yaml')) {
+        const variantName = path.basename(entry.name, '.yaml');
+        files.push({ name: variantName, path: path.join(variantsDir, entry.name), suffix: `-${variantName}` });
+      }
+    }
+  }
+
+  return files;
+}
+
 export async function createThemeDoctorContext(
-  themefilePath?: string
+  yamlPath: string,
+  dict: DependencyDict
 ): Promise<ThemeDoctorContextResult> {
-  const loadResult = await loadThemefile(themefilePath);
-  if ('error' in loadResult) {
-    return {
-      ok: false,
-      findings: [{
-        level: 'error',
-        message: loadResult.error.message,
-      }],
-      exitCode: ExitCode.FILE_NOT_FOUND,
-    };
-  }
-
-  const { parsed, themeDir, themefilePath: resolvedThemefilePath } = loadResult;
-  const dictResult = await buildDependencyDictionary(parsed, themeDir);
-  if ('error' in dictResult) {
-    return {
-      ok: false,
-      findings: [{
-        level: 'error',
-        message: dictResult.error.message,
-      }],
-      exitCode: ExitCode.FORMAT_ERROR,
-    };
-  }
-
-  const { dict } = dictResult;
-  const mainYamlPath = path.join(themeDir, 'main.yaml');
-  const content = await Bun.file(mainYamlPath).text();
+  const content = await Bun.file(yamlPath).text();
   const yamlParsed = parseThemeYaml(content);
 
   if (isParseError(yamlParsed)) {
@@ -96,26 +106,38 @@ export async function createThemeDoctorContext(
     };
   }
 
+  // Extract and strip doctor config before pipeline processing
+  let doctorConfig: Record<string, unknown> | undefined;
+  const rawTree = { ...yamlParsed.raw };
+  if ('doctor' in rawTree && typeof rawTree.doctor === 'object' && rawTree.doctor !== null) {
+    const doctorObj = rawTree.doctor as Record<string, unknown>;
+    if ('wcagPairs' in doctorObj && typeof doctorObj.wcagPairs === 'object' && doctorObj.wcagPairs !== null) {
+      doctorConfig = doctorObj.wcagPairs as Record<string, unknown>;
+    }
+    delete rawTree.doctor;
+  }
+
   const sources: ReferenceDataSources = {};
   for (const [namespace, entry] of Object.entries(dict)) {
     sources[namespace] = entry.data;
   }
 
   try {
-    const rootKeys = new Set(Object.keys(yamlParsed.raw).filter((k) => !k.startsWith('$')));
+    const rootKeys = new Set(Object.keys(rawTree).filter((k) => !k.startsWith('$')));
     if (rootKeys.size === 0) rootKeys.add('theme');
-    const expanded = expandExtends(yamlParsed.raw, rootKeys);
+    const expanded = expandExtends(rawTree, rootKeys);
     const resolved = resolveReferences(expanded, sources);
 
     return {
       ok: true,
       context: {
-        themeDir,
-        themefilePath: resolvedThemefilePath,
-        parsed,
+        themeDir: path.dirname(yamlPath),
+        themefilePath: yamlPath,
+        parsed: { THEME: '', PARAMETER: {}, resources: [] },
         dict,
         expandedTree: expanded,
         resolvedTree: resolved,
+        doctorConfig,
       },
     };
   } catch (err) {

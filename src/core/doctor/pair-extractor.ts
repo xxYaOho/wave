@@ -1,7 +1,6 @@
 import {
   type DoctorFinding,
-  type DoctorThemePair,
-  type DtcgTokenGroup,
+  type DoctorNamedPair,
   type ResolvedTokenGroup,
 } from '../../types/index.ts';
 
@@ -24,43 +23,6 @@ function isColorToken(node: unknown): boolean {
   return false;
 }
 
-export function scanDoctorPairs(
-  tree: DtcgTokenGroup
-): { backgroundPath: string; foregroundPath: string }[] {
-  const pairs: { backgroundPath: string; foregroundPath: string }[] = [];
-
-  function walk(node: unknown, path: string) {
-    if (typeof node !== 'object' || node === null || Array.isArray(node)) return;
-    const obj = node as Record<string, unknown>;
-    if ('$value' in obj) {
-      const extensions = obj.$extensions;
-      if (
-        typeof extensions === 'object' &&
-        extensions !== null &&
-        'doctorPairs' in extensions
-      ) {
-        const dp = extensions.doctorPairs;
-        if (typeof dp === 'string' && dp.startsWith('{') && dp.endsWith('}')) {
-          const targetPath = dp.slice(1, -1);
-          pairs.push({ backgroundPath: path, foregroundPath: targetPath });
-        }
-      }
-      return;
-    }
-    for (const [key, child] of Object.entries(obj)) {
-      if (key.startsWith('$')) continue;
-      walk(child, path ? `${path}.${key}` : key);
-    }
-  }
-
-  for (const [key, child] of Object.entries(tree)) {
-    if (key.startsWith('$')) continue;
-    walk(child, key);
-  }
-
-  return pairs;
-}
-
 function lookupResolved(tree: ResolvedTokenGroup, path: string): unknown {
   const parts = path.split('.');
   let current: unknown = tree;
@@ -71,33 +33,51 @@ function lookupResolved(tree: ResolvedTokenGroup, path: string): unknown {
   return current;
 }
 
-export function extractPairs(
-  expandedTree: DtcgTokenGroup,
+export function extractDoctorPairs(
+  wcagPairs: Record<string, unknown>,
   resolvedTree: ResolvedTokenGroup
-): { pairs: DoctorThemePair[]; errors: DoctorFinding[] } {
-  const rawPairs = scanDoctorPairs(expandedTree);
+): { pairs: DoctorNamedPair[]; errors: DoctorFinding[] } {
+  const pairs: DoctorNamedPair[] = [];
   const errors: DoctorFinding[] = [];
-  const seen = new Set<string>();
-  const pairs: DoctorThemePair[] = [];
 
-  for (const raw of rawPairs) {
-    const { backgroundPath, foregroundPath } = raw;
-
-    if (backgroundPath === foregroundPath) {
+  for (const [pairName, pairValue] of Object.entries(wcagPairs)) {
+    if (typeof pairValue !== 'object' || pairValue === null || Array.isArray(pairValue)) {
       errors.push({
         level: 'error',
-        message: `doctorPairs cannot reference itself: ${backgroundPath}`,
-        path: `${backgroundPath}.$extensions.doctorPairs`,
+        message: `wcagPairs entry "${pairName}" must be an object`,
+        path: `doctor.wcagPairs.${pairName}`,
       });
       continue;
     }
 
-    const fgResolved = lookupResolved(resolvedTree, foregroundPath);
+    const pair = pairValue as Record<string, unknown>;
+    const fg = typeof pair.foreground === 'string' ? pair.foreground.slice(1, -1) : undefined;
+    const bg = typeof pair.background === 'string' ? pair.background.slice(1, -1) : undefined;
+
+    if (!fg) {
+      errors.push({
+        level: 'error',
+        message: `wcagPairs "${pairName}" has invalid foreground`,
+        path: `doctor.wcagPairs.${pairName}.foreground`,
+      });
+      continue;
+    }
+
+    if (!bg) {
+      errors.push({
+        level: 'error',
+        message: `wcagPairs "${pairName}" has invalid background`,
+        path: `doctor.wcagPairs.${pairName}.background`,
+      });
+      continue;
+    }
+
+    const fgResolved = lookupResolved(resolvedTree, fg);
     if (fgResolved === undefined) {
       errors.push({
         level: 'error',
-        message: `doctorPairs references unresolved token: ${foregroundPath}`,
-        path: `${backgroundPath}.$extensions.doctorPairs`,
+        message: `foreground references unresolved token: ${fg}`,
+        path: `doctor.wcagPairs.${pairName}.foreground`,
       });
       continue;
     }
@@ -105,16 +85,32 @@ export function extractPairs(
     if (!isColorToken(fgResolved)) {
       errors.push({
         level: 'error',
-        message: `doctorPairs target must be a color token: ${foregroundPath}`,
-        path: `${backgroundPath}.$extensions.doctorPairs`,
+        message: `foreground must be a color token: ${fg}`,
+        path: `doctor.wcagPairs.${pairName}.foreground`,
       });
       continue;
     }
 
-    const dedupeKey = [backgroundPath, foregroundPath].sort().join('||');
-    if (seen.has(dedupeKey)) continue;
-    seen.add(dedupeKey);
-    pairs.push({ backgroundPath, foregroundPath });
+    const bgResolved = lookupResolved(resolvedTree, bg);
+    if (bgResolved === undefined) {
+      errors.push({
+        level: 'error',
+        message: `background references unresolved token: ${bg}`,
+        path: `doctor.wcagPairs.${pairName}.background`,
+      });
+      continue;
+    }
+
+    if (!isColorToken(bgResolved)) {
+      errors.push({
+        level: 'error',
+        message: `background must be a color token: ${bg}`,
+        path: `doctor.wcagPairs.${pairName}.background`,
+      });
+      continue;
+    }
+
+    pairs.push({ name: pairName, foregroundPath: fg, backgroundPath: bg });
   }
 
   return { pairs, errors };

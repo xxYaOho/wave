@@ -50,19 +50,19 @@ bun test tests/utils/fixture-loader.test.ts
 
 ### Doctor Contrast 测试主题 (fixtures/themes/doctor-contrast-*/)
 
-测试 `wave doctor --theme` 的 WCAG 对比度评分：
+测试 `wave doctor --theme` 的 WCAG 对比度评分（基于独立 `doctor.wcagPairs` rootKey）：
 
 - `doctor-contrast-pass/`：高对比度 pair，输出全绿，退出码 0
 - `doctor-contrast-report/`：低对比度 pair，输出红色评分，退出码 0（评分失败不阻断）
-- `doctor-contrast-invalid/`：非法 doctorPairs（非 color token），返回非零退出码
-- `doctor-contrast-empty/`：无 doctorPairs，提示“无可检查配对”，退出码 0
+- `doctor-contrast-invalid/`：非法 wcagPairs（引用未解析 token），返回非零退出码
+- `doctor-contrast-empty/`：无 `doctor` key，提示”无可检查配对”，退出码 0
 
 对应测试文件：
-- `tests/doctor-pairs-schema.test.ts` — schema 校验
+- `tests/doctor-pairs-schema.test.ts` — doctor section schema 校验
 - `tests/doctor-contrast-score.test.ts` — contrast ratio 计算与评分矩阵
 - `tests/doctor-runner.test.ts` — runner 阻塞/报告分离
-- `tests/doctor-theme-context.test.ts` — lazy theme context
-- `tests/pair-extractor.test.ts` — pair 提取与去重
+- `tests/doctor-theme-context.test.ts` — theme doctor context 创建与 doctor key 剥离
+- `tests/pair-extractor.test.ts` — wcagPairs pair 提取与校验
 - `tests/cli-doctor.test.ts` — CLI 输出与退出码
 
 ## 测试工具 API

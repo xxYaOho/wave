@@ -2,6 +2,26 @@
 
 All notable changes to wave will be documented in this file.
 
+## v0.14.0 — 2026-04-11
+
+> 重构 doctor WCAG 检查为独立 rootKey，新增多主题支持
+
+### Changed
+
+- **doctor WCAG 配置**: 从 `$extensions.doctorPairs` 迁移为独立 `doctor.wcagPairs` rootKey，健康检查配置与设计 token 数据彻底解耦
+  - 每个 pair 使用显式 `foreground` / `background` alias 字符串
+  - `doctor` key 不参与 theme 输出，pipeline 前自动剥离
+  - 移除 `$extensions.doctorPairs` 相关代码
+- **多主题支持**: 自动扫描 main / night / variants 主题文件，单主题自动检查，多主题通过 `@clack/prompts` TUI select 选择
+- **输出格式**: 主题名称 + 组名 + 对比度 ratio + 右对齐 AA/AAA 评分，分隔符改为 `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
+- **loadThemefile 默认路径**: 从硬编码 `~/Downloads/theme` 改为 `process.cwd()`
+
+### Removed
+
+- `$extensions.doctorPairs` 扩展及其相关校验逻辑
+
+---
+
 ## v0.13.0 — 2026-04-11
 
 > composite token 嵌套输出，修复 $extends 跨顶层 group 引用

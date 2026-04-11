@@ -1,51 +1,100 @@
 import { describe, test, expect } from 'bun:test';
-import { createThemeDoctorContext } from '../src/core/doctor/theme-context.ts';
+import { createThemeDoctorContext, detectThemeFiles } from '../src/core/doctor/theme-context.ts';
+import { extractDoctorPairs } from '../src/core/doctor/pair-extractor.ts';
 import { loadTestTheme } from './utils/fixture-loader.ts';
+import { loadThemefile, buildDependencyDictionary } from '../src/core/pipeline/theme-pipeline.ts';
 
 describe('doctor theme context', () => {
-  test('loads valid theme and exposes resolvedTree and expandedTree', async () => {
+  test('loads valid theme and exposes resolvedTree and doctorConfig', async () => {
     const theme = await loadTestTheme('doctor-contrast-pass');
-    const ctxResult = await createThemeDoctorContext(theme.themefile);
+    const loadResult = await loadThemefile(theme.themefile);
+    expect('parsed' in loadResult).toBe(true);
+    if (!('parsed' in loadResult)) return;
+
+    const { parsed, themeDir } = loadResult;
+    const dictResult = await buildDependencyDictionary(parsed, themeDir);
+    expect('dict' in dictResult).toBe(true);
+    if (!('dict' in dictResult)) return;
+
+    const yamlPath = `${themeDir}/main.yaml`;
+    const ctxResult = await createThemeDoctorContext(yamlPath, dictResult.dict);
     expect(ctxResult.ok).toBe(true);
     if (!ctxResult.ok) return;
 
-    expect(ctxResult.context.themeDir).toBe(theme.dir);
-    expect(ctxResult.context.parsed.THEME).toBe('doctor-contrast-pass');
     expect(ctxResult.context.expandedTree).toBeDefined();
     expect(ctxResult.context.resolvedTree).toBeDefined();
+    expect(ctxResult.context.doctorConfig).toBeDefined();
   });
 
-  test('returns ok=false for missing themefile', async () => {
-    const ctxResult = await createThemeDoctorContext('/nonexistent/path/themefile');
-    expect(ctxResult.ok).toBe(false);
-    if (ctxResult.ok) return;
-    expect(ctxResult.exitCode).not.toBe(0);
-    expect(ctxResult.findings[0]!.message).toContain('not found');
-  });
-
-  test('returns ok=false for schema error (invalid doctorPairs)', async () => {
-    const theme = await loadTestTheme('doctor-contrast-invalid');
-    const ctxResult = await createThemeDoctorContext(theme.themefile);
-    expect(ctxResult.ok).toBe(false);
-    if (ctxResult.ok) return;
-    expect(ctxResult.exitCode).not.toBe(0);
-    expect(ctxResult.findings[0]!.message.toLowerCase()).toContain('schema validation failed');
-    expect(ctxResult.findings[0]!.message).toContain('doctorPairs can only be used with $type "color"');
-  });
-
-  test('resolvedTree contains resolved color values', async () => {
+  test('strips doctor key from resolved tree', async () => {
     const theme = await loadTestTheme('doctor-contrast-pass');
-    const ctxResult = await createThemeDoctorContext(theme.themefile);
+    const loadResult = await loadThemefile(theme.themefile);
+    expect('parsed' in loadResult).toBe(true);
+    if (!('parsed' in loadResult)) return;
+
+    const { parsed, themeDir } = loadResult;
+    const dictResult = await buildDependencyDictionary(parsed, themeDir);
+    expect('dict' in dictResult).toBe(true);
+    if (!('dict' in dictResult)) return;
+
+    const yamlPath = `${themeDir}/main.yaml`;
+    const ctxResult = await createThemeDoctorContext(yamlPath, dictResult.dict);
     expect(ctxResult.ok).toBe(true);
     if (!ctxResult.ok) return;
 
+    // doctor should NOT be in the resolved tree
     const resolved = ctxResult.context.resolvedTree as Record<string, unknown>;
-    const themeGroup = resolved.theme as Record<string, unknown> | undefined;
-    expect(themeGroup).toBeDefined();
-    const colorGroup = themeGroup!.color as Record<string, unknown> | undefined;
-    expect(colorGroup).toBeDefined();
-    const bgToken = colorGroup!.background as Record<string, unknown> | undefined;
-    expect(bgToken).toBeDefined();
-    expect(bgToken!.$value).toBe('#000000');
+    expect(resolved.doctor).toBeUndefined();
+  });
+
+  test('doctorConfig is undefined when no doctor key exists', async () => {
+    const theme = await loadTestTheme('doctor-contrast-empty');
+    const loadResult = await loadThemefile(theme.themefile);
+    expect('parsed' in loadResult).toBe(true);
+    if (!('parsed' in loadResult)) return;
+
+    const { parsed, themeDir } = loadResult;
+    const dictResult = await buildDependencyDictionary(parsed, themeDir);
+    expect('dict' in dictResult).toBe(true);
+    if (!('dict' in dictResult)) return;
+
+    const yamlPath = `${themeDir}/main.yaml`;
+    const ctxResult = await createThemeDoctorContext(yamlPath, dictResult.dict);
+    expect(ctxResult.ok).toBe(true);
+    if (!ctxResult.ok) return;
+
+    expect(ctxResult.context.doctorConfig).toBeUndefined();
+  });
+
+  test('extractDoctorPairs reports errors for unresolved references', async () => {
+    const theme = await loadTestTheme('doctor-contrast-invalid');
+    const loadResult = await loadThemefile(theme.themefile);
+    expect('parsed' in loadResult).toBe(true);
+    if (!('parsed' in loadResult)) return;
+
+    const { parsed, themeDir } = loadResult;
+    const dictResult = await buildDependencyDictionary(parsed, themeDir);
+    expect('dict' in dictResult).toBe(true);
+    if (!('dict' in dictResult)) return;
+
+    const yamlPath = `${themeDir}/main.yaml`;
+    const ctxResult = await createThemeDoctorContext(yamlPath, dictResult.dict);
+    expect(ctxResult.ok).toBe(true);
+    if (!ctxResult.ok) return;
+
+    const { pairs, errors } = extractDoctorPairs(
+      ctxResult.context.doctorConfig!,
+      ctxResult.context.resolvedTree,
+    );
+    expect(pairs).toHaveLength(0);
+    expect(errors.length).toBeGreaterThanOrEqual(1);
+    expect(errors[0]!.message).toContain('foreground references unresolved');
+  });
+
+  test('detectThemeFiles finds main.yaml', async () => {
+    const theme = await loadTestTheme('doctor-contrast-pass');
+    const files = await detectThemeFiles(theme.dir);
+    expect(files.length).toBeGreaterThanOrEqual(1);
+    expect(files.some((f) => f.name === 'main')).toBe(true);
   });
 });

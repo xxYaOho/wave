@@ -21,14 +21,12 @@ const KNOWN_EXTENSIONS = new Set([
   'smoothGradient',
   'currentColor', // deprecated: use inheritColor instead
   'inheritColor',
-  'doctorPairs',
 ]);
 
 const EXTENSION_TYPE_MAP: Record<string, string> = {
   smoothShadow: 'shadow',
   smoothGradient: 'gradient',
   inheritColor: 'color',
-  doctorPairs: 'color',
 };
 
 function checkDanglingJsonPointer(
@@ -74,36 +72,6 @@ function checkValueDeep(
       if (key.startsWith('$')) continue;
       checkValueDeep(val, `${parentPath}.${key}`, issues);
     }
-  }
-}
-
-const ALIAS_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/;
-
-function validateDoctorPairs(
-  extensions: Record<string, unknown>,
-  tokenType: string | undefined,
-  tokenPath: string,
-  issues: ThemeSchemaIssue[]
-): void {
-  if (!('doctorPairs' in extensions)) return;
-
-  if (tokenType !== undefined && tokenType !== 'color') {
-    issues.push({
-      path: tokenPath,
-      level: 'error',
-      message: `doctorPairs can only be used with $type "color", got "${tokenType}"`,
-    });
-    return;
-  }
-
-  const doctorPairs = extensions.doctorPairs;
-
-  if (typeof doctorPairs !== 'string' || !ALIAS_PATTERN.test(doctorPairs)) {
-    issues.push({
-      path: `${tokenPath}.$extensions.doctorPairs`,
-      level: 'error',
-      message: `doctorPairs must be a single alias string in "{path.to.token}" format`,
-    });
   }
 }
 
@@ -251,9 +219,6 @@ function validateToken(
 
     // Validate inheritColor specifics
     validateInheritColor(extensions, tokenType, tokenPath, issues);
-
-    // Validate doctorPairs specifics
-    validateDoctorPairs(extensions, tokenType, tokenPath, issues);
   }
 }
 
@@ -346,11 +311,81 @@ export function validateThemeSchema(tree: DtcgTokenGroup): ThemeSchemaResult {
   // Walk from root keys (skip $-prefixed like $schema)
   for (const [key, child] of Object.entries(tree)) {
     if (key.startsWith('$')) continue;
+    if (key === 'doctor') continue; // validated separately
     walkNode(child, key, issues);
   }
+
+  // Validate doctor section
+  validateDoctorSection(tree, issues);
 
   return {
     valid: !issues.some((i) => i.level === 'error'),
     issues,
   };
+}
+
+const DOCTOR_ALIAS_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/;
+
+function validateDoctorSection(
+  tree: DtcgTokenGroup,
+  issues: ThemeSchemaIssue[]
+): void {
+  const doctor = tree.doctor;
+  if (doctor === undefined || doctor === null) return;
+
+  if (typeof doctor !== 'object' || Array.isArray(doctor)) {
+    issues.push({
+      path: 'doctor',
+      level: 'error',
+      message: `doctor must be an object`,
+    });
+    return;
+  }
+
+  const doctorObj = doctor as Record<string, unknown>;
+
+  if (!('wcagPairs' in doctorObj)) {
+    issues.push({
+      path: 'doctor',
+      level: 'error',
+      message: `doctor must contain "wcagPairs"`,
+    });
+    return;
+  }
+
+  const wcagPairs = doctorObj.wcagPairs;
+  if (typeof wcagPairs !== 'object' || wcagPairs === null || Array.isArray(wcagPairs)) {
+    issues.push({
+      path: 'doctor.wcagPairs',
+      level: 'error',
+      message: `wcagPairs must be an object`,
+    });
+    return;
+  }
+
+  for (const [pairName, pairValue] of Object.entries(wcagPairs as Record<string, unknown>)) {
+    const pairPath = `doctor.wcagPairs.${pairName}`;
+
+    if (typeof pairValue !== 'object' || pairValue === null || Array.isArray(pairValue)) {
+      issues.push({
+        path: pairPath,
+        level: 'error',
+        message: `wcagPairs entry "${pairName}" must be an object with "foreground" and "background"`,
+      });
+      continue;
+    }
+
+    const pair = pairValue as Record<string, unknown>;
+
+    for (const field of ['foreground', 'background'] as const) {
+      const value = pair[field];
+      if (typeof value !== 'string' || !DOCTOR_ALIAS_PATTERN.test(value)) {
+        issues.push({
+          path: `${pairPath}.${field}`,
+          level: 'error',
+          message: `${field} must be an alias string in "{path.to.token}" format`,
+        });
+      }
+    }
+  }
 }

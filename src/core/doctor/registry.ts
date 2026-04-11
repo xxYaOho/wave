@@ -1,8 +1,7 @@
-import { type DoctorRunResult, type DoctorThemeReport, ExitCode } from '../../types/index.ts';
+import { type DoctorRunResult, type DoctorThemeReport, type DoctorNamedPair, ExitCode } from '../../types/index.ts';
 import { checkBuiltinResources, checkOutputDir, createConfigCheck } from '../validator/index.ts';
 import { type DoctorCheck } from './runner.ts';
-import { createThemeDoctorContext } from './theme-context.ts';
-import { extractPairs } from './pair-extractor.ts';
+import { extractDoctorPairs } from './pair-extractor.ts';
 import { evaluateContrast } from './contrast-evaluator.ts';
 import type { ResolvedTokenGroup } from '../../types/index.ts';
 
@@ -92,65 +91,67 @@ export function createDoctorRegistry(options: {
     checks.push({
       name: 'Theme Contrast',
       run: async () => {
-        const ctxResult = await createThemeDoctorContext(options.themefilePath);
-        if (!ctxResult.ok) {
-          return {
-            ok: false,
-            blockingErrors: ctxResult.findings,
-            reports: [],
-          };
-        }
-
-        const { pairs, errors } = extractPairs(
-          ctxResult.context.expandedTree,
-          ctxResult.context.resolvedTree
-        );
-
-        if (errors.length > 0) {
-          return { ok: false, blockingErrors: errors, reports: [] };
-        }
-
-        const reports: DoctorThemeReport[] = [];
-        const blockingErrors = [];
-
-        for (const pair of pairs) {
-          const bgNode = lookupResolved(ctxResult.context.resolvedTree, pair.backgroundPath);
-          const fgNode = lookupResolved(ctxResult.context.resolvedTree, pair.foregroundPath);
-          const bgValue =
-            typeof bgNode === 'object' && bgNode !== null
-              ? (bgNode as Record<string, unknown>).$value
-              : undefined;
-          const fgValue =
-            typeof fgNode === 'object' && fgNode !== null
-              ? (fgNode as Record<string, unknown>).$value
-              : undefined;
-
-          const evalResult = evaluateContrast(bgValue, fgValue);
-          if (!evalResult.success) {
-            blockingErrors.push({
-              level: 'error',
-              message: evalResult.error || 'Contrast evaluation failed',
-              pair,
-            });
-            continue;
-          }
-
-          reports.push({
-            pair,
-            ratio: evalResult.ratio!,
-            scores: evalResult.scores!,
-            findings: [],
-          });
-        }
-
-        if (blockingErrors.length > 0) {
-          return { ok: false, blockingErrors, reports };
-        }
-
-        return { ok: true, blockingErrors: [], reports };
+        // Context and pair data are injected by the CLI layer
+        return { ok: true, blockingErrors: [], reports: [] };
       },
     });
   }
 
   return checks;
+}
+
+export async function runThemeContrastCheck(
+  context: {
+    resolvedTree: ResolvedTokenGroup;
+    doctorConfig?: Record<string, unknown>;
+  }
+): Promise<DoctorRunResult> {
+  if (!context.doctorConfig) {
+    return { ok: true, blockingErrors: [], reports: [] };
+  }
+
+  const { pairs, errors } = extractDoctorPairs(context.doctorConfig, context.resolvedTree);
+
+  if (errors.length > 0) {
+    return { ok: false, blockingErrors: errors, reports: [] };
+  }
+
+  const reports: DoctorThemeReport[] = [];
+  const blockingErrors: DoctorFinding[] = [];
+
+  for (const pair of pairs) {
+    const bgNode = lookupResolved(context.resolvedTree, pair.backgroundPath);
+    const fgNode = lookupResolved(context.resolvedTree, pair.foregroundPath);
+    const bgValue =
+      typeof bgNode === 'object' && bgNode !== null
+        ? (bgNode as Record<string, unknown>).$value
+        : undefined;
+    const fgValue =
+      typeof fgNode === 'object' && fgNode !== null
+        ? (fgNode as Record<string, unknown>).$value
+        : undefined;
+
+    const evalResult = evaluateContrast(bgValue, fgValue);
+    if (!evalResult.success) {
+      blockingErrors.push({
+        level: 'error',
+        message: evalResult.error || 'Contrast evaluation failed',
+        pair,
+      });
+      continue;
+    }
+
+    reports.push({
+      pair,
+      ratio: evalResult.ratio!,
+      scores: evalResult.scores!,
+      findings: [],
+    });
+  }
+
+  if (blockingErrors.length > 0) {
+    return { ok: false, blockingErrors, reports };
+  }
+
+  return { ok: true, blockingErrors: [], reports };
 }

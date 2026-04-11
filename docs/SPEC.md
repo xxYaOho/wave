@@ -565,31 +565,30 @@ theme:
 - opacity 支持数字、alias 或 \$ref
 - siblingSlot 仅用于 Sketch 平台
 
-### doctorPairs（v1）
+### doctor.wcagPairs
 
-为 color token 声明 WCAG 对比度检查 pair。当前 token 视为 background，`doctorPairs` 指向的 token 视为 foreground。
+独立 rootKey `doctor`，用于声明 WCAG 对比度检查 pair。非必需，不存在时 `wave doctor --theme` 提示无可检查配对。
 
 **声明格式：**
 
 ```yaml
-theme:
-  color:
-    $type: color
-    surface:
-      $value: "#000000"
-    on-surface:
-      $value: "#ffffff"
-      $extensions:
-        doctorPairs: "{theme.color.surface}"
+doctor:
+  wcagPairs:
+    primary-on-surface:
+      foreground: "{theme.color.on-surface}"
+      background: "{theme.color.surface}"
+    primary-on-container:
+      foreground: "{theme.color.on-container}"
+      background: "{theme.color.primary.container}"
 ```
 
 **规则：**
 
-- `doctorPairs` 只能用于 \$type: color 的 token
-- 值必须是单个 alias 字符串，格式为 `{path.to.token}`
-- pair 语义无向，允许单边声明；若两边互指，`wave doctor --theme` 会自动去重
-- 当前 token 默认是 background；引用 token 默认是 foreground
-- 不支持数组、对象或其他形式
+- `doctor` 为非必需 rootKey，不参与 theme 输出（JSON/CSS 等）
+- `doctor` 下必须包含 `wcagPairs`，值为对象
+- 每个 pair entry 的 key 是自定义组名，值为 `{ foreground, background }` 对象
+- `foreground` / `background` 值为 alias 字符串，格式为 `{path.to.token}`
+- alias 指向的 token 必须是已解析的 color 类型
 
 **评分维度与阈值（WCAG 2.2）：**
 
@@ -600,9 +599,15 @@ theme:
 **评分规则：**
 
 - 对比计算基于 resolved theme data，阈值判定使用**未四舍五入**的 ratio
-- v1 不做半透明合成；若 background/foreground 任一存在 alpha \< 1，会作为执行错误报告
+- v1 不做半透明合成；若 background/foreground 任一存在 alpha < 1，会作为执行错误报告
 - 红色评分仅做报告，**不阻断命令**（退出码仍为 0）
 - 非法 schema、无效引用、非 color 使用等会返回**非零退出码**
+
+**多主题支持：**
+
+- 自动扫描 `main.yaml`、`main@night.yaml`、`variants/*.yaml`
+- 仅一个主题 → 自动检查
+- 多个主题 → TUI select 单选
 
 **使用方式：**
 

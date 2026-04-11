@@ -80,12 +80,13 @@ export interface DoctorFinding {
   level: DoctorFindingLevel;
   message: string;
   path?: string;
-  pair?: DoctorThemePair;
+  pair?: DoctorNamedPair;
 }
 
-export interface DoctorThemePair {
-  backgroundPath: string;
+export interface DoctorNamedPair {
+  name: string;
   foregroundPath: string;
+  backgroundPath: string;
 }
 
 export interface DoctorScoreLine {
@@ -95,7 +96,7 @@ export interface DoctorScoreLine {
 }
 
 export interface DoctorThemeReport {
-  pair: DoctorThemePair;
+  pair: DoctorNamedPair;
   ratio: number;
   scores: DoctorScoreLine[];
   findings: DoctorFinding[];

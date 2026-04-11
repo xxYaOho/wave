@@ -1,13 +1,14 @@
 theme:
   color:
-    background:
-      $type: color
-      $value: "#000000"
-    foreground:
-      $type: color
-      $value: "#ffffff"
-    surface:
-      $type: color
-      $value: "#000000"
-      $extensions:
-        doctorPairs: "{theme.color.foreground}"
+    primary:
+      main:
+        $type: color
+        $value: "#000000"
+      on-main:
+        $type: color
+        $value: "#ffffff"
+doctor:
+  wcagPairs:
+    primary-main:
+      foreground: "{theme.color.primary.on-main}"
+      background: "{theme.color.primary.main}"

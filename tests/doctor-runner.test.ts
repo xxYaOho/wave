@@ -57,6 +57,7 @@ describe('doctor runner', () => {
           reports: [
             {
               pair: {
+                name: 'bg-fg',
                 backgroundPath: 'theme.color.bg',
                 foregroundPath: 'theme.color.fg',
               },
@@ -95,6 +96,7 @@ describe('doctor runner', () => {
           reports: [
             {
               pair: {
+                name: 'bg-fg',
                 backgroundPath: 'bg',
                 foregroundPath: 'fg',
               },
