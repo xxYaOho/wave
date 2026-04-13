@@ -150,6 +150,31 @@ function extractValue(found: unknown): DtcgValue | undefined {
   return undefined;
 }
 
+function formatSwatchName(parts: string[]): string | undefined {
+  if (parts.length === 0) return undefined;
+  const first = parts[0];
+  const rest = parts.slice(1);
+  return first + (rest.length > 0 ? '/' + rest.join('-').replace(/\./g, '-') : '');
+}
+
+function deriveSwatchNameFromDtcgRef(ref: string): string | undefined {
+  const parsed = parseDtcgRef(ref);
+  if (!parsed) return undefined;
+  const { path } = parsed;
+  if (path.length === 0) return undefined;
+  return formatSwatchName(path);
+}
+
+function deriveSwatchNameFromStringRef(value: string): string | undefined {
+  const match = value.match(/^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/);
+  if (!match) return undefined;
+  const pathStr = match[1];
+  if (!pathStr) return undefined;
+  const parts = pathStr.split('.');
+  parts.shift(); // 去掉 namespace
+  return formatSwatchName(parts);
+}
+
 function inferRootKeys(tree: DtcgTokenGroup): Set<string> {
   const keys = Object.keys(tree).filter((k) => !k.startsWith('$'));
   return new Set(keys.length > 0 ? keys : ['theme']);
@@ -240,21 +265,26 @@ function resolveDtcgRef(
     }
   }
 
+  const swatchName = deriveSwatchNameFromDtcgRef(refValue.$ref);
+
   if (Object.keys(resolvedOverrides).length === 0) {
+    if (typeof extractedValue === 'object' && extractedValue !== null && !Array.isArray(extractedValue)) {
+      return { ...extractedValue, _swatchName: swatchName } as DtcgObjectValue;
+    }
     return extractedValue;
   }
 
   // 合并策略
   if (typeof extractedValue === 'object' && extractedValue !== null && !Array.isArray(extractedValue)) {
-    return { ...extractedValue, ...resolvedOverrides } as DtcgObjectValue;
+    return { ...extractedValue, ...resolvedOverrides, _swatchName: swatchName } as DtcgObjectValue;
   }
 
   // 标量值，根据上下文包装
   if ('color' in resolvedOverrides || 'alpha' in resolvedOverrides) {
-    return { color: String(extractedValue), ...resolvedOverrides } as DtcgObjectValue;
+    return { color: String(extractedValue), ...resolvedOverrides, _swatchName: swatchName } as DtcgObjectValue;
   }
 
-  return { value: extractedValue, ...resolvedOverrides } as DtcgObjectValue;
+  return { value: extractedValue, ...resolvedOverrides, _swatchName: swatchName } as DtcgObjectValue;
 }
 
 // 递归处理嵌套对象/数组中的 $ref（Pass 1：外部引用）
@@ -684,6 +714,13 @@ function processTokenExternal(
     token.$value, sources, themeTree, [], unresolvedCollector, currentPath, rootKeys
   );
 
+  let swatchName: string | undefined;
+  if (typeof token.$value === 'string') {
+    swatchName = deriveSwatchNameFromStringRef(token.$value);
+  } else if (isDtcgRefValue(token.$value)) {
+    swatchName = deriveSwatchNameFromDtcgRef(token.$value.$ref);
+  }
+
   const resolvedExtensions = token.$extensions
     ? Object.fromEntries(
         Object.entries(token.$extensions).map(([k, v]) => [
@@ -707,6 +744,7 @@ function processTokenExternal(
     ...(token.$description !== undefined && { $description: token.$description }),
     ...(token.$deprecated !== undefined && { $deprecated: token.$deprecated }),
     ...(resolvedExtensions !== undefined && { $extensions: resolvedExtensions }),
+    ...(swatchName !== undefined && { _swatchName: swatchName }),
   };
 }
 
@@ -759,6 +797,17 @@ function processTokenInternal(
   const resolutionPath = currentPath ? [currentPath] : [];
   const resolvedValue = resolveInternalDtcgValue(token.$value, sources, themeTree, resolutionPath, unresolvedCollector, currentPath, rootKeys);
 
+  let swatchName: string | undefined;
+  if (typeof token.$value === 'string') {
+    swatchName = deriveSwatchNameFromStringRef(token.$value);
+  } else if (isDtcgRefValue(token.$value)) {
+    swatchName = deriveSwatchNameFromDtcgRef(token.$value.$ref);
+  }
+  // 多轮 internal 解析时，若当前轮次无法推导 swatchName，保留已有的
+  if (swatchName === undefined && token._swatchName !== undefined) {
+    swatchName = token._swatchName;
+  }
+
   const resolvedExtensions = token.$extensions
     ? Object.fromEntries(
         Object.entries(token.$extensions).map(([k, v]) => [
@@ -782,6 +831,7 @@ function processTokenInternal(
     ...(token.$description !== undefined && { $description: token.$description }),
     ...(token.$deprecated !== undefined && { $deprecated: token.$deprecated }),
     ...(resolvedExtensions !== undefined && { $extensions: resolvedExtensions }),
+    ...(swatchName !== undefined && { _swatchName: swatchName }),
   };
 }
 
