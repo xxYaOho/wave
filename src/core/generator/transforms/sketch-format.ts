@@ -9,7 +9,6 @@ interface SketchShadowLayer {
   color: string;
 }
 
-
 // Check if token uses inheritColor
 function isInheritColorToken(token: TransformedToken): boolean {
   return (token as Record<string, unknown>).inheritColor === true;
@@ -31,19 +30,14 @@ function findSiblingColor(
   currentPath: string[],
   siblingSlot: string
 ): string | undefined {
-  // Build parent path by removing last element from current path
-  // path structure: ['theme', 'style', 'interaction', 'danger', 'border']
-  // parent path: ['theme', 'style', 'interaction', 'danger']
   const parentPath = currentPath.slice(0, -1);
   const siblingPath = [...parentPath, siblingSlot];
-  
-  // Find token with matching path
+
   for (const token of tokens) {
     const tokenPath = token.path;
     if (tokenPath.length === siblingPath.length) {
       const match = tokenPath.every((p, i) => p === siblingPath[i]);
       if (match) {
-        // Found sibling, extract color value
         const value = token.$value ?? token.value;
         if (typeof value === 'string') {
           return value;
@@ -60,7 +54,7 @@ function findSiblingColor(
       }
     }
   }
-  
+
   return undefined;
 }
 
@@ -68,6 +62,21 @@ function findSiblingColor(
 function hexToSketchColor(hex: string): string {
   if (hex.length === 9) return hex;
   if (hex.length === 7) return `${hex}ff`;
+  return hex;
+}
+
+// 把 opacity 合并到 hex 颜色中
+function applyOpacityToHex(hex: string, opacity: number): string {
+  if (opacity < 0 || opacity > 1) return hexToSketchColor(hex);
+  if (hex.length === 9) {
+    const base = hex.slice(0, 7);
+    const alphaHex = Math.round(opacity * 255).toString(16).padStart(2, '0');
+    return `${base}${alphaHex}`;
+  }
+  if (hex.length === 7) {
+    const alphaHex = Math.round(opacity * 255).toString(16).padStart(2, '0');
+    return `${hex}${alphaHex}`;
+  }
   return hex;
 }
 
@@ -91,12 +100,73 @@ function processShadowLayer(layer: Record<string, unknown>): SketchShadowLayer {
   };
 }
 
+// 解析 Sketch 颜色值（处理 inheritColor、opacity、_color 回退）
+function resolveSketchColor(
+  token: TransformedToken,
+  allTokens: TransformedToken[]
+): { color: string; opacity?: number } {
+  const path = token.path;
+  const tokenValue = token.$value ?? token.value;
+  const t = token as unknown as Record<string, unknown>;
+  const value = tokenValue as { color?: string; opacity?: number; _color?: string } | string | undefined;
+
+  let colorValue: string | undefined;
+  let opacityValue: number | undefined;
+
+  if (isInheritColorToken(token)) {
+    const siblingSlot = getInheritColorSiblingSlot(token);
+    opacityValue = getInheritColorOpacity(token);
+
+    if (siblingSlot) {
+      colorValue = findSiblingColor(allTokens, path, siblingSlot);
+    }
+
+    if (!colorValue) {
+      colorValue = '#ff00ff';
+    }
+  } else {
+    if (typeof value === 'string') {
+      colorValue = value;
+    } else if (typeof value === 'object' && value !== null && 'color' in value) {
+      colorValue = value.color!;
+    }
+
+    if (!colorValue && typeof value === 'object' && value !== null && '_color' in value) {
+      colorValue = String(value._color);
+    }
+
+    if (!colorValue) {
+      colorValue = '#ff00ff';
+    }
+
+    if (typeof value === 'object' && value !== null && 'opacity' in value) {
+      opacityValue = value.opacity as number;
+    } else if (t.currentColorOpacity !== undefined) {
+      opacityValue = t.currentColorOpacity as number;
+    }
+  }
+
+  return {
+    color: colorValue,
+    ...(typeof opacityValue === 'number' && { opacity: opacityValue }),
+  };
+}
+
+// 通用的 gradient stops 转换
+function mapGradientStops(gradientArray: Array<Record<string, unknown>>): Array<{ color: string; position: unknown }> {
+  return gradientArray.map((stop) => ({
+    color: hexToSketchColor(String(stop.color)),
+    position: stop.position,
+  }));
+}
+
 // 主转换函数
 export const sketchFormat: Format = {
   name: 'wave/sketch',
   format: ({ dictionary }: { dictionary: Dictionary }) => {
     const colorGroup: Record<string, string> = {};
     const styleGroup: Record<string, Record<string, unknown>> = {};
+    const componentGroup: Record<string, Record<string, unknown>> = {};
 
     // 按 _order 排序保持原始顺序
     const sortedTokens = [...dictionary.allTokens].sort(
@@ -108,8 +178,99 @@ export const sketchFormat: Format = {
       if (tokenValue === undefined) continue;
 
       const path = token.path;
-      // path 结构: ['theme', 'color'|'style', ...]
       if (path.length < 3) continue;
+
+      // 检查是否是 component composite 子 token
+      const t = token as unknown as Record<string, unknown>;
+      const compositePath = t._composite as string | undefined;
+      if (compositePath && compositePath.startsWith('component.')) {
+        const componentKey = compositePath.slice('component.'.length).replace(/\./g, '-');
+        if (!componentGroup[componentKey]) {
+          componentGroup[componentKey] = {};
+        }
+        const componentObj = componentGroup[componentKey];
+        const propKey = path[path.length - 1];
+        const tokenType = token.type || token.$type;
+
+        if (propKey === 'background' || propKey === 'background-color') {
+          if (tokenType === 'gradient') {
+            let gradientArray: Array<Record<string, unknown>> = [];
+            if (Array.isArray(tokenValue)) {
+              gradientArray = tokenValue as Array<Record<string, unknown>>;
+            } else if (typeof tokenValue === 'object' && tokenValue !== null) {
+              gradientArray = [tokenValue as Record<string, unknown>];
+            }
+            componentObj.fills = [
+              {
+                fillType: 'Gradient',
+                color: '#ffffffff',
+                enabled: true,
+                blendingMode: 'Normal',
+                gradient: {
+                  gradientType: 'Linear',
+                  from: { x: 0.5, y: 0 },
+                  to: { x: 0.5, y: 1 },
+                  aspectRatio: 0,
+                  stops: mapGradientStops(gradientArray),
+                },
+              },
+            ];
+          } else {
+            const { color, opacity } = resolveSketchColor(token, sortedTokens);
+            componentObj.fills = [
+              {
+                fillType: 'Color',
+                color: opacity !== undefined ? applyOpacityToHex(color, opacity) : hexToSketchColor(color),
+                enabled: true,
+                blendingMode: 'Normal',
+              },
+            ];
+          }
+        } else if (propKey === 'foreground' || propKey === 'color') {
+          const { color, opacity } = resolveSketchColor(token, sortedTokens);
+          componentObj.textColor = opacity !== undefined ? applyOpacityToHex(color, opacity) : hexToSketchColor(color);
+        } else if (propKey === 'border') {
+          const { color, opacity } = resolveSketchColor(token, sortedTokens);
+          componentObj.borders = [
+            {
+              fillType: 'Color',
+              color: opacity !== undefined ? applyOpacityToHex(color, opacity) : hexToSketchColor(color),
+              position: 'Inside',
+              thickness: 1,
+              enabled: true,
+              blendingMode: 'Normal',
+              hasIndividualSides: false,
+              sides: { left: 1, top: 1, right: 1, bottom: 1 },
+            },
+          ];
+        } else if (propKey === 'radius' || propKey === 'border-radius') {
+          const radiusValue = typeof tokenValue === 'string' ? parseFloat(tokenValue) : (typeof tokenValue === 'number' ? tokenValue : NaN);
+          const radiusNum = isNaN(radiusValue) ? 0 : radiusValue;
+          componentObj.corners = {
+            style: 0,
+            radii: [radiusNum, radiusNum, radiusNum, radiusNum],
+            hasRadii: radiusNum > 0,
+          };
+        } else if (propKey === 'shadow') {
+          let shadowArray: Array<Record<string, unknown>> = [];
+          if (Array.isArray(tokenValue)) {
+            shadowArray = tokenValue as Array<Record<string, unknown>>;
+          } else if (typeof tokenValue === 'object' && tokenValue !== null) {
+            shadowArray = [tokenValue as Record<string, unknown>];
+          }
+          componentObj.shadows = shadowArray.reverse().map((layer) => ({
+            ...processShadowLayer(layer),
+            enabled: true,
+            isInnerShadow: false,
+            blendingMode: 'Normal',
+          }));
+        } else {
+          // 其他未知属性原样保留（清理内部字段后）
+          componentObj[propKey] = tokenValue;
+        }
+
+        continue;
+      }
 
       const rootKey = path[1]; // 'color' 或 'style'
       const subPath = path.slice(2);
@@ -125,59 +286,13 @@ export const sketchFormat: Format = {
 
         // interaction: { color, opacity }
         if (styleType === 'interaction' && path.length >= 4) {
-          const t = token as unknown as Record<string, unknown>;
-          const value = tokenValue as { color?: string; opacity?: number; _color?: string } | string;
-
-          let colorValue: string | undefined;
-          let opacityValue: number | undefined;
-
-          // Handle inheritColor v1
-          if (isInheritColorToken(token)) {
-            const siblingSlot = getInheritColorSiblingSlot(token);
-            opacityValue = getInheritColorOpacity(token);
-
-            if (siblingSlot) {
-              // Try to find sibling color token
-              colorValue = findSiblingColor(sortedTokens, path, siblingSlot);
-            }
-
-            // Fallback to diagnostic pink if sibling not found
-            if (!colorValue) {
-              colorValue = '#ff00ff'; // 诊断粉色
-            }
-          } else {
-            // 提取颜色值 - 尝试多种来源
-            if (typeof value === 'string') {
-              colorValue = value;
-            } else if (typeof value === 'object' && value !== null && 'color' in value) {
-              colorValue = value.color!;
-            }
-
-            // 如果还没找到，尝试从 _color 获取（transformer 注入的原始颜色）
-            if (!colorValue && typeof value === 'object' && value !== null && '_color' in value) {
-              colorValue = String(value._color);
-            }
-
-            // 最后的备选
-            if (!colorValue) {
-              colorValue = '#ff00ff'; // 占位符粉色
-            }
-
-            // 提取 opacity（非 inheritColor 情况）
-            if (typeof value === 'object' && value !== null && 'opacity' in value) {
-              opacityValue = value.opacity as number;
-            } else if (t.currentColorOpacity !== undefined) {
-              opacityValue = t.currentColorOpacity as number;
-            }
-          }
-
+          const { color, opacity } = resolveSketchColor(token, sortedTokens);
           const result: Record<string, unknown> = {
-            color: hexToSketchColor(colorValue)
+            color: hexToSketchColor(color)
           };
 
-          // 添加 opacity
-          if (typeof opacityValue === 'number') {
-            result.opacity = opacityValue;
+          if (typeof opacity === 'number') {
+            result.opacity = opacity;
           }
 
           styleGroup[styleKey] = result;
@@ -192,9 +307,6 @@ export const sketchFormat: Format = {
             shadowArray = [tokenValue as Record<string, unknown>];
           }
 
-          // Sketch UI 中 shadow 列表从上到下对应数组从后到前
-          // 即：数组[0] 显示在 UI 最底部，数组[last] 显示在 UI 最顶部
-          // 反转数组使小阴影(y=0, blur=1)在 UI 顶部，大阴影在底部
           styleGroup[styleKey] = {
             shadow: shadowArray.reverse().map(processShadowLayer)
           };
@@ -228,6 +340,9 @@ export const sketchFormat: Format = {
     }
     if (Object.keys(styleGroup).length > 0) {
       result.style = styleGroup;
+    }
+    if (Object.keys(componentGroup).length > 0) {
+      result.component = componentGroup;
     }
 
     return JSON.stringify(result, null, 2);

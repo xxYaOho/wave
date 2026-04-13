@@ -453,10 +453,14 @@ function transformToken(
       inheritColor = true;
       const extObj = inheritColorExt as Record<string, unknown>;
 
-      // Extract opacity from property.opacity (handles number, alias, $ref)
+      // Extract opacity from property.opacity or property.alpha (handles number, alias, $ref)
       const propertyObj = extObj.property as Record<string, unknown> | undefined;
-      if (propertyObj && typeof propertyObj === 'object' && 'opacity' in propertyObj) {
-        inheritColorOpacity = extractInheritColorOpacity(propertyObj.opacity, tokenPath);
+      if (propertyObj && typeof propertyObj === 'object') {
+        if ('opacity' in propertyObj) {
+          inheritColorOpacity = extractInheritColorOpacity(propertyObj.opacity, tokenPath);
+        } else if ('alpha' in propertyObj) {
+          inheritColorOpacity = extractInheritColorOpacity(propertyObj.alpha, tokenPath);
+        }
       }
 
       // Extract siblingSlot for Sketch
