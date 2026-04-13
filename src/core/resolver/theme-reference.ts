@@ -150,12 +150,19 @@ function extractValue(found: unknown): DtcgValue | undefined {
   return undefined;
 }
 
+function formatSwatchName(parts: string[]): string | undefined {
+  if (parts.length === 0) return undefined;
+  const first = parts[0];
+  const rest = parts.slice(1);
+  return first + (rest.length > 0 ? '/' + rest.join('-').replace(/\./g, '-') : '');
+}
+
 function deriveSwatchNameFromDtcgRef(ref: string): string | undefined {
   const parsed = parseDtcgRef(ref);
   if (!parsed) return undefined;
-  const { source, path } = parsed;
+  const { path } = parsed;
   if (path.length === 0) return undefined;
-  return [source, ...path].join('/').replace(/\./g, '-');
+  return formatSwatchName(path);
 }
 
 function deriveSwatchNameFromStringRef(value: string): string | undefined {
@@ -163,7 +170,9 @@ function deriveSwatchNameFromStringRef(value: string): string | undefined {
   if (!match) return undefined;
   const pathStr = match[1];
   if (!pathStr) return undefined;
-  return pathStr.replace(/\./g, '-');
+  const parts = pathStr.split('.');
+  parts.shift(); // 去掉 namespace
+  return formatSwatchName(parts);
 }
 
 function inferRootKeys(tree: DtcgTokenGroup): Set<string> {
