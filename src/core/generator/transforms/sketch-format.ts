@@ -145,10 +145,7 @@ function processComponentShadowLayer(layer: Record<string, unknown>): ComponentS
     const hex = hexToSketchColor(innerColor);
     result.color = hex;
     if (typeof obj._swatchName === 'string') {
-      result.swatch = {
-        name: obj._swatchName,
-        type: 'Swatch',
-      };
+      result.swatch = obj._swatchName;
     }
   } else {
     result.color = hexToSketchColor(String(colorRaw));
@@ -246,14 +243,11 @@ function mapGradientStops(gradientArray: Array<Record<string, unknown>>): Array<
 function addSketchSwatch<T extends Record<string, unknown>>(
   base: T,
   swatchName?: string
-): T & { swatch?: { name: string; type: 'Swatch' } } {
-  if (!swatchName) return base as T & { swatch?: { name: string; type: 'Swatch' } };
+): T & { swatch?: string } {
+  if (!swatchName) return base as T & { swatch?: string };
   return {
     ...base,
-    swatch: {
-      name: swatchName,
-      type: 'Swatch',
-    },
+    swatch: swatchName,
   };
 }
 

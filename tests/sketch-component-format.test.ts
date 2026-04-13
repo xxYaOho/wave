@@ -216,10 +216,10 @@ describe('sketch component format', () => {
 
     const comp = parsed.component['button-primary-md'];
     expect(comp.fills[0].color).toBe('#1872f0ff');
-    expect(comp.fills[0].swatch).toEqual({ name: 'color/primary-main', type: 'Swatch' });
+    expect(comp.fills[0].swatch).toBe('color/primary-main');
 
     expect(comp.borders[0].color).toBe('#1872f0ff');
-    expect(comp.borders[0].swatch).toEqual({ name: 'color/primary-main', type: 'Swatch' });
+    expect(comp.borders[0].swatch).toBe('color/primary-main');
   });
 
   test('should propagate swatchName via inheritColor sibling', () => {
@@ -251,7 +251,7 @@ describe('sketch component format', () => {
 
     const comp = parsed.component['button-outline-md'];
     expect(comp.borders[0].color).toBe('#62748e5c');
-    expect(comp.borders[0].swatch).toEqual({ name: 'color/text-default', type: 'Swatch' });
+    expect(comp.borders[0].swatch).toBe('color/text-default');
   });
 
   test('should include swatch in component shadows when shadow color object has _swatchName', () => {
@@ -276,7 +276,7 @@ describe('sketch component format', () => {
     const comp = parsed.component['button-outline-md'];
     expect(comp.shadows).toHaveLength(1);
     expect(comp.shadows[0].color).toBe('#0f172bff');
-    expect(comp.shadows[0].swatch).toEqual({ name: 'color/shadow', type: 'Swatch' });
+    expect(comp.shadows[0].swatch).toBe('color/shadow');
   });
 
   test('should not include component key when no composite tokens exist', () => {
