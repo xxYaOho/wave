@@ -24,7 +24,7 @@ function getInheritColorOpacity(token: TransformedToken): number | undefined {
   return (token as Record<string, unknown>).inheritColorOpacity as number | undefined;
 }
 
-// Find sibling color token by slot name
+// Find sibling color token by slot name (legacy, returns color string)
 function findSiblingColor(
   tokens: TransformedToken[],
   currentPath: string[],
@@ -51,6 +51,28 @@ function findSiblingColor(
             return obj.color;
           }
         }
+      }
+    }
+  }
+
+  return undefined;
+}
+
+// Find sibling token object by slot name (for component colorInfo propagation)
+function findSiblingToken(
+  tokens: TransformedToken[],
+  currentPath: string[],
+  siblingSlot: string
+): TransformedToken | undefined {
+  const parentPath = currentPath.slice(0, -1);
+  const siblingPath = [...parentPath, siblingSlot];
+
+  for (const token of tokens) {
+    const tokenPath = token.path;
+    if (tokenPath.length === siblingPath.length) {
+      const match = tokenPath.every((p, i) => p === siblingPath[i]);
+      if (match) {
+        return token;
       }
     }
   }
@@ -89,7 +111,7 @@ function cleanValue(val: number | string): number | string {
   return val;
 }
 
-// 处理 shadow 层
+// 处理 shadow 层（style 分组使用，保持纯 color 字段）
 function processShadowLayer(layer: Record<string, unknown>): SketchShadowLayer {
   return {
     x: cleanValue(layer.offsetX as number | string),
@@ -100,11 +122,63 @@ function processShadowLayer(layer: Record<string, unknown>): SketchShadowLayer {
   };
 }
 
+// component shadow 层处理，支持 colorInfo
+type ComponentShadowLayer = Record<string, unknown>;
+
+function processComponentShadowLayer(layer: Record<string, unknown>): ComponentShadowLayer {
+  const result: ComponentShadowLayer = {
+    x: cleanValue(layer.offsetX as number | string),
+    y: cleanValue(layer.offsetY as number | string),
+    blur: cleanValue(layer.blur as number | string),
+    spread: cleanValue(layer.spread as number | string),
+    enabled: true,
+    isInnerShadow: false,
+    blendingMode: 'Normal',
+  };
+
+  const colorRaw = layer.color;
+  if (typeof colorRaw === 'string') {
+    result.color = hexToSketchColor(colorRaw);
+  } else if (typeof colorRaw === 'object' && colorRaw !== null && !Array.isArray(colorRaw)) {
+    const obj = colorRaw as Record<string, unknown>;
+    const innerColor = typeof obj.color === 'string' ? obj.color : String(colorRaw);
+    const hex = hexToSketchColor(innerColor);
+    result.color = hex;
+    if (typeof obj._swatchName === 'string') {
+      result.swatch = {
+        name: obj._swatchName,
+        type: 'Swatch',
+      };
+    }
+  } else {
+    result.color = hexToSketchColor(String(colorRaw));
+  }
+
+  return result;
+}
+
+// 从值对象中提取颜色字符串
+function extractColorFromValue(value: unknown): string | undefined {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, unknown>;
+    if ('_color' in obj && typeof obj._color === 'string') {
+      return obj._color;
+    }
+    if ('color' in obj && typeof obj.color === 'string') {
+      return obj.color;
+    }
+  }
+  return undefined;
+}
+
 // 解析 Sketch 颜色值（处理 inheritColor、opacity、_color 回退）
 function resolveSketchColor(
   token: TransformedToken,
   allTokens: TransformedToken[]
-): { color: string; opacity?: number } {
+): { color: string; opacity?: number; swatchName?: string } {
   const path = token.path;
   const tokenValue = token.$value ?? token.value;
   const t = token as unknown as Record<string, unknown>;
@@ -112,13 +186,18 @@ function resolveSketchColor(
 
   let colorValue: string | undefined;
   let opacityValue: number | undefined;
+  let swatchName: string | undefined;
 
   if (isInheritColorToken(token)) {
     const siblingSlot = getInheritColorSiblingSlot(token);
     opacityValue = getInheritColorOpacity(token);
 
     if (siblingSlot) {
-      colorValue = findSiblingColor(allTokens, path, siblingSlot);
+      const siblingToken = findSiblingToken(allTokens, path, siblingSlot);
+      if (siblingToken) {
+        colorValue = extractColorFromValue(siblingToken.$value ?? siblingToken.value);
+        swatchName = (siblingToken as Record<string, unknown>)._swatchName as string | undefined;
+      }
     }
 
     if (!colorValue) {
@@ -144,11 +223,14 @@ function resolveSketchColor(
     } else if (t.currentColorOpacity !== undefined) {
       opacityValue = t.currentColorOpacity as number;
     }
+
+    swatchName = t._swatchName as string | undefined;
   }
 
   return {
     color: colorValue,
     ...(typeof opacityValue === 'number' && { opacity: opacityValue }),
+    ...(swatchName !== undefined && { swatchName }),
   };
 }
 
@@ -158,6 +240,21 @@ function mapGradientStops(gradientArray: Array<Record<string, unknown>>): Array<
     color: hexToSketchColor(String(stop.color)),
     position: stop.position,
   }));
+}
+
+// 为 Sketch 颜色层追加 swatch 关联（仅当有 swatchName 时）
+function addSketchSwatch<T extends Record<string, unknown>>(
+  base: T,
+  swatchName?: string
+): T & { swatch?: { name: string; type: 'Swatch' } } {
+  if (!swatchName) return base as T & { swatch?: { name: string; type: 'Swatch' } };
+  return {
+    ...base,
+    swatch: {
+      name: swatchName,
+      type: 'Swatch',
+    },
+  };
 }
 
 // 主转换函数
@@ -216,32 +313,35 @@ export const sketchFormat: Format = {
               },
             ];
           } else {
-            const { color, opacity } = resolveSketchColor(token, sortedTokens);
+            const { color, opacity, swatchName } = resolveSketchColor(token, sortedTokens);
+            const finalColor = opacity !== undefined ? applyOpacityToHex(color, opacity) : hexToSketchColor(color);
             componentObj.fills = [
-              {
+              addSketchSwatch({
                 fillType: 'Color',
-                color: opacity !== undefined ? applyOpacityToHex(color, opacity) : hexToSketchColor(color),
+                color: finalColor,
                 enabled: true,
                 blendingMode: 'Normal',
-              },
+              }, swatchName),
             ];
           }
         } else if (propKey === 'foreground' || propKey === 'color') {
-          const { color, opacity } = resolveSketchColor(token, sortedTokens);
-          componentObj.textColor = opacity !== undefined ? applyOpacityToHex(color, opacity) : hexToSketchColor(color);
+          const { color, opacity, swatchName } = resolveSketchColor(token, sortedTokens);
+          const finalColor = opacity !== undefined ? applyOpacityToHex(color, opacity) : hexToSketchColor(color);
+          componentObj.textColor = finalColor;
         } else if (propKey === 'border') {
-          const { color, opacity } = resolveSketchColor(token, sortedTokens);
+          const { color, opacity, swatchName } = resolveSketchColor(token, sortedTokens);
+          const finalColor = opacity !== undefined ? applyOpacityToHex(color, opacity) : hexToSketchColor(color);
           componentObj.borders = [
-            {
+            addSketchSwatch({
               fillType: 'Color',
-              color: opacity !== undefined ? applyOpacityToHex(color, opacity) : hexToSketchColor(color),
+              color: finalColor,
               position: 'Inside',
               thickness: 1,
               enabled: true,
               blendingMode: 'Normal',
               hasIndividualSides: false,
               sides: { left: 1, top: 1, right: 1, bottom: 1 },
-            },
+            }, swatchName),
           ];
         } else if (propKey === 'radius' || propKey === 'border-radius') {
           const radiusValue = typeof tokenValue === 'string' ? parseFloat(tokenValue) : (typeof tokenValue === 'number' ? tokenValue : NaN);
@@ -258,14 +358,9 @@ export const sketchFormat: Format = {
           } else if (typeof tokenValue === 'object' && tokenValue !== null) {
             shadowArray = [tokenValue as Record<string, unknown>];
           }
-          componentObj.shadows = shadowArray.reverse().map((layer) => ({
-            ...processShadowLayer(layer),
-            enabled: true,
-            isInnerShadow: false,
-            blendingMode: 'Normal',
-          }));
+          componentObj.shadows = shadowArray.reverse().map(processComponentShadowLayer);
         } else {
-          // 其他未知属性原样保留（清理内部字段后）
+          // 其他未知属性原样保留
           componentObj[propKey] = tokenValue;
         }
 

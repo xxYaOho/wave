@@ -260,6 +260,7 @@ export interface ResolvedDtcgToken {
   $description?: string;
   $deprecated?: boolean | string;
   $extensions?: Record<string, unknown>;
+  _swatchName?: string;
 }
 
 export interface ResolvedTokenGroup {
@@ -287,6 +288,8 @@ export interface SdTokenValue {
   inheritColor?: boolean;
   /** inheritColor metadata: Sketch siblingSlot hint */
   inheritColorSiblingSlot?: string;
+  /** original referenced token path for sketch variable mapping */
+  _swatchName?: string;
 }
 
 export type SdTokenTree = {

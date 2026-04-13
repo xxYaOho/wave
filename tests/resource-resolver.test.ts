@@ -264,7 +264,7 @@ describe('generalized resolver', () => {
     const alias = ((result.theme as unknown) as { style: { shadowAlias: { $value: unknown } } }).style
       .shadowAlias.$value as Record<string, unknown>;
 
-    expect(alias.color).toEqual({ color: '#2b3248', alpha: 0.08 });
+    expect(alias.color).toEqual({ color: '#2b3248', alpha: 0.08, _swatchName: 'theme/color/shadow' });
     expect(alias.offsetX).toEqual({ value: 0 });
     expect(alias.offsetY).toEqual({ value: '4px', unit: 'px' });
     expect(alias.blur).toEqual({ value: 8 });

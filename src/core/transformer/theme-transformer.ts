@@ -530,6 +530,8 @@ function transformToken(
     // Legacy currentColor metadata (deprecated)
     ...(currentColorOpacity !== undefined && { currentColorOpacity }),
     ...(currentColorShadowAlpha !== undefined && { currentColorShadowAlpha }),
+    // Original referenced token path for sketch variable mapping
+    ...(token._swatchName !== undefined && { _swatchName: token._swatchName }),
   };
 
   if (typeValue !== undefined) {
