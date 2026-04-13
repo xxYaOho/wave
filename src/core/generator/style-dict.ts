@@ -46,13 +46,8 @@ function registerWaveExtensions(): void {
   });
 }
 
-let extensionsRegistered = false;
-
 function ensureExtensionsRegistered(): void {
-  if (!extensionsRegistered) {
-    registerWaveExtensions();
-    extensionsRegistered = true;
-  }
+  registerWaveExtensions();
 }
 
 export async function generateTokens(
@@ -103,7 +98,7 @@ export async function generateTokens(
           files: [{
             destination: `${themeName}.css`,
             format: cssVariablesWithDescFormat.name,
-            options: { filterLayer, groupComments: options.groupComments },
+            options: { filterLayer, groupComments: options.groupComments, includeRootKeys: ['color', 'style'] },
           }],
         };
         validPlatforms.add('css');
