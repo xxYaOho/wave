@@ -4,6 +4,7 @@ import { shadowToCss, gradientToCss } from './css-var.ts';
 export interface CssVariablesWithDescOptions {
   filterLayer?: number;
   groupComments?: Record<string, string>;
+  includeRootKeys?: string[];
 }
 
 function getFilteredName(token: TransformedToken, filterLayer: number): string {
@@ -81,15 +82,22 @@ function getGroupCommentPaths(tokenPath: string[]): string[] {
   return paths;
 }
 
+function shouldInclude(token: TransformedToken, includeRootKeys?: string[]): boolean {
+  if (!includeRootKeys || includeRootKeys.length === 0) return true;
+  const rootKey = token.path[1];
+  return typeof rootKey === 'string' && includeRootKeys.includes(rootKey);
+}
+
 function formatCssVariables(
   tokens: TransformedToken[],
   filterLayer: number = 0,
-  groupComments: Record<string, string> = {}
+  groupComments: Record<string, string> = {},
+  includeRootKeys?: string[]
 ): string {
   const lines: string[] = [':root {'];
 
-  // 保持原始顺序（依赖 transformer 注入的 _order）
-  const sortedTokens = [...tokens].sort((a, b) => (a._order ?? 0) - (b._order ?? 0));
+  const filtered = includeRootKeys ? tokens.filter(t => shouldInclude(t, includeRootKeys)) : tokens;
+  const sortedTokens = [...filtered].sort((a, b) => (a._order ?? 0) - (b._order ?? 0));
   const emittedGroups = new Set<string>();
 
   for (const token of sortedTokens) {
@@ -139,7 +147,8 @@ export const cssVariablesWithDescFormat: Format = {
   format: ({ dictionary, options }: { dictionary: Dictionary; options: Record<string, unknown> }) => {
     const filterLayer = (options?.filterLayer as number) ?? 0;
     const groupComments = (options?.groupComments as Record<string, string>) ?? {};
-    return formatCssVariables(dictionary.allTokens, filterLayer, groupComments);
+    const includeRootKeys = (options?.includeRootKeys as string[] | undefined);
+    return formatCssVariables(dictionary.allTokens, filterLayer, groupComments, includeRootKeys);
   },
 };
 
