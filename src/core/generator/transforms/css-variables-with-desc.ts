@@ -26,13 +26,15 @@ function formatTokenValue(token: TransformedToken): string {
   // inheritColor v1: check inheritColor metadata first
   const inheritColor = (token as Record<string, unknown>).inheritColor;
   const inheritColorOpacity = (token as Record<string, unknown>).inheritColorOpacity;
+  const inheritColorAlpha = (token as Record<string, unknown>).inheritColorAlpha;
 
   if (inheritColor === true) {
-    if (typeof inheritColorOpacity === 'number') {
-      const percent = Math.round(inheritColorOpacity * 100);
+    const numericValue = typeof inheritColorAlpha === 'number' ? inheritColorAlpha : inheritColorOpacity;
+    if (typeof numericValue === 'number') {
+      const percent = Math.round(numericValue * 100);
       return `color-mix(in srgb, currentColor ${percent}%, transparent)`;
     }
-    // Plain inheritColor without opacity
+    // Plain inheritColor without opacity/alpha
     return 'currentColor';
   }
 

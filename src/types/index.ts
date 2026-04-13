@@ -283,6 +283,8 @@ export interface SdTokenValue {
   currentColorShadowAlpha?: number;
   /** inheritColor metadata: normalized opacity value (0..1) */
   inheritColorOpacity?: number;
+  /** inheritColor metadata: normalized alpha value (0..1) */
+  inheritColorAlpha?: number;
   /** inheritColor metadata: true if this token uses inheritColor */
   inheritColor?: boolean;
   /** inheritColor metadata: Sketch siblingSlot hint */

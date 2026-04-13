@@ -104,23 +104,25 @@ function validateInheritColor(
   if (typeof inheritColor === 'object' && inheritColor !== null) {
     const obj = inheritColor as Record<string, unknown>;
 
-    // Validate property.opacity if present
+    // Validate property.opacity / property.alpha if present
     const property = obj.property;
     if (property !== undefined && typeof property === 'object' && property !== null) {
       const propObj = property as Record<string, unknown>;
-      if ('opacity' in propObj) {
-        const opacity = propObj.opacity;
-        const isValidOpacity =
-          typeof opacity === 'number' ||
-          (typeof opacity === 'string' && opacity.startsWith('{') && opacity.endsWith('}')) ||
-          (typeof opacity === 'object' && opacity !== null && '$ref' in opacity);
+      for (const propKey of ['opacity', 'alpha'] as const) {
+        if (propKey in propObj) {
+          const val = propObj[propKey];
+          const isValid =
+            typeof val === 'number' ||
+            (typeof val === 'string' && val.startsWith('{') && val.endsWith('}')) ||
+            (typeof val === 'object' && val !== null && '$ref' in val);
 
-        if (!isValidOpacity) {
-          issues.push({
-            path: `${tokenPath}.$extensions.inheritColor.property.opacity`,
-            level: 'error',
-            message: `inheritColor.property.opacity must be a number, alias (string), or $ref object`,
-          });
+          if (!isValid) {
+            issues.push({
+              path: `${tokenPath}.$extensions.inheritColor.property.${propKey}`,
+              level: 'error',
+              message: `inheritColor.property.${propKey} must be a number, alias (string), or $ref object`,
+            });
+          }
         }
       }
     }

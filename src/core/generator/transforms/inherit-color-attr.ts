@@ -15,6 +15,7 @@ export const inheritColorAttributeTransform: Transform = {
       return (
         "inheritColor" in tokenValue ||
         "inheritColorOpacity" in tokenValue ||
+        "inheritColorAlpha" in tokenValue ||
         "inheritColorSiblingSlot" in tokenValue ||
         "currentColorOpacity" in tokenValue ||
         "currentColorShadowAlpha" in tokenValue
@@ -37,6 +38,9 @@ export const inheritColorAttributeTransform: Transform = {
     }
     if ("inheritColorOpacity" in value) {
       attrs.inheritColorOpacity = value.inheritColorOpacity;
+    }
+    if ("inheritColorAlpha" in value) {
+      attrs.inheritColorAlpha = value.inheritColorAlpha;
     }
     if ("inheritColorSiblingSlot" in value) {
       attrs.inheritColorSiblingSlot = value.inheritColorSiblingSlot;

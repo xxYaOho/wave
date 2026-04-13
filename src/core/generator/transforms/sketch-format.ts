@@ -25,6 +25,11 @@ function getInheritColorOpacity(token: TransformedToken): number | undefined {
   return (token as Record<string, unknown>).inheritColorOpacity as number | undefined;
 }
 
+// Get inheritColor alpha
+function getInheritColorAlpha(token: TransformedToken): number | undefined {
+  return (token as Record<string, unknown>).inheritColorAlpha as number | undefined;
+}
+
 // Find sibling color token by slot name
 function findSiblingColor(
   tokens: TransformedToken[],
@@ -130,11 +135,13 @@ export const sketchFormat: Format = {
 
           let colorValue: string | undefined;
           let opacityValue: number | undefined;
+          let alphaValue: number | undefined;
 
           // Handle inheritColor v1
           if (isInheritColorToken(token)) {
             const siblingSlot = getInheritColorSiblingSlot(token);
             opacityValue = getInheritColorOpacity(token);
+            alphaValue = getInheritColorAlpha(token);
 
             if (siblingSlot) {
               // Try to find sibling color token
@@ -175,9 +182,12 @@ export const sketchFormat: Format = {
             color: hexToSketchColor(colorValue)
           };
 
-          // 添加 opacity
+          // 添加 opacity 和 alpha（Sketch 支持双字段同时存在）
           if (typeof opacityValue === 'number') {
             result.opacity = opacityValue;
+          }
+          if (typeof alphaValue === 'number') {
+            result.alpha = alphaValue;
           }
 
           styleGroup[styleKey] = result;

@@ -367,25 +367,25 @@ export function transformToSDFormat(
 
 
 /**
- * Extract normalized opacity value from inheritColor.opacity
+ * Extract normalized numeric value from inheritColor.property (opacity / alpha)
  * Handles: number, alias, $ref object
  */
-function extractInheritColorOpacity(
-  opacityData: unknown,
+function extractInheritColorPropertyValue(
+  data: unknown,
   _tokenPath?: string
 ): number | undefined {
-  if (opacityData === undefined) {
+  if (data === undefined) {
     return undefined;
   }
 
   // Direct number
-  if (typeof opacityData === 'number') {
-    return opacityData >= 0 && opacityData <= 1 ? opacityData : undefined;
+  if (typeof data === 'number') {
+    return data >= 0 && data <= 1 ? data : undefined;
   }
 
   // Resolved alias or $ref - should have $value after resolution
-  if (typeof opacityData === 'object' && opacityData !== null) {
-    const obj = opacityData as Record<string, unknown>;
+  if (typeof data === 'object' && data !== null) {
+    const obj = data as Record<string, unknown>;
     if ('$value' in obj) {
       const resolvedValue = obj.$value;
       if (typeof resolvedValue === 'number') {
@@ -399,6 +399,18 @@ function extractInheritColorOpacity(
   }
 
   return undefined;
+}
+
+/**
+ * Extract normalized opacity value from inheritColor.opacity
+ * Handles: number, alias, $ref object
+ * @deprecated Use extractInheritColorPropertyValue instead
+ */
+function extractInheritColorOpacity(
+  opacityData: unknown,
+  tokenPath?: string
+): number | undefined {
+  return extractInheritColorPropertyValue(opacityData, tokenPath);
 }
 
 /**
@@ -441,6 +453,7 @@ function transformToken(
   // inheritColor extension (v1)
   let inheritColor: boolean | undefined;
   let inheritColorOpacity: number | undefined;
+  let inheritColorAlpha: number | undefined;
   let inheritColorSiblingSlot: string | undefined;
   const inheritColorExt = token.$extensions?.inheritColor;
   if (inheritColorExt !== undefined && typeValue === 'color') {
@@ -448,15 +461,20 @@ function transformToken(
     if (typeof inheritColorExt === 'boolean') {
       inheritColor = inheritColorExt;
     }
-    // Object form: inheritColor: { opacity?, siblingSlot? }
+    // Object form: inheritColor: { property?: { opacity?, alpha? }, siblingSlot? }
     else if (typeof inheritColorExt === 'object' && inheritColorExt !== null) {
       inheritColor = true;
       const extObj = inheritColorExt as Record<string, unknown>;
 
-      // Extract opacity from property.opacity (handles number, alias, $ref)
+      // Extract opacity/alpha from property (handles number, alias, $ref)
       const propertyObj = extObj.property as Record<string, unknown> | undefined;
-      if (propertyObj && typeof propertyObj === 'object' && 'opacity' in propertyObj) {
-        inheritColorOpacity = extractInheritColorOpacity(propertyObj.opacity, tokenPath);
+      if (propertyObj && typeof propertyObj === 'object') {
+        if ('alpha' in propertyObj) {
+          inheritColorAlpha = extractInheritColorPropertyValue(propertyObj.alpha, tokenPath);
+        }
+        if ('opacity' in propertyObj) {
+          inheritColorOpacity = extractInheritColorPropertyValue(propertyObj.opacity, tokenPath);
+        }
       }
 
       // Extract siblingSlot for Sketch
@@ -466,11 +484,12 @@ function transformToken(
     // Store original color for potential fallback use
     const originalColor = typeof processedValue === 'string' ? processedValue : undefined;
 
-    // If opacity is specified, format as object with _color preserved
-    if (inheritColorOpacity !== undefined) {
+    // Build processed value with alpha/opacity metadata
+    if (inheritColorAlpha !== undefined || inheritColorOpacity !== undefined) {
       processedValue = {
-        opacity: inheritColorOpacity,
-        ...(originalColor !== undefined && { _color: originalColor })
+        ...(inheritColorAlpha !== undefined && { alpha: inheritColorAlpha }),
+        ...(inheritColorOpacity !== undefined && { opacity: inheritColorOpacity }),
+        ...(originalColor !== undefined && { _color: originalColor }),
       };
     }
   }
@@ -522,6 +541,7 @@ function transformToken(
     // inheritColor v1 metadata
     ...(inheritColor !== undefined && { inheritColor }),
     ...(inheritColorOpacity !== undefined && { inheritColorOpacity }),
+    ...(inheritColorAlpha !== undefined && { inheritColorAlpha }),
     ...(inheritColorSiblingSlot !== undefined && { inheritColorSiblingSlot }),
     // Legacy currentColor metadata (deprecated)
     ...(currentColorOpacity !== undefined && { currentColorOpacity }),

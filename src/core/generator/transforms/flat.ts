@@ -78,9 +78,21 @@ function getInheritColorOpacity(token: TransformedToken): number | undefined {
   return (token as Record<string, unknown>).inheritColorOpacity as number | undefined;
 }
 
+// Get inheritColor alpha if present
+function getInheritColorAlpha(token: TransformedToken): number | undefined {
+  return (token as Record<string, unknown>).inheritColorAlpha as number | undefined;
+}
+
 // Format value for fast-json protocol
 function formatInheritColorValue(token: TransformedToken): unknown {
+  const alpha = getInheritColorAlpha(token);
   const opacity = getInheritColorOpacity(token);
+  if (typeof alpha === 'number' && typeof opacity === 'number') {
+    return { color: '$COLOR_FOREGROUND', alpha, opacity };
+  }
+  if (typeof alpha === 'number') {
+    return { color: '$COLOR_FOREGROUND', alpha };
+  }
   if (typeof opacity === 'number') {
     return { color: '$COLOR_FOREGROUND', opacity };
   }
