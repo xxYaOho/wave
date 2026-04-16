@@ -20,6 +20,26 @@ async function runWave(
 }
 
 describe('wave show', () => {
+	test('lists built-in palettes and dimensions without args', async () => {
+		const { exitCode, stdout } = await runWave(['show']);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('Palettes:');
+		expect(stdout).toContain('Dimensions:');
+		expect(stdout).toContain('leonardo');
+		expect(stdout).toContain('tailwindcss4');
+		expect(stdout).toContain('wave');
+	});
+
+	test('lists resources for a category', async () => {
+		const { exitCode, stdout } = await runWave(['show', 'palette']);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('Palettes:');
+		expect(stdout).toContain('leonardo');
+		expect(stdout).toContain('tailwindcss4');
+	});
+
 	test('outputs flat-json for a palette by default', async () => {
 		const { exitCode, stdout } = await runWave(['show', 'tailwindcss4']);
 
@@ -59,6 +79,19 @@ describe('wave show', () => {
 		expect(parsed).toHaveProperty('leonardo');
 	});
 
+	test('shows resource detail with category and name', async () => {
+		const { exitCode, stdout } = await runWave([
+			'show',
+			'palette',
+			'tailwindcss4',
+			'--format',
+			'yaml',
+		]);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('tailwindcss4:');
+	});
+
 	test('returns error for nonexistent resource', async () => {
 		const { exitCode, stderr } = await runWave(['show', 'nonexistent']);
 
@@ -76,5 +109,16 @@ describe('wave show', () => {
 
 		expect(exitCode).not.toBe(0);
 		expect(stderr).toContain('Unknown format');
+	});
+
+	test('returns error for unknown category', async () => {
+		const { exitCode, stderr } = await runWave([
+			'show',
+			'unknown-category',
+			'some-name',
+		]);
+
+		expect(exitCode).not.toBe(0);
+		expect(stderr).toContain('Unknown category');
 	});
 });
