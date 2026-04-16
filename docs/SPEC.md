@@ -567,7 +567,7 @@ theme:
 
 ### doctor.wcagPairs
 
-独立 rootKey `doctor`，用于声明 WCAG 对比度检查 pair。非必需，不存在时 `wave doctor --theme` 提示无可检查配对。
+独立 rootKey `doctor`，用于声明 WCAG 对比度检查 pair。非必需，不存在时 `wave doctor --contrast` 提示无可检查配对。
 
 **声明格式：**
 
@@ -613,10 +613,10 @@ doctor:
 
 ```bash
 # 默认读取当前目录 themefile
-wave doctor --theme
+wave doctor --contrast
 
 # 显式指定 themefile 路径
-wave doctor --theme --file ./my-theme/themefile
+wave doctor --contrast --file ./my-theme/themefile
 ```
 
 ---

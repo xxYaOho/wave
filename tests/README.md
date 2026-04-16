@@ -50,7 +50,7 @@ bun test tests/utils/fixture-loader.test.ts
 
 ### Doctor Contrast 测试主题 (fixtures/themes/doctor-contrast-*/)
 
-测试 `wave doctor --theme` 的 WCAG 对比度评分（基于独立 `doctor.wcagPairs` rootKey）：
+测试 `wave doctor --contrast` 的 WCAG 对比度评分（基于独立 `doctor.wcagPairs` rootKey）：
 
 - `doctor-contrast-pass/`：高对比度 pair，输出全绿，退出码 0
 - `doctor-contrast-report/`：低对比度 pair，输出红色评分，退出码 0（评分失败不阻断）

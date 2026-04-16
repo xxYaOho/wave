@@ -72,12 +72,12 @@ function compareVersions(a: string, b: string): number {
 }
 
 export const doctorCommand = new Command('doctor')
-	.description('Check tool health status')
+	.description('Run health diagnostics and contrast checks')
 	.option('-f, --file <path>', 'Themefile path to validate')
 	.option('-o, --output <path>', 'Output directory to check')
-	.option('--theme', 'Run theme contrast check')
+	.option('--contrast', 'Run WCAG contrast check on theme colors')
 	.action(async (options) => {
-		if (!options.theme) {
+		if (!options.contrast) {
 			console.log('🔍 Running Wave diagnostics...\n');
 
 			const currentVersion = Bun.version;
@@ -118,7 +118,7 @@ export const doctorCommand = new Command('doctor')
 			return;
 		}
 
-		// --theme mode
+		// --contrast mode
 		const loadResult = await loadThemefile(options.file);
 		if ('error' in loadResult) {
 			console.log(`✗ ${loadResult.error.message}`);

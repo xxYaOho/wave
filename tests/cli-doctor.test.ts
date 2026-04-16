@@ -27,10 +27,10 @@ describe('wave doctor', () => {
 		expect(stdout).toContain('All checks passed!');
 	});
 
-	test('--theme with pass fixture exits 0 and shows green scores', async () => {
+	test('--contrast with pass fixture exits 0 and shows green scores', async () => {
 		const { exitCode, stdout } = await runWave([
 			'doctor',
-			'--theme',
+			'--contrast',
 			'--file',
 			'tests/fixtures/themes/doctor-contrast-pass/themefile',
 		]);
@@ -44,10 +44,10 @@ describe('wave doctor', () => {
 		expect(stdout).not.toContain('🔴');
 	});
 
-	test('--theme with report fixture exits 0 and shows red scores', async () => {
+	test('--contrast with report fixture exits 0 and shows red scores', async () => {
 		const { exitCode, stdout } = await runWave([
 			'doctor',
-			'--theme',
+			'--contrast',
 			'--file',
 			'tests/fixtures/themes/doctor-contrast-report/themefile',
 		]);
@@ -59,10 +59,10 @@ describe('wave doctor', () => {
 		expect(stdout).toContain('🔴 UI Components');
 	});
 
-	test('--theme with invalid fixture exits non-zero', async () => {
+	test('--contrast with invalid fixture exits non-zero', async () => {
 		const { exitCode, stdout } = await runWave([
 			'doctor',
-			'--theme',
+			'--contrast',
 			'--file',
 			'tests/fixtures/themes/doctor-contrast-invalid/themefile',
 		]);
@@ -70,10 +70,10 @@ describe('wave doctor', () => {
 		expect(stdout).toContain('✗');
 	});
 
-	test('--theme with empty fixture exits 0 and indicates no pairs', async () => {
+	test('--contrast with empty fixture exits 0 and indicates no pairs', async () => {
 		const { exitCode, stdout } = await runWave([
 			'doctor',
-			'--theme',
+			'--contrast',
 			'--file',
 			'tests/fixtures/themes/doctor-contrast-empty/themefile',
 		]);
