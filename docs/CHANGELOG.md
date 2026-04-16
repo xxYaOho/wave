@@ -1,6 +1,24 @@
 # Changelog
 
-All notable changes to wave will be documented in this file.
+> v0.15.0 及更早版本的历史记录见此文件。后续版本变更由 changesets 管理，参见 [CHANGELOG.md](../../CHANGELOG.md)。
+
+## v0.15.0 — 2026-04-13
+
+> Sketch component 输出 + swatch 关联 + inheritColor alpha 支持
+
+### Added
+
+- **Sketch component composite 输出**: composite token 自动映射为 Sketch Style 字段（background、foreground、border、radius、shadow）
+  - 组件颜色自动关联 swatch 变量（`_swatchName`）
+  - shadow 层支持 `colorInfo` 传播
+  - gradient 映射为 `fillType: Gradient`
+- **inheritColor.property.alpha**: 新增 alpha 属性，与 opacity 可共存
+  - alpha 表达色彩通道，opacity 表达对象透明度，alpha-first
+  - CSS 输出共用 color-mix，Flat JSON 输出独立 alpha 字段
+  - Sketch 支持双字段同时存在
+- **版本号单一源头**: `src/config/index.ts` 改为从 `package.json` 动态读取，消除硬编码副本
+
+---
 
 ## v0.14.0 — 2026-04-11
 
