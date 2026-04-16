@@ -85,13 +85,34 @@ export async function detectThemeFiles(
 			.catch(() => false)
 	) {
 		const entries = await fs.readdir(variantsDir, { withFileTypes: true });
+		const variantBases = new Set<string>();
 		for (const entry of entries) {
 			if (entry.isFile() && entry.name.endsWith('.yaml')) {
 				const variantName = path.basename(entry.name, '.yaml');
+				// Skip @night variants — handled separately below
+				if (variantName.includes('@night')) continue;
+				variantBases.add(variantName);
 				files.push({
 					name: variantName,
 					path: path.join(variantsDir, entry.name),
 					suffix: `-${variantName}`,
+				});
+			}
+		}
+		// Detect variant@night.yaml files
+		for (const base of variantBases) {
+			const nightFile = `${base}@night.yaml`;
+			const nightPath = path.join(variantsDir, nightFile);
+			if (
+				await fs
+					.access(nightPath)
+					.then(() => true)
+					.catch(() => false)
+			) {
+				files.push({
+					name: `${base}@night`,
+					path: nightPath,
+					suffix: `-${base}-night`,
 				});
 			}
 		}

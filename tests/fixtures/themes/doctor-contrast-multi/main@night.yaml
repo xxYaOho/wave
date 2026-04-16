@@ -1,0 +1,14 @@
+theme:
+  color:
+    primary:
+      main:
+        $type: color
+        $value: "#111827"
+      on-main:
+        $type: color
+        $value: "#f9fafb"
+doctor:
+  wcagPairs:
+    primary-main:
+      foreground: "{theme.color.primary.on-main}"
+      background: "{theme.color.primary.main}"
