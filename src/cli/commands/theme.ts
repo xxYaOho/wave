@@ -1,22 +1,22 @@
-import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { Command } from 'commander';
-import {
-  ExitCode,
-  type GenerateOptions,
-} from '../../types/index.ts';
 import { VERSION } from '../../config/index.ts';
+import {
+	generateTheme,
+	type ThemeGenerationInput,
+} from '../../core/pipeline/theme-service.ts';
+import { ExitCode, type GenerateOptions } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
-import { generateTheme, type ThemeGenerationInput } from '../../core/pipeline/theme-service.ts';
 
 interface ThemeCommandOptions {
-  file?: string;
-  night?: boolean;
-  noVariants?: boolean;
-  variants?: string | boolean;
-  init?: boolean;
-  output?: string;
-  platform?: string;
+	file?: string;
+	night?: boolean;
+	noVariants?: boolean;
+	variants?: string | boolean;
+	init?: boolean;
+	output?: string;
+	platform?: string;
 }
 
 // Template files embedded for standalone binary distribution
@@ -133,141 +133,146 @@ wave theme -f ./path/to/themefile
 `;
 
 function parseCliOptions(options: ThemeCommandOptions): GenerateOptions {
-  const result: GenerateOptions = {
-    night: options.night !== false,
-  };
+	const result: GenerateOptions = {
+		night: options.night !== false,
+	};
 
-  if (options.noVariants === true) {
-    result.variants = [];
-  } else if (options.variants === false) {
-    result.variants = [];
-  } else if (options.variants === undefined || options.variants === true) {
-    result.variants = undefined;
-  } else if (typeof options.variants === 'string') {
-    result.variants = options.variants
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
+	if (options.noVariants === true) {
+		result.variants = [];
+	} else if (options.variants === false) {
+		result.variants = [];
+	} else if (options.variants === undefined || options.variants === true) {
+		result.variants = undefined;
+	} else if (typeof options.variants === 'string') {
+		result.variants = options.variants
+			.split(',')
+			.map((s) => s.trim())
+			.filter(Boolean);
+	}
 
-  return result;
+	return result;
 }
 
 async function initThemeTemplate(): Promise<boolean> {
-  const cwd = process.cwd();
-  const themefilePath = path.join(cwd, 'themefile');
+	const cwd = process.cwd();
+	const themefilePath = path.join(cwd, 'themefile');
 
-  // Check if themefile already exists
-  try {
-    await fs.access(themefilePath);
-    logger.error('A themefile already exists in the current directory');
-    process.exitCode = ExitCode.GENERAL_ERROR;
-    return false;
-  } catch {
-    // File doesn't exist, proceed
-  }
+	// Check if themefile already exists
+	try {
+		await fs.access(themefilePath);
+		logger.error('A themefile already exists in the current directory');
+		process.exitCode = ExitCode.GENERAL_ERROR;
+		return false;
+	} catch {
+		// File doesn't exist, proceed
+	}
 
-  const files = [
-    { name: 'themefile', content: TEMPLATE_THEMEFILE },
-    { name: 'main.yaml', content: TEMPLATE_MAIN_YAML },
-    { name: 'manual.md', content: TEMPLATE_MANUAL_MD },
-  ];
+	const files = [
+		{ name: 'themefile', content: TEMPLATE_THEMEFILE },
+		{ name: 'main.yaml', content: TEMPLATE_MAIN_YAML },
+		{ name: 'manual.md', content: TEMPLATE_MANUAL_MD },
+	];
 
-  try {
-    for (const { name, content } of files) {
-      const destPath = path.join(cwd, name);
-      await fs.writeFile(destPath, content, 'utf-8');
-      logger.success(`Created: ${name}`);
-    }
+	try {
+		for (const { name, content } of files) {
+			const destPath = path.join(cwd, name);
+			await fs.writeFile(destPath, content, 'utf-8');
+			logger.success(`Created: ${name}`);
+		}
 
-    logger.info('');
-    logger.success('Theme template initialized successfully!');
-    logger.info('');
-    logger.info('Next steps:');
-    logger.info('  1. Edit themefile to configure your theme');
-    logger.info('  2. Edit main.yaml to define your tokens');
-    logger.info('  3. See manual.md for detailed usage');
-    logger.info('  4. Run "wave theme" to generate tokens');
-    return true;
-  } catch (err) {
-    logger.error(`Failed to initialize template: ${err instanceof Error ? err.message : String(err)}`);
-    process.exitCode = ExitCode.GENERAL_ERROR;
-    return false;
-  }
+		logger.info('');
+		logger.success('Theme template initialized successfully!');
+		logger.info('');
+		logger.info('Next steps:');
+		logger.info('  1. Edit themefile to configure your theme');
+		logger.info('  2. Edit main.yaml to define your tokens');
+		logger.info('  3. See manual.md for detailed usage');
+		logger.info('  4. Run "wave theme" to generate tokens');
+		return true;
+	} catch (err) {
+		logger.error(
+			`Failed to initialize template: ${err instanceof Error ? err.message : String(err)}`,
+		);
+		process.exitCode = ExitCode.GENERAL_ERROR;
+		return false;
+	}
 }
 
 // CQ-007: CLI is now a thin shell over the core theme service
 // All orchestration logic has been moved to theme-service.ts
 export const themeCommand = new Command('theme')
-  .description('Generate theme tokens')
-  .argument('[name]', 'Theme name to generate')
-  .option('-f, --file <path>', 'Themefile path')
-  .option('--no-night', 'Disable night mode generation')
-  .option('--no-variants', 'Disable variants generation')
-  .option('--variants [names]', 'Specify variants (comma separated)')
-  .option('--init', 'Create theme template in current directory')
-  .option('-o, --output <dir>', 'Output directory')
-  .option('--platform <list>', 'Output platforms (comma separated): json, jsonc, css')
-  .action(async (name: string | undefined, options: ThemeCommandOptions) => {
-    if (options.init) {
-      const success = await initThemeTemplate();
-      if (success) {
-        process.exitCode = ExitCode.SUCCESS;
-      }
-      return;
-    }
+	.description('Generate theme tokens')
+	.argument('[name]', 'Theme name to generate')
+	.option('-f, --file <path>', 'Themefile path')
+	.option('--no-night', 'Disable night mode generation')
+	.option('--no-variants', 'Disable variants generation')
+	.option('--variants [names]', 'Specify variants (comma separated)')
+	.option('--init', 'Create theme template in current directory')
+	.option('-o, --output <dir>', 'Output directory')
+	.option(
+		'--platform <list>',
+		'Output platforms (comma separated): json, jsonc, css',
+	)
+	.action(async (name: string | undefined, options: ThemeCommandOptions) => {
+		if (options.init) {
+			const success = await initThemeTemplate();
+			if (success) {
+				process.exitCode = ExitCode.SUCCESS;
+			}
+			return;
+		}
 
-    let themeName = name;
+		let themeName = name;
 
-    if (!themeName && !options.file) {
-      const defaultThemefile = 'themefile';
-      const file = Bun.file(defaultThemefile);
-      if (await file.exists()) {
-        options.file = defaultThemefile;
-        themeName = 'theme';
-      } else {
-        console.error('Error: No themefile found in current directory');
-        console.error('Usage: wave theme [path] or wave theme -f <path>');
-        console.error('Run "wave theme --init" to create a theme template');
-        process.exitCode = ExitCode.FILE_NOT_FOUND;
-        return;
-      }
-    }
+		if (!themeName && !options.file) {
+			const defaultThemefile = 'themefile';
+			const file = Bun.file(defaultThemefile);
+			if (await file.exists()) {
+				options.file = defaultThemefile;
+				themeName = 'theme';
+			} else {
+				console.error('Error: No themefile found in current directory');
+				console.error('Usage: wave theme [path] or wave theme -f <path>');
+				console.error('Run "wave theme --init" to create a theme template');
+				process.exitCode = ExitCode.FILE_NOT_FOUND;
+				return;
+			}
+		}
 
-    if (!themeName && options.file) {
-      themeName = 'theme';
-    }
+		if (!themeName && options.file) {
+			themeName = 'theme';
+		}
 
-    if (!themeName) {
-      console.error('Error: Theme name is required');
-      console.error('Usage: wave theme [path] or wave theme -f <path>');
-      process.exitCode = ExitCode.MISSING_PARAMETER;
-      return;
-    }
+		if (!themeName) {
+			console.error('Error: Theme name is required');
+			console.error('Usage: wave theme [path] or wave theme -f <path>');
+			process.exitCode = ExitCode.MISSING_PARAMETER;
+			return;
+		}
 
-    logger.info(`Generating theme: ${themeName}`);
-    logger.info(`Version: ${VERSION}`);
+		logger.info(`Generating theme: ${themeName}`);
+		logger.info(`Version: ${VERSION}`);
 
-    // Use the core theme service for generation
-    const input: ThemeGenerationInput = {
-      themeName,
-      themePath: options.file,
-      cliOutput: options.output,
-      cliPlatform: options.platform,
-      generateOptions: parseCliOptions(options),
-    };
+		// Use the core theme service for generation
+		const input: ThemeGenerationInput = {
+			themeName,
+			themePath: options.file,
+			cliOutput: options.output,
+			cliPlatform: options.platform,
+			generateOptions: parseCliOptions(options),
+		};
 
-    const result = await generateTheme(input);
+		const result = await generateTheme(input);
 
-    if (!result.ok) {
-      process.exitCode = result.exitCode;
-      if (result.line) {
-        logger.error(`${result.message} at line ${result.line}`);
-      } else {
-        logger.error(result.message);
-      }
-      return;
-    }
+		if (!result.ok) {
+			process.exitCode = result.exitCode;
+			if (result.line) {
+				logger.error(`${result.message} at line ${result.line}`);
+			} else {
+				logger.error(result.message);
+			}
+			return;
+		}
 
-    process.exitCode = ExitCode.SUCCESS;
-  });
+		process.exitCode = ExitCode.SUCCESS;
+	});

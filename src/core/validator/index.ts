@@ -1,8 +1,8 @@
 export {
-  validateThemefile,
-  createConfigCheck,
-  checkBuiltinResources,
-  checkOutputDir,
-  type ValidationResult,
-  type ThemeValidationOptions,
+	checkBuiltinResources,
+	checkOutputDir,
+	createConfigCheck,
+	type ThemeValidationOptions,
+	type ValidationResult,
+	validateThemefile,
 } from './config.ts';

@@ -1,393 +1,425 @@
 import type { DtcgTokenGroup } from '../../types/index.ts';
 
 export interface ThemeSchemaIssue {
-  path: string;
-  level: 'error' | 'warning';
-  message: string;
+	path: string;
+	level: 'error' | 'warning';
+	message: string;
 }
 
 export interface ThemeSchemaResult {
-  valid: boolean;
-  issues: ThemeSchemaIssue[];
+	valid: boolean;
+	issues: ThemeSchemaIssue[];
 }
 
-const KNOWN_TYPES = new Set(['color', 'shadow', 'gradient', 'border', 'opacity', 'dimension']);
+const KNOWN_TYPES = new Set([
+	'color',
+	'shadow',
+	'gradient',
+	'border',
+	'opacity',
+	'dimension',
+]);
 
 // $extends 格式验证：必须是 {group.path.to.group} 格式
 const EXTENDS_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/;
 
 const KNOWN_EXTENSIONS = new Set([
-  'smoothShadow',
-  'smoothGradient',
-  'currentColor', // deprecated: use inheritColor instead
-  'inheritColor',
+	'smoothShadow',
+	'smoothGradient',
+	'currentColor', // deprecated: use inheritColor instead
+	'inheritColor',
 ]);
 
 const EXTENSION_TYPE_MAP: Record<string, string> = {
-  smoothShadow: 'shadow',
-  smoothGradient: 'gradient',
-  inheritColor: 'color',
+	smoothShadow: 'shadow',
+	smoothGradient: 'gradient',
+	inheritColor: 'color',
 };
 
 function checkDanglingJsonPointer(
-  value: unknown,
-  path: string,
-  issues: ThemeSchemaIssue[]
+	value: unknown,
+	path: string,
+	issues: ThemeSchemaIssue[],
 ): void {
-  if (typeof value === 'string' && value.startsWith('#/')) {
-    issues.push({
-      path,
-      level: 'error',
-      message: `"#/..." string outside $ref object, use $ref: "${value}" instead`,
-    });
-  }
+	if (typeof value === 'string' && value.startsWith('#/')) {
+		issues.push({
+			path,
+			level: 'error',
+			message: `"#/..." string outside $ref object, use $ref: "${value}" instead`,
+		});
+	}
 }
 
 function checkValueDeep(
-  value: unknown,
-  parentPath: string,
-  issues: ThemeSchemaIssue[]
+	value: unknown,
+	parentPath: string,
+	issues: ThemeSchemaIssue[],
 ): void {
-  if (typeof value === 'string') {
-    checkDanglingJsonPointer(value, parentPath, issues);
-    return;
-  }
+	if (typeof value === 'string') {
+		checkDanglingJsonPointer(value, parentPath, issues);
+		return;
+	}
 
-  if (Array.isArray(value)) {
-    for (let i = 0; i < value.length; i++) {
-      checkValueDeep(value[i], `${parentPath}[${i}]`, issues);
-    }
-    return;
-  }
+	if (Array.isArray(value)) {
+		for (let i = 0; i < value.length; i++) {
+			checkValueDeep(value[i], `${parentPath}[${i}]`, issues);
+		}
+		return;
+	}
 
-  if (typeof value === 'object' && value !== null) {
-    const obj = value as Record<string, unknown>;
+	if (typeof value === 'object' && value !== null) {
+		const obj = value as Record<string, unknown>;
 
-    // Skip $ref objects — the $ref value itself is validated separately
-    if ('$ref' in obj && typeof obj.$ref === 'string') {
-      return;
-    }
+		// Skip $ref objects — the $ref value itself is validated separately
+		if ('$ref' in obj && typeof obj.$ref === 'string') {
+			return;
+		}
 
-    for (const [key, val] of Object.entries(obj)) {
-      if (key.startsWith('$')) continue;
-      checkValueDeep(val, `${parentPath}.${key}`, issues);
-    }
-  }
+		for (const [key, val] of Object.entries(obj)) {
+			if (key.startsWith('$')) continue;
+			checkValueDeep(val, `${parentPath}.${key}`, issues);
+		}
+	}
 }
 
 function validateInheritColor(
-  extensions: Record<string, unknown>,
-  tokenType: string | undefined,
-  tokenPath: string,
-  issues: ThemeSchemaIssue[]
+	extensions: Record<string, unknown>,
+	tokenType: string | undefined,
+	tokenPath: string,
+	issues: ThemeSchemaIssue[],
 ): void {
-  if (!('inheritColor' in extensions)) return;
+	if (!('inheritColor' in extensions)) return;
 
-  // Rule: inheritColor only applies to color tokens
-  if (tokenType !== undefined && tokenType !== 'color') {
-    issues.push({
-      path: tokenPath,
-      level: 'error',
-      message: `inheritColor can only be used with $type "color", got "${tokenType}"`,
-    });
-    return;
-  }
+	// Rule: inheritColor only applies to color tokens
+	if (tokenType !== undefined && tokenType !== 'color') {
+		issues.push({
+			path: tokenPath,
+			level: 'error',
+			message: `inheritColor can only be used with $type "color", got "${tokenType}"`,
+		});
+		return;
+	}
 
-  const inheritColor = extensions.inheritColor;
+	const inheritColor = extensions.inheritColor;
 
-  // Accept boolean form: inheritColor: true
-  if (typeof inheritColor === 'boolean') {
-    return;
-  }
+	// Accept boolean form: inheritColor: true
+	if (typeof inheritColor === 'boolean') {
+		return;
+	}
 
-  // Accept object form: inheritColor: { property?: { opacity?: number | alias | $ref }, siblingSlot?: string }
-  if (typeof inheritColor === 'object' && inheritColor !== null) {
-    const obj = inheritColor as Record<string, unknown>;
+	// Accept object form: inheritColor: { property?: { opacity?: number | alias | $ref }, siblingSlot?: string }
+	if (typeof inheritColor === 'object' && inheritColor !== null) {
+		const obj = inheritColor as Record<string, unknown>;
 
-    // Validate property.opacity / property.alpha if present
-    const property = obj.property;
-    if (property !== undefined && typeof property === 'object' && property !== null) {
-      const propObj = property as Record<string, unknown>;
-      for (const propKey of ['opacity', 'alpha'] as const) {
-        if (propKey in propObj) {
-          const val = propObj[propKey];
-          const isValid =
-            typeof val === 'number' ||
-            (typeof val === 'string' && val.startsWith('{') && val.endsWith('}')) ||
-            (typeof val === 'object' && val !== null && '$ref' in val);
+		// Validate property.opacity / property.alpha if present
+		const property = obj.property;
+		if (
+			property !== undefined &&
+			typeof property === 'object' &&
+			property !== null
+		) {
+			const propObj = property as Record<string, unknown>;
+			for (const propKey of ['opacity', 'alpha'] as const) {
+				if (propKey in propObj) {
+					const val = propObj[propKey];
+					const isValid =
+						typeof val === 'number' ||
+						(typeof val === 'string' &&
+							val.startsWith('{') &&
+							val.endsWith('}')) ||
+						(typeof val === 'object' && val !== null && '$ref' in val);
 
-          if (!isValid) {
-            issues.push({
-              path: `${tokenPath}.$extensions.inheritColor.property.${propKey}`,
-              level: 'error',
-              message: `inheritColor.property.${propKey} must be a number, alias (string), or $ref object`,
-            });
-          }
-        }
-      }
-    }
+					if (!isValid) {
+						issues.push({
+							path: `${tokenPath}.$extensions.inheritColor.property.${propKey}`,
+							level: 'error',
+							message: `inheritColor.property.${propKey} must be a number, alias (string), or $ref object`,
+						});
+					}
+				}
+			}
+		}
 
-    // siblingSlot is Sketch-specific hint, no validation needed for value type
-    return;
-  }
+		// siblingSlot is Sketch-specific hint, no validation needed for value type
+		return;
+	}
 
-  // Invalid form
-  issues.push({
-    path: `${tokenPath}.$extensions.inheritColor`,
-    level: 'error',
-    message: `inheritColor must be a boolean (true) or an object with optional opacity and siblingSlot`,
-  });
+	// Invalid form
+	issues.push({
+		path: `${tokenPath}.$extensions.inheritColor`,
+		level: 'error',
+		message: `inheritColor must be a boolean (true) or an object with optional opacity and siblingSlot`,
+	});
 }
 
 function validateToken(
-  token: Record<string, unknown>,
-  tokenPath: string,
-  issues: ThemeSchemaIssue[]
+	token: Record<string, unknown>,
+	tokenPath: string,
+	issues: ThemeSchemaIssue[],
 ): void {
-  const value = token.$value;
-  if (value !== undefined) {
-    checkValueDeep(value, `${tokenPath}.$value`, issues);
-  }
+	const value = token.$value;
+	if (value !== undefined) {
+		checkValueDeep(value, `${tokenPath}.$value`, issues);
+	}
 
-  // Rule: $extends is NOT allowed on tokens (group-only)
-  if ('$extends' in token) {
-    issues.push({
-      path: tokenPath,
-      level: 'error',
-      message: `$extends is only allowed on groups, not on tokens (objects with $value)`,
-    });
-  }
+	// Rule: $extends is NOT allowed on tokens (group-only)
+	if ('$extends' in token) {
+		issues.push({
+			path: tokenPath,
+			level: 'error',
+			message: `$extends is only allowed on groups, not on tokens (objects with $value)`,
+		});
+	}
 
-  // Rule 2: $ref format
-  if ('$ref' in token && typeof token.$ref === 'string') {
-    const ref = token.$ref;
-    if (!ref.startsWith('#/')) {
-      issues.push({
-        path: tokenPath,
-        level: 'error',
-        message: `$ref must start with "#/", got "${ref}"`,
-      });
-    }
-  }
+	// Rule 2: $ref format
+	if ('$ref' in token && typeof token.$ref === 'string') {
+		const ref = token.$ref;
+		if (!ref.startsWith('#/')) {
+			issues.push({
+				path: tokenPath,
+				level: 'error',
+				message: `$ref must start with "#/", got "${ref}"`,
+			});
+		}
+	}
 
-  const tokenType = typeof token.$type === 'string' ? token.$type : undefined;
+	const tokenType = typeof token.$type === 'string' ? token.$type : undefined;
 
-  // Rule 3: unknown $type
-  if (tokenType !== undefined && !KNOWN_TYPES.has(tokenType)) {
-    issues.push({
-      path: tokenPath,
-      level: 'warning',
-      message: `Unknown $type "${tokenType}"`,
-    });
-  }
+	// Rule 3: unknown $type
+	if (tokenType !== undefined && !KNOWN_TYPES.has(tokenType)) {
+		issues.push({
+			path: tokenPath,
+			level: 'warning',
+			message: `Unknown $type "${tokenType}"`,
+		});
+	}
 
-  // Rule 4 & 5: $extensions validation
-  if (
-    token.$extensions !== undefined &&
-    typeof token.$extensions === 'object' &&
-    token.$extensions !== null
-  ) {
-    const extensions = token.$extensions as Record<string, unknown>;
+	// Rule 4 & 5: $extensions validation
+	if (
+		token.$extensions !== undefined &&
+		typeof token.$extensions === 'object' &&
+		token.$extensions !== null
+	) {
+		const extensions = token.$extensions as Record<string, unknown>;
 
-    // Check for deprecated currentColor
-    if ('currentColor' in extensions) {
-      issues.push({
-        path: `${tokenPath}.$extensions`,
-        level: 'warning',
-        message: `currentColor is deprecated, use inheritColor instead`,
-      });
-    }
+		// Check for deprecated currentColor
+		if ('currentColor' in extensions) {
+			issues.push({
+				path: `${tokenPath}.$extensions`,
+				level: 'warning',
+				message: `currentColor is deprecated, use inheritColor instead`,
+			});
+		}
 
-    for (const extKey of Object.keys(extensions)) {
-      if (!KNOWN_EXTENSIONS.has(extKey)) {
-        issues.push({
-          path: `${tokenPath}.$extensions`,
-          level: 'warning',
-          message: `Unknown extension "${extKey}"`,
-        });
-      }
-    }
+		for (const extKey of Object.keys(extensions)) {
+			if (!KNOWN_EXTENSIONS.has(extKey)) {
+				issues.push({
+					path: `${tokenPath}.$extensions`,
+					level: 'warning',
+					message: `Unknown extension "${extKey}"`,
+				});
+			}
+		}
 
-    // Rule 5: $type / $extensions mismatch
-    for (const [extKey, expectedType] of Object.entries(EXTENSION_TYPE_MAP)) {
-      if (extKey in extensions && tokenType !== undefined && tokenType !== expectedType) {
-        issues.push({
-          path: tokenPath,
-          level: 'warning',
-          message: `${extKey} expects $type "${expectedType}", got "${tokenType}"`,
-        });
-      }
-    }
+		// Rule 5: $type / $extensions mismatch
+		for (const [extKey, expectedType] of Object.entries(EXTENSION_TYPE_MAP)) {
+			if (
+				extKey in extensions &&
+				tokenType !== undefined &&
+				tokenType !== expectedType
+			) {
+				issues.push({
+					path: tokenPath,
+					level: 'warning',
+					message: `${extKey} expects $type "${expectedType}", got "${tokenType}"`,
+				});
+			}
+		}
 
-    // Validate inheritColor specifics
-    validateInheritColor(extensions, tokenType, tokenPath, issues);
-  }
+		// Validate inheritColor specifics
+		validateInheritColor(extensions, tokenType, tokenPath, issues);
+	}
 }
 
 function validateExtends(
-  group: Record<string, unknown>,
-  groupPath: string,
-  issues: ThemeSchemaIssue[]
+	group: Record<string, unknown>,
+	groupPath: string,
+	issues: ThemeSchemaIssue[],
 ): void {
-  if (!('$extends' in group)) return;
+	if (!('$extends' in group)) return;
 
-  const extendsValue = group.$extends;
+	const extendsValue = group.$extends;
 
-  // Rule: $extends must be a string
-  if (typeof extendsValue !== 'string') {
-    issues.push({
-      path: groupPath,
-      level: 'error',
-      message: `$extends must be a string in the form "{path.to.group}", got ${typeof extendsValue}`,
-    });
-    return;
-  }
+	// Rule: $extends must be a string
+	if (typeof extendsValue !== 'string') {
+		issues.push({
+			path: groupPath,
+			level: 'error',
+			message: `$extends must be a string in the form "{path.to.group}", got ${typeof extendsValue}`,
+		});
+		return;
+	}
 
-  // Rule: $extends must match {path.to.group} format
-  const match = extendsValue.match(EXTENDS_PATTERN);
-  if (!match) {
-    issues.push({
-      path: groupPath,
-      level: 'error',
-      message: `$extends must be in the form "{group.path.to.group}", got "${extendsValue}"`,
-    });
-    return;
-  }
+	// Rule: $extends must match {path.to.group} format
+	const match = extendsValue.match(EXTENDS_PATTERN);
+	if (!match) {
+		issues.push({
+			path: groupPath,
+			level: 'error',
+			message: `$extends must be in the form "{group.path.to.group}", got "${extendsValue}"`,
+		});
+		return;
+	}
 }
 
-function validateComposite(obj: Record<string, unknown>, groupPath: string, issues: ThemeSchemaIssue[]): void {
-  const extensions = obj.$extensions;
-  if (typeof extensions !== 'object' || extensions === null) return;
+function validateComposite(
+	obj: Record<string, unknown>,
+	groupPath: string,
+	issues: ThemeSchemaIssue[],
+): void {
+	const extensions = obj.$extensions;
+	if (typeof extensions !== 'object' || extensions === null) return;
 
-  const ext = extensions as Record<string, unknown>;
-  if (ext.composite !== true) return;
+	const ext = extensions as Record<string, unknown>;
+	if (ext.composite !== true) return;
 
-  // composite group 的直接子节点必须都是 token
-  for (const [key, child] of Object.entries(obj)) {
-    if (key.startsWith('$')) continue;
-    if (typeof child !== 'object' || child === null || Array.isArray(child)) {
-      issues.push({
-        path: groupPath,
-        level: 'error',
-        message: `composite group "${groupPath}" child "${key}" must be a token ($value required)`,
-      });
-    } else if (!('$value' in child)) {
-      issues.push({
-        path: groupPath,
-        level: 'error',
-        message: `composite group "${groupPath}" child "${key}" must be a token, not a group`,
-      });
-    }
-  }
+	// composite group 的直接子节点必须都是 token
+	for (const [key, child] of Object.entries(obj)) {
+		if (key.startsWith('$')) continue;
+		if (typeof child !== 'object' || child === null || Array.isArray(child)) {
+			issues.push({
+				path: groupPath,
+				level: 'error',
+				message: `composite group "${groupPath}" child "${key}" must be a token ($value required)`,
+			});
+		} else if (!('$value' in child)) {
+			issues.push({
+				path: groupPath,
+				level: 'error',
+				message: `composite group "${groupPath}" child "${key}" must be a token, not a group`,
+			});
+		}
+	}
 }
 
 function walkNode(
-  node: unknown,
-  path: string,
-  issues: ThemeSchemaIssue[]
+	node: unknown,
+	path: string,
+	issues: ThemeSchemaIssue[],
 ): void {
-  if (node === null || node === undefined) return;
+	if (node === null || node === undefined) return;
 
-  if (typeof node === 'object' && !Array.isArray(node)) {
-    const obj = node as Record<string, unknown>;
+	if (typeof node === 'object' && !Array.isArray(node)) {
+		const obj = node as Record<string, unknown>;
 
-    if ('$value' in obj) {
-      validateToken(obj, path, issues);
-      return;
-    }
+		if ('$value' in obj) {
+			validateToken(obj, path, issues);
+			return;
+		}
 
-    // Group node — validate $extends and recurse into non-meta children
-    validateExtends(obj, path, issues);
-    validateComposite(obj, path, issues);
+		// Group node — validate $extends and recurse into non-meta children
+		validateExtends(obj, path, issues);
+		validateComposite(obj, path, issues);
 
-    for (const [key, child] of Object.entries(obj)) {
-      if (key.startsWith('$')) continue;
-      walkNode(child, path ? `${path}.${key}` : key, issues);
-    }
-  }
+		for (const [key, child] of Object.entries(obj)) {
+			if (key.startsWith('$')) continue;
+			walkNode(child, path ? `${path}.${key}` : key, issues);
+		}
+	}
 }
 
 export function validateThemeSchema(tree: DtcgTokenGroup): ThemeSchemaResult {
-  const issues: ThemeSchemaIssue[] = [];
+	const issues: ThemeSchemaIssue[] = [];
 
-  // Walk from root keys (skip $-prefixed like $schema)
-  for (const [key, child] of Object.entries(tree)) {
-    if (key.startsWith('$')) continue;
-    if (key === 'doctor') continue; // validated separately
-    walkNode(child, key, issues);
-  }
+	// Walk from root keys (skip $-prefixed like $schema)
+	for (const [key, child] of Object.entries(tree)) {
+		if (key.startsWith('$')) continue;
+		if (key === 'doctor') continue; // validated separately
+		walkNode(child, key, issues);
+	}
 
-  // Validate doctor section
-  validateDoctorSection(tree, issues);
+	// Validate doctor section
+	validateDoctorSection(tree, issues);
 
-  return {
-    valid: !issues.some((i) => i.level === 'error'),
-    issues,
-  };
+	return {
+		valid: !issues.some((i) => i.level === 'error'),
+		issues,
+	};
 }
 
-const DOCTOR_ALIAS_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/;
+const DOCTOR_ALIAS_PATTERN =
+	/^\{([a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*)\}$/;
 
 function validateDoctorSection(
-  tree: DtcgTokenGroup,
-  issues: ThemeSchemaIssue[]
+	tree: DtcgTokenGroup,
+	issues: ThemeSchemaIssue[],
 ): void {
-  const doctor = tree.doctor;
-  if (doctor === undefined || doctor === null) return;
+	const doctor = tree.doctor;
+	if (doctor === undefined || doctor === null) return;
 
-  if (typeof doctor !== 'object' || Array.isArray(doctor)) {
-    issues.push({
-      path: 'doctor',
-      level: 'error',
-      message: `doctor must be an object`,
-    });
-    return;
-  }
+	if (typeof doctor !== 'object' || Array.isArray(doctor)) {
+		issues.push({
+			path: 'doctor',
+			level: 'error',
+			message: `doctor must be an object`,
+		});
+		return;
+	}
 
-  const doctorObj = doctor as Record<string, unknown>;
+	const doctorObj = doctor as Record<string, unknown>;
 
-  if (!('wcagPairs' in doctorObj)) {
-    issues.push({
-      path: 'doctor',
-      level: 'error',
-      message: `doctor must contain "wcagPairs"`,
-    });
-    return;
-  }
+	if (!('wcagPairs' in doctorObj)) {
+		issues.push({
+			path: 'doctor',
+			level: 'error',
+			message: `doctor must contain "wcagPairs"`,
+		});
+		return;
+	}
 
-  const wcagPairs = doctorObj.wcagPairs;
-  if (typeof wcagPairs !== 'object' || wcagPairs === null || Array.isArray(wcagPairs)) {
-    issues.push({
-      path: 'doctor.wcagPairs',
-      level: 'error',
-      message: `wcagPairs must be an object`,
-    });
-    return;
-  }
+	const wcagPairs = doctorObj.wcagPairs;
+	if (
+		typeof wcagPairs !== 'object' ||
+		wcagPairs === null ||
+		Array.isArray(wcagPairs)
+	) {
+		issues.push({
+			path: 'doctor.wcagPairs',
+			level: 'error',
+			message: `wcagPairs must be an object`,
+		});
+		return;
+	}
 
-  for (const [pairName, pairValue] of Object.entries(wcagPairs as Record<string, unknown>)) {
-    const pairPath = `doctor.wcagPairs.${pairName}`;
+	for (const [pairName, pairValue] of Object.entries(
+		wcagPairs as Record<string, unknown>,
+	)) {
+		const pairPath = `doctor.wcagPairs.${pairName}`;
 
-    if (typeof pairValue !== 'object' || pairValue === null || Array.isArray(pairValue)) {
-      issues.push({
-        path: pairPath,
-        level: 'error',
-        message: `wcagPairs entry "${pairName}" must be an object with "foreground" and "background"`,
-      });
-      continue;
-    }
+		if (
+			typeof pairValue !== 'object' ||
+			pairValue === null ||
+			Array.isArray(pairValue)
+		) {
+			issues.push({
+				path: pairPath,
+				level: 'error',
+				message: `wcagPairs entry "${pairName}" must be an object with "foreground" and "background"`,
+			});
+			continue;
+		}
 
-    const pair = pairValue as Record<string, unknown>;
+		const pair = pairValue as Record<string, unknown>;
 
-    for (const field of ['foreground', 'background'] as const) {
-      const value = pair[field];
-      if (typeof value !== 'string' || !DOCTOR_ALIAS_PATTERN.test(value)) {
-        issues.push({
-          path: `${pairPath}.${field}`,
-          level: 'error',
-          message: `${field} must be an alias string in "{path.to.token}" format`,
-        });
-      }
-    }
-  }
+		for (const field of ['foreground', 'background'] as const) {
+			const value = pair[field];
+			if (typeof value !== 'string' || !DOCTOR_ALIAS_PATTERN.test(value)) {
+				issues.push({
+					path: `${pairPath}.${field}`,
+					level: 'error',
+					message: `${field} must be an alias string in "{path.to.token}" format`,
+				});
+			}
+		}
+	}
 }

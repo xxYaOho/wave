@@ -1,1 +1,1 @@
-export { transformToSDFormat } from "./theme-transformer.ts";
+export { transformToSDFormat } from './theme-transformer.ts';

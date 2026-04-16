@@ -1,18 +1,18 @@
 import { Command } from 'commander';
 
 export const helpCommand = new Command('help')
-  .description('Show usage instructions')
-  .argument('[command]', 'Command name to show help for')
-  .action((command?: string) => {
-    if (command) {
-      showCommandHelp(command);
-    } else {
-      showFullHelp();
-    }
-  });
+	.description('Show usage instructions')
+	.argument('[command]', 'Command name to show help for')
+	.action((command?: string) => {
+		if (command) {
+			showCommandHelp(command);
+		} else {
+			showFullHelp();
+		}
+	});
 
 function showFullHelp(): void {
-  console.log(`
+	console.log(`
 🌊 WAVE - Design Token CLI
 
 Usage:
@@ -43,8 +43,8 @@ For more information about a command:
 }
 
 function showCommandHelp(command: string): void {
-  const helps: Record<string, string> = {
-    theme: `
+	const helps: Record<string, string> = {
+		theme: `
 wave theme - Generate theme tokens
 
 Usage:
@@ -76,7 +76,7 @@ Examples:
   wave theme --no-variants
   wave theme --variants "dark, matrix"
 `,
-    list: `
+		list: `
 wave list - List built-in resources
 
 Usage:
@@ -87,7 +87,7 @@ Displays all built-in palettes and dimensions.
 Examples:
   wave list
 `,
-    show: `
+		show: `
 wave show - Show a built-in resource
 
 Usage:
@@ -104,7 +104,7 @@ Examples:
   wave show tailwindcss4 --format flat-json
   wave show wave --format yaml
 `,
-    doctor: `
+		doctor: `
 wave doctor - Check tool health status
 
 Usage:
@@ -119,7 +119,7 @@ Checks:
 Examples:
   wave doctor
 `,
-    help: `
+		help: `
 wave help - Show usage instructions
 
 Usage:
@@ -133,13 +133,13 @@ Examples:
   wave help theme
   wave help doctor
 `,
-  };
+	};
 
-  const help = helps[command];
-  if (help) {
-    console.log(help);
-  } else {
-    console.log(`Unknown command: ${command}`);
-    console.log('Available commands: theme, doctor, help');
-  }
+	const help = helps[command];
+	if (help) {
+		console.log(help);
+	} else {
+		console.log(`Unknown command: ${command}`);
+		console.log('Available commands: theme, doctor, help');
+	}
 }

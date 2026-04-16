@@ -1,4 +1,19 @@
-export { validateGenericResource, validateCustomResourceExtension } from './resource.ts';
-export { paletteSchema, paletteEntrySchema, type PaletteSchema } from './palette.ts';
-export { dimensionSchema, dimensionEntrySchema, type DimensionSchema } from './dimension.ts';
-export { validateThemeSchema, type ThemeSchemaIssue, type ThemeSchemaResult } from './theme.ts';
+export {
+	type DimensionSchema,
+	dimensionEntrySchema,
+	dimensionSchema,
+} from './dimension.ts';
+export {
+	type PaletteSchema,
+	paletteEntrySchema,
+	paletteSchema,
+} from './palette.ts';
+export {
+	validateCustomResourceExtension,
+	validateGenericResource,
+} from './resource.ts';
+export {
+	type ThemeSchemaIssue,
+	type ThemeSchemaResult,
+	validateThemeSchema,
+} from './theme.ts';

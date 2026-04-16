@@ -1,9 +1,9 @@
 export {
-  generateTokens,
-  generateVariant,
-  nameKebabTransform,
-  valueCssVarTransform,
-  jsoncFormat,
-  type GeneratorOptions,
-  type GeneratorResult,
+	type GeneratorOptions,
+	type GeneratorResult,
+	generateTokens,
+	generateVariant,
+	jsoncFormat,
+	nameKebabTransform,
+	valueCssVarTransform,
 } from './style-dict.ts';

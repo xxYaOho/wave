@@ -55,3 +55,6 @@ temp-reference/
 # Bun build artifacts
 *.bun-build
 dist/
+
+# Biome
+.biome/

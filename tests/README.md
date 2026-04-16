@@ -65,6 +65,15 @@ bun test tests/utils/fixture-loader.test.ts
 - `tests/pair-extractor.test.ts` — wcagPairs pair 提取与校验
 - `tests/cli-doctor.test.ts` — CLI 输出与退出码
 
+### Sketch Component 格式测试 (tests/sketch-component-format.test.ts)
+
+测试 `sketchFormat` 对 composite token 的 Sketch Style 输出：
+
+- composite 组件属性映射（background、foreground、border、radius）
+- swatch 变量关联（`_swatchName` 传播）
+- inheritColor + siblingSlot 颜色继承
+- shadow 和 gradient 组件属性输出
+
 ## 测试工具 API
 
 ### loadTestTheme(name)
