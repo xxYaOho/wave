@@ -38,25 +38,27 @@ themefile（声明数据源 + 输出参数）
 
 ## CLI 命令
 
-- `wave theme`：读取当前目录 `themefile` 文件生成 token
-- `wave theme [path]`：指定 themefile 路径生成
-- `wave theme -f <path>`：使用 `-f` 指定 themefile 文件
+- `wave create`：读取当前目录 `themefile` 文件生成 token
+- `wave create [path]`：指定 themefile 路径生成
+- `wave create -f <path>`：使用 `-f` 指定 themefile 文件
 - `wave doctor`：健康检查
+- `wave doctor --contrast`：WCAG 对比度检查
+- `wave show`：浏览内置资源
+- `wave init`：初始化主题工作区
 - `wave help`：显示帮助
 - `wave --version`：显示版本号
 
-### list 命令
-
-- `wave list`：列出所有内置调色板（palettes）和尺寸系统（dimensions）
-
 ### show 命令
 
-- `wave show <name>`：显示指定内置资源的详细内容
+- `wave show`：列出所有内置调色板（palettes）和尺寸系统（dimensions）
+- `wave show <category>`：列出指定类别（palette / dimension）
+- `wave show <category> <name>`：显示指定资源的详细内容
+- `wave show <name>`：跨类别查找（同名时需指定类别）
   - `--format flat-json`（默认）：扁平化的 key-value 格式
   - `--format json`：嵌套 JSON 格式
   - `--format yaml`：原始 YAML 文件内容
 
-**参数选项：**
+**create 命令参数选项：**
 
 - `--list`：列出内置资源（调色板和尺寸系统）
 - `--no-night`：禁用 night 模式生成
@@ -559,11 +561,34 @@ theme:
             opacity: 0.5
 ```
 
+对象形式（带 alpha）：
+
+```yaml
+theme:
+  color:
+    $type: color
+    border:
+      $value: "#ff00ff"
+      $extensions:
+        inheritColor:
+          property:
+            alpha: "{wave.dimension.alpha.400}"
+```
+
 **规则：**
 
 - inheritColor 只能用于 \$type: color 的 token
-- opacity 支持数字、alias 或 \$ref
+- opacity 和 alpha 均支持数字、alias 或 \$ref，可共存但通常不会
+- alpha 表达色彩通道，opacity 表达对象透明度，alpha-first
 - siblingSlot 仅用于 Sketch 平台
+
+**输出差异：**
+
+| 平台 | opacity | alpha |
+|------|---------|-------|
+| CSS | `color-mix(in srgb, currentColor X%, transparent)` | 同 opacity |
+| Flat JSON | `{ color: "$COLOR_FOREGROUND", opacity: X }` | `{ color: "$COLOR_FOREGROUND", alpha: X }` |
+| Sketch | `opacity` 字段 | `alpha` 字段（可与 opacity 共存） |
 
 ### doctor.wcagPairs
 
@@ -605,9 +630,11 @@ doctor:
 
 **多主题支持：**
 
-- 自动扫描 `main.yaml`、`main@night.yaml`、`variants/*.yaml`
-- 仅一个主题 → 自动检查
-- 多个主题 → TUI select 单选
+- 自动扫描 `main.yaml`、`main@night.yaml`、`variants/*.yaml`、`variants/*{@night}.yaml`
+- 带 `--night` / `--variants`：非交互路径，直接解析
+- 无显式 scope + 交互 TTY + 单主题：自动检查
+- 无显式 scope + 交互 TTY + 多主题：TUI 选择器
+- 无显式 scope + 非 TTY：默认 main
 
 **使用方式：**
 
@@ -617,6 +644,15 @@ wave doctor --contrast
 
 # 显式指定 themefile 路径
 wave doctor --contrast --file ./my-theme/themefile
+
+# 检查 night 变体
+wave doctor --contrast --night
+
+# 检查指定 variant
+wave doctor --contrast --variants dark
+
+# 检查 variant 的 night 变体
+wave doctor --contrast --variants dark --night
 ```
 
 ---
@@ -627,6 +663,10 @@ wave doctor --contrast --file ./my-theme/themefile
 - `jsonc`：输出 `{theme}.jsonc`，带描述注释的 JSON
 - `css`：输出 `{theme}.css`，CSS 变量，带描述注释
 - `sketch`：输出 Sketch API 兼容格式 `{theme}2sketch.json`
+  - 颜色按路径扁平化为 style 分组
+  - composite token 映射为组件样式（background、foreground、border、radius、shadow）
+  - 支持 swatch 变量关联（通过引用链自动传播 `_swatchName`）
+  - inheritColor 通过 siblingSlot 查找兄弟 token 颜色
 - 多平台：`json,jsonc,css,sketch` 可同时输出多种格式
 
 **备注位置（v0.3.0+）：**
@@ -731,7 +771,7 @@ test("应处理 xxx", async () => {
 
 ## 范围边界（明确不做）
 
-- 内置主题：已移除，不再支持 `wave theme beluga`
+- 内置主题：已移除，不再支持 `wave create beluga`
 - Windows/Linux 平台：未测试
 - 嵌套引用条件判断：`{theme.x ? a : b}` 格式不支持
 - 跨 variants 引用：Variant A 不能引用 Variant B 的 token

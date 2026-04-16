@@ -96,11 +96,11 @@ PARAMETER filterLayer 1
 
 ### 内置资源查看命令
 
-使用 `list` 和 `show` 命令查看内置资源：
+使用 `show` 命令查看内置资源：
 
 ```bash
-# 列出所有内置资源
-wave list
+# 浏览所有内置资源
+wave show
 
 # 查看指定资源（支持 palette 和 dimension）
 wave show tailwindcss4
@@ -151,13 +151,13 @@ theme:
 
 ```bash
 # 当前目录有 themefile 时
-wave theme
+wave create
 
 # 指定 themefile 路径
-wave theme ./my-theme/themefile
+wave create ./my-theme/themefile
 
 # 使用 -f 参数
-wave theme -f ./my-theme/themefile
+wave create -f ./my-theme/themefile
 ```
 
 **输出文件**:
@@ -333,7 +333,7 @@ theme:
 **禁用 Night 模式**:
 
 ```bash
-wave theme --no-night
+wave create --no-night
 ```
 
 ### Variants 变体
@@ -362,13 +362,13 @@ project/
 
 ```bash
 # 生成所有变体
-wave theme
+wave create
 
 # 仅生成指定变体
-wave theme --variants dark
+wave create --variants dark
 
 # 禁用变体
-wave theme --no-variants
+wave create --no-variants
 ```
 
 ### colorSpace 配置
@@ -530,7 +530,7 @@ $value:
 cd project-directory
 
 # 或使用 -f 指定路径
-wave theme -f ./path/to/themefile
+wave create -f ./path/to/themefile
 ```
 
 ### 错误：Unresolved theme references
@@ -623,8 +623,8 @@ theme:
 // package.json
 {
   "scripts": {
-    "build:tokens": "wave theme",
-    "watch:tokens": "chokidar 'main.yaml' -c 'wave theme'"
+    "build:tokens": "wave create",
+    "watch:tokens": "chokidar 'main.yaml' -c 'wave create'"
   }
 }
 ```

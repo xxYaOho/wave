@@ -27,7 +27,7 @@ theme:
 生成令牌：
 
 ```bash
-$ wave theme
+$ wave create
 ✓ Generated: theme.json
 ```
 
@@ -96,7 +96,7 @@ theme:
 ### 3. 生成
 
 ```bash
-bun run wave theme
+bun run wave create
 ```
 
 输出：
@@ -137,29 +137,29 @@ PARAMETER platform json,jsonc,css,sketch
 
 ```bash
 # 生成主题（当前目录）
-wave theme
+wave create
 
 # 指定 themefile
-wave theme -f ./path/to/themefile
+wave create -f ./path/to/themefile
 
 # 仅生成 CSS
-wave theme --platform css
+wave create --platform css
 
 # 生成多个格式
-wave theme --platform json,jsonc,css,sketch
+wave create --platform json,jsonc,css,sketch
 
 # 跳过 night 模式
-wave theme --no-night
+wave create --no-night
 
-# 查看内置资源列表
-wave list
+# 浏览内置资源
+wave show
 
 # 查看内置资源详情
 wave show tailwindcss4
 wave show wave
 
 # 创建主题模板
-wave theme --init
+wave init
 ```
 
 ---
