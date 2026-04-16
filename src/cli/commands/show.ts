@@ -121,6 +121,37 @@ function flattenResource(
 	return result;
 }
 
+type ResourceMatch = {
+	category: string;
+	data: unknown;
+	filePath: string;
+};
+
+async function findResource(
+	name: string,
+): Promise<ResourceMatch | null | { ambiguous: string[] }> {
+	const palette = await loadBuiltinPalette(name);
+	const dimension = await loadBuiltinDimension(name);
+
+	const matches: ResourceMatch[] = [];
+	if (palette)
+		matches.push({
+			category: 'palette',
+			data: palette,
+			filePath: getBuiltinPalettePath(name),
+		});
+	if (dimension)
+		matches.push({
+			category: 'dimension',
+			data: dimension,
+			filePath: getBuiltinDimensionPath(name),
+		});
+
+	if (matches.length === 0) return null;
+	if (matches.length === 1) return matches[0];
+	return { ambiguous: matches.map((m) => m.category) };
+}
+
 async function showResource(
 	name: string,
 	format: string,
@@ -133,10 +164,9 @@ async function showResource(
 		};
 	}
 
-	const palette = await loadBuiltinPalette(name);
-	const dimension = palette ? null : await loadBuiltinDimension(name);
+	const result = await findResource(name);
 
-	if (!palette && !dimension) {
+	if (!result) {
 		return {
 			ok: false,
 			message: `Built-in resource not found: ${name}`,
@@ -144,10 +174,15 @@ async function showResource(
 		};
 	}
 
-	const resourceData = palette ?? dimension;
-	const filePath = palette
-		? getBuiltinPalettePath(name)
-		: getBuiltinDimensionPath(name);
+	if ('ambiguous' in result) {
+		return {
+			ok: false,
+			message: `Resource "${name}" exists in multiple categories: ${result.ambiguous.join(', ')}. Please specify a category.`,
+			exitCode: ExitCode.INVALID_PARAMETER,
+		};
+	}
+
+	const { data: resourceData, filePath } = result;
 
 	try {
 		if (format === 'yaml') {
