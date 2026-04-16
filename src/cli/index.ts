@@ -55,6 +55,31 @@ program.addCommand(createCommand);
 program.addCommand(doctorCommand);
 program.addCommand(showCommand);
 
+// Legacy command migration hints
+program
+	.command('theme')
+	.description('(deprecated) Use "wave create" instead')
+	.action(() => {
+		console.error(
+			'Command "wave theme" has been renamed to "wave create".',
+		);
+		console.error('  wave create          Generate design token output');
+		console.error('  wave create --help   Show available options');
+		process.exitCode = ExitCode.INVALID_COMMAND;
+	});
+
+program
+	.command('list')
+	.description('(deprecated) Use "wave show" instead')
+	.action(() => {
+		console.error(
+			'Command "wave list" has been merged into "wave show".',
+		);
+		console.error('  wave show            Browse built-in resources');
+		console.error('  wave show --help     Show available options');
+		process.exitCode = ExitCode.INVALID_COMMAND;
+	});
+
 program.action(() => {
 	console.log(QUICK_START);
 });

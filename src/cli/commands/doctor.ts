@@ -1,8 +1,10 @@
 import { Command } from 'commander';
+import { isatty } from 'node:tty';
 import { runThemeContrastCheck } from '../../core/doctor/registry.ts';
 import {
 	createThemeDoctorContext,
 	detectThemeFiles,
+	type ThemeFileEntry,
 } from '../../core/doctor/theme-context.ts';
 import { selectTheme } from '../../core/doctor/theme-select.ts';
 import type { DependencyDict } from '../../core/pipeline/theme-pipeline.ts';
@@ -14,6 +16,13 @@ import type { DoctorThemeReport } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 
 const SEPARATOR = '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~';
+
+interface DoctorCommandOptions {
+	file?: string;
+	contrast?: boolean;
+	night?: boolean;
+	variants?: string;
+}
 
 function renderScoreLines(report: DoctorThemeReport): string[] {
 	const lines: string[] = [];
@@ -71,12 +80,64 @@ function compareVersions(a: string, b: string): number {
 	return 0;
 }
 
+/**
+ * Build the expected ThemeFileEntry suffix/name from explicit flags.
+ * Returns null if no explicit scope flags are set (meaning we need auto-detection).
+ */
+function resolveExplicitTheme(
+	allFiles: ThemeFileEntry[],
+	night: boolean,
+	variantName: string | undefined,
+): ThemeFileEntry | undefined {
+	if (!night && !variantName) return undefined;
+
+	const baseName = variantName ?? 'main';
+	const targetName = night ? `${baseName}@night` : baseName;
+
+	const match = allFiles.find((f) => f.name === targetName);
+	if (!match) {
+		console.log(`✗ Theme not found: ${targetName}`);
+		console.log(`  Available: ${allFiles.map((f) => f.name).join(', ')}`);
+		process.exitCode = ExitCode.FILE_NOT_FOUND;
+		return undefined;
+	}
+	return match;
+}
+
+interface DoctorCommandOptions {
+	file?: string;
+	contrast?: boolean;
+	night?: boolean;
+	variants?: string;
+	theme?: boolean;
+}
+
 export const doctorCommand = new Command('doctor')
 	.description('Run health diagnostics and contrast checks')
 	.option('-f, --file <path>', 'Themefile path to validate')
 	.option('-o, --output <path>', 'Output directory to check')
 	.option('--contrast', 'Run WCAG contrast check on theme colors')
-	.action(async (options) => {
+	.option('--night', 'Check night variant (use with --contrast)')
+	.option(
+		'--variants <name>',
+		'Check specific variant by name (use with --contrast)',
+	)
+	.addOption(
+		new Command().createOption(
+			'--theme',
+			'(deprecated) Use --contrast instead',
+		).hideHelp(),
+	)
+	.action(async (options: DoctorCommandOptions) => {
+		if (options.theme) {
+			console.error(
+				'Option "--theme" has been renamed to "--contrast".',
+			);
+			console.error('  wave doctor --contrast   Run WCAG contrast check');
+			console.error('  wave doctor --help       Show available options');
+			process.exitCode = ExitCode.INVALID_COMMAND;
+			return;
+		}
 		if (!options.contrast) {
 			console.log('🔍 Running Wave diagnostics...\n');
 
@@ -139,15 +200,49 @@ export const doctorCommand = new Command('doctor')
 		const dict: DependencyDict = dictResult.dict;
 
 		// Detect available theme files
-		const themeFiles = await detectThemeFiles(themeDir);
-		if (themeFiles.length === 0) {
+		const allThemeFiles = await detectThemeFiles(themeDir);
+		if (allThemeFiles.length === 0) {
 			console.log('No theme files found.');
 			process.exitCode = ExitCode.SUCCESS;
 			return;
 		}
 
-		// Select theme (auto or TUI)
-		const selectedTheme = await selectTheme(themeFiles);
+		// Selection strategy:
+		// 1. Explicit --night / --variants → non-interactive, resolve directly
+		// 2. No explicit scope + interactive TTY + single theme → auto-select
+		// 3. No explicit scope + interactive TTY + multiple themes → TUI selector
+		// 4. No explicit scope + non-TTY → default to main
+		let selectedTheme: ThemeFileEntry;
+
+		const hasExplicitScope = !!options.night || !!options.variants;
+		const explicit = resolveExplicitTheme(
+			allThemeFiles,
+			!!options.night,
+			options.variants,
+		);
+		if (hasExplicitScope && !explicit) {
+			return;
+		}
+		if (explicit) {
+			selectedTheme = explicit;
+		} else if (isatty(process.stdout.fd) && isatty(process.stdin.fd)) {
+			// Interactive TTY
+			if (allThemeFiles.length === 1) {
+				selectedTheme = allThemeFiles[0]!;
+			} else {
+				selectedTheme = await selectTheme(allThemeFiles);
+			}
+		} else {
+			// Non-TTY: default to main
+			const mainFile = allThemeFiles.find((f) => f.name === 'main');
+			if (!mainFile) {
+				console.log('✗ No main theme file found');
+				process.exitCode = ExitCode.FILE_NOT_FOUND;
+				return;
+			}
+			selectedTheme = mainFile;
+		}
+
 		const displayThemeName = `${themeName}${selectedTheme.suffix}`;
 
 		const ctxResult = await createThemeDoctorContext(selectedTheme.path, dict);
