@@ -366,7 +366,7 @@ export function resolveOutputDir(
 			? outputPath
 			: path.join(themeDir, outputPath);
 	}
-	return path.join(process.env.HOME || '', 'Downloads', parsed.THEME);
+	return path.join(themeDir, parsed.THEME);
 }
 
 export { expandHomePath };

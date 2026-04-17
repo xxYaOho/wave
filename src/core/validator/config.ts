@@ -212,7 +212,7 @@ export function checkBuiltinResources(): CheckResult & { name: string } {
 export function checkOutputDir(
 	outputPath?: string,
 ): CheckResult & { name: string } {
-	const testPath = outputPath || `${process.env.HOME}/Downloads`;
+	const testPath = outputPath || './';
 
 	try {
 		const dir = Bun.file(testPath);

@@ -53,7 +53,7 @@ PARAMETER colorSpace <颜色空间>
 #### PARAMETER output
 - **说明**: 指定生成文件的输出目录
 - **示例**: \`PARAMETER output ./dist\`
-- **默认值**: \`~/Downloads/<THEME>\`
+- **默认值**: \`./<THEME>\`
 
 #### PARAMETER platform
 - **说明**: 指定输出平台格式，多个格式用逗号分隔

@@ -5,6 +5,8 @@
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import {
 	generateTheme,
@@ -17,7 +19,36 @@ import {
 	type TestTheme,
 } from '../utils/fixture-loader.ts';
 
+function createTempOutputDir(): string {
+	const dir = path.join(
+		os.tmpdir(),
+		`wave-test-output-${Math.random().toString(36).slice(2, 8)}`,
+	);
+	fs.mkdir(dir, { recursive: true });
+	return dir;
+}
+
+function makeInput(
+	overrides: Partial<ThemeGenerationInput> & { themeName: string; themePath: string },
+): ThemeGenerationInput {
+	return {
+		cliOutput: tempDir,
+		generateOptions: { night: false },
+		...overrides,
+	};
+}
+
+let tempDir: string;
+
 describe('Theme Service Integration', () => {
+	afterAll(async () => {
+		await fs.rm(tempDir, { recursive: true, force: true });
+	});
+
+	beforeAll(() => {
+		tempDir = createTempOutputDir();
+	});
+
 	describe('标准主题生成', () => {
 		let theme: TestTheme;
 
@@ -26,13 +57,9 @@ describe('Theme Service Integration', () => {
 		});
 
 		test('应成功生成主题', async () => {
-			const input: ThemeGenerationInput = {
-				themeName: 'test-standard',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({ themeName: 'test-standard', themePath: theme.themefile }),
+			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
@@ -41,18 +68,18 @@ describe('Theme Service Integration', () => {
 		});
 
 		test('应生成 JSON 和 CSS 文件', async () => {
-			const input: ThemeGenerationInput = {
-				themeName: 'test-standard',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({ themeName: 'test-standard', themePath: theme.themefile }),
+			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				const hasJson = result.generatedFiles.some((f) => f.endsWith('.json'));
-				const hasCss = result.generatedFiles.some((f) => f.endsWith('.css'));
+				const hasJson = result.generatedFiles.some((f) =>
+					f.endsWith('.json'),
+				);
+				const hasCss = result.generatedFiles.some((f) =>
+					f.endsWith('.css'),
+				);
 				expect(hasJson).toBe(true);
 				expect(hasCss).toBe(true);
 			}
@@ -67,25 +94,17 @@ describe('Theme Service Integration', () => {
 		});
 
 		test('应正确解析内部引用', async () => {
-			const input: ThemeGenerationInput = {
-				themeName: 'test-ref',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({ themeName: 'test-ref', themePath: theme.themefile }),
+			);
 
 			expect(result.ok).toBe(true);
 		});
 
 		test('应正确解析外部引用', async () => {
-			const input: ThemeGenerationInput = {
-				themeName: 'test-ref',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({ themeName: 'test-ref', themePath: theme.themefile }),
+			);
 
 			expect(result.ok).toBe(true);
 		});
@@ -99,20 +118,23 @@ describe('Theme Service Integration', () => {
 		});
 
 		test('应正确生成继承色主题的所有平台文件', async () => {
-			const input: ThemeGenerationInput = {
-				themeName: 'test-inherit-color',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'test-inherit-color',
+					themePath: theme.themefile,
+				}),
+			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				const hasJson = result.generatedFiles.some((f) => f.endsWith('.json'));
-				const hasCss = result.generatedFiles.some((f) => f.endsWith('.css'));
-				const hasSketch = result.generatedFiles.some(
-					(f) => f.endsWith('.json') && f.includes('sketch'),
+				const hasJson = result.generatedFiles.some((f) =>
+					f.endsWith('.json'),
+				);
+				const hasCss = result.generatedFiles.some((f) =>
+					f.endsWith('.css'),
+				);
+				const hasSketch = result.generatedFiles.some((f) =>
+					f.endsWith('.json') && f.includes('sketch'),
 				);
 				expect(hasJson).toBe(true);
 				expect(hasCss).toBe(true);
@@ -121,13 +143,12 @@ describe('Theme Service Integration', () => {
 		});
 
 		test('CSS 输出应包含 currentColor 或 color-mix', async () => {
-			const input: ThemeGenerationInput = {
-				themeName: 'test-inherit-color',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'test-inherit-color',
+					themePath: theme.themefile,
+				}),
+			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
@@ -139,13 +160,12 @@ describe('Theme Service Integration', () => {
 		});
 
 		test('JSON 输出应包含 $COLOR_FOREGROUND 哨兵值', async () => {
-			const input: ThemeGenerationInput = {
-				themeName: 'test-inherit-color',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'test-inherit-color',
+					themePath: theme.themefile,
+				}),
+			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
@@ -183,13 +203,12 @@ describe('Theme Service Integration', () => {
 				},
 			});
 
-			const input: ThemeGenerationInput = {
-				themeName: 'temp-test',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'temp-test',
+					themePath: theme.themefile,
+				}),
+			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
@@ -206,13 +225,12 @@ describe('Theme Service Integration', () => {
 		});
 
 		test('应成功生成包含 $extends 继承的主题', async () => {
-			const input: ThemeGenerationInput = {
-				themeName: 'test-extends',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'test-extends',
+					themePath: theme.themefile,
+				}),
+			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
@@ -221,20 +239,21 @@ describe('Theme Service Integration', () => {
 		});
 
 		test('应生成 JSON、CSS 和 Sketch 文件', async () => {
-			const input: ThemeGenerationInput = {
-				themeName: 'test-extends',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'test-extends',
+					themePath: theme.themefile,
+				}),
+			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				const hasJson = result.generatedFiles.some(
-					(f) => f.endsWith('.json') && !f.includes('sketch'),
+				const hasJson = result.generatedFiles.some((f) =>
+					f.endsWith('.json') && !f.includes('sketch'),
 				);
-				const hasCss = result.generatedFiles.some((f) => f.endsWith('.css'));
+				const hasCss = result.generatedFiles.some((f) =>
+					f.endsWith('.css'),
+				);
 				const hasSketch = result.generatedFiles.some((f) =>
 					f.includes('sketch'),
 				);
@@ -245,17 +264,15 @@ describe('Theme Service Integration', () => {
 		});
 
 		test('继承后的 token 应在 JSON 输出中包含正确值', async () => {
-			const input: ThemeGenerationInput = {
-				themeName: 'test-extends',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'test-extends',
+					themePath: theme.themefile,
+				}),
+			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				// 验证生成了主 JSON 文件
 				const jsonFile = result.generatedFiles.find(
 					(f) => f.endsWith('.json') && !f.includes('sketch'),
 				);
@@ -266,13 +283,11 @@ describe('Theme Service Integration', () => {
 
 	describe('错误处理', () => {
 		test('应在 themefile 不存在时返回错误', async () => {
-			const input: ThemeGenerationInput = {
+			const result = await generateTheme({
 				themeName: 'nonexistent',
 				themePath: '/nonexistent/themefile',
 				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			});
 
 			expect(result.ok).toBe(false);
 			if (!result.ok) {
@@ -296,13 +311,12 @@ describe('Theme Service Integration', () => {
 				},
 			});
 
-			const input: ThemeGenerationInput = {
-				themeName: 'circular-test',
-				themePath: theme.themefile,
-				generateOptions: { night: false },
-			};
-
-			const result = await generateTheme(input);
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'circular-test',
+					themePath: theme.themefile,
+				}),
+			);
 
 			expect(result.ok).toBe(false);
 

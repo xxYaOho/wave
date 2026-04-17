@@ -11,6 +11,6 @@ export const VERSION = pkg.version as string;
 
 export const DEFAULT_CONFIG: WaveConfig = {
 	version: VERSION,
-	defaultOutput: '${HOME}/Downloads/{THEME}/',
+	defaultOutput: './{THEME}/',
 	defaultPlatform: ['general'],
 };

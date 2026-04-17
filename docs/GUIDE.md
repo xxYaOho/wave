@@ -87,7 +87,7 @@ PARAMETER filterLayer 1
 
 | 参数 | 说明 | 默认值 | 可选值 |
 |------|------|--------|--------|
-| `output` | 输出目录 | `~/Downloads/<THEME>` | 任意路径 |
+| `output` | 输出目录 | `./<THEME>` | 任意路径 |
 | `platform` | 输出格式 | `json` | `json`, `jsonc`, `css`, `sketch`（逗号分隔可多选） |
 | `colorSpace` | 色彩空间 | `hex` | `hex`, `oklch`, `srgb`, `hsl` |
 | `filterLayer` | 过滤层级 | `0` | 数字 |
