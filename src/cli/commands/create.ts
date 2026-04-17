@@ -1,11 +1,17 @@
 import { Command } from 'commander';
 import { VERSION } from '../../config/index.ts';
 import {
+	detectThemeFiles,
+	type ThemeFileEntry,
+} from '../../core/doctor/theme-context.ts';
+import { loadThemefile } from '../../core/pipeline/theme-pipeline.ts';
+import {
 	generateTheme,
 	type ThemeGenerationInput,
 } from '../../core/pipeline/theme-service.ts';
 import { ExitCode, type GenerateOptions } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
+import { selectThemesToGenerate } from '../theme-multiselect.ts';
 
 interface CreateCommandOptions {
 	file?: string;
@@ -81,12 +87,32 @@ export const createCommand = new Command('create')
 		logger.info(`Generating theme: ${themeName}`);
 		logger.info(`Version: ${VERSION}`);
 
+		let selectedThemes: ThemeFileEntry[] | undefined;
+		if (
+			process.stdout.isTTY === true &&
+			options.variants === undefined &&
+			options.noVariants !== true
+		) {
+			try {
+				const loadResult = await loadThemefile(options.file);
+				if ('parsed' in loadResult) {
+					const themeFiles = await detectThemeFiles(loadResult.themeDir);
+					if (themeFiles.length > 1) {
+						selectedThemes = await selectThemesToGenerate(themeFiles);
+					}
+				}
+			} catch {
+				// ignore: error will be handled by generateTheme
+			}
+		}
+
 		const input: ThemeGenerationInput = {
 			themeName,
 			themePath: options.file,
 			cliOutput: options.output,
 			cliPlatform: options.platform,
 			generateOptions: parseCliOptions(options),
+			selectedThemes,
 		};
 
 		const result = await generateTheme(input);

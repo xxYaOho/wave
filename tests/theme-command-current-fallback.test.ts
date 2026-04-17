@@ -7,7 +7,7 @@ const rootDir = path.resolve(__dirname, '..');
 async function runWaveTheme(
 	args: string[],
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(['bun', 'run', 'src/index.ts', 'theme', ...args], {
+	const proc = Bun.spawn(['bun', 'run', 'src/index.ts', 'create', ...args], {
 		cwd: rootDir,
 		stdout: 'pipe',
 		stderr: 'pipe',

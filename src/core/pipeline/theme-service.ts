@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
+import type { ThemeFileEntry } from '../../core/doctor/theme-context.ts';
 import type { GeneratorResult } from '../../core/generator/index.ts';
 import { generateTokens } from '../../core/generator/index.ts';
 import type {
@@ -27,6 +28,7 @@ export interface ThemeGenerationInput {
 	cliOutput?: string;
 	cliPlatform?: string;
 	generateOptions: GenerateOptions;
+	selectedThemes?: ThemeFileEntry[];
 }
 
 export interface ThemeGenerationSuccess {
@@ -52,8 +54,22 @@ export type ThemeGenerationResult =
 export async function generateTheme(
 	input: ThemeGenerationInput,
 ): Promise<ThemeGenerationResult> {
-	const { themeName, themePath, cliOutput, cliPlatform, generateOptions } =
-		input;
+	const {
+		themeName,
+		themePath,
+		cliOutput,
+		cliPlatform,
+		generateOptions,
+		selectedThemes,
+	} = input;
+
+	function isSelected(
+		selected: ThemeFileEntry[] | undefined,
+		name: string,
+	): boolean {
+		if (!selected) return true;
+		return selected.some((s) => s.name === name);
+	}
 
 	// Step 1: Load themefile
 	const loadResult = await loadThemefile(themePath);
@@ -134,7 +150,7 @@ export async function generateTheme(
 
 	let mainResult: GeneratorResult;
 
-	if (hasMainYaml) {
+	if (hasMainYaml && isSelected(selectedThemes, 'main')) {
 		logger.info('Found main.yaml, parsing theme tokens...');
 		const parseResult = await processThemeDocument(
 			mainYamlPath,
@@ -172,7 +188,7 @@ export async function generateTheme(
 
 		generatedFiles.push(...mainResult.files);
 		logger.success(`Generated main: ${mainResult.files.join(', ')}`);
-	} else {
+	} else if (isSelected(selectedThemes, 'main')) {
 		mainResult = await generateThemeTokens(
 			resolvedThemeName,
 			outputDir,
@@ -194,13 +210,16 @@ export async function generateTheme(
 
 		generatedFiles.push(...mainResult.files);
 		logger.success(`Generated main: ${mainResult.files.join(', ')}`);
+	} else {
+		// main not selected; create a dummy result for downstream typing
+		mainResult = { success: true, files: [] };
 	}
 
 	// Step 5: Generate night mode
 	const nightResult = detectNightMode(themeDir, generateOptions);
 	logger.info(nightResult.message);
 
-	if (nightResult.available) {
+	if (nightResult.available && isSelected(selectedThemes, 'main@night')) {
 		const nightYamlPath = path.join(themeDir, 'main@night.yaml');
 		const nightYamlFile = Bun.file(nightYamlPath);
 		const hasNightYaml = await nightYamlFile.exists();
@@ -261,6 +280,9 @@ export async function generateTheme(
 	if (variantsDetection.available) {
 		for (const variantFile of variantsDetection.files) {
 			const variantName = path.basename(variantFile, '.yaml');
+			if (!isSelected(selectedThemes, variantName)) {
+				continue;
+			}
 			const isNightVariant = variantName.endsWith('@night');
 			const baseName = isNightVariant
 				? variantName.replace('@night', '')
