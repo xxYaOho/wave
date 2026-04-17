@@ -64,8 +64,8 @@ my-design-system/
 
 ```
 THEME <主题名称>
-PALETTE <色板名称>
-DIMENSION <尺寸名称>
+RESOURCE palette <色板名称>
+RESOURCE dimension <尺寸系统名称>
 
 PARAMETER <参数名> <参数值>
 ```
@@ -74,8 +74,8 @@ PARAMETER <参数名> <参数值>
 
 ```
 THEME orca
-PALETTE leonardo
-DIMENSION wave
+RESOURCE palette leonardo
+RESOURCE dimension wave
 
 PARAMETER output ./dist
 PARAMETER platform json
@@ -87,7 +87,7 @@ PARAMETER filterLayer 1
 
 | 参数 | 说明 | 默认值 | 可选值 |
 |------|------|--------|--------|
-| `output` | 输出目录 | `./theme` | 任意路径 |
+| `output` | 输出目录 | `~/Downloads/<THEME>` | 任意路径 |
 | `platform` | 输出格式 | `json` | `json`, `jsonc`, `css`, `sketch`（逗号分隔可多选） |
 | `colorSpace` | 色彩空间 | `hex` | `hex`, `oklch`, `srgb`, `hsl` |
 | `filterLayer` | 过滤层级 | `0` | 数字 |
@@ -102,7 +102,11 @@ PARAMETER filterLayer 1
 # 浏览所有内置资源
 wave show
 
-# 查看指定资源（支持 palette 和 dimension）
+# 列出指定类别的资源
+wave show palette
+wave show dimension
+
+# 查看指定资源（category 前缀可选，同名冲突时才需要）
 wave show tailwindcss4
 wave show leonardo
 wave show wave
@@ -154,10 +158,10 @@ theme:
 wave create
 
 # 指定 themefile 路径
-wave create ./my-theme/themefile
-
-# 使用 -f 参数
 wave create -f ./my-theme/themefile
+
+# 指定主题名称与 themefile 路径
+wave create my-theme -f ./my-theme/themefile
 ```
 
 **输出文件**:
@@ -348,6 +352,7 @@ project/
 ├── main.yaml
 └── variants/
     ├── dark.yaml
+    ├── dark@night.yaml
     └── high-contrast.yaml
 ```
 
@@ -380,7 +385,7 @@ wave create --no-variants
 ```
 # themefile
 THEME my-theme
-PALETTE leonardo
+RESOURCE palette leonardo
 
 PARAMETER colorSpace oklch
 ```
