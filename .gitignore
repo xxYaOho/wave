@@ -52,6 +52,10 @@ temp-reference/
 .claude/
 # docs/plan
 
+# Graphify (临时文件与缓存，可随时重建)
+.graphify_*
+graphify-out/cache/
+
 # Bun build artifacts
 *.bun-build
 dist/
