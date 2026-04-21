@@ -10,7 +10,7 @@
 	},
 	"scripts": {
 		"dev": "bun run src/index.ts",
-		"build": "bun build ./src/index.ts --compile --outfile dist/wave",
+		"build": "rm -f .*.bun-build && bun build ./src/index.ts --compile --outfile dist/wave && rm -f .*.bun-build",
 		"typecheck": "tsc --noEmit",
 		"format": "biome format --write .",
 		"format:check": "biome format .",
