@@ -111,14 +111,6 @@ function formatCssVariables(
 	groupComments: Record<string, string> = {},
 	includeRootKeys?: string[],
 ): string {
-	console.log(
-		'formatCssVariables called, includeRootKeys:',
-		includeRootKeys,
-		'token count:',
-		tokens.length,
-		'sample paths:',
-		tokens.slice(0, 3).map((t) => t.path),
-	);
 	const lines: string[] = [':root {'];
 
 	// 按 includeRootKeys 过滤后再排序
