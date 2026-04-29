@@ -7,8 +7,10 @@ import {
 	type ParsedThemefile,
 	type ParseError,
 	type ReferenceDataSources,
+	type ResolvedGroupParameters,
 	type SdTokenTree,
 	type ThemeDocumentResult,
+	type ParameterSet,
 } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 import {
@@ -367,6 +369,117 @@ export function resolveOutputDir(
 			: path.join(themeDir, outputPath);
 	}
 	return path.join(themeDir, parsed.THEME);
+}
+
+// ── GROUP pipeline helpers ──────────────────────────────────────────
+
+export function mergeParameters(
+	global: ParameterSet,
+	group: ParameterSet,
+): ParameterSet {
+	return { ...global, ...group };
+}
+
+export function resolveParameters(
+	params: ParameterSet,
+	themeDir: string,
+	cliOutput?: string,
+	cliPlatform?: string,
+): ResolvedGroupParameters {
+	// platforms: CLI overrides all
+	const platformRaw = cliPlatform ?? params.platform;
+	let platforms: string[];
+	if (!platformRaw || platformRaw === 'general') {
+		if (platformRaw === 'general') {
+			logger.warn(
+				'PARAMETER platform "general" is deprecated, use "json,jsonc" instead',
+			);
+		}
+		platforms = platformRaw === 'general' ? ['json', 'jsonc'] : ['json'];
+	} else {
+		platforms = platformRaw
+			.split(',')
+			.map((s) => s.trim())
+			.filter(Boolean);
+	}
+
+	// filterLayer
+	const filterLayerRaw = params.filterLayer;
+	const filterLayer =
+		filterLayerRaw != null ? parseInt(filterLayerRaw, 10) : undefined;
+
+	// colorSpace with explicit warning on invalid value
+	let colorSpace: ColorSpaceFormat | undefined;
+	const colorSpaceRaw = params.colorSpace;
+	if (colorSpaceRaw) {
+		if (['hex', 'oklch', 'srgb', 'hsl'].includes(colorSpaceRaw)) {
+			colorSpace = colorSpaceRaw as ColorSpaceFormat;
+		} else {
+			logger.warn(
+				`Invalid colorSpace "${colorSpaceRaw}", expected hex/oklch/srgb/hsl. Ignoring.`,
+			);
+		}
+	}
+
+	// outputDir: CLI > PARAMETER > default (<themeDir>/<THEME> is resolved by caller)
+	const outputRaw = cliOutput ?? params.output;
+	let outputDir: string;
+	if (outputRaw) {
+		outputDir = path.isAbsolute(outputRaw)
+			? outputRaw
+			: path.join(themeDir, outputRaw);
+	} else {
+		// default will be set by buildGroupPasses using THEME name
+		outputDir = '';
+	}
+
+	return { platforms, filterLayer, colorSpace, outputDir };
+}
+
+export function buildGroupPasses(
+	parsed: ParsedThemefile,
+	themeDir: string,
+	cliOutput?: string,
+	cliPlatform?: string,
+): ResolvedGroupParameters[] {
+	const defaultOutputDir = path.join(themeDir, parsed.THEME);
+
+	if (!parsed.groups || parsed.groups.length === 0) {
+		// Backward compatible: single pass from global parameters
+		const resolved = resolveParameters(
+			parsed.PARAMETER,
+			themeDir,
+			cliOutput,
+			cliPlatform,
+		);
+		if (!resolved.outputDir) resolved.outputDir = defaultOutputDir;
+		return [resolved];
+	}
+
+	const passes: ResolvedGroupParameters[] = [];
+	const seen = new Map<string, string>(); // key: "outputDir|platforms", value: group name
+
+	for (const group of parsed.groups) {
+		const merged = mergeParameters(parsed.PARAMETER, group.PARAMETER);
+		const resolved = resolveParameters(merged, themeDir, cliOutput, cliPlatform);
+		if (!resolved.outputDir) resolved.outputDir = defaultOutputDir;
+
+		// Conflict detection: duplicate (outputDir, platform) combinations
+		const comboKey = `${resolved.outputDir}|${resolved.platforms.join(',')}`;
+		const prev = seen.get(comboKey);
+		if (prev) {
+			const label = group.name ? `"${group.name}"` : '(anonymous)';
+			logger.warn(
+				`Duplicate (outputDir, platform) combination in GROUP ${label} (same as GROUP ${prev})`,
+			);
+		} else {
+			seen.set(comboKey, group.name ? `"${group.name}"` : '(anonymous)');
+		}
+
+		passes.push(resolved);
+	}
+
+	return passes;
 }
 
 export { expandHomePath };

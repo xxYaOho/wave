@@ -20,18 +20,30 @@ export interface ResourceDeclaration {
 	ref: string;
 }
 
+/** 参数键值对，key 不限制，value 统一为 string */
+export interface ParameterSet {
+	[key: string]: string | undefined;
+}
+
+/** GROUP 指令块 */
+export interface GroupBlock {
+	name?: string;
+	PARAMETER: ParameterSet;
+}
+
+/** 合并全局参数与组参数后，解析出的构建参数 */
+export interface ResolvedGroupParameters {
+	platforms: string[];
+	filterLayer: number | undefined;
+	colorSpace: ColorSpaceFormat | undefined;
+	outputDir: string;
+}
+
 export interface ParsedThemefile {
 	THEME: string;
-	PARAMETER: {
-		night?: 'auto' | 'false';
-		variants?: string;
-		output?: string;
-		platform?: string;
-		brand?: string;
-		filterLayer?: number | string;
-		colorSpace?: ColorSpaceFormat;
-	};
+	PARAMETER: ParameterSet;
 	resources: ResourceDeclaration[];
+	groups: GroupBlock[];
 }
 
 export type ResourceType = 'palette' | 'dimension' | 'brand';

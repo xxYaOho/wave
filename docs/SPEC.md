@@ -125,6 +125,55 @@ PARAMETER filterLayer 1
 PARAMETER output ./dist
 ```
 
+### GROUP 指令（v0.14.0+）
+
+GROUP 允许定义参数组，每组覆盖全局 PARAMETER，系统对每组分别执行一次独立构建。
+
+**语法：**
+
+```
+GROUP "name" {
+  PARAMETER key value
+  ...
+}
+```
+
+- `"name"` 可选（`GROUP {` 合法），用于日志标识
+- 块内只接受 `PARAMETER`、注释、空行
+- 全局 PARAMETER 为所有 GROUP 提供默认值
+- GROUP 内任意 PARAMETER 覆盖全局同名参数，所有 key 平等对待
+- 每个 GROUP 产生一次独立构建，输出到各自的 `output` 目录
+- 无 GROUP 时行为完全向后兼容（单次构建）
+
+**优先级：** `CLI --platform/-o` > `GROUP PARAMETER` > 全局 `PARAMETER`
+
+**示例：**
+
+```
+THEME my-theme
+RESOURCE palette leonardo
+RESOURCE dimension wave
+
+PARAMETER output ./build
+PARAMETER colorSpace hex
+
+GROUP "css" {
+  PARAMETER platform css
+  PARAMETER filterLayer 3
+  PARAMETER output ./build/css
+}
+
+GROUP "sketch" {
+  PARAMETER platform sketch
+  PARAMETER filterLayer 2
+  PARAMETER output ./build/sketch
+}
+```
+
+上述配置会产生两次构建：css 组输出到 `./build/css`，sketch 组输出到 `./build/sketch`，两组均继承全局 `colorSpace hex`。
+
+**冲突检测：** 多个 GROUP 产生相同的 `(outputDir, platform)` 组合时，系统输出 warning。
+
 ---
 
 ## 资源解析

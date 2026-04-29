@@ -196,7 +196,7 @@ export async function createThemeDoctorContext(
 			context: {
 				themeDir: path.dirname(yamlPath),
 				themefilePath: yamlPath,
-				parsed: { THEME: '', PARAMETER: {}, resources: [] },
+				parsed: { THEME: '', PARAMETER: {}, resources: [], groups: [] },
 				dict,
 				expandedTree: expanded,
 				resolvedTree: resolved,
