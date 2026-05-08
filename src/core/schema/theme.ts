@@ -18,6 +18,8 @@ const KNOWN_TYPES = new Set([
 	'border',
 	'opacity',
 	'dimension',
+	'number',
+	'cubicBezier',
 ]);
 
 // $extends 格式验证：必须是 {group.path.to.group} 格式
@@ -28,6 +30,7 @@ const KNOWN_EXTENSIONS = new Set([
 	'smoothGradient',
 	'currentColor', // deprecated: use inheritColor instead
 	'inheritColor',
+	'sketchMap',
 ]);
 
 const EXTENSION_TYPE_MAP: Record<string, string> = {

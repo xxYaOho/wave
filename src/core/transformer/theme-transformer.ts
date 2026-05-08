@@ -692,6 +692,10 @@ function transformToken(
 		...(currentColorShadowAlpha !== undefined && { currentColorShadowAlpha }),
 		// Original referenced token path for sketch variable mapping
 		...(token._swatchName !== undefined && { _swatchName: token._swatchName }),
+		// Sketch property name mapping
+		...(token.$extensions?.sketchMap !== undefined && {
+			_sketchMap: token.$extensions.sketchMap as string,
+		}),
 	};
 
 	if (typeValue !== undefined) {

@@ -307,6 +307,7 @@ export const sketchFormat: Format = {
 		const colorGroup: Record<string, string> = {};
 		const styleGroup: Record<string, Record<string, unknown>> = {};
 		const componentGroup: Record<string, Record<string, unknown>> = {};
+		const dimensionGroup: Record<string, Record<string, unknown>> = {};
 
 		// 按 _order 排序保持原始顺序
 		const sortedTokens = [...dictionary.allTokens].sort(
@@ -507,6 +508,21 @@ export const sketchFormat: Format = {
 					};
 				}
 			}
+			// dimension 组：支持 sketchMap 映射 key
+			else if (rootKey === 'dimension') {
+				const sketchMap = (token as unknown as Record<string, unknown>)
+					._sketchMap as string | undefined;
+				const dimValue =
+					typeof tokenValue === 'string'
+						? parseFloat(tokenValue)
+						: tokenValue;
+
+				if (sketchMap) {
+					dimensionGroup[styleKey] = { [sketchMap]: dimValue };
+				} else {
+					dimensionGroup[styleKey] = { value: dimValue };
+				}
+			}
 		}
 
 		// 构建最终输出
@@ -521,6 +537,9 @@ export const sketchFormat: Format = {
 		}
 		if (Object.keys(componentGroup).length > 0) {
 			result.component = componentGroup;
+		}
+		if (Object.keys(dimensionGroup).length > 0) {
+			result.dimension = dimensionGroup;
 		}
 
 		return JSON.stringify(result, null, 2);
