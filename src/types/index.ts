@@ -262,7 +262,7 @@ export interface ThemeDocumentFailure {
 
 export interface ThemeDocumentSuccess {
 	ok: true;
-	tree: SdTokenTree;
+	tree: WaveToken[];
 	order: string[];
 	groupComments: Record<string, string>;
 }
@@ -295,33 +295,50 @@ export interface ResolvedTokenGroup {
 		| undefined;
 }
 
-export interface SdTokenValue {
-	value: DtcgValue;
+/**
+ * Wave-native flat token shape produced by the transformer and consumed by formats.
+ * The single source of truth for the data model that crosses layer boundaries.
+ */
+export interface WaveToken {
+	/** kebab-case identifier joined from path, e.g. "theme-color-primary-main" */
+	name: string;
+	/** original path segments from the resolved tree */
+	path: string[];
+	/** processed value (after color-space conversion, smoothShadow expansion, ...) */
+	value: unknown;
+	/** DTCG $type or inherited group $type (color | shadow | gradient | dimension | ...) */
 	type?: string;
+	/** $description copied from the source token */
 	comment?: string;
+	/** $deprecated flag */
 	deprecated?: string | boolean;
-	_order?: number;
-	/** composite group path, used to group tokens into nested output */
+	/** stable emit order assigned by the transformer (used for sorting) */
+	_order: number;
+	/** composite group path; sibling tokens with the same value are grouped on output */
 	_composite?: string;
-	/** @deprecated Use inheritColor instead */
-	currentColorOpacity?: number;
-	/** @deprecated Use inheritColor instead */
-	currentColorShadowAlpha?: number;
-	/** inheritColor metadata: normalized opacity value (0..1) */
-	inheritColorOpacity?: number;
-	/** inheritColor metadata: normalized alpha value (0..1) */
-	inheritColorAlpha?: number;
-	/** inheritColor metadata: true if this token uses inheritColor */
-	inheritColor?: boolean;
-	/** inheritColor metadata: Sketch siblingSlot hint */
-	inheritColorSiblingSlot?: string;
-	/** original referenced token path for sketch variable mapping */
+	/** sketch-side property name remapping hint (token.$extensions.sketchMap) */
+	_sketchMap?: string;
+	/** original referenced token path for Sketch variable swatch mapping */
 	_swatchName?: string;
+	/** inheritColor metadata */
+	inheritColor?: boolean;
+	inheritColorOpacity?: number;
+	inheritColorAlpha?: number;
+	inheritColorSiblingSlot?: string;
+	/** @deprecated legacy currentColor metadata; prefer inheritColor */
+	currentColorOpacity?: number;
+	/** @deprecated legacy currentColor metadata; prefer inheritColor */
+	currentColorShadowAlpha?: number;
 }
 
-export type SdTokenTree = {
-	[key: string]: SdTokenValue | SdTokenTree;
-};
+/**
+ * Signature of a wave format function: takes the flat token list plus an opaque
+ * options bag, returns the serialized output (json / css / sketch json / ...).
+ */
+export type WaveFormatFn = (
+	tokens: WaveToken[],
+	options?: Record<string, unknown>,
+) => string;
 
 export function isDtcgToken(node: unknown): node is DtcgToken {
 	return (

@@ -14,10 +14,12 @@ import type {
 	ExitCodeType,
 	GenerateOptions,
 	ParsedThemefile,
+	ResolvedTokenGroup,
 	ResolvedGroupParameters,
 	ThemeDocumentResult,
 } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
+import { transformToWaveTokens } from '../transformer/index.ts';
 import { logger } from '../../utils/logger.ts';
 import {
 	buildDependencyDictionary,
@@ -406,17 +408,21 @@ async function generateThemeTokens(
 		throw new Error(`Dimension parse error: ${dimension.message}`);
 	}
 
-	const tokens = {
+	// Wrap palette + dimension in a synthetic resolved theme tree so the same
+	// transformer can produce WaveToken[] for the no-main.yaml fallback path.
+	const syntheticTree = {
 		color: (palette as { color: unknown }).color,
 		dimension: (dimension as { dimension: unknown }).dimension,
-	};
+	} as unknown as ResolvedTokenGroup;
+
+	const transformResult = transformToWaveTokens(syntheticTree);
 
 	await fs.mkdir(outputDir, { recursive: true });
 
 	return generateTokens({
 		themeName,
 		outputDir,
-		tokens,
+		tokens: transformResult.tokens,
 		platform: platforms,
 		filterLayer,
 	});

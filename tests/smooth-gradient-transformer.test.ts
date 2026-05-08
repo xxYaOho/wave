@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import { roundTo } from '../src/core/transformer/number-format.ts';
-import { transformToSDFormat } from '../src/core/transformer/theme-transformer.ts';
-import type {
-	ResolvedTokenGroup,
-	SdTokenTree,
-	SdTokenValue,
-} from '../src/types/index.ts';
+import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
+import type { ResolvedTokenGroup, WaveToken } from '../src/types/index.ts';
+
+function findToken(tokens: WaveToken[], name: string): WaveToken {
+	const t = tokens.find((tok) => tok.name === name);
+	if (!t) throw new Error(`token ${name} not found`);
+	return t;
+}
 
 describe('smoothGradient transformation', () => {
 	test('expands 2-stop gradient to 5 stops with linear positions', () => {
@@ -27,9 +29,8 @@ describe('smoothGradient transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const stops = ((result.tree.gradient as SdTokenTree).smooth as SdTokenValue)
-			.value as {
+		const result = transformToWaveTokens(input);
+		const stops = findToken(result.tokens, 'gradient-smooth').value as {
 			color: string;
 			position: number;
 		}[];
@@ -61,9 +62,8 @@ describe('smoothGradient transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const stops = ((result.tree.gradient as SdTokenTree).smooth as SdTokenValue)
-			.value as {
+		const result = transformToWaveTokens(input);
+		const stops = findToken(result.tokens, 'gradient-smooth').value as {
 			color: string;
 			position: number;
 		}[];
@@ -95,18 +95,15 @@ describe('smoothGradient transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const stops = ((result.tree.gradient as SdTokenTree).smooth as SdTokenValue)
-			.value as {
+		const result = transformToWaveTokens(input);
+		const stops = findToken(result.tokens, 'gradient-smooth').value as {
 			color: string;
 			position: number;
 		}[];
 
-		// With curve [0,0,1,1], alpha should linearly interpolate from 1 to 1 => all alphas are 1
-		expect(stops[0]?.color).toMatch(/^#ff0000/); // full opacity
-		expect(stops[4]?.color).toMatch(/^#0000ff/); // full opacity
+		expect(stops[0]?.color).toMatch(/^#ff0000/);
+		expect(stops[4]?.color).toMatch(/^#0000ff/);
 
-		// All stops must be valid hex (7 or 9 chars with #), never 10+
 		for (const stop of stops) {
 			expect(stop.color).toMatch(/^#[0-9a-f]{6}([0-9a-f]{2})?$/);
 		}
@@ -128,7 +125,7 @@ describe('smoothGradient transformation', () => {
 			},
 		};
 
-		expect(() => transformToSDFormat(input)).toThrow(
+		expect(() => transformToWaveTokens(input)).toThrow(
 			'smoothGradient requires exactly 2 stops',
 		);
 	});
@@ -157,7 +154,7 @@ describe('smoothGradient transformation', () => {
 			},
 		};
 
-		expect(() => transformToSDFormat(input)).toThrow(
+		expect(() => transformToWaveTokens(input)).toThrow(
 			'smoothGradient.cubicBezier must be an array of 4 numbers',
 		);
 	});
@@ -181,12 +178,12 @@ describe('smoothGradient transformation', () => {
 			},
 		};
 
-		expect(() => transformToSDFormat(input)).toThrow(
+		expect(() => transformToWaveTokens(input)).toThrow(
 			'smoothGradient.step must be an integer >= 2',
 		);
 	});
 
-	test('$extensions is consumed and not present in output tree', () => {
+	test('$extensions is consumed and not present in token output', () => {
 		const input: ResolvedTokenGroup = {
 			gradient: {
 				$type: 'gradient',
@@ -205,10 +202,10 @@ describe('smoothGradient transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const token = (result.tree.gradient as SdTokenTree).smooth as SdTokenValue;
+		const result = transformToWaveTokens(input);
+		const token = findToken(result.tokens, 'gradient-smooth');
 		expect(token.value).toHaveLength(3);
-		expect('$extensions' in token).toBe(false);
+		expect((token as Record<string, unknown>).$extensions).toBeUndefined();
 	});
 
 	test('scales positions within original range [0, 0.5]', () => {
@@ -230,10 +227,8 @@ describe('smoothGradient transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const stops = ((result.tree.gradient as SdTokenTree).smooth as SdTokenValue)
-			.value as {
-			color: string;
+		const result = transformToWaveTokens(input);
+		const stops = findToken(result.tokens, 'gradient-smooth').value as {
 			position: number;
 		}[];
 
@@ -264,10 +259,8 @@ describe('smoothGradient transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const stops = ((result.tree.gradient as SdTokenTree).smooth as SdTokenValue)
-			.value as {
-			color: string;
+		const result = transformToWaveTokens(input);
+		const stops = findToken(result.tokens, 'gradient-smooth').value as {
 			position: number;
 		}[];
 
@@ -295,10 +288,8 @@ describe('smoothGradient transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const stops = ((result.tree.gradient as SdTokenTree).smooth as SdTokenValue)
-			.value as {
-			color: string;
+		const result = transformToWaveTokens(input);
+		const stops = findToken(result.tokens, 'gradient-smooth').value as {
 			position: number;
 		}[];
 

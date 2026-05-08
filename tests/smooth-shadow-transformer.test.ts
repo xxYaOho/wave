@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import { transformToSDFormat } from '../src/core/transformer/theme-transformer.ts';
-import type {
-	ResolvedTokenGroup,
-	SdTokenTree,
-	SdTokenValue,
-} from '../src/types/index.ts';
+import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
+import type { ResolvedTokenGroup, WaveToken } from '../src/types/index.ts';
+
+function findToken(tokens: WaveToken[], name: string): WaveToken {
+	const t = tokens.find((tok) => tok.name === name);
+	if (!t) throw new Error(`token ${name} not found`);
+	return t;
+}
 
 describe('smoothShadow transformation', () => {
 	test('derives smooth shadow layers from a single layer', () => {
@@ -29,9 +31,8 @@ describe('smoothShadow transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const layers = ((result.tree.shadow as SdTokenTree).raised as SdTokenValue)
-			.value as {
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			color: string;
 			offsetX: number;
 			offsetY: number;
@@ -40,7 +41,6 @@ describe('smoothShadow transformation', () => {
 		}[];
 
 		expect(layers).toHaveLength(3);
-		// Last layer should keep original values
 		expect(layers[2]!.offsetY).toBe(6);
 		expect(layers[2]!.blur).toBe(12);
 	});
@@ -67,20 +67,12 @@ describe('smoothShadow transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const layers = ((result.tree.shadow as SdTokenTree).raised as SdTokenValue)
-			.value as {
-			color: string;
-			offsetX: number;
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			offsetY: number;
-			blur: number;
-			spread: number;
 		}[];
 
 		expect(layers).toHaveLength(3);
-		// With linear curve [0,0,1,1], ratios for 4 points are [0, 0.33, 0.67, 1]
-		// Visible ratios after dropping zero layer: [0, 0.33, 0.67]
-		// Iterate backwards -> coeffs [0.33, 0.67, 1]
 		expect(layers[0]!.offsetY).toBe(Math.round(4 * (1 - 2 / 3)));
 		expect(layers[1]!.offsetY).toBe(Math.round(4 * (1 - 1 / 3)));
 		expect(layers[2]!.offsetY).toBe(4);
@@ -108,9 +100,8 @@ describe('smoothShadow transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const layers = ((result.tree.shadow as SdTokenTree).raised as SdTokenValue)
-			.value as {
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			blur: number;
 		}[];
 
@@ -142,15 +133,13 @@ describe('smoothShadow transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const layers = ((result.tree.shadow as SdTokenTree).raised as SdTokenValue)
-			.value as {
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			offsetY: number;
 			blur: number;
 		}[];
 
 		expect(layers).toHaveLength(3);
-		// Ensure no fully zero layer exists
 		expect(layers.every((l) => l.offsetY !== 0 || l.blur !== 0)).toBe(true);
 	});
 
@@ -177,9 +166,8 @@ describe('smoothShadow transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const layers = ((result.tree.shadow as SdTokenTree).raised as SdTokenValue)
-			.value as {
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			inset?: boolean;
 		}[];
 
@@ -211,9 +199,8 @@ describe('smoothShadow transformation', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const layers = ((result.tree.shadow as SdTokenTree).raised as SdTokenValue)
-			.value as {
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			offsetX: string;
 			offsetY: string;
 			blur: string;
@@ -221,9 +208,6 @@ describe('smoothShadow transformation', () => {
 		}[];
 
 		expect(layers).toHaveLength(3);
-		// Linear curve, 4 points sampled: [0, 0.33, 0.67, 1]
-		// Visible ratios: [0, 0.33, 0.67]
-		// Backwards coeffs: [0.33, 0.67, 1]
 		expect(layers[2]!.offsetX).toBe('0.5rem');
 		expect(layers[2]!.blur).toBe('2rem');
 		expect(layers[0]!.offsetX).toMatch(/rem$/);
@@ -257,7 +241,7 @@ describe('smoothShadow transformation', () => {
 			},
 		};
 
-		expect(() => transformToSDFormat(input)).toThrow(
+		expect(() => transformToWaveTokens(input)).toThrow(
 			'smoothShadow.cubicBezier must be an array of 4 numbers',
 		);
 	});
@@ -284,7 +268,7 @@ describe('smoothShadow transformation', () => {
 			},
 		};
 
-		expect(() => transformToSDFormat(input)).toThrow(
+		expect(() => transformToWaveTokens(input)).toThrow(
 			'smoothShadow.step must be an integer >= 1',
 		);
 	});
