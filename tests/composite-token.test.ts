@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { validateThemeSchema } from '../src/core/schema/theme.ts';
-import { transformToSDFormat } from '../src/core/transformer/theme-transformer.ts';
+import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
 import type { ResolvedTokenGroup } from '../src/types/index.ts';
 
 describe('composite token output', () => {
-	test('composite group outputs as nested object', () => {
+	test('composite group emits flat siblings sharing the composite path', () => {
 		const resolved: ResolvedTokenGroup = {
 			component: {
 				button: {
@@ -18,19 +18,28 @@ describe('composite token output', () => {
 			},
 		};
 
-		const { tree } = transformToSDFormat(resolved, undefined, 'hex', '');
+		const { tokens } = transformToWaveTokens(resolved);
 
-		const button = (tree.component as Record<string, unknown>)
-			?.button as Record<string, unknown>;
-		const composite = button?.outlineMax as Record<string, unknown>;
-		expect(composite).toBeDefined();
-		expect(typeof composite.fill).toBe('object');
-		expect((composite.fill as { value: string }).value).toBe('#ffffff');
-		expect((composite.border as { value: string }).value).toBe('#1d293d3d');
-		expect((composite.radius as { value: string }).value).toBe('9999px');
+		const fill = tokens.find(
+			(t) => t.name === 'component-button-outlinemax-fill',
+		);
+		const border = tokens.find(
+			(t) => t.name === 'component-button-outlinemax-border',
+		);
+		const radius = tokens.find(
+			(t) => t.name === 'component-button-outlinemax-radius',
+		);
+
+		expect(fill?.value).toBe('#ffffff');
+		expect(border?.value).toBe('#1d293d3d');
+		expect(radius?.value).toBe('9999px');
+
+		expect(fill?._composite).toBe('component.button.outlineMax');
+		expect(border?._composite).toBe('component.button.outlineMax');
+		expect(radius?._composite).toBe('component.button.outlineMax');
 	});
 
-	test('non-composite group outputs flat as before', () => {
+	test('non-composite group emits flat tokens with no _composite tag', () => {
 		const group: ResolvedTokenGroup = {
 			primary: {
 				main: { $value: '#0066cc' },
@@ -38,15 +47,15 @@ describe('composite token output', () => {
 			},
 		};
 
-		const { tree, order } = transformToSDFormat(
-			{ theme: group },
-			undefined,
-			'hex',
-			'theme',
-		);
+		const { tokens } = transformToWaveTokens({ theme: group });
 
-		expect(order).toContain('theme.primary.main');
-		expect(order).toContain('theme.primary.onMain');
+		const main = tokens.find((t) => t.name === 'theme-primary-main');
+		const onMain = tokens.find((t) => t.name === 'theme-primary-onmain');
+
+		expect(main).toBeDefined();
+		expect(onMain).toBeDefined();
+		expect(main?._composite).toBeUndefined();
+		expect(onMain?._composite).toBeUndefined();
 	});
 
 	test('composite and non-composite coexist', () => {
@@ -67,17 +76,15 @@ describe('composite token output', () => {
 			},
 		};
 
-		const { tree, order } = transformToSDFormat(resolved, undefined, 'hex', '');
+		const { tokens } = transformToWaveTokens(resolved);
 
-		// flat token
-		expect(order).toContain('theme.color.primary');
+		const flat = tokens.find((t) => t.name === 'theme-color-primary');
+		expect(flat?._composite).toBeUndefined();
 
-		// composite token
-		const button = (tree.component as Record<string, unknown>)
-			?.button as Record<string, unknown>;
-		const composite = button?.outlineMax as Record<string, unknown>;
-		expect(composite).toBeDefined();
-		expect(typeof composite.fill).toBe('object');
+		const composite = tokens.find(
+			(t) => t.name === 'component-button-outlinemax-fill',
+		);
+		expect(composite?._composite).toBe('component.button.outlineMax');
 	});
 });
 

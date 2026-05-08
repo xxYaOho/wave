@@ -5,8 +5,7 @@ import {
 	isResolvedToken,
 	type ResolvedDtcgToken,
 	type ResolvedTokenGroup,
-	type SdTokenTree,
-	type SdTokenValue,
+	type WaveToken,
 } from '../../types/index.ts';
 import {
 	convertColorSpace,
@@ -365,97 +364,7 @@ function deriveSmoothShadow(
 	return derived;
 }
 
-export interface TransformResult {
-	tree: SdTokenTree;
-	order: string[];
-	groupComments: Record<string, string>;
-}
-
 let orderCounter = 0;
-
-export function transformToSDFormat(
-	resolved: ResolvedTokenGroup,
-	parentType?: string,
-	targetColorSpace: ColorSpaceFormat = 'hex',
-	currentPath: string = '',
-): TransformResult {
-	const result: SdTokenTree = {};
-	const order: string[] = [];
-	const groupComments: Record<string, string> = {};
-	const inheritedType = resolved.$type ?? parentType;
-
-	if (resolved.$description !== undefined && currentPath) {
-		groupComments[currentPath] = resolved.$description;
-	}
-
-	for (const key of Object.keys(resolved)) {
-		if (key.startsWith('$')) {
-			continue;
-		}
-
-		const value = resolved[key];
-		const tokenPath = currentPath ? `${currentPath}.${key}` : key;
-
-		if (value === undefined || value === null) {
-			continue;
-		}
-
-		if (typeof value !== 'object') {
-			continue;
-		}
-
-		if (isResolvedToken(value)) {
-			result[key] = transformToken(
-				value,
-				inheritedType,
-				orderCounter++,
-				targetColorSpace,
-				tokenPath,
-			);
-			order.push(key);
-		} else {
-			const group = value as ResolvedTokenGroup;
-
-			// composite group: 输出为嵌套对象，子 token 作为属性
-			if (group.$extensions?.composite === true) {
-				const compositeObj: SdTokenTree = {};
-				for (const [propKey, propValue] of Object.entries(group)) {
-					if (propKey.startsWith('$')) continue;
-					if (
-						propValue === undefined ||
-						propValue === null ||
-						typeof propValue !== 'object'
-					)
-						continue;
-					if (!isResolvedToken(propValue)) continue;
-					const sdValue = transformToken(
-						propValue,
-						inheritedType,
-						orderCounter++,
-						targetColorSpace,
-						`${tokenPath}.${propKey}`,
-					);
-					sdValue._composite = tokenPath; // 标记所属 composite group path
-					compositeObj[propKey] = sdValue;
-				}
-				result[key] = compositeObj;
-				order.push(`${key}.{composite}`);
-			} else {
-				const nested = transformToSDFormat(
-					group,
-					inheritedType,
-					targetColorSpace,
-					tokenPath,
-				);
-				result[key] = nested.tree;
-				order.push(...nested.order.map((k) => `${key}.${k}`));
-				Object.assign(groupComments, nested.groupComments);
-			}
-		}
-	}
-
-	return { tree: result, order, groupComments };
-}
 
 /**
  * Extract normalized numeric value from inheritColor.property (opacity / alpha)
@@ -527,7 +436,7 @@ function transformToken(
 	order: number,
 	targetColorSpace: ColorSpaceFormat = 'hex',
 	tokenPath?: string,
-): SdTokenValue {
+): Omit<WaveToken, 'name' | 'path'> {
 	let processedValue = processValue(token.$value, targetColorSpace, tokenPath);
 	const typeValue = token.$type ?? parentType;
 
@@ -679,7 +588,7 @@ function transformToken(
 		}
 	}
 
-	const sdValue: SdTokenValue = {
+	const sdValue: Omit<WaveToken, 'name' | 'path'> = {
 		value: processedValue,
 		_order: order,
 		// inheritColor v1 metadata
@@ -711,4 +620,99 @@ function transformToken(
 	}
 
 	return sdValue;
+}
+
+export interface WaveTokenResult {
+	tokens: WaveToken[];
+	groupComments: Record<string, string>;
+}
+
+function buildWaveToken(
+	path: string[],
+	rest: Omit<WaveToken, 'name' | 'path'>,
+): WaveToken {
+	return {
+		name: path.join('-').toLowerCase(),
+		path,
+		...rest,
+	};
+}
+
+/**
+ * Walk a resolved DTCG token tree and emit a flat WaveToken[] plus group
+ * descriptions. Replaces the SD-shaped {tree, order} output of
+ * `transformToSDFormat` with a Wave-native shape consumed directly by formats.
+ */
+export function transformToWaveTokens(
+	resolved: ResolvedTokenGroup,
+	parentType?: string,
+	targetColorSpace: ColorSpaceFormat = 'hex',
+): WaveTokenResult {
+	const tokens: WaveToken[] = [];
+	const groupComments: Record<string, string> = {};
+
+	function walk(
+		group: ResolvedTokenGroup,
+		inheritedType: string | undefined,
+		path: string[],
+	): void {
+		const groupType = group.$type ?? inheritedType;
+
+		if (group.$description !== undefined && path.length > 0) {
+			groupComments[path.join('.')] = group.$description;
+		}
+
+		for (const key of Object.keys(group)) {
+			if (key.startsWith('$')) continue;
+			const value = group[key];
+			if (value === undefined || value === null) continue;
+			if (typeof value !== 'object') continue;
+
+			const childPath = [...path, key];
+			const childPathStr = childPath.join('.');
+
+			if (isResolvedToken(value)) {
+				const partial = transformToken(
+					value,
+					groupType,
+					orderCounter++,
+					targetColorSpace,
+					childPathStr,
+				);
+				tokens.push(buildWaveToken(childPath, partial));
+				continue;
+			}
+
+			const child = value as ResolvedTokenGroup;
+			if (child.$extensions?.composite === true) {
+				for (const propKey of Object.keys(child)) {
+					if (propKey.startsWith('$')) continue;
+					const propValue = child[propKey];
+					if (
+						propValue === undefined ||
+						propValue === null ||
+						typeof propValue !== 'object'
+					) {
+						continue;
+					}
+					if (!isResolvedToken(propValue)) continue;
+					const partial = transformToken(
+						propValue,
+						groupType,
+						orderCounter++,
+						targetColorSpace,
+						`${childPathStr}.${propKey}`,
+					);
+					partial._composite = childPathStr;
+					tokens.push(buildWaveToken([...childPath, propKey], partial));
+				}
+				continue;
+			}
+
+			walk(child, groupType, childPath);
+		}
+	}
+
+	walk(resolved, parentType, []);
+	return { tokens, groupComments };
 }

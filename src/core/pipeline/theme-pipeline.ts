@@ -8,7 +8,6 @@ import {
 	type ParseError,
 	type ReferenceDataSources,
 	type ResolvedGroupParameters,
-	type SdTokenTree,
 	type ThemeDocumentResult,
 	type ParameterSet,
 } from '../../types/index.ts';
@@ -30,7 +29,7 @@ import {
 } from '../resolver/index.ts';
 import { loadResource } from '../resolver/resource-loader.ts';
 import { validateThemeSchema } from '../schema/theme.ts';
-import { transformToSDFormat } from '../transformer/index.ts';
+import { transformToWaveTokens } from '../transformer/index.ts';
 
 export interface ThemefileLoadResult {
 	parsed: ParsedThemefile;
@@ -275,15 +274,15 @@ export async function processThemeDocument(
 		const expanded = expandExtends(parsed.raw, rootKeys);
 
 		const resolved = resolveReferences(expanded, sources);
-		const transformResult = transformToSDFormat(
+		const transformResult = transformToWaveTokens(
 			resolved,
 			undefined,
 			colorSpace,
 		);
 		return {
 			ok: true,
-			tree: transformResult.tree,
-			order: transformResult.order,
+			tree: transformResult.tokens,
+			order: transformResult.tokens.map((t) => t.name),
 			groupComments: transformResult.groupComments,
 		};
 	} catch (err) {

@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import { transformToSDFormat } from '../src/core/transformer/theme-transformer.ts';
-import type {
-	ResolvedTokenGroup,
-	SdTokenTree,
-	SdTokenValue,
-} from '../src/types/index.ts';
+import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
+import type { ResolvedTokenGroup, WaveToken } from '../src/types/index.ts';
+
+function findToken(tokens: WaveToken[], name: string): WaveToken {
+	const t = tokens.find((tok) => tok.name === name);
+	if (!t) throw new Error(`token ${name} not found`);
+	return t;
+}
 
 describe('smoothShadow contract', () => {
 	test('derives layers from a single shadow layer with smoothShadow extension', () => {
@@ -26,9 +28,8 @@ describe('smoothShadow contract', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const layers = ((result.tree.shadow as SdTokenTree).raised as SdTokenValue)
-			.value as {
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			color: string;
 			offsetX: number;
 			offsetY: number;
@@ -60,24 +61,18 @@ describe('smoothShadow contract', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const layers = ((result.tree.shadow as SdTokenTree).raised as SdTokenValue)
-			.value as {
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			color: string;
-			offsetX: number;
-			offsetY: number;
-			blur: number;
-			spread: number;
 		}[];
 
 		for (const layer of layers) {
-			// 8-digit hex (with #) = 9 chars, not 10+
 			expect(layer.color).toHaveLength(9);
 			expect(layer.color).toMatch(/^#[0-9a-f]{8}$/);
 		}
 	});
 
-	test('$extensions is consumed and not present in output tree', () => {
+	test('$extensions is consumed and not present in token output', () => {
 		const input: ResolvedTokenGroup = {
 			shadow: {
 				$type: 'shadow',
@@ -96,9 +91,9 @@ describe('smoothShadow contract', () => {
 			},
 		};
 
-		const result = transformToSDFormat(input);
-		const token = (result.tree.shadow as SdTokenTree).raised as SdTokenValue;
+		const result = transformToWaveTokens(input);
+		const token = findToken(result.tokens, 'shadow-raised');
 		expect(token.value).toHaveLength(2);
-		expect('$extensions' in token).toBe(false);
+		expect((token as Record<string, unknown>).$extensions).toBeUndefined();
 	});
 });

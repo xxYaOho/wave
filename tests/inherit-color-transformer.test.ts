@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import { transformToSDFormat } from '../src/core/transformer/theme-transformer.ts';
-import type { ResolvedTokenGroup } from '../src/types/index.ts';
+import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
+import type { ResolvedTokenGroup, WaveToken } from '../src/types/index.ts';
+
+function findToken(
+	tokens: WaveToken[],
+	name: string,
+): WaveToken | undefined {
+	return tokens.find((t) => t.name === name);
+}
 
 describe('inheritColor Transformer', () => {
 	describe('Boolean form: inheritColor: true', () => {
@@ -19,18 +26,11 @@ describe('inheritColor Transformer', () => {
 				},
 			};
 
-			const result = transformToSDFormat(resolved);
-			const tree = result.tree as Record<
-				string,
-				Record<string, Record<string, unknown>>
-			>;
-			const token = tree.theme?.color?.primary as {
-				inheritColor?: boolean;
-				value: unknown;
-			};
+			const result = transformToWaveTokens(resolved);
+			const token = findToken(result.tokens, 'theme-color-primary')!;
 
-			expect(token?.inheritColor).toBe(true);
-			expect(token?.value).toBe('#0066cc');
+			expect(token.inheritColor).toBe(true);
+			expect(token.value).toBe('#0066cc');
 		});
 	});
 
@@ -54,20 +54,12 @@ describe('inheritColor Transformer', () => {
 				},
 			};
 
-			const result = transformToSDFormat(resolved);
-			const tree = result.tree as Record<
-				string,
-				Record<string, Record<string, unknown>>
-			>;
-			const token = tree.theme?.color?.primary as {
-				inheritColor?: boolean;
-				inheritColorOpacity?: number;
-				value: unknown;
-			};
+			const result = transformToWaveTokens(resolved);
+			const token = findToken(result.tokens, 'theme-color-primary')!;
 
-			expect(token?.inheritColor).toBe(true);
-			expect(token?.inheritColorOpacity).toBe(0.5);
-			expect(token?.value).toEqual({ opacity: 0.5, _color: '#0066cc' });
+			expect(token.inheritColor).toBe(true);
+			expect(token.inheritColorOpacity).toBe(0.5);
+			expect(token.value).toEqual({ opacity: 0.5, _color: '#0066cc' });
 		});
 
 		test('should extract resolved opacity from object', () => {
@@ -89,16 +81,10 @@ describe('inheritColor Transformer', () => {
 				},
 			};
 
-			const result = transformToSDFormat(resolved);
-			const tree = result.tree as Record<
-				string,
-				Record<string, Record<string, unknown>>
-			>;
-			const token = tree.theme?.color?.primary as {
-				inheritColorOpacity?: number;
-			};
+			const result = transformToWaveTokens(resolved);
+			const token = findToken(result.tokens, 'theme-color-primary')!;
 
-			expect(token?.inheritColorOpacity).toBe(0.75);
+			expect(token.inheritColorOpacity).toBe(0.75);
 		});
 	});
 
@@ -120,18 +106,11 @@ describe('inheritColor Transformer', () => {
 				},
 			};
 
-			const result = transformToSDFormat(resolved);
-			const tree = result.tree as Record<
-				string,
-				Record<string, Record<string, unknown>>
-			>;
-			const token = tree.theme?.color?.border as {
-				inheritColor?: boolean;
-				inheritColorSiblingSlot?: string;
-			};
+			const result = transformToWaveTokens(resolved);
+			const token = findToken(result.tokens, 'theme-color-border')!;
 
-			expect(token?.inheritColor).toBe(true);
-			expect(token?.inheritColorSiblingSlot).toBe('label');
+			expect(token.inheritColor).toBe(true);
+			expect(token.inheritColorSiblingSlot).toBe('label');
 		});
 
 		test('should handle both opacity and siblingSlot', () => {
@@ -154,22 +133,13 @@ describe('inheritColor Transformer', () => {
 				},
 			};
 
-			const result = transformToSDFormat(resolved);
-			const tree = result.tree as Record<
-				string,
-				Record<string, Record<string, unknown>>
-			>;
-			const token = tree.theme?.color?.border as {
-				inheritColor?: boolean;
-				inheritColorOpacity?: number;
-				inheritColorSiblingSlot?: string;
-				value: unknown;
-			};
+			const result = transformToWaveTokens(resolved);
+			const token = findToken(result.tokens, 'theme-color-border')!;
 
-			expect(token?.inheritColor).toBe(true);
-			expect(token?.inheritColorOpacity).toBe(0.3);
-			expect(token?.inheritColorSiblingSlot).toBe('label');
-			expect(token?.value).toEqual({ opacity: 0.3, _color: '#cc0000' });
+			expect(token.inheritColor).toBe(true);
+			expect(token.inheritColorOpacity).toBe(0.3);
+			expect(token.inheritColorSiblingSlot).toBe('label');
+			expect(token.value).toEqual({ opacity: 0.3, _color: '#cc0000' });
 		});
 	});
 
@@ -191,18 +161,11 @@ describe('inheritColor Transformer', () => {
 				},
 			};
 
-			const result = transformToSDFormat(resolved);
-			const tree = result.tree as Record<
-				string,
-				Record<string, Record<string, unknown>>
-			>;
-			const token = tree.theme?.color?.primary as {
-				currentColorOpacity?: number;
-				inheritColor?: boolean;
-			};
+			const result = transformToWaveTokens(resolved);
+			const token = findToken(result.tokens, 'theme-color-primary')!;
 
-			expect(token?.currentColorOpacity).toBe(0.5);
-			expect(token?.inheritColor).toBeUndefined();
+			expect(token.currentColorOpacity).toBe(0.5);
+			expect(token.inheritColor).toBeUndefined();
 		});
 	});
 });

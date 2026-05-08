@@ -1,31 +1,5 @@
-import { transformTypes } from 'style-dictionary/enums';
-import type { Transform, TransformedToken } from 'style-dictionary/types';
 import { hexToRgbComponents } from '../../transformer/color-space.ts';
 
-export const valueCssVarTransform: Transform = {
-	name: 'wave/value/cssVar',
-	type: transformTypes.value,
-	transitive: true,
-	filter: (token: TransformedToken) => {
-		return token.type === 'color' || token.$type === 'color';
-	},
-	transform: (token: TransformedToken) => {
-		const varName = token.path.join('-').toLowerCase();
-		return `var(--${varName})`;
-	},
-};
-
-// 提取数值（支持 number、string 或 {value: number} 对象）
-function extractNumber(val: unknown): number {
-	if (typeof val === 'number') return val;
-	if (typeof val === 'string') return parseFloat(val);
-	if (typeof val === 'object' && val !== null && 'value' in val) {
-		return (val as { value: number }).value;
-	}
-	return 0;
-}
-
-// 将颜色值转换为现代 CSS rgb() 格式: rgb(r g b / alpha)
 function colorToRgba(colorVal: unknown): string {
 	const colorStr = String(colorVal);
 	if (!colorStr.startsWith('#')) {
@@ -36,15 +10,12 @@ function colorToRgba(colorVal: unknown): string {
 	if (!components) return colorStr;
 
 	const { red, green, blue, alpha } = components;
-	// 限制 alpha 为 2 位小数
 	const alphaRounded = Math.round(alpha * 100) / 100;
 	return `rgb(${red} ${green} ${blue} / ${alphaRounded})`;
 }
 
-// Shadow 转 CSS 字符串
 function formatShadowLength(val: unknown): string {
 	if (typeof val === 'string') {
-		// 清理 px 单位为纯数字（CSS 中数字默认就是 px 逻辑），但保留 rem 等相对单位
 		if (val.endsWith('px')) {
 			const num = parseFloat(val);
 			return isNaN(num) ? val : String(num);
@@ -79,7 +50,6 @@ export function shadowToCss(value: unknown): string {
 	return layers.join(', ');
 }
 
-// Gradient 转 CSS 字符串
 export function gradientToCss(value: unknown): string {
 	if (!Array.isArray(value)) {
 		return String(value);
@@ -100,15 +70,3 @@ export function gradientToCss(value: unknown): string {
 
 	return `linear-gradient(to right, ${stops.join(', ')})`;
 }
-
-// 检查是否为 shadow 类型
-export function isShadowToken(token: TransformedToken): boolean {
-	return token.type === 'shadow' || token.$type === 'shadow';
-}
-
-// 检查是否为 gradient 类型
-export function isGradientToken(token: TransformedToken): boolean {
-	return token.type === 'gradient' || token.$type === 'gradient';
-}
-
-export default valueCssVarTransform;

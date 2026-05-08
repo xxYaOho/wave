@@ -1,1 +1,4 @@
-export { transformToSDFormat } from './theme-transformer.ts';
+export {
+	type WaveTokenResult,
+	transformToWaveTokens,
+} from './theme-transformer.ts';
