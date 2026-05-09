@@ -43,8 +43,8 @@ describe('renderReceipt', () => {
 		expect(out).toContain('BUILD FAILED');
 		expect(out).toContain('Error Receipt');
 		expect(out).toContain('ERRORS');
-		expect(out).toContain('resource');
-		expect(out).toContain('palette not found');
+		expect(out).toContain('resource resolve');
+		expect(out).toContain('资源错误');
 		expect(out).toContain('Failed at: resource resolve');
 	});
 

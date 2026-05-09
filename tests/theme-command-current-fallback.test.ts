@@ -38,7 +38,8 @@ describe('theme command current fallback behavior', () => {
 
 		// After fail-fast refactor: parse failure returns non-zero and does not generate files
 		expect(exitCode).not.toBe(0);
-		expect(stdout).toContain('Unresolved theme referenc');
+		expect(stdout).toContain('main parse');
+		expect(stdout).toContain('解析失败');
 
 		const fileExists = await Bun.file(
 			path.join(outputDir, 'baseline-fallback.json'),

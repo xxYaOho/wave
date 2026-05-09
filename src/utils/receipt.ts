@@ -112,6 +112,7 @@ export interface OutputEntry {
 export interface BuildError {
 	category: ErrorCategory;
 	message: string;
+	phase?: string;
 	detail?: string;
 	line?: number;
 }
@@ -170,6 +171,7 @@ export class BuildContext {
 		this.errors.push({
 			category,
 			message,
+			phase: opts?.phase,
 			detail: opts?.detail,
 			line: opts?.line,
 		});
@@ -292,10 +294,19 @@ function renderFailed(ctx: BuildContext, w: number): string {
 	lines.push(dashed);
 	lines.push(line(pc.red('  ERRORS'), w));
 	lines.push(line('', w));
+	const categoryLabels: Record<ErrorCategory, string> = {
+		parse: '解析失败',
+		resource: '资源错误',
+		generate: '生成失败',
+		load: '加载失败',
+		config: '配置错误',
+	};
 	for (const err of ctx.errors) {
-		const detail = err.line ? `at line ${err.line}` : err.detail;
-		lines.push(kvLine(err.category, pc.red(err.message), undefined, w));
-		if (detail) {
+		const phase = err.phase ?? err.category;
+		const label = categoryLabels[err.category] ?? err.category;
+		lines.push(kvLine(phase, pc.red(label), undefined, w));
+		if (err.detail || err.line) {
+			const detail = err.line ? `line ${err.line}` : err.detail;
 			const indent = ' '.repeat(KEY_COL + 2);
 			lines.push(line(`${indent}${pc.red(detail)}`, w));
 		}
