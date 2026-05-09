@@ -10,7 +10,8 @@ import {
 	type ThemeGenerationInput,
 } from '../../core/pipeline/theme-service.ts';
 import { ExitCode, type GenerateOptions } from '../../types/index.ts';
-import { logger } from '../../utils/logger.ts';
+import { BuildContext, renderReceipt } from '../../utils/receipt.ts';
+import { WaveSpinner } from '../../utils/spinner.ts';
 import { selectThemesToGenerate } from '../theme-multiselect.ts';
 
 interface CreateCommandOptions {
@@ -84,8 +85,11 @@ export const createCommand = new Command('create')
 			return;
 		}
 
-		logger.info(`Generating theme: ${themeName}`);
-		logger.info(`Version: ${VERSION}`);
+		const spinner = new WaveSpinner();
+		const ctx = new BuildContext();
+		ctx.themeName = themeName;
+		ctx.version = VERSION;
+		ctx.outputDir = options.output ?? '';
 
 		let selectedThemes: ThemeFileEntry[] | undefined;
 		if (
@@ -115,17 +119,18 @@ export const createCommand = new Command('create')
 			selectedThemes,
 		};
 
-		const result = await generateTheme(input);
-
-		if (!result.ok) {
-			process.exitCode = result.exitCode;
-			if (result.line) {
-				logger.error(`${result.message} at line ${result.line}`);
-			} else {
-				logger.error(result.message);
-			}
-			return;
+		try {
+			spinner.start('Generating theme...');
+			const result = await generateTheme(input, ctx);
+			spinner.stop();
+			process.exitCode = result.ok ? ExitCode.SUCCESS : result.exitCode;
+		} catch (err) {
+			spinner.stop();
+			const msg = err instanceof Error ? err.message : String(err);
+			ctx.markFailed('generate', msg, { phase: 'unknown' });
+			process.exitCode = ExitCode.GENERAL_ERROR;
+		} finally {
+			spinner.stop();
+			console.log(renderReceipt(ctx));
 		}
-
-		process.exitCode = ExitCode.SUCCESS;
 	});

@@ -5,31 +5,27 @@ import type { ThemeFileEntry } from '../../core/doctor/theme-context.ts';
 import type { GeneratorResult } from '../../core/generator/index.ts';
 import { generateTokens } from '../../core/generator/index.ts';
 import {
-	parsePalette,
 	parseDimension,
-	validatePaletteSchema,
+	parsePalette,
 	validateDimensionSchema,
+	validatePaletteSchema,
 } from '../../core/parser/index.ts';
 import type {
 	ExitCodeType,
 	GenerateOptions,
-	ParsedThemefile,
 	ResolvedTokenGroup,
-	ResolvedGroupParameters,
-	ThemeDocumentResult,
 } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
-import { transformToWaveTokens } from '../transformer/index.ts';
 import { logger } from '../../utils/logger.ts';
+import type { BuildContext } from '../../utils/receipt.ts';
+import { transformToWaveTokens } from '../transformer/index.ts';
 import {
 	buildDependencyDictionary,
 	buildGroupPasses,
-	expandHomePath,
-	loadThemefile,
-	processThemeDocument,
-	resolveOutputDir,
 	type DependencyDict,
 	type DependencyDictionary,
+	loadThemefile,
+	processThemeDocument,
 } from './theme-pipeline.ts';
 
 export interface ThemeGenerationInput {
@@ -76,8 +72,9 @@ async function generatePass(
 	platforms: string[],
 	filterLayer: number | undefined,
 	colorSpace: string | undefined,
-	generateOptions: GenerateOptions,
+	_generateOptions: GenerateOptions,
 	selectedThemes?: ThemeFileEntry[],
+	ctx?: BuildContext,
 ): Promise<{ files: string[] } | ThemeGenerationFailure> {
 	const files: string[] = [];
 
@@ -86,7 +83,7 @@ async function generatePass(
 	const hasMainYaml = await mainYamlFile.exists();
 
 	if (hasMainYaml && isSelected(selectedThemes, 'main')) {
-		logger.info('Found main.yaml, parsing theme tokens...');
+		if (!ctx) logger.info('Found main.yaml, parsing theme tokens...');
 		const parseResult = await processThemeDocument(
 			mainYamlPath,
 			dict,
@@ -94,12 +91,14 @@ async function generatePass(
 		);
 
 		if (!parseResult.ok) {
+			const msg = parseResult.line
+				? `${parseResult.message} at line ${parseResult.line}`
+				: parseResult.message;
+			ctx?.markFailed('parse', msg, { phase: 'main parse' });
 			return {
 				ok: false,
 				exitCode: parseResult.exitCode,
-				message: parseResult.line
-					? `${parseResult.message} at line ${parseResult.line}`
-					: parseResult.message,
+				message: msg,
 			};
 		}
 
@@ -114,15 +113,18 @@ async function generatePass(
 		});
 
 		if (!mainResult.success) {
+			const msg = mainResult.error || 'Failed to generate tokens';
+			ctx?.markFailed('generate', msg, { phase: 'main generate' });
 			return {
 				ok: false,
 				exitCode: ExitCode.GENERAL_ERROR,
-				message: mainResult.error || 'Failed to generate tokens',
+				message: msg,
 			};
 		}
 
 		files.push(...mainResult.files);
-		logger.success(`Generated main: ${mainResult.files.join(', ')}`);
+		ctx?.addOutput('main', mainResult.files);
+		if (!ctx) logger.success(`Generated main: ${mainResult.files.join(', ')}`);
 	} else if (isSelected(selectedThemes, 'main')) {
 		// No main.yaml — generate from palette + dimension directly
 		const result = await generateThemeTokens(
@@ -134,17 +136,20 @@ async function generatePass(
 		);
 
 		if (!result.success) {
+			const msg = result.error || 'Failed to generate tokens';
+			ctx?.markFailed('generate', msg, { phase: 'main generate' });
 			return {
 				ok: false,
 				exitCode: result.error?.includes('schema error')
 					? ExitCode.INVALID_RESOURCE
 					: ExitCode.GENERAL_ERROR,
-				message: result.error || 'Failed to generate tokens',
+				message: msg,
 			};
 		}
 
 		files.push(...result.files);
-		logger.success(`Generated main: ${result.files.join(', ')}`);
+		ctx?.addOutput('main', result.files);
+		if (!ctx) logger.success(`Generated main: ${result.files.join(', ')}`);
 	}
 
 	return { files };
@@ -152,6 +157,7 @@ async function generatePass(
 
 export async function generateTheme(
 	input: ThemeGenerationInput,
+	ctx?: BuildContext,
 ): Promise<ThemeGenerationResult> {
 	const {
 		themeName,
@@ -166,6 +172,13 @@ export async function generateTheme(
 	const loadResult = await loadThemefile(themePath);
 	if ('error' in loadResult) {
 		const err = loadResult.error;
+		const phase = err.message.includes('not found')
+			? 'themefile load'
+			: 'themefile parse';
+		ctx?.markFailed('load', err.message, {
+			phase,
+			line: 'line' in err ? (err as { line: number }).line : undefined,
+		});
 		if (err.message.includes('not found')) {
 			return {
 				ok: false,
@@ -195,6 +208,7 @@ export async function generateTheme(
 	const depResult = await buildDependencyDictionary(parsed, themeDir);
 	if ('error' in depResult) {
 		const errMsg = depResult.error.message;
+		ctx?.markFailed('resource', errMsg, { phase: 'resource resolve' });
 		return {
 			ok: false,
 			exitCode: errMsg.includes('schema error')
@@ -206,13 +220,16 @@ export async function generateTheme(
 
 	const { dict } = depResult;
 
-	// Log resources
+	// Collect resources
 	for (const { kind, ref } of parsed.resources) {
 		const loaded = Object.values(dict).find((e) => e.kind === kind);
 		const isBuiltin = loaded?.path.includes('src/resources') ?? false;
-		logger.success(
-			`Resource [${kind}]: ${ref} (${isBuiltin ? 'builtin' : 'user'})`,
-		);
+		ctx?.addResource(kind, ref, isBuiltin ? 'builtin' : 'user');
+		if (!ctx) {
+			logger.success(
+				`Resource [${kind}]: ${ref} (${isBuiltin ? 'builtin' : 'user'})`,
+			);
+		}
 	}
 
 	// Step 3: Build group passes
@@ -220,6 +237,9 @@ export async function generateTheme(
 
 	// Step 4: Generate main theme for each pass
 	const generatedFiles: string[] = [];
+
+	const firstPass = passes[0]!;
+	if (ctx) ctx.outputDir = firstPass.outputDir;
 
 	for (const pass of passes) {
 		const result = await generatePass(
@@ -233,9 +253,11 @@ export async function generateTheme(
 			pass.colorSpace,
 			generateOptions,
 			selectedThemes,
+			ctx,
 		);
 
 		if (!('files' in result)) {
+			ctx?.markFailed('generate', result.message, { phase: 'main generate' });
 			return result;
 		}
 
@@ -243,14 +265,21 @@ export async function generateTheme(
 	}
 
 	// Use first pass output dir for night/variants (backward compat)
-	const primaryOutputDir = passes[0].outputDir;
-	const primaryPlatforms = passes[0].platforms;
-	const primaryFilterLayer = passes[0].filterLayer;
-	const primaryColorSpace = passes[0].colorSpace;
+	const primaryOutputDir = firstPass.outputDir;
+	const primaryPlatforms = firstPass.platforms;
+	const primaryFilterLayer = firstPass.filterLayer;
+	const primaryColorSpace = firstPass.colorSpace;
 
 	// Step 5: Generate night mode
 	const nightResult = detectNightMode(themeDir, generateOptions);
-	logger.info(nightResult.message);
+	if (nightResult.available) {
+		ctx?.setNight('enabled');
+	} else if (nightResult.message.includes('disabled')) {
+		ctx?.setNight('disabled');
+	} else {
+		ctx?.setNight('skipped');
+	}
+	if (!ctx) logger.info(nightResult.message);
 
 	if (nightResult.available && isSelected(selectedThemes, 'main@night')) {
 		const nightYamlPath = path.join(themeDir, 'main@night.yaml');
@@ -258,7 +287,8 @@ export async function generateTheme(
 		const hasNightYaml = await nightYamlFile.exists();
 
 		if (hasNightYaml) {
-			logger.info('Found main@night.yaml, parsing night theme tokens...');
+			if (!ctx)
+				logger.info('Found main@night.yaml, parsing night theme tokens...');
 			const nightParseResult = await processThemeDocument(
 				nightYamlPath,
 				dict,
@@ -266,12 +296,14 @@ export async function generateTheme(
 			);
 
 			if (!nightParseResult.ok) {
+				const msg = nightParseResult.line
+					? `${nightParseResult.message} at line ${nightParseResult.line}`
+					: nightParseResult.message;
+				ctx?.markFailed('parse', msg, { phase: 'night parse' });
 				return {
 					ok: false,
 					exitCode: nightParseResult.exitCode,
-					message: nightParseResult.line
-						? `${nightParseResult.message} at line ${nightParseResult.line}`
-						: nightParseResult.message,
+					message: msg,
 				};
 			}
 
@@ -286,7 +318,9 @@ export async function generateTheme(
 
 			if (nightGenResult.success) {
 				generatedFiles.push(...nightGenResult.files);
-				logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
+				ctx?.addOutput('night', nightGenResult.files);
+				if (!ctx)
+					logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
 			}
 		} else {
 			const nightGenResult = await generateThemeTokens(
@@ -298,14 +332,26 @@ export async function generateTheme(
 			);
 			if (nightGenResult.success) {
 				generatedFiles.push(...nightGenResult.files);
-				logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
+				ctx?.addOutput('night', nightGenResult.files);
+				if (!ctx)
+					logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
 			}
 		}
 	}
 
 	// Step 6: Generate variants
 	const variantsDetection = detectVariants(themeDir, generateOptions);
-	logger.info(variantsDetection.message);
+	const variantNames = variantsDetection.files.map((f) =>
+		path.basename(f, '.yaml'),
+	);
+	if (variantsDetection.available) {
+		ctx?.setVariants('enabled', variantsDetection.files.length, variantNames);
+	} else if (variantsDetection.message.includes('disabled')) {
+		ctx?.setVariants('disabled', 0, []);
+	} else {
+		ctx?.setVariants('none', 0, []);
+	}
+	if (!ctx) logger.info(variantsDetection.message);
 
 	if (variantsDetection.available) {
 		for (const variantFile of variantsDetection.files) {
@@ -326,12 +372,14 @@ export async function generateTheme(
 			);
 
 			if (!variantTokens.ok) {
+				const msg = variantTokens.line
+					? `${variantTokens.message} at line ${variantTokens.line}`
+					: variantTokens.message;
+				ctx?.markFailed('parse', msg, { phase: 'variant parse' });
 				return {
 					ok: false,
 					exitCode: variantTokens.exitCode,
-					message: variantTokens.line
-						? `${variantTokens.message} at line ${variantTokens.line}`
-						: variantTokens.message,
+					message: msg,
 				};
 			}
 
@@ -346,15 +394,15 @@ export async function generateTheme(
 
 			if (variantResult.success) {
 				generatedFiles.push(...variantResult.files);
-				logger.success(
-					`Generated variant ${variantName}: ${variantResult.files.join(', ')}`,
-				);
+				ctx?.addOutput('variant', variantResult.files, variantName);
+				if (!ctx) {
+					logger.success(
+						`Generated variant ${variantName}: ${variantResult.files.join(', ')}`,
+					);
+				}
 			}
 		}
 	}
-
-	logger.success(`Output directory: ${primaryOutputDir}`);
-	logger.success(`Theme generation complete: ${resolvedThemeName}`);
 
 	return {
 		ok: true,
@@ -373,12 +421,8 @@ async function generateThemeTokens(
 	platforms?: string[],
 	filterLayer?: number,
 ): Promise<GeneratorResult> {
-	const {
-		paletteContent,
-		dimensionContent,
-		palettePath,
-		dimensionPath,
-	} = depResult;
+	const { paletteContent, dimensionContent, palettePath, dimensionPath } =
+		depResult;
 
 	const paletteSchemaError = await validatePaletteSchema(
 		paletteContent,

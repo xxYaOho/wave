@@ -29,7 +29,7 @@ describe('theme command current fallback behavior', () => {
 			await fs.rm(outputDir, { recursive: true, force: true });
 		} catch {}
 
-		const { exitCode, stderr } = await runWaveTheme([
+		const { exitCode, stdout } = await runWaveTheme([
 			'-f',
 			path.join(fixtureDir, 'themefile'),
 			'-o',
@@ -38,7 +38,7 @@ describe('theme command current fallback behavior', () => {
 
 		// After fail-fast refactor: parse failure returns non-zero and does not generate files
 		expect(exitCode).not.toBe(0);
-		expect(stderr).toContain('Unresolved theme references found');
+		expect(stdout).toContain('Unresolved theme referenc');
 
 		const fileExists = await Bun.file(
 			path.join(outputDir, 'baseline-fallback.json'),
