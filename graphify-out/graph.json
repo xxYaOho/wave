@@ -53,765 +53,765 @@
       "file_type": "code",
       "source_file": "tests/themefile-group-pipeline.test.ts",
       "source_location": "L1",
-      "id": "tests_themefile_group_pipeline_test_ts",
-      "community": 10,
-      "norm_label": "themefile-group-pipeline.test.ts"
+      "community": 15,
+      "norm_label": "themefile-group-pipeline.test.ts",
+      "id": "tests_themefile_group_pipeline_test_ts"
     },
     {
       "label": "makeParsed()",
       "file_type": "code",
       "source_file": "tests/themefile-group-pipeline.test.ts",
       "source_location": "L9",
-      "id": "themefile_group_pipeline_test_makeparsed",
-      "community": 10,
-      "norm_label": "makeparsed()"
+      "community": 15,
+      "norm_label": "makeparsed()",
+      "id": "themefile_group_pipeline_test_makeparsed"
     },
     {
       "label": "themefile-group-parser.test.ts",
       "file_type": "code",
       "source_file": "tests/themefile-group-parser.test.ts",
       "source_location": "L1",
-      "id": "tests_themefile_group_parser_test_ts",
-      "community": 13,
-      "norm_label": "themefile-group-parser.test.ts"
+      "community": 30,
+      "norm_label": "themefile-group-parser.test.ts",
+      "id": "tests_themefile_group_parser_test_ts"
     },
     {
       "label": "index.ts",
       "file_type": "code",
       "source_file": "src/types/index.ts",
       "source_location": "L1",
-      "id": "src_types_index_ts",
-      "community": 7,
-      "norm_label": "index.ts"
+      "community": 11,
+      "norm_label": "index.ts",
+      "id": "src_types_index_ts"
     },
     {
       "label": "isDtcgToken()",
       "file_type": "code",
       "source_file": "src/types/index.ts",
-      "source_location": "L326",
-      "id": "index_isdtcgtoken",
-      "community": 7,
-      "norm_label": "isdtcgtoken()"
+      "source_location": "L343",
+      "community": 11,
+      "norm_label": "isdtcgtoken()",
+      "id": "index_isdtcgtoken"
     },
     {
       "label": "isDtcgRefValue()",
       "file_type": "code",
       "source_file": "src/types/index.ts",
-      "source_location": "L336",
-      "id": "index_isdtcgrefvalue",
-      "community": 7,
-      "norm_label": "isdtcgrefvalue()"
+      "source_location": "L353",
+      "community": 11,
+      "norm_label": "isdtcgrefvalue()",
+      "id": "index_isdtcgrefvalue"
     },
     {
       "label": "isResolvedToken()",
       "file_type": "code",
       "source_file": "src/types/index.ts",
-      "source_location": "L345",
-      "id": "index_isresolvedtoken",
-      "community": 7,
-      "norm_label": "isresolvedtoken()"
+      "source_location": "L362",
+      "community": 11,
+      "norm_label": "isresolvedtoken()",
+      "id": "index_isresolvedtoken"
     },
     {
       "label": "isDtcgColorSpaceValue()",
       "file_type": "code",
       "source_file": "src/types/index.ts",
-      "source_location": "L364",
-      "id": "index_isdtcgcolorspacevalue",
-      "community": 7,
-      "norm_label": "isdtcgcolorspacevalue()"
+      "source_location": "L381",
+      "community": 11,
+      "norm_label": "isdtcgcolorspacevalue()",
+      "id": "index_isdtcgcolorspacevalue"
     },
     {
       "label": "isDtcgShadowLayer()",
       "file_type": "code",
       "source_file": "src/types/index.ts",
-      "source_location": "L402",
-      "id": "index_isdtcgshadowlayer",
-      "community": 7,
-      "norm_label": "isdtcgshadowlayer()"
+      "source_location": "L419",
+      "community": 11,
+      "norm_label": "isdtcgshadowlayer()",
+      "id": "index_isdtcgshadowlayer"
     },
     {
       "label": "isDtcgGradientStop()",
       "file_type": "code",
       "source_file": "src/types/index.ts",
-      "source_location": "L414",
-      "id": "index_isdtcggradientstop",
-      "community": 7,
-      "norm_label": "isdtcggradientstop()"
+      "source_location": "L431",
+      "community": 11,
+      "norm_label": "isdtcggradientstop()",
+      "id": "index_isdtcggradientstop"
     },
     {
       "label": "theme-pipeline.ts",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
       "source_location": "L1",
-      "id": "src_core_pipeline_theme_pipeline_ts",
-      "community": 4,
-      "norm_label": "theme-pipeline.ts"
+      "community": 2,
+      "norm_label": "theme-pipeline.ts",
+      "id": "src_core_pipeline_theme_pipeline_ts"
     },
     {
       "label": "expandHomePath()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L60",
-      "id": "theme_pipeline_expandhomepath",
-      "community": 4,
-      "norm_label": "expandhomepath()"
+      "source_location": "L59",
+      "community": 2,
+      "norm_label": "expandhomepath()",
+      "id": "theme_pipeline_expandhomepath"
     },
     {
       "label": "loadYamlFile()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L70",
-      "id": "theme_pipeline_loadyamlfile",
-      "community": 4,
-      "norm_label": "loadyamlfile()"
+      "source_location": "L69",
+      "community": 2,
+      "norm_label": "loadyamlfile()",
+      "id": "theme_pipeline_loadyamlfile"
     },
     {
       "label": "isParseError()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L78",
-      "id": "theme_pipeline_isparseerror",
-      "community": 4,
-      "norm_label": "isparseerror()"
+      "source_location": "L77",
+      "community": 2,
+      "norm_label": "isparseerror()",
+      "id": "theme_pipeline_isparseerror"
     },
     {
       "label": "loadThemefile()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L87",
-      "id": "theme_pipeline_loadthemefile",
-      "community": 4,
-      "norm_label": "loadthemefile()"
+      "source_location": "L86",
+      "community": 2,
+      "norm_label": "loadthemefile()",
+      "id": "theme_pipeline_loadthemefile"
     },
     {
       "label": "buildDependencyDictionary()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L113",
-      "id": "theme_pipeline_builddependencydictionary",
-      "community": 4,
-      "norm_label": "builddependencydictionary()"
+      "source_location": "L112",
+      "community": 2,
+      "norm_label": "builddependencydictionary()",
+      "id": "theme_pipeline_builddependencydictionary"
     },
     {
       "label": "processThemeDocument()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L217",
-      "id": "theme_pipeline_processthemedocument",
-      "community": 4,
-      "norm_label": "processthemedocument()"
+      "source_location": "L216",
+      "community": 2,
+      "norm_label": "processthemedocument()",
+      "id": "theme_pipeline_processthemedocument"
     },
     {
       "label": "extractPlatform()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L318",
-      "id": "theme_pipeline_extractplatform",
-      "community": 4,
-      "norm_label": "extractplatform()"
+      "source_location": "L317",
+      "community": 2,
+      "norm_label": "extractplatform()",
+      "id": "theme_pipeline_extractplatform"
     },
     {
       "label": "extractFilterLayer()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L334",
-      "id": "theme_pipeline_extractfilterlayer",
-      "community": 4,
-      "norm_label": "extractfilterlayer()"
+      "source_location": "L333",
+      "community": 2,
+      "norm_label": "extractfilterlayer()",
+      "id": "theme_pipeline_extractfilterlayer"
     },
     {
       "label": "extractColorSpace()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L344",
-      "id": "theme_pipeline_extractcolorspace",
-      "community": 4,
-      "norm_label": "extractcolorspace()"
+      "source_location": "L343",
+      "community": 2,
+      "norm_label": "extractcolorspace()",
+      "id": "theme_pipeline_extractcolorspace"
     },
     {
       "label": "resolveOutputDir()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L357",
-      "id": "theme_pipeline_resolveoutputdir",
-      "community": 4,
-      "norm_label": "resolveoutputdir()"
+      "source_location": "L356",
+      "community": 2,
+      "norm_label": "resolveoutputdir()",
+      "id": "theme_pipeline_resolveoutputdir"
     },
     {
       "label": "mergeParameters()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L376",
-      "id": "theme_pipeline_mergeparameters",
-      "community": 4,
-      "norm_label": "mergeparameters()"
+      "source_location": "L375",
+      "community": 2,
+      "norm_label": "mergeparameters()",
+      "id": "theme_pipeline_mergeparameters"
     },
     {
       "label": "resolveParameters()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L383",
-      "id": "theme_pipeline_resolveparameters",
-      "community": 4,
-      "norm_label": "resolveparameters()"
+      "source_location": "L382",
+      "community": 2,
+      "norm_label": "resolveparameters()",
+      "id": "theme_pipeline_resolveparameters"
     },
     {
       "label": "buildGroupPasses()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L439",
-      "id": "theme_pipeline_buildgrouppasses",
-      "community": 4,
-      "norm_label": "buildgrouppasses()"
+      "source_location": "L438",
+      "community": 2,
+      "norm_label": "buildgrouppasses()",
+      "id": "theme_pipeline_buildgrouppasses"
     },
     {
       "label": "theme-service.ts",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-service.ts",
       "source_location": "L1",
-      "id": "src_core_pipeline_theme_service_ts",
-      "community": 8,
-      "norm_label": "theme-service.ts"
+      "community": 2,
+      "norm_label": "theme-service.ts",
+      "id": "src_core_pipeline_theme_service_ts"
     },
     {
       "label": "isSelected()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L60",
-      "id": "theme_service_isselected",
-      "community": 8,
-      "norm_label": "isselected()"
+      "source_location": "L58",
+      "community": 2,
+      "norm_label": "isselected()",
+      "id": "theme_service_isselected"
     },
     {
       "label": "generatePass()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L68",
-      "id": "theme_service_generatepass",
-      "community": 8,
-      "norm_label": "generatepass()"
+      "source_location": "L66",
+      "community": 2,
+      "norm_label": "generatepass()",
+      "id": "theme_service_generatepass"
     },
     {
       "label": "generateTheme()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L151",
-      "id": "theme_service_generatetheme",
-      "community": 8,
-      "norm_label": "generatetheme()"
+      "source_location": "L158",
+      "community": 2,
+      "norm_label": "generatetheme()",
+      "id": "theme_service_generatetheme"
     },
     {
       "label": "generateThemeTokens()",
       "file_type": "code",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L367",
-      "id": "theme_service_generatethemetokens",
-      "community": 8,
-      "norm_label": "generatethemetokens()"
+      "source_location": "L416",
+      "community": 2,
+      "norm_label": "generatethemetokens()",
+      "id": "theme_service_generatethemetokens"
     },
     {
       "label": "theme-transformer.ts",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
       "source_location": "L1",
-      "id": "src_core_transformer_theme_transformer_ts",
-      "community": 2,
-      "norm_label": "theme-transformer.ts"
+      "community": 3,
+      "norm_label": "theme-transformer.ts",
+      "id": "src_core_transformer_theme_transformer_ts"
     },
     {
       "label": "isColorAlphaObject()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L20",
-      "id": "theme_transformer_iscoloralphaobject",
-      "community": 2,
-      "norm_label": "iscoloralphaobject()"
+      "source_location": "L19",
+      "community": 3,
+      "norm_label": "iscoloralphaobject()",
+      "id": "theme_transformer_iscoloralphaobject"
     },
     {
       "label": "alphaToHex()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L35",
-      "id": "theme_transformer_alphatohex",
-      "community": 2,
-      "norm_label": "alphatohex()"
+      "source_location": "L34",
+      "community": 3,
+      "norm_label": "alphatohex()",
+      "id": "theme_transformer_alphatohex"
     },
     {
       "label": "convertColorWithAlpha()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L42",
-      "id": "theme_transformer_convertcolorwithalpha",
-      "community": 2,
-      "norm_label": "convertcolorwithalpha()"
+      "source_location": "L41",
+      "community": 3,
+      "norm_label": "convertcolorwithalpha()",
+      "id": "theme_transformer_convertcolorwithalpha"
     },
     {
       "label": "processValue()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L95",
-      "id": "theme_transformer_processvalue",
-      "community": 2,
-      "norm_label": "processvalue()"
+      "source_location": "L94",
+      "community": 3,
+      "norm_label": "processvalue()",
+      "id": "theme_transformer_processvalue"
     },
     {
       "label": "processArrayItem()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L164",
-      "id": "theme_transformer_processarrayitem",
-      "community": 2,
-      "norm_label": "processarrayitem()"
+      "source_location": "L163",
+      "community": 3,
+      "norm_label": "processarrayitem()",
+      "id": "theme_transformer_processarrayitem"
     },
     {
       "label": "extractColorAlpha()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L194",
-      "id": "theme_transformer_extractcoloralpha",
-      "community": 2,
-      "norm_label": "extractcoloralpha()"
+      "source_location": "L193",
+      "community": 3,
+      "norm_label": "extractcoloralpha()",
+      "id": "theme_transformer_extractcoloralpha"
     },
     {
       "label": "applyColorAlpha()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L202",
-      "id": "theme_transformer_applycoloralpha",
-      "community": 2,
-      "norm_label": "applycoloralpha()"
+      "source_location": "L201",
+      "community": 3,
+      "norm_label": "applycoloralpha()",
+      "id": "theme_transformer_applycoloralpha"
     },
     {
       "label": "deriveSmoothGradient()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L214",
-      "id": "theme_transformer_derivesmoothgradient",
-      "community": 2,
-      "norm_label": "derivesmoothgradient()"
+      "source_location": "L213",
+      "community": 3,
+      "norm_label": "derivesmoothgradient()",
+      "id": "theme_transformer_derivesmoothgradient"
     },
     {
       "label": "interpolateShadowValue()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L282",
-      "id": "theme_transformer_interpolateshadowvalue",
-      "community": 2,
-      "norm_label": "interpolateshadowvalue()"
+      "source_location": "L281",
+      "community": 3,
+      "norm_label": "interpolateshadowvalue()",
+      "id": "theme_transformer_interpolateshadowvalue"
     },
     {
       "label": "deriveSmoothShadow()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L301",
-      "id": "theme_transformer_derivesmoothshadow",
-      "community": 2,
-      "norm_label": "derivesmoothshadow()"
+      "source_location": "L300",
+      "community": 3,
+      "norm_label": "derivesmoothshadow()",
+      "id": "theme_transformer_derivesmoothshadow"
     },
     {
       "label": "transformToSDFormat()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
       "source_location": "L376",
-      "id": "theme_transformer_transformtosdformat",
-      "community": 2,
-      "norm_label": "transformtosdformat()"
+      "community": 3,
+      "norm_label": "transformtosdformat()",
+      "id": "theme_transformer_transformtosdformat"
     },
     {
       "label": "extractInheritColorPropertyValue()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L464",
-      "id": "theme_transformer_extractinheritcolorpropertyvalue",
-      "community": 2,
-      "norm_label": "extractinheritcolorpropertyvalue()"
+      "source_location": "L373",
+      "community": 3,
+      "norm_label": "extractinheritcolorpropertyvalue()",
+      "id": "theme_transformer_extractinheritcolorpropertyvalue"
     },
     {
       "label": "extractInheritColorOpacity()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L504",
-      "id": "theme_transformer_extractinheritcoloropacity",
-      "community": 2,
-      "norm_label": "extractinheritcoloropacity()"
+      "source_location": "L413",
+      "community": 3,
+      "norm_label": "extractinheritcoloropacity()",
+      "id": "theme_transformer_extractinheritcoloropacity"
     },
     {
       "label": "extractSiblingSlot()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L514",
-      "id": "theme_transformer_extractsiblingslot",
-      "community": 2,
-      "norm_label": "extractsiblingslot()"
+      "source_location": "L423",
+      "community": 3,
+      "norm_label": "extractsiblingslot()",
+      "id": "theme_transformer_extractsiblingslot"
     },
     {
       "label": "transformToken()",
       "file_type": "code",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L524",
-      "id": "theme_transformer_transformtoken",
-      "community": 2,
-      "norm_label": "transformtoken()"
+      "source_location": "L433",
+      "community": 3,
+      "norm_label": "transformtoken()",
+      "id": "theme_transformer_transformtoken"
     },
     {
       "label": "theme-context.ts",
       "file_type": "code",
       "source_file": "src/core/doctor/theme-context.ts",
       "source_location": "L1",
-      "id": "src_core_doctor_theme_context_ts",
-      "community": 9,
-      "norm_label": "theme-context.ts"
+      "community": 14,
+      "norm_label": "theme-context.ts",
+      "id": "src_core_doctor_theme_context_ts"
     },
     {
       "label": "isParseError()",
       "file_type": "code",
       "source_file": "src/core/doctor/theme-context.ts",
       "source_location": "L44",
-      "id": "theme_context_isparseerror",
-      "community": 9,
-      "norm_label": "isparseerror()"
+      "community": 14,
+      "norm_label": "isparseerror()",
+      "id": "theme_context_isparseerror"
     },
     {
       "label": "detectThemeFiles()",
       "file_type": "code",
       "source_file": "src/core/doctor/theme-context.ts",
       "source_location": "L55",
-      "id": "theme_context_detectthemefiles",
-      "community": 9,
-      "norm_label": "detectthemefiles()"
+      "community": 14,
+      "norm_label": "detectthemefiles()",
+      "id": "theme_context_detectthemefiles"
     },
     {
       "label": "createThemeDoctorContext()",
       "file_type": "code",
       "source_file": "src/core/doctor/theme-context.ts",
       "source_location": "L124",
-      "id": "theme_context_createthemedoctorcontext",
-      "community": 9,
-      "norm_label": "createthemedoctorcontext()"
+      "community": 14,
+      "norm_label": "createthemedoctorcontext()",
+      "id": "theme_context_createthemedoctorcontext"
     },
     {
       "label": "themefile.ts",
       "file_type": "code",
       "source_file": "src/core/parser/themefile.ts",
       "source_location": "L1",
-      "id": "src_core_parser_themefile_ts",
-      "community": 11,
-      "norm_label": "themefile.ts"
+      "community": 16,
+      "norm_label": "themefile.ts",
+      "id": "src_core_parser_themefile_ts"
     },
     {
       "label": "parseThemefile()",
       "file_type": "code",
       "source_file": "src/core/parser/themefile.ts",
       "source_location": "L8",
-      "id": "themefile_parsethemefile",
-      "community": 11,
-      "norm_label": "parsethemefile()"
+      "community": 16,
+      "norm_label": "parsethemefile()",
+      "id": "themefile_parsethemefile"
     },
     {
       "label": "sketch-format.ts",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L1",
-      "id": "src_core_generator_transforms_sketch_format_ts",
-      "community": 3,
-      "norm_label": "sketch-format.ts"
+      "community": 4,
+      "norm_label": "sketch-format.ts",
+      "id": "src_core_generator_transforms_sketch_format_ts"
     },
     {
       "label": "isInheritColorToken()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L17",
-      "id": "sketch_format_isinheritcolortoken",
-      "community": 3,
-      "norm_label": "isinheritcolortoken()"
+      "community": 4,
+      "norm_label": "isinheritcolortoken()",
+      "id": "sketch_format_isinheritcolortoken"
     },
     {
       "label": "getInheritColorSiblingSlot()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L22",
-      "id": "sketch_format_getinheritcolorsiblingslot",
-      "community": 3,
-      "norm_label": "getinheritcolorsiblingslot()"
+      "community": 4,
+      "norm_label": "getinheritcolorsiblingslot()",
+      "id": "sketch_format_getinheritcolorsiblingslot"
     },
     {
       "label": "getInheritColorOpacity()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L31",
-      "id": "sketch_format_getinheritcoloropacity",
-      "community": 3,
-      "norm_label": "getinheritcoloropacity()"
+      "community": 4,
+      "norm_label": "getinheritcoloropacity()",
+      "id": "sketch_format_getinheritcoloropacity"
     },
     {
       "label": "getInheritColorAlpha()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L38",
-      "id": "sketch_format_getinheritcoloralpha",
-      "community": 3,
-      "norm_label": "getinheritcoloralpha()"
+      "community": 4,
+      "norm_label": "getinheritcoloralpha()",
+      "id": "sketch_format_getinheritcoloralpha"
     },
     {
       "label": "findSiblingColor()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L45",
-      "id": "sketch_format_findsiblingcolor",
-      "community": 3,
-      "norm_label": "findsiblingcolor()"
+      "community": 4,
+      "norm_label": "findsiblingcolor()",
+      "id": "sketch_format_findsiblingcolor"
     },
     {
       "label": "findSiblingToken()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L79",
-      "id": "sketch_format_findsiblingtoken",
-      "community": 3,
-      "norm_label": "findsiblingtoken()"
+      "community": 4,
+      "norm_label": "findsiblingtoken()",
+      "id": "sketch_format_findsiblingtoken"
     },
     {
       "label": "hexToSketchColor()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L101",
-      "id": "sketch_format_hextosketchcolor",
-      "community": 3,
-      "norm_label": "hextosketchcolor()"
+      "community": 4,
+      "norm_label": "hextosketchcolor()",
+      "id": "sketch_format_hextosketchcolor"
     },
     {
       "label": "applyOpacityToHex()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L108",
-      "id": "sketch_format_applyopacitytohex",
-      "community": 3,
-      "norm_label": "applyopacitytohex()"
+      "community": 4,
+      "norm_label": "applyopacitytohex()",
+      "id": "sketch_format_applyopacitytohex"
     },
     {
       "label": "cleanValue()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L127",
-      "id": "sketch_format_cleanvalue",
-      "community": 3,
-      "norm_label": "cleanvalue()"
+      "community": 4,
+      "norm_label": "cleanvalue()",
+      "id": "sketch_format_cleanvalue"
     },
     {
       "label": "processShadowLayer()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L136",
-      "id": "sketch_format_processshadowlayer",
-      "community": 3,
-      "norm_label": "processshadowlayer()"
+      "community": 4,
+      "norm_label": "processshadowlayer()",
+      "id": "sketch_format_processshadowlayer"
     },
     {
       "label": "processComponentShadowLayer()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L149",
-      "id": "sketch_format_processcomponentshadowlayer",
-      "community": 3,
-      "norm_label": "processcomponentshadowlayer()"
+      "community": 4,
+      "norm_label": "processcomponentshadowlayer()",
+      "id": "sketch_format_processcomponentshadowlayer"
     },
     {
       "label": "extractColorFromValue()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L186",
-      "id": "sketch_format_extractcolorfromvalue",
-      "community": 3,
-      "norm_label": "extractcolorfromvalue()"
+      "community": 4,
+      "norm_label": "extractcolorfromvalue()",
+      "id": "sketch_format_extractcolorfromvalue"
     },
     {
       "label": "resolveSketchColor()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L203",
-      "id": "sketch_format_resolvesketchcolor",
-      "community": 3,
-      "norm_label": "resolvesketchcolor()"
+      "community": 4,
+      "norm_label": "resolvesketchcolor()",
+      "id": "sketch_format_resolvesketchcolor"
     },
     {
       "label": "mapGradientStops()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L282",
-      "id": "sketch_format_mapgradientstops",
-      "community": 3,
-      "norm_label": "mapgradientstops()"
+      "community": 4,
+      "norm_label": "mapgradientstops()",
+      "id": "sketch_format_mapgradientstops"
     },
     {
       "label": "addSketchSwatch()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/sketch-format.ts",
       "source_location": "L292",
-      "id": "sketch_format_addsketchswatch",
-      "community": 3,
-      "norm_label": "addsketchswatch()"
+      "community": 4,
+      "norm_label": "addsketchswatch()",
+      "id": "sketch_format_addsketchswatch"
     },
     {
       "label": "css-variables-with-desc.ts",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/css-variables-with-desc.ts",
       "source_location": "L1",
-      "id": "src_core_generator_transforms_css_variables_with_desc_ts",
-      "community": 6,
-      "norm_label": "css-variables-with-desc.ts"
+      "community": 10,
+      "norm_label": "css-variables-with-desc.ts",
+      "id": "src_core_generator_transforms_css_variables_with_desc_ts"
     },
     {
       "label": "getFilteredName()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/css-variables-with-desc.ts",
       "source_location": "L14",
-      "id": "css_variables_with_desc_getfilteredname",
-      "community": 6,
-      "norm_label": "getfilteredname()"
+      "community": 10,
+      "norm_label": "getfilteredname()",
+      "id": "css_variables_with_desc_getfilteredname"
     },
     {
       "label": "isShadowToken()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/css-variables-with-desc.ts",
       "source_location": "L22",
-      "id": "css_variables_with_desc_isshadowtoken",
-      "community": 6,
-      "norm_label": "isshadowtoken()"
+      "community": 10,
+      "norm_label": "isshadowtoken()",
+      "id": "css_variables_with_desc_isshadowtoken"
     },
     {
       "label": "isGradientToken()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/css-variables-with-desc.ts",
       "source_location": "L26",
-      "id": "css_variables_with_desc_isgradienttoken",
-      "community": 6,
-      "norm_label": "isgradienttoken()"
+      "community": 10,
+      "norm_label": "isgradienttoken()",
+      "id": "css_variables_with_desc_isgradienttoken"
     },
     {
       "label": "formatTokenValue()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/css-variables-with-desc.ts",
       "source_location": "L30",
-      "id": "css_variables_with_desc_formattokenvalue",
-      "community": 6,
-      "norm_label": "formattokenvalue()"
+      "community": 10,
+      "norm_label": "formattokenvalue()",
+      "id": "css_variables_with_desc_formattokenvalue"
     },
     {
       "label": "getGroupCommentPaths()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/css-variables-with-desc.ts",
       "source_location": "L89",
-      "id": "css_variables_with_desc_getgroupcommentpaths",
-      "community": 6,
-      "norm_label": "getgroupcommentpaths()"
+      "community": 10,
+      "norm_label": "getgroupcommentpaths()",
+      "id": "css_variables_with_desc_getgroupcommentpaths"
     },
     {
       "label": "shouldInclude()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/css-variables-with-desc.ts",
       "source_location": "L99",
-      "id": "css_variables_with_desc_shouldinclude",
-      "community": 6,
-      "norm_label": "shouldinclude()"
+      "community": 10,
+      "norm_label": "shouldinclude()",
+      "id": "css_variables_with_desc_shouldinclude"
     },
     {
       "label": "formatCssVariables()",
       "file_type": "code",
       "source_file": "src/core/generator/transforms/css-variables-with-desc.ts",
       "source_location": "L108",
-      "id": "css_variables_with_desc_formatcssvariables",
-      "community": 6,
-      "norm_label": "formatcssvariables()"
+      "community": 10,
+      "norm_label": "formatcssvariables()",
+      "id": "css_variables_with_desc_formatcssvariables"
     },
     {
       "label": "theme.ts",
       "file_type": "code",
       "source_file": "src/core/schema/theme.ts",
       "source_location": "L1",
-      "id": "src_core_schema_theme_ts",
-      "community": 5,
-      "norm_label": "theme.ts"
+      "community": 8,
+      "norm_label": "theme.ts",
+      "id": "src_core_schema_theme_ts"
     },
     {
       "label": "checkDanglingJsonPointer()",
       "file_type": "code",
       "source_file": "src/core/schema/theme.ts",
       "source_location": "L42",
-      "id": "theme_checkdanglingjsonpointer",
-      "community": 5,
-      "norm_label": "checkdanglingjsonpointer()"
+      "community": 8,
+      "norm_label": "checkdanglingjsonpointer()",
+      "id": "theme_checkdanglingjsonpointer"
     },
     {
       "label": "checkValueDeep()",
       "file_type": "code",
       "source_file": "src/core/schema/theme.ts",
       "source_location": "L56",
-      "id": "theme_checkvaluedeep",
-      "community": 5,
-      "norm_label": "checkvaluedeep()"
+      "community": 8,
+      "norm_label": "checkvaluedeep()",
+      "id": "theme_checkvaluedeep"
     },
     {
       "label": "validateInheritColor()",
       "file_type": "code",
       "source_file": "src/core/schema/theme.ts",
       "source_location": "L88",
-      "id": "theme_validateinheritcolor",
-      "community": 5,
-      "norm_label": "validateinheritcolor()"
+      "community": 8,
+      "norm_label": "validateinheritcolor()",
+      "id": "theme_validateinheritcolor"
     },
     {
       "label": "validateToken()",
       "file_type": "code",
       "source_file": "src/core/schema/theme.ts",
       "source_location": "L158",
-      "id": "theme_validatetoken",
-      "community": 5,
-      "norm_label": "validatetoken()"
+      "community": 8,
+      "norm_label": "validatetoken()",
+      "id": "theme_validatetoken"
     },
     {
       "label": "validateExtends()",
       "file_type": "code",
       "source_file": "src/core/schema/theme.ts",
       "source_location": "L247",
-      "id": "theme_validateextends",
-      "community": 5,
-      "norm_label": "validateextends()"
+      "community": 8,
+      "norm_label": "validateextends()",
+      "id": "theme_validateextends"
     },
     {
       "label": "validateComposite()",
       "file_type": "code",
       "source_file": "src/core/schema/theme.ts",
       "source_location": "L278",
-      "id": "theme_validatecomposite",
-      "community": 5,
-      "norm_label": "validatecomposite()"
+      "community": 8,
+      "norm_label": "validatecomposite()",
+      "id": "theme_validatecomposite"
     },
     {
       "label": "walkNode()",
       "file_type": "code",
       "source_file": "src/core/schema/theme.ts",
       "source_location": "L308",
-      "id": "theme_walknode",
-      "community": 5,
-      "norm_label": "walknode()"
+      "community": 8,
+      "norm_label": "walknode()",
+      "id": "theme_walknode"
     },
     {
       "label": "validateThemeSchema()",
       "file_type": "code",
       "source_file": "src/core/schema/theme.ts",
       "source_location": "L334",
-      "id": "theme_validatethemeschema",
-      "community": 5,
-      "norm_label": "validatethemeschema()"
+      "community": 8,
+      "norm_label": "validatethemeschema()",
+      "id": "theme_validatethemeschema"
     },
     {
       "label": "validateDoctorSection()",
       "file_type": "code",
       "source_file": "src/core/schema/theme.ts",
       "source_location": "L356",
-      "id": "theme_validatedoctorsection",
-      "community": 5,
-      "norm_label": "validatedoctorsection()"
+      "community": 8,
+      "norm_label": "validatedoctorsection()",
+      "id": "theme_validatedoctorsection"
     },
     {
       "label": "Wave",
@@ -822,9 +822,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_wave",
       "community": 1,
-      "norm_label": "wave"
+      "norm_label": "wave",
+      "id": "roadmap_wave"
     },
     {
       "label": "Style Dictionary (Amazon)",
@@ -835,9 +835,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_style_dictionary",
       "community": 1,
-      "norm_label": "style dictionary (amazon)"
+      "norm_label": "style dictionary (amazon)",
+      "id": "roadmap_style_dictionary"
     },
     {
       "label": "Tokens Studio for Figma",
@@ -848,9 +848,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_tokens_studio",
       "community": 1,
-      "norm_label": "tokens studio for figma"
+      "norm_label": "tokens studio for figma",
+      "id": "roadmap_tokens_studio"
     },
     {
       "label": "Specify",
@@ -861,9 +861,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_specify",
       "community": 1,
-      "norm_label": "specify"
+      "norm_label": "specify",
+      "id": "roadmap_specify"
     },
     {
       "label": "Supernova",
@@ -874,9 +874,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_supernova",
       "community": 1,
-      "norm_label": "supernova"
+      "norm_label": "supernova",
+      "id": "roadmap_supernova"
     },
     {
       "label": "Tailwind CSS v4",
@@ -887,9 +887,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_tailwind_v4",
       "community": 1,
-      "norm_label": "tailwind css v4"
+      "norm_label": "tailwind css v4",
+      "id": "roadmap_tailwind_v4"
     },
     {
       "label": "DTCG Format (W3C)",
@@ -900,9 +900,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_dtcg_standard",
       "community": 1,
-      "norm_label": "dtcg format (w3c)"
+      "norm_label": "dtcg format (w3c)",
+      "id": "roadmap_dtcg_standard"
     },
     {
       "label": "Figma Variables",
@@ -913,9 +913,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_figma_variables",
       "community": 1,
-      "norm_label": "figma variables"
+      "norm_label": "figma variables",
+      "id": "roadmap_figma_variables"
     },
     {
       "label": "wave preview (Token Preview)",
@@ -926,9 +926,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_wave_preview",
       "community": 1,
-      "norm_label": "wave preview (token preview)"
+      "norm_label": "wave preview (token preview)",
+      "id": "roadmap_wave_preview"
     },
     {
       "label": "wave docs (Documentation Generator)",
@@ -939,9 +939,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_wave_docs",
       "community": 1,
-      "norm_label": "wave docs (documentation generator)"
+      "norm_label": "wave docs (documentation generator)",
+      "id": "roadmap_wave_docs"
     },
     {
       "label": "wave doctor",
@@ -952,9 +952,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_wave_doctor",
       "community": 0,
-      "norm_label": "wave doctor"
+      "norm_label": "wave doctor",
+      "id": "roadmap_wave_doctor"
     },
     {
       "label": "AI Token Assistant",
@@ -965,9 +965,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_ai_token_assistant",
       "community": 1,
-      "norm_label": "ai token assistant"
+      "norm_label": "ai token assistant",
+      "id": "roadmap_ai_token_assistant"
     },
     {
       "label": "Figma Plugin Bidirectional Sync",
@@ -978,9 +978,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_figma_plugin",
       "community": 1,
-      "norm_label": "figma plugin bidirectional sync"
+      "norm_label": "figma plugin bidirectional sync",
+      "id": "roadmap_figma_plugin"
     },
     {
       "label": "GitHub Action / CI Integration",
@@ -991,9 +991,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_github_action",
       "community": 1,
-      "norm_label": "github action / ci integration"
+      "norm_label": "github action / ci integration",
+      "id": "roadmap_github_action"
     },
     {
       "label": "Design System Template Marketplace",
@@ -1004,9 +1004,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_design_system_marketplace",
       "community": 1,
-      "norm_label": "design system template marketplace"
+      "norm_label": "design system template marketplace",
+      "id": "roadmap_design_system_marketplace"
     },
     {
       "label": "Token Version Management & Diff",
@@ -1017,9 +1017,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_token_diff",
       "community": 1,
-      "norm_label": "token version management & diff"
+      "norm_label": "token version management & diff",
+      "id": "roadmap_token_diff"
     },
     {
       "label": "Component-Level Token Binding",
@@ -1030,9 +1030,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_component_token_binding",
       "community": 1,
-      "norm_label": "component-level token binding"
+      "norm_label": "component-level token binding",
+      "id": "roadmap_component_token_binding"
     },
     {
       "label": "Knapsack",
@@ -1043,9 +1043,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_knapsack",
       "community": 1,
-      "norm_label": "knapsack"
+      "norm_label": "knapsack",
+      "id": "roadmap_knapsack"
     },
     {
       "label": "Wave Positioning: Local Design Token Workstation",
@@ -1056,9 +1056,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_wave_positioning",
       "community": 0,
-      "norm_label": "wave positioning: local design token workstation"
+      "norm_label": "wave positioning: local design token workstation",
+      "id": "roadmap_wave_positioning"
     },
     {
       "label": "Panda CSS",
@@ -1069,9 +1069,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_panda_css",
       "community": 1,
-      "norm_label": "panda css"
+      "norm_label": "panda css",
+      "id": "roadmap_panda_css"
     },
     {
       "label": "Watch Mode",
@@ -1082,9 +1082,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_watch_mode",
       "community": 1,
-      "norm_label": "watch mode"
+      "norm_label": "watch mode",
+      "id": "roadmap_watch_mode"
     },
     {
       "label": "Error Message Design Optimization",
@@ -1095,9 +1095,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_error_message_design",
       "community": 1,
-      "norm_label": "error message design optimization"
+      "norm_label": "error message design optimization",
+      "id": "roadmap_error_message_design"
     },
     {
       "label": "Target User: UI/UX Designer",
@@ -1108,9 +1108,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_user_persona",
       "community": 1,
-      "norm_label": "target user: ui/ux designer"
+      "norm_label": "target user: ui/ux designer",
+      "id": "roadmap_user_persona"
     },
     {
       "label": "Core Value Proposition",
@@ -1121,9 +1121,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_core_insight",
       "community": 0,
-      "norm_label": "core value proposition"
+      "norm_label": "core value proposition",
+      "id": "roadmap_core_insight"
     },
     {
       "label": "Phase 1: Foundation",
@@ -1134,9 +1134,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_phase1",
       "community": 1,
-      "norm_label": "phase 1: foundation"
+      "norm_label": "phase 1: foundation",
+      "id": "roadmap_phase1"
     },
     {
       "label": "Phase 2: Bridge Building",
@@ -1147,9 +1147,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_phase2",
       "community": 1,
-      "norm_label": "phase 2: bridge building"
+      "norm_label": "phase 2: bridge building",
+      "id": "roadmap_phase2"
     },
     {
       "label": "Phase 3: Ecosystem Expansion",
@@ -1160,9 +1160,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_phase3",
       "community": 1,
-      "norm_label": "phase 3: ecosystem expansion"
+      "norm_label": "phase 3: ecosystem expansion",
+      "id": "roadmap_phase3"
     },
     {
       "label": "Phase 4: Long-term Vision",
@@ -1173,9 +1173,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "roadmap_phase4",
       "community": 1,
-      "norm_label": "phase 4: long-term vision"
+      "norm_label": "phase 4: long-term vision",
+      "id": "roadmap_phase4"
     },
     {
       "label": "Wave CLI",
@@ -1186,9 +1186,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_wave_cli",
       "community": 1,
-      "norm_label": "wave cli"
+      "norm_label": "wave cli",
+      "id": "spec_wave_cli"
     },
     {
       "label": "Themefile Configuration",
@@ -1199,9 +1199,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_themefile",
       "community": 0,
-      "norm_label": "themefile configuration"
+      "norm_label": "themefile configuration",
+      "id": "spec_themefile"
     },
     {
       "label": "main.yaml (DTCG Token Source)",
@@ -1212,9 +1212,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_main_yaml",
       "community": 0,
-      "norm_label": "main.yaml (dtcg token source)"
+      "norm_label": "main.yaml (dtcg token source)",
+      "id": "spec_main_yaml"
     },
     {
       "label": "Resource Resolution",
@@ -1225,9 +1225,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_resource_resolution",
       "community": 0,
-      "norm_label": "resource resolution"
+      "norm_label": "resource resolution",
+      "id": "spec_resource_resolution"
     },
     {
       "label": "Brace Reference {namespace.path}",
@@ -1238,9 +1238,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_brace_reference",
       "community": 0,
-      "norm_label": "brace reference {namespace.path}"
+      "norm_label": "brace reference {namespace.path}",
+      "id": "spec_brace_reference"
     },
     {
       "label": "DTCG $ref Reference",
@@ -1251,9 +1251,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_dtcg_ref",
       "community": 0,
-      "norm_label": "dtcg $ref reference"
+      "norm_label": "dtcg $ref reference",
+      "id": "spec_dtcg_ref"
     },
     {
       "label": "Group $extends Inheritance",
@@ -1264,9 +1264,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_group_extends",
       "community": 0,
-      "norm_label": "group $extends inheritance"
+      "norm_label": "group $extends inheritance",
+      "id": "spec_group_extends"
     },
     {
       "label": "DTCG Color Space Support",
@@ -1277,9 +1277,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_colorspace",
       "community": 0,
-      "norm_label": "dtcg color space support"
+      "norm_label": "dtcg color space support",
+      "id": "spec_colorspace"
     },
     {
       "label": "Composite Extension",
@@ -1290,9 +1290,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_composite",
       "community": 0,
-      "norm_label": "composite extension"
+      "norm_label": "composite extension",
+      "id": "spec_composite"
     },
     {
       "label": "smoothGradient Extension",
@@ -1303,9 +1303,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_smooth_gradient",
       "community": 0,
-      "norm_label": "smoothgradient extension"
+      "norm_label": "smoothgradient extension",
+      "id": "spec_smooth_gradient"
     },
     {
       "label": "smoothShadow Extension",
@@ -1316,9 +1316,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_smooth_shadow",
       "community": 0,
-      "norm_label": "smoothshadow extension"
+      "norm_label": "smoothshadow extension",
+      "id": "spec_smooth_shadow"
     },
     {
       "label": "inheritColor Extension",
@@ -1329,9 +1329,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_inherit_color",
       "community": 0,
-      "norm_label": "inheritcolor extension"
+      "norm_label": "inheritcolor extension",
+      "id": "spec_inherit_color"
     },
     {
       "label": "doctor.wcagPairs (WCAG Contrast Check)",
@@ -1342,9 +1342,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_doctor_wcag",
       "community": 0,
-      "norm_label": "doctor.wcagpairs (wcag contrast check)"
+      "norm_label": "doctor.wcagpairs (wcag contrast check)",
+      "id": "spec_doctor_wcag"
     },
     {
       "label": "GROUP Directive",
@@ -1355,9 +1355,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_group_directive",
       "community": 0,
-      "norm_label": "group directive"
+      "norm_label": "group directive",
+      "id": "spec_group_directive"
     },
     {
       "label": "Output Formats (json/jsonc/css/sketch)",
@@ -1368,9 +1368,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_output_formats",
       "community": 0,
-      "norm_label": "output formats (json/jsonc/css/sketch)"
+      "norm_label": "output formats (json/jsonc/css/sketch)",
+      "id": "spec_output_formats"
     },
     {
       "label": "Night Mode Detection",
@@ -1381,9 +1381,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_night_mode",
       "community": 0,
-      "norm_label": "night mode detection"
+      "norm_label": "night mode detection",
+      "id": "spec_night_mode"
     },
     {
       "label": "Variants Detection",
@@ -1394,9 +1394,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_variants",
       "community": 0,
-      "norm_label": "variants detection"
+      "norm_label": "variants detection",
+      "id": "spec_variants"
     },
     {
       "label": "Circular Reference Detection",
@@ -1407,9 +1407,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_circular_reference",
       "community": 0,
-      "norm_label": "circular reference detection"
+      "norm_label": "circular reference detection",
+      "id": "spec_circular_reference"
     },
     {
       "label": "Exit Codes",
@@ -1420,9 +1420,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_exit_codes",
       "community": 0,
-      "norm_label": "exit codes"
+      "norm_label": "exit codes",
+      "id": "spec_exit_codes"
     },
     {
       "label": "Test Fixture System",
@@ -1433,9 +1433,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_fixture_system",
       "community": 1,
-      "norm_label": "test fixture system"
+      "norm_label": "test fixture system",
+      "id": "spec_fixture_system"
     },
     {
       "label": "Token Generation Data Flow",
@@ -1446,9 +1446,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_data_flow",
       "community": 0,
-      "norm_label": "token generation data flow"
+      "norm_label": "token generation data flow",
+      "id": "spec_data_flow"
     },
     {
       "label": "Mental Model",
@@ -1459,9 +1459,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_mental_model",
-      "community": 12,
-      "norm_label": "mental model"
+      "community": 17,
+      "norm_label": "mental model",
+      "id": "spec_mental_model"
     },
     {
       "label": "leonardo Palette",
@@ -1472,9 +1472,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_leonardo_palette",
       "community": 0,
-      "norm_label": "leonardo palette"
+      "norm_label": "leonardo palette",
+      "id": "spec_leonardo_palette"
     },
     {
       "label": "tailwindcss4 Palette",
@@ -1485,9 +1485,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_tailwindcss4_palette",
       "community": 0,
-      "norm_label": "tailwindcss4 palette"
+      "norm_label": "tailwindcss4 palette",
+      "id": "spec_tailwindcss4_palette"
     },
     {
       "label": "wave Dimension System",
@@ -1498,9 +1498,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_wave_dimension",
       "community": 0,
-      "norm_label": "wave dimension system"
+      "norm_label": "wave dimension system",
+      "id": "spec_wave_dimension"
     },
     {
       "label": "Cross-Dependency Reference Restriction",
@@ -1511,9 +1511,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_cross_dependency_restriction",
       "community": 0,
-      "norm_label": "cross-dependency reference restriction"
+      "norm_label": "cross-dependency reference restriction",
+      "id": "spec_cross_dependency_restriction"
     },
     {
       "label": "Scope Boundary (Explicitly Excluded)",
@@ -1524,9 +1524,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_scope_boundary",
-      "community": 12,
-      "norm_label": "scope boundary (explicitly excluded)"
+      "community": 17,
+      "norm_label": "scope boundary (explicitly excluded)",
+      "id": "spec_scope_boundary"
     },
     {
       "label": "Rationale: Designer-Friendly YAML Config",
@@ -1537,9 +1537,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_rationale_designer_friendly_config",
       "community": 0,
-      "norm_label": "rationale: designer-friendly yaml config"
+      "norm_label": "rationale: designer-friendly yaml config",
+      "id": "spec_rationale_designer_friendly_config"
     },
     {
       "label": "Rationale: Local-First No SaaS",
@@ -1550,9 +1550,882 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "spec_rationale_local_first",
       "community": 0,
-      "norm_label": "rationale: local-first no saas"
+      "norm_label": "rationale: local-first no saas",
+      "id": "spec_rationale_local_first"
+    },
+    {
+      "label": "css-var-transform.test.ts",
+      "file_type": "code",
+      "source_file": "tests/css-var-transform.test.ts",
+      "source_location": "L1",
+      "id": "tests_css_var_transform_test_ts",
+      "community": 31,
+      "norm_label": "css-var-transform.test.ts"
+    },
+    {
+      "label": "smooth-gradient-transformer.test.ts",
+      "file_type": "code",
+      "source_file": "tests/smooth-gradient-transformer.test.ts",
+      "source_location": "L1",
+      "id": "tests_smooth_gradient_transformer_test_ts",
+      "community": 18,
+      "norm_label": "smooth-gradient-transformer.test.ts"
+    },
+    {
+      "label": "findToken()",
+      "file_type": "code",
+      "source_file": "tests/smooth-gradient-transformer.test.ts",
+      "source_location": "L6",
+      "id": "smooth_gradient_transformer_test_findtoken",
+      "community": 18,
+      "norm_label": "findtoken()"
+    },
+    {
+      "label": "format-sketch.test.ts",
+      "file_type": "code",
+      "source_file": "tests/format-sketch.test.ts",
+      "source_location": "L1",
+      "id": "tests_format_sketch_test_ts",
+      "community": 32,
+      "norm_label": "format-sketch.test.ts"
+    },
+    {
+      "label": "format-css.test.ts",
+      "file_type": "code",
+      "source_file": "tests/format-css.test.ts",
+      "source_location": "L1",
+      "id": "tests_format_css_test_ts",
+      "community": 33,
+      "norm_label": "format-css.test.ts"
+    },
+    {
+      "label": "format-flat.test.ts",
+      "file_type": "code",
+      "source_file": "tests/format-flat.test.ts",
+      "source_location": "L1",
+      "id": "tests_format_flat_test_ts",
+      "community": 19,
+      "norm_label": "format-flat.test.ts"
+    },
+    {
+      "label": "makeToken()",
+      "file_type": "code",
+      "source_file": "tests/format-flat.test.ts",
+      "source_location": "L8",
+      "id": "format_flat_test_maketoken",
+      "community": 19,
+      "norm_label": "maketoken()"
+    },
+    {
+      "label": "inherit-color-transformer.test.ts",
+      "file_type": "code",
+      "source_file": "tests/inherit-color-transformer.test.ts",
+      "source_location": "L1",
+      "id": "tests_inherit_color_transformer_test_ts",
+      "community": 20,
+      "norm_label": "inherit-color-transformer.test.ts"
+    },
+    {
+      "label": "findToken()",
+      "file_type": "code",
+      "source_file": "tests/inherit-color-transformer.test.ts",
+      "source_location": "L5",
+      "id": "inherit_color_transformer_test_findtoken",
+      "community": 20,
+      "norm_label": "findtoken()"
+    },
+    {
+      "label": "inherit-color-sketch-format.test.ts",
+      "file_type": "code",
+      "source_file": "tests/inherit-color-sketch-format.test.ts",
+      "source_location": "L1",
+      "id": "tests_inherit_color_sketch_format_test_ts",
+      "community": 21,
+      "norm_label": "inherit-color-sketch-format.test.ts"
+    },
+    {
+      "label": "token()",
+      "file_type": "code",
+      "source_file": "tests/inherit-color-sketch-format.test.ts",
+      "source_location": "L5",
+      "id": "inherit_color_sketch_format_test_token",
+      "community": 21,
+      "norm_label": "token()"
+    },
+    {
+      "label": "theme-command-current-fallback.test.ts",
+      "file_type": "code",
+      "source_file": "tests/theme-command-current-fallback.test.ts",
+      "source_location": "L1",
+      "id": "tests_theme_command_current_fallback_test_ts",
+      "community": 22,
+      "norm_label": "theme-command-current-fallback.test.ts"
+    },
+    {
+      "label": "runWaveTheme()",
+      "file_type": "code",
+      "source_file": "tests/theme-command-current-fallback.test.ts",
+      "source_location": "L7",
+      "id": "theme_command_current_fallback_test_runwavetheme",
+      "community": 22,
+      "norm_label": "runwavetheme()"
+    },
+    {
+      "label": "inherit-color-css-format.test.ts",
+      "file_type": "code",
+      "source_file": "tests/inherit-color-css-format.test.ts",
+      "source_location": "L1",
+      "id": "tests_inherit_color_css_format_test_ts",
+      "community": 23,
+      "norm_label": "inherit-color-css-format.test.ts"
+    },
+    {
+      "label": "token()",
+      "file_type": "code",
+      "source_file": "tests/inherit-color-css-format.test.ts",
+      "source_location": "L5",
+      "id": "inherit_color_css_format_test_token",
+      "community": 23,
+      "norm_label": "token()"
+    },
+    {
+      "label": "smooth-shadow-contract.test.ts",
+      "file_type": "code",
+      "source_file": "tests/smooth-shadow-contract.test.ts",
+      "source_location": "L1",
+      "id": "tests_smooth_shadow_contract_test_ts",
+      "community": 24,
+      "norm_label": "smooth-shadow-contract.test.ts"
+    },
+    {
+      "label": "findToken()",
+      "file_type": "code",
+      "source_file": "tests/smooth-shadow-contract.test.ts",
+      "source_location": "L5",
+      "id": "smooth_shadow_contract_test_findtoken",
+      "community": 24,
+      "norm_label": "findtoken()"
+    },
+    {
+      "label": "inherit-color-flat-format.test.ts",
+      "file_type": "code",
+      "source_file": "tests/inherit-color-flat-format.test.ts",
+      "source_location": "L1",
+      "id": "tests_inherit_color_flat_format_test_ts",
+      "community": 25,
+      "norm_label": "inherit-color-flat-format.test.ts"
+    },
+    {
+      "label": "token()",
+      "file_type": "code",
+      "source_file": "tests/inherit-color-flat-format.test.ts",
+      "source_location": "L8",
+      "id": "inherit_color_flat_format_test_token",
+      "community": 25,
+      "norm_label": "token()"
+    },
+    {
+      "label": "theme-transformer.test.ts",
+      "file_type": "code",
+      "source_file": "tests/theme-transformer.test.ts",
+      "source_location": "L1",
+      "id": "tests_theme_transformer_test_ts",
+      "community": 26,
+      "norm_label": "theme-transformer.test.ts"
+    },
+    {
+      "label": "findToken()",
+      "file_type": "code",
+      "source_file": "tests/theme-transformer.test.ts",
+      "source_location": "L5",
+      "id": "theme_transformer_test_findtoken",
+      "community": 26,
+      "norm_label": "findtoken()"
+    },
+    {
+      "label": "sketch-component-format.test.ts",
+      "file_type": "code",
+      "source_file": "tests/sketch-component-format.test.ts",
+      "source_location": "L1",
+      "id": "tests_sketch_component_format_test_ts",
+      "community": 27,
+      "norm_label": "sketch-component-format.test.ts"
+    },
+    {
+      "label": "token()",
+      "file_type": "code",
+      "source_file": "tests/sketch-component-format.test.ts",
+      "source_location": "L5",
+      "id": "sketch_component_format_test_token",
+      "community": 27,
+      "norm_label": "token()"
+    },
+    {
+      "label": "smooth-shadow-transformer.test.ts",
+      "file_type": "code",
+      "source_file": "tests/smooth-shadow-transformer.test.ts",
+      "source_location": "L1",
+      "id": "tests_smooth_shadow_transformer_test_ts",
+      "community": 28,
+      "norm_label": "smooth-shadow-transformer.test.ts"
+    },
+    {
+      "label": "findToken()",
+      "file_type": "code",
+      "source_file": "tests/smooth-shadow-transformer.test.ts",
+      "source_location": "L5",
+      "id": "smooth_shadow_transformer_test_findtoken",
+      "community": 28,
+      "norm_label": "findtoken()"
+    },
+    {
+      "label": "receipt.test.ts",
+      "file_type": "code",
+      "source_file": "tests/utils/receipt.test.ts",
+      "source_location": "L1",
+      "id": "tests_utils_receipt_test_ts",
+      "community": 34,
+      "norm_label": "receipt.test.ts"
+    },
+    {
+      "label": "buildWaveToken()",
+      "file_type": "code",
+      "source_file": "src/core/transformer/theme-transformer.ts",
+      "source_location": "L630",
+      "id": "theme_transformer_buildwavetoken",
+      "community": 3,
+      "norm_label": "buildwavetoken()"
+    },
+    {
+      "label": "transformToWaveTokens()",
+      "file_type": "code",
+      "source_file": "src/core/transformer/theme-transformer.ts",
+      "source_location": "L646",
+      "id": "theme_transformer_transformtowavetokens",
+      "community": 3,
+      "norm_label": "transformtowavetokens()"
+    },
+    {
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "src/core/transformer/index.ts",
+      "source_location": "L1",
+      "id": "src_core_transformer_index_ts",
+      "community": 35,
+      "norm_label": "index.ts"
+    },
+    {
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "src/core/generator/index.ts",
+      "source_location": "L1",
+      "id": "src_core_generator_index_ts",
+      "community": 36,
+      "norm_label": "index.ts"
+    },
+    {
+      "label": "sketch.ts",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L1",
+      "id": "src_core_generator_formats_sketch_ts",
+      "community": 7,
+      "norm_label": "sketch.ts"
+    },
+    {
+      "label": "findSiblingToken()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L11",
+      "id": "sketch_findsiblingtoken",
+      "community": 7,
+      "norm_label": "findsiblingtoken()"
+    },
+    {
+      "label": "hexToSketchColor()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L28",
+      "id": "sketch_hextosketchcolor",
+      "community": 7,
+      "norm_label": "hextosketchcolor()"
+    },
+    {
+      "label": "applyOpacityToHex()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L34",
+      "id": "sketch_applyopacitytohex",
+      "community": 7,
+      "norm_label": "applyopacitytohex()"
+    },
+    {
+      "label": "cleanValue()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L52",
+      "id": "sketch_cleanvalue",
+      "community": 7,
+      "norm_label": "cleanvalue()"
+    },
+    {
+      "label": "processShadowLayer()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L60",
+      "id": "sketch_processshadowlayer",
+      "community": 7,
+      "norm_label": "processshadowlayer()"
+    },
+    {
+      "label": "processComponentShadowLayer()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L72",
+      "id": "sketch_processcomponentshadowlayer",
+      "community": 7,
+      "norm_label": "processcomponentshadowlayer()"
+    },
+    {
+      "label": "extractColorFromValue()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L108",
+      "id": "sketch_extractcolorfromvalue",
+      "community": 7,
+      "norm_label": "extractcolorfromvalue()"
+    },
+    {
+      "label": "resolveSketchColor()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L118",
+      "id": "sketch_resolvesketchcolor",
+      "community": 7,
+      "norm_label": "resolvesketchcolor()"
+    },
+    {
+      "label": "mapGradientStops()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L186",
+      "id": "sketch_mapgradientstops",
+      "community": 7,
+      "norm_label": "mapgradientstops()"
+    },
+    {
+      "label": "addSketchSwatch()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L195",
+      "id": "sketch_addsketchswatch",
+      "community": 7,
+      "norm_label": "addsketchswatch()"
+    },
+    {
+      "label": "sketchFormat()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L206",
+      "id": "sketch_sketchformat",
+      "community": 7,
+      "norm_label": "sketchformat()"
+    },
+    {
+      "label": "utils.ts",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/utils.ts",
+      "source_location": "L1",
+      "id": "src_core_generator_formats_utils_ts",
+      "community": 6,
+      "norm_label": "utils.ts"
+    },
+    {
+      "label": "colorToRgba()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/utils.ts",
+      "source_location": "L3",
+      "id": "utils_colortorgba",
+      "community": 6,
+      "norm_label": "colortorgba()"
+    },
+    {
+      "label": "formatShadowLength()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/utils.ts",
+      "source_location": "L17",
+      "id": "utils_formatshadowlength",
+      "community": 6,
+      "norm_label": "formatshadowlength()"
+    },
+    {
+      "label": "shadowToCss()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/utils.ts",
+      "source_location": "L29",
+      "id": "utils_shadowtocss",
+      "community": 6,
+      "norm_label": "shadowtocss()"
+    },
+    {
+      "label": "gradientToCss()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/utils.ts",
+      "source_location": "L53",
+      "id": "utils_gradienttocss",
+      "community": 6,
+      "norm_label": "gradienttocss()"
+    },
+    {
+      "label": "css.ts",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L1",
+      "id": "src_core_generator_formats_css_ts",
+      "community": 6,
+      "norm_label": "css.ts"
+    },
+    {
+      "label": "getFilteredName()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L10",
+      "id": "css_getfilteredname",
+      "community": 6,
+      "norm_label": "getfilteredname()"
+    },
+    {
+      "label": "isShadow()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L18",
+      "id": "css_isshadow",
+      "community": 6,
+      "norm_label": "isshadow()"
+    },
+    {
+      "label": "isGradient()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L22",
+      "id": "css_isgradient",
+      "community": 6,
+      "norm_label": "isgradient()"
+    },
+    {
+      "label": "formatTokenValue()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L26",
+      "id": "css_formattokenvalue",
+      "community": 6,
+      "norm_label": "formattokenvalue()"
+    },
+    {
+      "label": "getGroupCommentPaths()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L68",
+      "id": "css_getgroupcommentpaths",
+      "community": 6,
+      "norm_label": "getgroupcommentpaths()"
+    },
+    {
+      "label": "shouldInclude()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L76",
+      "id": "css_shouldinclude",
+      "community": 6,
+      "norm_label": "shouldinclude()"
+    },
+    {
+      "label": "cssVariablesFormat()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L85",
+      "id": "css_cssvariablesformat",
+      "community": 6,
+      "norm_label": "cssvariablesformat()"
+    },
+    {
+      "label": "flat.ts",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L1",
+      "id": "src_core_generator_formats_flat_ts",
+      "community": 9,
+      "norm_label": "flat.ts"
+    },
+    {
+      "label": "cleanShadowZeroPx()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L7",
+      "id": "flat_cleanshadowzeropx",
+      "community": 9,
+      "norm_label": "cleanshadowzeropx()"
+    },
+    {
+      "label": "getFilteredName()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L33",
+      "id": "flat_getfilteredname",
+      "community": 9,
+      "norm_label": "getfilteredname()"
+    },
+    {
+      "label": "cleanInternalFields()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L41",
+      "id": "flat_cleaninternalfields",
+      "community": 9,
+      "norm_label": "cleaninternalfields()"
+    },
+    {
+      "label": "isShadowToken()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L54",
+      "id": "flat_isshadowtoken",
+      "community": 9,
+      "norm_label": "isshadowtoken()"
+    },
+    {
+      "label": "isInheritColorToken()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L58",
+      "id": "flat_isinheritcolortoken",
+      "community": 9,
+      "norm_label": "isinheritcolortoken()"
+    },
+    {
+      "label": "formatInheritColorValue()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L62",
+      "id": "flat_formatinheritcolorvalue",
+      "community": 9,
+      "norm_label": "formatinheritcolorvalue()"
+    },
+    {
+      "label": "buildFlatRecord()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L77",
+      "id": "flat_buildflatrecord",
+      "community": 9,
+      "norm_label": "buildflatrecord()"
+    },
+    {
+      "label": "flatJsonFormat()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L119",
+      "id": "flat_flatjsonformat",
+      "community": 9,
+      "norm_label": "flatjsonformat()"
+    },
+    {
+      "label": "flatJsoncFormat()",
+      "file_type": "code",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L127",
+      "id": "flat_flatjsoncformat",
+      "community": 9,
+      "norm_label": "flatjsoncformat()"
+    },
+    {
+      "label": "spinner.ts",
+      "file_type": "code",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L1",
+      "id": "src_utils_spinner_ts",
+      "community": 12,
+      "norm_label": "spinner.ts"
+    },
+    {
+      "label": "WaveSpinner",
+      "file_type": "code",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L26",
+      "id": "spinner_wavespinner",
+      "community": 12,
+      "norm_label": "wavespinner"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L33",
+      "id": "spinner_wavespinner_constructor",
+      "community": 12,
+      "norm_label": ".constructor()"
+    },
+    {
+      "label": ".start()",
+      "file_type": "code",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L37",
+      "id": "spinner_wavespinner_start",
+      "community": 12,
+      "norm_label": ".start()"
+    },
+    {
+      "label": ".update()",
+      "file_type": "code",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L46",
+      "id": "spinner_wavespinner_update",
+      "community": 12,
+      "norm_label": ".update()"
+    },
+    {
+      "label": ".stop()",
+      "file_type": "code",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L51",
+      "id": "spinner_wavespinner_stop",
+      "community": 12,
+      "norm_label": ".stop()"
+    },
+    {
+      "label": ".render()",
+      "file_type": "code",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L62",
+      "id": "spinner_wavespinner_render",
+      "community": 12,
+      "norm_label": ".render()"
+    },
+    {
+      "label": "receipt.ts",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L1",
+      "id": "src_utils_receipt_ts",
+      "community": 5,
+      "norm_label": "receipt.ts"
+    },
+    {
+      "label": "vlen()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L7",
+      "id": "receipt_vlen",
+      "community": 5,
+      "norm_label": "vlen()"
+    },
+    {
+      "label": "vpad()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L11",
+      "id": "receipt_vpad",
+      "community": 5,
+      "norm_label": "vpad()"
+    },
+    {
+      "label": "clamp()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L17",
+      "id": "receipt_clamp",
+      "community": 5,
+      "norm_label": "clamp()"
+    },
+    {
+      "label": "boxWidth()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L21",
+      "id": "receipt_boxwidth",
+      "community": 5,
+      "norm_label": "boxwidth()"
+    },
+    {
+      "label": "borderTop()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L26",
+      "id": "receipt_bordertop",
+      "community": 5,
+      "norm_label": "bordertop()"
+    },
+    {
+      "label": "borderBottom()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L29",
+      "id": "receipt_borderbottom",
+      "community": 5,
+      "norm_label": "borderbottom()"
+    },
+    {
+      "label": "midSolid()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L32",
+      "id": "receipt_midsolid",
+      "community": 5,
+      "norm_label": "midsolid()"
+    },
+    {
+      "label": "midDashed()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L35",
+      "id": "receipt_middashed",
+      "community": 5,
+      "norm_label": "middashed()"
+    },
+    {
+      "label": "line()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L39",
+      "id": "receipt_line",
+      "community": 5,
+      "norm_label": "line()"
+    },
+    {
+      "label": "centerLine()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L43",
+      "id": "receipt_centerline",
+      "community": 5,
+      "norm_label": "centerline()"
+    },
+    {
+      "label": "kvLine()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L53",
+      "id": "receipt_kvline",
+      "community": 5,
+      "norm_label": "kvline()"
+    },
+    {
+      "label": "multiValueLines()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L70",
+      "id": "receipt_multivaluelines",
+      "community": 5,
+      "norm_label": "multivaluelines()"
+    },
+    {
+      "label": "BuildContext",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L119",
+      "id": "receipt_buildcontext",
+      "community": 13,
+      "norm_label": "buildcontext"
+    },
+    {
+      "label": ".addResource()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L141",
+      "id": "receipt_buildcontext_addresource",
+      "community": 13,
+      "norm_label": ".addresource()"
+    },
+    {
+      "label": ".addOutput()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L145",
+      "id": "receipt_buildcontext_addoutput",
+      "community": 13,
+      "norm_label": ".addoutput()"
+    },
+    {
+      "label": ".setNight()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L153",
+      "id": "receipt_buildcontext_setnight",
+      "community": 13,
+      "norm_label": ".setnight()"
+    },
+    {
+      "label": ".setVariants()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L157",
+      "id": "receipt_buildcontext_setvariants",
+      "community": 13,
+      "norm_label": ".setvariants()"
+    },
+    {
+      "label": ".markFailed()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L165",
+      "id": "receipt_buildcontext_markfailed",
+      "community": 13,
+      "norm_label": ".markfailed()"
+    },
+    {
+      "label": ".status()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L179",
+      "id": "receipt_buildcontext_status",
+      "community": 13,
+      "norm_label": ".status()"
+    },
+    {
+      "label": "renderReceipt()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L184",
+      "id": "receipt_renderreceipt",
+      "community": 5,
+      "norm_label": "renderreceipt()"
+    },
+    {
+      "label": "renderSuccess()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L191",
+      "id": "receipt_rendersuccess",
+      "community": 5,
+      "norm_label": "rendersuccess()"
+    },
+    {
+      "label": "renderFailed()",
+      "file_type": "code",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L277",
+      "id": "receipt_renderfailed",
+      "community": 5,
+      "norm_label": "renderfailed()"
+    },
+    {
+      "label": "create.ts",
+      "file_type": "code",
+      "source_file": "src/cli/commands/create.ts",
+      "source_location": "L1",
+      "id": "src_cli_commands_create_ts",
+      "community": 29,
+      "norm_label": "create.ts"
+    },
+    {
+      "label": "parseCliOptions()",
+      "file_type": "code",
+      "source_file": "src/cli/commands/create.ts",
+      "source_location": "L26",
+      "id": "create_parseclioptions",
+      "community": 29,
+      "norm_label": "parseclioptions()"
     }
   ],
   "links": [
@@ -1564,237 +2437,237 @@
       "weight": 1.0,
       "_src": "tests_themefile_group_pipeline_test_ts",
       "_tgt": "themefile_group_pipeline_test_makeparsed",
+      "confidence_score": 1.0,
       "source": "tests_themefile_group_pipeline_test_ts",
-      "target": "themefile_group_pipeline_test_makeparsed",
-      "confidence_score": 1.0
+      "target": "themefile_group_pipeline_test_makeparsed"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/types/index.ts",
-      "source_location": "L326",
+      "source_location": "L343",
       "weight": 1.0,
       "_src": "src_types_index_ts",
       "_tgt": "index_isdtcgtoken",
+      "confidence_score": 1.0,
       "source": "src_types_index_ts",
-      "target": "index_isdtcgtoken",
-      "confidence_score": 1.0
+      "target": "index_isdtcgtoken"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/types/index.ts",
-      "source_location": "L336",
+      "source_location": "L353",
       "weight": 1.0,
       "_src": "src_types_index_ts",
       "_tgt": "index_isdtcgrefvalue",
+      "confidence_score": 1.0,
       "source": "src_types_index_ts",
-      "target": "index_isdtcgrefvalue",
-      "confidence_score": 1.0
+      "target": "index_isdtcgrefvalue"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/types/index.ts",
-      "source_location": "L345",
+      "source_location": "L362",
       "weight": 1.0,
       "_src": "src_types_index_ts",
       "_tgt": "index_isresolvedtoken",
+      "confidence_score": 1.0,
       "source": "src_types_index_ts",
-      "target": "index_isresolvedtoken",
-      "confidence_score": 1.0
+      "target": "index_isresolvedtoken"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/types/index.ts",
-      "source_location": "L364",
+      "source_location": "L381",
       "weight": 1.0,
       "_src": "src_types_index_ts",
       "_tgt": "index_isdtcgcolorspacevalue",
+      "confidence_score": 1.0,
       "source": "src_types_index_ts",
-      "target": "index_isdtcgcolorspacevalue",
-      "confidence_score": 1.0
+      "target": "index_isdtcgcolorspacevalue"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/types/index.ts",
-      "source_location": "L402",
+      "source_location": "L419",
       "weight": 1.0,
       "_src": "src_types_index_ts",
       "_tgt": "index_isdtcgshadowlayer",
+      "confidence_score": 1.0,
       "source": "src_types_index_ts",
-      "target": "index_isdtcgshadowlayer",
-      "confidence_score": 1.0
+      "target": "index_isdtcgshadowlayer"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/types/index.ts",
-      "source_location": "L414",
+      "source_location": "L431",
       "weight": 1.0,
       "_src": "src_types_index_ts",
       "_tgt": "index_isdtcggradientstop",
+      "confidence_score": 1.0,
       "source": "src_types_index_ts",
-      "target": "index_isdtcggradientstop",
-      "confidence_score": 1.0
+      "target": "index_isdtcggradientstop"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L60",
+      "source_location": "L59",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_expandhomepath",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_expandhomepath",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_expandhomepath"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L70",
+      "source_location": "L69",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_loadyamlfile",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_loadyamlfile",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_loadyamlfile"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L78",
+      "source_location": "L77",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_isparseerror",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_isparseerror",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_isparseerror"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L87",
+      "source_location": "L86",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_loadthemefile",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_loadthemefile",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_loadthemefile"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L113",
+      "source_location": "L112",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_builddependencydictionary",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_builddependencydictionary",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_builddependencydictionary"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L217",
+      "source_location": "L216",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_processthemedocument",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_processthemedocument",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_processthemedocument"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L318",
+      "source_location": "L317",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_extractplatform",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_extractplatform",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_extractplatform"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L334",
+      "source_location": "L333",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_extractfilterlayer",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_extractfilterlayer",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_extractfilterlayer"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L344",
+      "source_location": "L343",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_extractcolorspace",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_extractcolorspace",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_extractcolorspace"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L357",
+      "source_location": "L356",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_resolveoutputdir",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_resolveoutputdir",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_resolveoutputdir"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L376",
+      "source_location": "L375",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_mergeparameters",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_mergeparameters",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_mergeparameters"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L383",
+      "source_location": "L382",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_resolveparameters",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_resolveparameters",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_resolveparameters"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L439",
+      "source_location": "L438",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_pipeline_ts",
       "_tgt": "theme_pipeline_buildgrouppasses",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "theme_pipeline_buildgrouppasses",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_buildgrouppasses"
     },
     {
       "relation": "imports_from",
@@ -1804,333 +2677,333 @@
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_service_ts",
       "_tgt": "src_core_pipeline_theme_pipeline_ts",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_pipeline_ts",
-      "target": "src_core_pipeline_theme_service_ts",
-      "confidence_score": 1.0
+      "target": "src_core_pipeline_theme_service_ts"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L91",
+      "source_location": "L90",
       "weight": 1.0,
       "_src": "theme_pipeline_loadthemefile",
       "_tgt": "theme_pipeline_expandhomepath",
+      "confidence_score": 1.0,
       "source": "theme_pipeline_expandhomepath",
-      "target": "theme_pipeline_loadthemefile",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_loadthemefile"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L363",
+      "source_location": "L362",
       "weight": 1.0,
       "_src": "theme_pipeline_resolveoutputdir",
       "_tgt": "theme_pipeline_expandhomepath",
+      "confidence_score": 1.0,
       "source": "theme_pipeline_expandhomepath",
-      "target": "theme_pipeline_resolveoutputdir",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_resolveoutputdir"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L100",
+      "source_location": "L99",
       "weight": 1.0,
       "_src": "theme_pipeline_loadthemefile",
       "_tgt": "theme_pipeline_loadyamlfile",
+      "confidence_score": 1.0,
       "source": "theme_pipeline_loadyamlfile",
-      "target": "theme_pipeline_loadthemefile",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_loadthemefile"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L106",
+      "source_location": "L105",
       "weight": 1.0,
       "_src": "theme_pipeline_loadthemefile",
       "_tgt": "theme_pipeline_isparseerror",
+      "confidence_score": 1.0,
       "source": "theme_pipeline_isparseerror",
-      "target": "theme_pipeline_loadthemefile",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_loadthemefile"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L168",
+      "source_location": "L167",
       "weight": 1.0,
       "_src": "theme_pipeline_builddependencydictionary",
       "_tgt": "theme_pipeline_isparseerror",
+      "confidence_score": 1.0,
       "source": "theme_pipeline_isparseerror",
-      "target": "theme_pipeline_builddependencydictionary",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_builddependencydictionary"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L235",
+      "source_location": "L234",
       "weight": 1.0,
       "_src": "theme_pipeline_processthemedocument",
       "_tgt": "theme_pipeline_isparseerror",
+      "confidence_score": 1.0,
       "source": "theme_pipeline_isparseerror",
-      "target": "theme_pipeline_processthemedocument",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_processthemedocument"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L463",
+      "source_location": "L462",
       "weight": 1.0,
       "_src": "theme_pipeline_buildgrouppasses",
       "_tgt": "theme_pipeline_mergeparameters",
+      "confidence_score": 1.0,
       "source": "theme_pipeline_mergeparameters",
-      "target": "theme_pipeline_buildgrouppasses",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_buildgrouppasses"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-pipeline.ts",
-      "source_location": "L449",
+      "source_location": "L448",
       "weight": 1.0,
       "_src": "theme_pipeline_buildgrouppasses",
       "_tgt": "theme_pipeline_resolveparameters",
+      "confidence_score": 1.0,
       "source": "theme_pipeline_resolveparameters",
-      "target": "theme_pipeline_buildgrouppasses",
-      "confidence_score": 1.0
+      "target": "theme_pipeline_buildgrouppasses"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L60",
+      "source_location": "L58",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_service_ts",
       "_tgt": "theme_service_isselected",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_service_ts",
-      "target": "theme_service_isselected",
-      "confidence_score": 1.0
+      "target": "theme_service_isselected"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L68",
+      "source_location": "L66",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_service_ts",
       "_tgt": "theme_service_generatepass",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_service_ts",
-      "target": "theme_service_generatepass",
-      "confidence_score": 1.0
+      "target": "theme_service_generatepass"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L151",
+      "source_location": "L158",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_service_ts",
       "_tgt": "theme_service_generatetheme",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_service_ts",
-      "target": "theme_service_generatetheme",
-      "confidence_score": 1.0
+      "target": "theme_service_generatetheme"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L367",
+      "source_location": "L416",
       "weight": 1.0,
       "_src": "src_core_pipeline_theme_service_ts",
       "_tgt": "theme_service_generatethemetokens",
+      "confidence_score": 1.0,
       "source": "src_core_pipeline_theme_service_ts",
-      "target": "theme_service_generatethemetokens",
-      "confidence_score": 1.0
+      "target": "theme_service_generatethemetokens"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L86",
+      "source_location": "L85",
       "weight": 1.0,
       "_src": "theme_service_generatepass",
       "_tgt": "theme_service_isselected",
+      "confidence_score": 1.0,
       "source": "theme_service_isselected",
-      "target": "theme_service_generatepass",
-      "confidence_score": 1.0
+      "target": "theme_service_generatepass"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L253",
+      "source_location": "L283",
       "weight": 1.0,
       "_src": "theme_service_generatetheme",
       "_tgt": "theme_service_isselected",
+      "confidence_score": 1.0,
       "source": "theme_service_isselected",
-      "target": "theme_service_generatetheme",
-      "confidence_score": 1.0
+      "target": "theme_service_generatetheme"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L126",
+      "source_location": "L130",
       "weight": 1.0,
       "_src": "theme_service_generatepass",
       "_tgt": "theme_service_generatethemetokens",
+      "confidence_score": 1.0,
       "source": "theme_service_generatepass",
-      "target": "theme_service_generatethemetokens",
-      "confidence_score": 1.0
+      "target": "theme_service_generatethemetokens"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L223",
+      "source_location": "L245",
       "weight": 1.0,
       "_src": "theme_service_generatetheme",
       "_tgt": "theme_service_generatepass",
+      "confidence_score": 1.0,
       "source": "theme_service_generatepass",
-      "target": "theme_service_generatetheme",
-      "confidence_score": 1.0
+      "target": "theme_service_generatetheme"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/pipeline/theme-service.ts",
-      "source_location": "L290",
+      "source_location": "L325",
       "weight": 1.0,
       "_src": "theme_service_generatetheme",
       "_tgt": "theme_service_generatethemetokens",
+      "confidence_score": 1.0,
       "source": "theme_service_generatetheme",
-      "target": "theme_service_generatethemetokens",
-      "confidence_score": 1.0
+      "target": "theme_service_generatethemetokens"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L20",
+      "source_location": "L19",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_iscoloralphaobject",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_iscoloralphaobject",
-      "confidence_score": 1.0
+      "target": "theme_transformer_iscoloralphaobject"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L35",
+      "source_location": "L34",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_alphatohex",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_alphatohex",
-      "confidence_score": 1.0
+      "target": "theme_transformer_alphatohex"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L42",
+      "source_location": "L41",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_convertcolorwithalpha",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_convertcolorwithalpha",
-      "confidence_score": 1.0
+      "target": "theme_transformer_convertcolorwithalpha"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L95",
+      "source_location": "L94",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_processvalue",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_processvalue",
-      "confidence_score": 1.0
+      "target": "theme_transformer_processvalue"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L164",
+      "source_location": "L163",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_processarrayitem",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_processarrayitem",
-      "confidence_score": 1.0
+      "target": "theme_transformer_processarrayitem"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L194",
+      "source_location": "L193",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_extractcoloralpha",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_extractcoloralpha",
-      "confidence_score": 1.0
+      "target": "theme_transformer_extractcoloralpha"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L202",
+      "source_location": "L201",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_applycoloralpha",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_applycoloralpha",
-      "confidence_score": 1.0
+      "target": "theme_transformer_applycoloralpha"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L214",
+      "source_location": "L213",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_derivesmoothgradient",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_derivesmoothgradient",
-      "confidence_score": 1.0
+      "target": "theme_transformer_derivesmoothgradient"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L282",
+      "source_location": "L281",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_interpolateshadowvalue",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_interpolateshadowvalue",
-      "confidence_score": 1.0
+      "target": "theme_transformer_interpolateshadowvalue"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L301",
+      "source_location": "L300",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_derivesmoothshadow",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_derivesmoothshadow",
-      "confidence_score": 1.0
+      "target": "theme_transformer_derivesmoothshadow"
     },
     {
       "relation": "contains",
@@ -2140,57 +3013,117 @@
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_transformtosdformat",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_transformtosdformat",
-      "confidence_score": 1.0
+      "target": "theme_transformer_transformtosdformat"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L464",
+      "source_location": "L373",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_extractinheritcolorpropertyvalue",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_extractinheritcolorpropertyvalue",
-      "confidence_score": 1.0
+      "target": "theme_transformer_extractinheritcolorpropertyvalue"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L504",
+      "source_location": "L413",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_extractinheritcoloropacity",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_extractinheritcoloropacity",
-      "confidence_score": 1.0
+      "target": "theme_transformer_extractinheritcoloropacity"
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L514",
+      "source_location": "L423",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
       "_tgt": "theme_transformer_extractsiblingslot",
+      "confidence_score": 1.0,
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_extractsiblingslot",
+      "target": "theme_transformer_extractsiblingslot"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/transformer/theme-transformer.ts",
+      "source_location": "L433",
+      "weight": 1.0,
+      "_src": "src_core_transformer_theme_transformer_ts",
+      "_tgt": "theme_transformer_transformtoken",
+      "confidence_score": 1.0,
+      "source": "src_core_transformer_theme_transformer_ts",
+      "target": "theme_transformer_transformtoken"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/transformer/theme-transformer.ts",
+      "source_location": "L630",
+      "weight": 1.0,
+      "_src": "src_core_transformer_theme_transformer_ts",
+      "_tgt": "theme_transformer_buildwavetoken",
+      "source": "src_core_transformer_theme_transformer_ts",
+      "target": "theme_transformer_buildwavetoken",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L524",
+      "source_location": "L646",
       "weight": 1.0,
       "_src": "src_core_transformer_theme_transformer_ts",
-      "_tgt": "theme_transformer_transformtoken",
+      "_tgt": "theme_transformer_transformtowavetokens",
       "source": "src_core_transformer_theme_transformer_ts",
-      "target": "theme_transformer_transformtoken",
+      "target": "theme_transformer_transformtowavetokens",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/transformer/theme-transformer.ts",
+      "source_location": "L113",
+      "weight": 1.0,
+      "_src": "theme_transformer_processvalue",
+      "_tgt": "theme_transformer_iscoloralphaobject",
+      "confidence_score": 1.0,
+      "source": "theme_transformer_iscoloralphaobject",
+      "target": "theme_transformer_processvalue"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/transformer/theme-transformer.ts",
+      "source_location": "L178",
+      "weight": 1.0,
+      "_src": "theme_transformer_processarrayitem",
+      "_tgt": "theme_transformer_iscoloralphaobject",
+      "confidence_score": 1.0,
+      "source": "theme_transformer_iscoloralphaobject",
+      "target": "theme_transformer_processarrayitem"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/transformer/theme-transformer.ts",
+      "source_location": "L87",
+      "weight": 1.0,
+      "_src": "theme_transformer_convertcolorwithalpha",
+      "_tgt": "theme_transformer_alphatohex",
+      "confidence_score": 1.0,
+      "source": "theme_transformer_alphatohex",
+      "target": "theme_transformer_convertcolorwithalpha"
     },
     {
       "relation": "calls",
@@ -2199,178 +3132,142 @@
       "source_location": "L114",
       "weight": 1.0,
       "_src": "theme_transformer_processvalue",
-      "_tgt": "theme_transformer_iscoloralphaobject",
-      "source": "theme_transformer_iscoloralphaobject",
-      "target": "theme_transformer_processvalue",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L179",
-      "weight": 1.0,
-      "_src": "theme_transformer_processarrayitem",
-      "_tgt": "theme_transformer_iscoloralphaobject",
-      "source": "theme_transformer_iscoloralphaobject",
-      "target": "theme_transformer_processarrayitem",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L88",
-      "weight": 1.0,
-      "_src": "theme_transformer_convertcolorwithalpha",
-      "_tgt": "theme_transformer_alphatohex",
-      "source": "theme_transformer_alphatohex",
-      "target": "theme_transformer_convertcolorwithalpha",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L115",
-      "weight": 1.0,
-      "_src": "theme_transformer_processvalue",
       "_tgt": "theme_transformer_convertcolorwithalpha",
+      "confidence_score": 1.0,
       "source": "theme_transformer_convertcolorwithalpha",
-      "target": "theme_transformer_processvalue",
-      "confidence_score": 1.0
+      "target": "theme_transformer_processvalue"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L182",
+      "source_location": "L181",
       "weight": 1.0,
       "_src": "theme_transformer_processarrayitem",
       "_tgt": "theme_transformer_processvalue",
+      "confidence_score": 1.0,
       "source": "theme_transformer_processvalue",
-      "target": "theme_transformer_processarrayitem",
-      "confidence_score": 1.0
+      "target": "theme_transformer_processarrayitem"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L531",
+      "source_location": "L440",
       "weight": 1.0,
       "_src": "theme_transformer_transformtoken",
       "_tgt": "theme_transformer_processvalue",
+      "confidence_score": 1.0,
       "source": "theme_transformer_processvalue",
-      "target": "theme_transformer_transformtoken",
-      "confidence_score": 1.0
+      "target": "theme_transformer_transformtoken"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L541",
+      "source_location": "L450",
       "weight": 1.0,
       "_src": "theme_transformer_transformtoken",
       "_tgt": "theme_transformer_processarrayitem",
+      "confidence_score": 1.0,
       "source": "theme_transformer_processarrayitem",
-      "target": "theme_transformer_transformtoken",
-      "confidence_score": 1.0
+      "target": "theme_transformer_transformtoken"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L256",
+      "source_location": "L255",
       "weight": 1.0,
       "_src": "theme_transformer_derivesmoothgradient",
       "_tgt": "theme_transformer_extractcoloralpha",
+      "confidence_score": 1.0,
       "source": "theme_transformer_extractcoloralpha",
-      "target": "theme_transformer_derivesmoothgradient",
-      "confidence_score": 1.0
+      "target": "theme_transformer_derivesmoothgradient"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L338",
+      "source_location": "L337",
       "weight": 1.0,
       "_src": "theme_transformer_derivesmoothshadow",
       "_tgt": "theme_transformer_extractcoloralpha",
+      "confidence_score": 1.0,
       "source": "theme_transformer_extractcoloralpha",
-      "target": "theme_transformer_derivesmoothshadow",
-      "confidence_score": 1.0
+      "target": "theme_transformer_derivesmoothshadow"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L673",
+      "source_location": "L582",
       "weight": 1.0,
       "_src": "theme_transformer_transformtoken",
       "_tgt": "theme_transformer_extractcoloralpha",
+      "confidence_score": 1.0,
       "source": "theme_transformer_extractcoloralpha",
-      "target": "theme_transformer_transformtoken",
-      "confidence_score": 1.0
+      "target": "theme_transformer_transformtoken"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L274",
+      "source_location": "L273",
       "weight": 1.0,
       "_src": "theme_transformer_derivesmoothgradient",
       "_tgt": "theme_transformer_applycoloralpha",
+      "confidence_score": 1.0,
       "source": "theme_transformer_applycoloralpha",
-      "target": "theme_transformer_derivesmoothgradient",
-      "confidence_score": 1.0
+      "target": "theme_transformer_derivesmoothgradient"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L352",
+      "source_location": "L351",
       "weight": 1.0,
       "_src": "theme_transformer_derivesmoothshadow",
       "_tgt": "theme_transformer_applycoloralpha",
+      "confidence_score": 1.0,
       "source": "theme_transformer_applycoloralpha",
-      "target": "theme_transformer_derivesmoothshadow",
-      "confidence_score": 1.0
+      "target": "theme_transformer_derivesmoothshadow"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L554",
+      "source_location": "L463",
       "weight": 1.0,
       "_src": "theme_transformer_transformtoken",
       "_tgt": "theme_transformer_derivesmoothgradient",
+      "confidence_score": 1.0,
       "source": "theme_transformer_derivesmoothgradient",
-      "target": "theme_transformer_transformtoken",
-      "confidence_score": 1.0
+      "target": "theme_transformer_transformtoken"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L357",
+      "source_location": "L356",
       "weight": 1.0,
       "_src": "theme_transformer_derivesmoothshadow",
       "_tgt": "theme_transformer_interpolateshadowvalue",
+      "confidence_score": 1.0,
       "source": "theme_transformer_interpolateshadowvalue",
-      "target": "theme_transformer_derivesmoothshadow",
-      "confidence_score": 1.0
+      "target": "theme_transformer_derivesmoothshadow"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L543",
+      "source_location": "L452",
       "weight": 1.0,
       "_src": "theme_transformer_transformtoken",
       "_tgt": "theme_transformer_derivesmoothshadow",
+      "confidence_score": 1.0,
       "source": "theme_transformer_derivesmoothshadow",
-      "target": "theme_transformer_transformtoken",
-      "confidence_score": 1.0
+      "target": "theme_transformer_transformtoken"
     },
     {
       "relation": "calls",
@@ -2380,45 +3277,45 @@
       "weight": 1.0,
       "_src": "theme_transformer_transformtosdformat",
       "_tgt": "theme_transformer_transformtoken",
+      "confidence_score": 1.0,
       "source": "theme_transformer_transformtosdformat",
-      "target": "theme_transformer_transformtoken",
-      "confidence_score": 1.0
+      "target": "theme_transformer_transformtoken"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L508",
+      "source_location": "L417",
       "weight": 1.0,
       "_src": "theme_transformer_extractinheritcoloropacity",
       "_tgt": "theme_transformer_extractinheritcolorpropertyvalue",
+      "confidence_score": 1.0,
       "source": "theme_transformer_extractinheritcolorpropertyvalue",
-      "target": "theme_transformer_extractinheritcoloropacity",
-      "confidence_score": 1.0
+      "target": "theme_transformer_extractinheritcoloropacity"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L583",
+      "source_location": "L492",
       "weight": 1.0,
       "_src": "theme_transformer_transformtoken",
       "_tgt": "theme_transformer_extractinheritcolorpropertyvalue",
+      "confidence_score": 1.0,
       "source": "theme_transformer_extractinheritcolorpropertyvalue",
-      "target": "theme_transformer_transformtoken",
-      "confidence_score": 1.0
+      "target": "theme_transformer_transformtoken"
     },
     {
       "relation": "calls",
       "confidence": "EXTRACTED",
       "source_file": "src/core/transformer/theme-transformer.ts",
-      "source_location": "L597",
+      "source_location": "L506",
       "weight": 1.0,
       "_src": "theme_transformer_transformtoken",
       "_tgt": "theme_transformer_extractsiblingslot",
+      "confidence_score": 1.0,
       "source": "theme_transformer_extractsiblingslot",
-      "target": "theme_transformer_transformtoken",
-      "confidence_score": 1.0
+      "target": "theme_transformer_transformtoken"
     },
     {
       "relation": "contains",
@@ -2428,9 +3325,9 @@
       "weight": 1.0,
       "_src": "src_core_doctor_theme_context_ts",
       "_tgt": "theme_context_isparseerror",
+      "confidence_score": 1.0,
       "source": "src_core_doctor_theme_context_ts",
-      "target": "theme_context_isparseerror",
-      "confidence_score": 1.0
+      "target": "theme_context_isparseerror"
     },
     {
       "relation": "contains",
@@ -2440,9 +3337,9 @@
       "weight": 1.0,
       "_src": "src_core_doctor_theme_context_ts",
       "_tgt": "theme_context_detectthemefiles",
+      "confidence_score": 1.0,
       "source": "src_core_doctor_theme_context_ts",
-      "target": "theme_context_detectthemefiles",
-      "confidence_score": 1.0
+      "target": "theme_context_detectthemefiles"
     },
     {
       "relation": "contains",
@@ -2452,9 +3349,9 @@
       "weight": 1.0,
       "_src": "src_core_doctor_theme_context_ts",
       "_tgt": "theme_context_createthemedoctorcontext",
+      "confidence_score": 1.0,
       "source": "src_core_doctor_theme_context_ts",
-      "target": "theme_context_createthemedoctorcontext",
-      "confidence_score": 1.0
+      "target": "theme_context_createthemedoctorcontext"
     },
     {
       "relation": "calls",
@@ -2464,9 +3361,9 @@
       "weight": 1.0,
       "_src": "theme_context_createthemedoctorcontext",
       "_tgt": "theme_context_isparseerror",
+      "confidence_score": 1.0,
       "source": "theme_context_isparseerror",
-      "target": "theme_context_createthemedoctorcontext",
-      "confidence_score": 1.0
+      "target": "theme_context_createthemedoctorcontext"
     },
     {
       "relation": "contains",
@@ -2476,9 +3373,9 @@
       "weight": 1.0,
       "_src": "src_core_parser_themefile_ts",
       "_tgt": "themefile_parsethemefile",
+      "confidence_score": 1.0,
       "source": "src_core_parser_themefile_ts",
-      "target": "themefile_parsethemefile",
-      "confidence_score": 1.0
+      "target": "themefile_parsethemefile"
     },
     {
       "relation": "contains",
@@ -2488,9 +3385,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_isinheritcolortoken",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_isinheritcolortoken",
-      "confidence_score": 1.0
+      "target": "sketch_format_isinheritcolortoken"
     },
     {
       "relation": "contains",
@@ -2500,9 +3397,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_getinheritcolorsiblingslot",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_getinheritcolorsiblingslot",
-      "confidence_score": 1.0
+      "target": "sketch_format_getinheritcolorsiblingslot"
     },
     {
       "relation": "contains",
@@ -2512,9 +3409,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_getinheritcoloropacity",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_getinheritcoloropacity",
-      "confidence_score": 1.0
+      "target": "sketch_format_getinheritcoloropacity"
     },
     {
       "relation": "contains",
@@ -2524,9 +3421,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_getinheritcoloralpha",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_getinheritcoloralpha",
-      "confidence_score": 1.0
+      "target": "sketch_format_getinheritcoloralpha"
     },
     {
       "relation": "contains",
@@ -2536,9 +3433,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_findsiblingcolor",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_findsiblingcolor",
-      "confidence_score": 1.0
+      "target": "sketch_format_findsiblingcolor"
     },
     {
       "relation": "contains",
@@ -2548,9 +3445,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_findsiblingtoken",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_findsiblingtoken",
-      "confidence_score": 1.0
+      "target": "sketch_format_findsiblingtoken"
     },
     {
       "relation": "contains",
@@ -2560,9 +3457,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_hextosketchcolor",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_hextosketchcolor",
-      "confidence_score": 1.0
+      "target": "sketch_format_hextosketchcolor"
     },
     {
       "relation": "contains",
@@ -2572,9 +3469,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_applyopacitytohex",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_applyopacitytohex",
-      "confidence_score": 1.0
+      "target": "sketch_format_applyopacitytohex"
     },
     {
       "relation": "contains",
@@ -2584,9 +3481,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_cleanvalue",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_cleanvalue",
-      "confidence_score": 1.0
+      "target": "sketch_format_cleanvalue"
     },
     {
       "relation": "contains",
@@ -2596,9 +3493,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_processshadowlayer",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_processshadowlayer",
-      "confidence_score": 1.0
+      "target": "sketch_format_processshadowlayer"
     },
     {
       "relation": "contains",
@@ -2608,9 +3505,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_processcomponentshadowlayer",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_processcomponentshadowlayer",
-      "confidence_score": 1.0
+      "target": "sketch_format_processcomponentshadowlayer"
     },
     {
       "relation": "contains",
@@ -2620,9 +3517,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_extractcolorfromvalue",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_extractcolorfromvalue",
-      "confidence_score": 1.0
+      "target": "sketch_format_extractcolorfromvalue"
     },
     {
       "relation": "contains",
@@ -2632,9 +3529,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_resolvesketchcolor",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_resolvesketchcolor",
-      "confidence_score": 1.0
+      "target": "sketch_format_resolvesketchcolor"
     },
     {
       "relation": "contains",
@@ -2644,9 +3541,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_mapgradientstops",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_mapgradientstops",
-      "confidence_score": 1.0
+      "target": "sketch_format_mapgradientstops"
     },
     {
       "relation": "contains",
@@ -2656,9 +3553,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_sketch_format_ts",
       "_tgt": "sketch_format_addsketchswatch",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_sketch_format_ts",
-      "target": "sketch_format_addsketchswatch",
-      "confidence_score": 1.0
+      "target": "sketch_format_addsketchswatch"
     },
     {
       "relation": "calls",
@@ -2668,9 +3565,9 @@
       "weight": 1.0,
       "_src": "sketch_format_resolvesketchcolor",
       "_tgt": "sketch_format_isinheritcolortoken",
+      "confidence_score": 1.0,
       "source": "sketch_format_isinheritcolortoken",
-      "target": "sketch_format_resolvesketchcolor",
-      "confidence_score": 1.0
+      "target": "sketch_format_resolvesketchcolor"
     },
     {
       "relation": "calls",
@@ -2680,9 +3577,9 @@
       "weight": 1.0,
       "_src": "sketch_format_resolvesketchcolor",
       "_tgt": "sketch_format_getinheritcolorsiblingslot",
+      "confidence_score": 1.0,
       "source": "sketch_format_getinheritcolorsiblingslot",
-      "target": "sketch_format_resolvesketchcolor",
-      "confidence_score": 1.0
+      "target": "sketch_format_resolvesketchcolor"
     },
     {
       "relation": "calls",
@@ -2692,9 +3589,9 @@
       "weight": 1.0,
       "_src": "sketch_format_resolvesketchcolor",
       "_tgt": "sketch_format_getinheritcoloropacity",
+      "confidence_score": 1.0,
       "source": "sketch_format_getinheritcoloropacity",
-      "target": "sketch_format_resolvesketchcolor",
-      "confidence_score": 1.0
+      "target": "sketch_format_resolvesketchcolor"
     },
     {
       "relation": "calls",
@@ -2704,9 +3601,9 @@
       "weight": 1.0,
       "_src": "sketch_format_resolvesketchcolor",
       "_tgt": "sketch_format_getinheritcoloralpha",
+      "confidence_score": 1.0,
       "source": "sketch_format_getinheritcoloralpha",
-      "target": "sketch_format_resolvesketchcolor",
-      "confidence_score": 1.0
+      "target": "sketch_format_resolvesketchcolor"
     },
     {
       "relation": "calls",
@@ -2716,9 +3613,9 @@
       "weight": 1.0,
       "_src": "sketch_format_resolvesketchcolor",
       "_tgt": "sketch_format_findsiblingtoken",
+      "confidence_score": 1.0,
       "source": "sketch_format_findsiblingtoken",
-      "target": "sketch_format_resolvesketchcolor",
-      "confidence_score": 1.0
+      "target": "sketch_format_resolvesketchcolor"
     },
     {
       "relation": "calls",
@@ -2728,9 +3625,9 @@
       "weight": 1.0,
       "_src": "sketch_format_applyopacitytohex",
       "_tgt": "sketch_format_hextosketchcolor",
+      "confidence_score": 1.0,
       "source": "sketch_format_hextosketchcolor",
-      "target": "sketch_format_applyopacitytohex",
-      "confidence_score": 1.0
+      "target": "sketch_format_applyopacitytohex"
     },
     {
       "relation": "calls",
@@ -2740,9 +3637,9 @@
       "weight": 1.0,
       "_src": "sketch_format_processshadowlayer",
       "_tgt": "sketch_format_hextosketchcolor",
+      "confidence_score": 1.0,
       "source": "sketch_format_hextosketchcolor",
-      "target": "sketch_format_processshadowlayer",
-      "confidence_score": 1.0
+      "target": "sketch_format_processshadowlayer"
     },
     {
       "relation": "calls",
@@ -2752,9 +3649,9 @@
       "weight": 1.0,
       "_src": "sketch_format_processcomponentshadowlayer",
       "_tgt": "sketch_format_hextosketchcolor",
+      "confidence_score": 1.0,
       "source": "sketch_format_hextosketchcolor",
-      "target": "sketch_format_processcomponentshadowlayer",
-      "confidence_score": 1.0
+      "target": "sketch_format_processcomponentshadowlayer"
     },
     {
       "relation": "calls",
@@ -2764,9 +3661,9 @@
       "weight": 1.0,
       "_src": "sketch_format_processshadowlayer",
       "_tgt": "sketch_format_cleanvalue",
+      "confidence_score": 1.0,
       "source": "sketch_format_cleanvalue",
-      "target": "sketch_format_processshadowlayer",
-      "confidence_score": 1.0
+      "target": "sketch_format_processshadowlayer"
     },
     {
       "relation": "calls",
@@ -2776,9 +3673,9 @@
       "weight": 1.0,
       "_src": "sketch_format_processcomponentshadowlayer",
       "_tgt": "sketch_format_cleanvalue",
+      "confidence_score": 1.0,
       "source": "sketch_format_cleanvalue",
-      "target": "sketch_format_processcomponentshadowlayer",
-      "confidence_score": 1.0
+      "target": "sketch_format_processcomponentshadowlayer"
     },
     {
       "relation": "calls",
@@ -2788,9 +3685,9 @@
       "weight": 1.0,
       "_src": "sketch_format_resolvesketchcolor",
       "_tgt": "sketch_format_extractcolorfromvalue",
+      "confidence_score": 1.0,
       "source": "sketch_format_extractcolorfromvalue",
-      "target": "sketch_format_resolvesketchcolor",
-      "confidence_score": 1.0
+      "target": "sketch_format_resolvesketchcolor"
     },
     {
       "relation": "contains",
@@ -2800,9 +3697,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_css_variables_with_desc_ts",
       "_tgt": "css_variables_with_desc_getfilteredname",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_css_variables_with_desc_ts",
-      "target": "css_variables_with_desc_getfilteredname",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_getfilteredname"
     },
     {
       "relation": "contains",
@@ -2812,9 +3709,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_css_variables_with_desc_ts",
       "_tgt": "css_variables_with_desc_isshadowtoken",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_css_variables_with_desc_ts",
-      "target": "css_variables_with_desc_isshadowtoken",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_isshadowtoken"
     },
     {
       "relation": "contains",
@@ -2824,9 +3721,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_css_variables_with_desc_ts",
       "_tgt": "css_variables_with_desc_isgradienttoken",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_css_variables_with_desc_ts",
-      "target": "css_variables_with_desc_isgradienttoken",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_isgradienttoken"
     },
     {
       "relation": "contains",
@@ -2836,9 +3733,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_css_variables_with_desc_ts",
       "_tgt": "css_variables_with_desc_formattokenvalue",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_css_variables_with_desc_ts",
-      "target": "css_variables_with_desc_formattokenvalue",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_formattokenvalue"
     },
     {
       "relation": "contains",
@@ -2848,9 +3745,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_css_variables_with_desc_ts",
       "_tgt": "css_variables_with_desc_getgroupcommentpaths",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_css_variables_with_desc_ts",
-      "target": "css_variables_with_desc_getgroupcommentpaths",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_getgroupcommentpaths"
     },
     {
       "relation": "contains",
@@ -2860,9 +3757,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_css_variables_with_desc_ts",
       "_tgt": "css_variables_with_desc_shouldinclude",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_css_variables_with_desc_ts",
-      "target": "css_variables_with_desc_shouldinclude",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_shouldinclude"
     },
     {
       "relation": "contains",
@@ -2872,9 +3769,9 @@
       "weight": 1.0,
       "_src": "src_core_generator_transforms_css_variables_with_desc_ts",
       "_tgt": "css_variables_with_desc_formatcssvariables",
+      "confidence_score": 1.0,
       "source": "src_core_generator_transforms_css_variables_with_desc_ts",
-      "target": "css_variables_with_desc_formatcssvariables",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_formatcssvariables"
     },
     {
       "relation": "calls",
@@ -2884,9 +3781,9 @@
       "weight": 1.0,
       "_src": "css_variables_with_desc_formatcssvariables",
       "_tgt": "css_variables_with_desc_getfilteredname",
+      "confidence_score": 1.0,
       "source": "css_variables_with_desc_getfilteredname",
-      "target": "css_variables_with_desc_formatcssvariables",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_formatcssvariables"
     },
     {
       "relation": "calls",
@@ -2896,9 +3793,9 @@
       "weight": 1.0,
       "_src": "css_variables_with_desc_formattokenvalue",
       "_tgt": "css_variables_with_desc_isshadowtoken",
+      "confidence_score": 1.0,
       "source": "css_variables_with_desc_isshadowtoken",
-      "target": "css_variables_with_desc_formattokenvalue",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_formattokenvalue"
     },
     {
       "relation": "calls",
@@ -2908,9 +3805,9 @@
       "weight": 1.0,
       "_src": "css_variables_with_desc_formattokenvalue",
       "_tgt": "css_variables_with_desc_isgradienttoken",
+      "confidence_score": 1.0,
       "source": "css_variables_with_desc_isgradienttoken",
-      "target": "css_variables_with_desc_formattokenvalue",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_formattokenvalue"
     },
     {
       "relation": "calls",
@@ -2920,9 +3817,9 @@
       "weight": 1.0,
       "_src": "css_variables_with_desc_formatcssvariables",
       "_tgt": "css_variables_with_desc_formattokenvalue",
+      "confidence_score": 1.0,
       "source": "css_variables_with_desc_formattokenvalue",
-      "target": "css_variables_with_desc_formatcssvariables",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_formatcssvariables"
     },
     {
       "relation": "calls",
@@ -2932,9 +3829,9 @@
       "weight": 1.0,
       "_src": "css_variables_with_desc_formatcssvariables",
       "_tgt": "css_variables_with_desc_getgroupcommentpaths",
+      "confidence_score": 1.0,
       "source": "css_variables_with_desc_getgroupcommentpaths",
-      "target": "css_variables_with_desc_formatcssvariables",
-      "confidence_score": 1.0
+      "target": "css_variables_with_desc_formatcssvariables"
     },
     {
       "relation": "contains",
@@ -2944,9 +3841,9 @@
       "weight": 1.0,
       "_src": "src_core_schema_theme_ts",
       "_tgt": "theme_checkdanglingjsonpointer",
+      "confidence_score": 1.0,
       "source": "src_core_schema_theme_ts",
-      "target": "theme_checkdanglingjsonpointer",
-      "confidence_score": 1.0
+      "target": "theme_checkdanglingjsonpointer"
     },
     {
       "relation": "contains",
@@ -2956,9 +3853,9 @@
       "weight": 1.0,
       "_src": "src_core_schema_theme_ts",
       "_tgt": "theme_checkvaluedeep",
+      "confidence_score": 1.0,
       "source": "src_core_schema_theme_ts",
-      "target": "theme_checkvaluedeep",
-      "confidence_score": 1.0
+      "target": "theme_checkvaluedeep"
     },
     {
       "relation": "contains",
@@ -2968,9 +3865,9 @@
       "weight": 1.0,
       "_src": "src_core_schema_theme_ts",
       "_tgt": "theme_validateinheritcolor",
+      "confidence_score": 1.0,
       "source": "src_core_schema_theme_ts",
-      "target": "theme_validateinheritcolor",
-      "confidence_score": 1.0
+      "target": "theme_validateinheritcolor"
     },
     {
       "relation": "contains",
@@ -2980,9 +3877,9 @@
       "weight": 1.0,
       "_src": "src_core_schema_theme_ts",
       "_tgt": "theme_validatetoken",
+      "confidence_score": 1.0,
       "source": "src_core_schema_theme_ts",
-      "target": "theme_validatetoken",
-      "confidence_score": 1.0
+      "target": "theme_validatetoken"
     },
     {
       "relation": "contains",
@@ -2992,9 +3889,9 @@
       "weight": 1.0,
       "_src": "src_core_schema_theme_ts",
       "_tgt": "theme_validateextends",
+      "confidence_score": 1.0,
       "source": "src_core_schema_theme_ts",
-      "target": "theme_validateextends",
-      "confidence_score": 1.0
+      "target": "theme_validateextends"
     },
     {
       "relation": "contains",
@@ -3004,9 +3901,9 @@
       "weight": 1.0,
       "_src": "src_core_schema_theme_ts",
       "_tgt": "theme_validatecomposite",
+      "confidence_score": 1.0,
       "source": "src_core_schema_theme_ts",
-      "target": "theme_validatecomposite",
-      "confidence_score": 1.0
+      "target": "theme_validatecomposite"
     },
     {
       "relation": "contains",
@@ -3016,9 +3913,9 @@
       "weight": 1.0,
       "_src": "src_core_schema_theme_ts",
       "_tgt": "theme_walknode",
+      "confidence_score": 1.0,
       "source": "src_core_schema_theme_ts",
-      "target": "theme_walknode",
-      "confidence_score": 1.0
+      "target": "theme_walknode"
     },
     {
       "relation": "contains",
@@ -3028,9 +3925,9 @@
       "weight": 1.0,
       "_src": "src_core_schema_theme_ts",
       "_tgt": "theme_validatethemeschema",
+      "confidence_score": 1.0,
       "source": "src_core_schema_theme_ts",
-      "target": "theme_validatethemeschema",
-      "confidence_score": 1.0
+      "target": "theme_validatethemeschema"
     },
     {
       "relation": "contains",
@@ -3040,9 +3937,9 @@
       "weight": 1.0,
       "_src": "src_core_schema_theme_ts",
       "_tgt": "theme_validatedoctorsection",
+      "confidence_score": 1.0,
       "source": "src_core_schema_theme_ts",
-      "target": "theme_validatedoctorsection",
-      "confidence_score": 1.0
+      "target": "theme_validatedoctorsection"
     },
     {
       "relation": "calls",
@@ -3052,9 +3949,9 @@
       "weight": 1.0,
       "_src": "theme_checkvaluedeep",
       "_tgt": "theme_checkdanglingjsonpointer",
+      "confidence_score": 1.0,
       "source": "theme_checkdanglingjsonpointer",
-      "target": "theme_checkvaluedeep",
-      "confidence_score": 1.0
+      "target": "theme_checkvaluedeep"
     },
     {
       "relation": "calls",
@@ -3064,9 +3961,9 @@
       "weight": 1.0,
       "_src": "theme_validatetoken",
       "_tgt": "theme_checkvaluedeep",
+      "confidence_score": 1.0,
       "source": "theme_checkvaluedeep",
-      "target": "theme_validatetoken",
-      "confidence_score": 1.0
+      "target": "theme_validatetoken"
     },
     {
       "relation": "calls",
@@ -3076,9 +3973,9 @@
       "weight": 1.0,
       "_src": "theme_validatetoken",
       "_tgt": "theme_validateinheritcolor",
+      "confidence_score": 1.0,
       "source": "theme_validateinheritcolor",
-      "target": "theme_validatetoken",
-      "confidence_score": 1.0
+      "target": "theme_validatetoken"
     },
     {
       "relation": "calls",
@@ -3088,9 +3985,9 @@
       "weight": 1.0,
       "_src": "theme_walknode",
       "_tgt": "theme_validatetoken",
+      "confidence_score": 1.0,
       "source": "theme_validatetoken",
-      "target": "theme_walknode",
-      "confidence_score": 1.0
+      "target": "theme_walknode"
     },
     {
       "relation": "calls",
@@ -3100,9 +3997,9 @@
       "weight": 1.0,
       "_src": "theme_walknode",
       "_tgt": "theme_validateextends",
+      "confidence_score": 1.0,
       "source": "theme_validateextends",
-      "target": "theme_walknode",
-      "confidence_score": 1.0
+      "target": "theme_walknode"
     },
     {
       "relation": "calls",
@@ -3112,9 +4009,9 @@
       "weight": 1.0,
       "_src": "theme_walknode",
       "_tgt": "theme_validatecomposite",
+      "confidence_score": 1.0,
       "source": "theme_validatecomposite",
-      "target": "theme_walknode",
-      "confidence_score": 1.0
+      "target": "theme_walknode"
     },
     {
       "relation": "calls",
@@ -3124,9 +4021,9 @@
       "weight": 1.0,
       "_src": "theme_validatethemeschema",
       "_tgt": "theme_walknode",
+      "confidence_score": 1.0,
       "source": "theme_walknode",
-      "target": "theme_validatethemeschema",
-      "confidence_score": 1.0
+      "target": "theme_validatethemeschema"
     },
     {
       "relation": "calls",
@@ -3136,9 +4033,9 @@
       "weight": 1.0,
       "_src": "theme_validatethemeschema",
       "_tgt": "theme_validatedoctorsection",
+      "confidence_score": 1.0,
       "source": "theme_validatethemeschema",
-      "target": "theme_validatedoctorsection",
-      "confidence_score": 1.0
+      "target": "theme_validatedoctorsection"
     },
     {
       "relation": "implements",
@@ -4027,6 +4924,1542 @@
       "_tgt": "spec_mental_model",
       "source": "spec_mental_model",
       "target": "spec_scope_boundary"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/smooth-gradient-transformer.test.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "tests_smooth_gradient_transformer_test_ts",
+      "_tgt": "smooth_gradient_transformer_test_findtoken",
+      "source": "tests_smooth_gradient_transformer_test_ts",
+      "target": "smooth_gradient_transformer_test_findtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/format-flat.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_src": "tests_format_flat_test_ts",
+      "_tgt": "format_flat_test_maketoken",
+      "source": "tests_format_flat_test_ts",
+      "target": "format_flat_test_maketoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/inherit-color-transformer.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_src": "tests_inherit_color_transformer_test_ts",
+      "_tgt": "inherit_color_transformer_test_findtoken",
+      "source": "tests_inherit_color_transformer_test_ts",
+      "target": "inherit_color_transformer_test_findtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/inherit-color-sketch-format.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_src": "tests_inherit_color_sketch_format_test_ts",
+      "_tgt": "inherit_color_sketch_format_test_token",
+      "source": "tests_inherit_color_sketch_format_test_ts",
+      "target": "inherit_color_sketch_format_test_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/theme-command-current-fallback.test.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_src": "tests_theme_command_current_fallback_test_ts",
+      "_tgt": "theme_command_current_fallback_test_runwavetheme",
+      "source": "tests_theme_command_current_fallback_test_ts",
+      "target": "theme_command_current_fallback_test_runwavetheme",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/inherit-color-css-format.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_src": "tests_inherit_color_css_format_test_ts",
+      "_tgt": "inherit_color_css_format_test_token",
+      "source": "tests_inherit_color_css_format_test_ts",
+      "target": "inherit_color_css_format_test_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/smooth-shadow-contract.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_src": "tests_smooth_shadow_contract_test_ts",
+      "_tgt": "smooth_shadow_contract_test_findtoken",
+      "source": "tests_smooth_shadow_contract_test_ts",
+      "target": "smooth_shadow_contract_test_findtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/inherit-color-flat-format.test.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_src": "tests_inherit_color_flat_format_test_ts",
+      "_tgt": "inherit_color_flat_format_test_token",
+      "source": "tests_inherit_color_flat_format_test_ts",
+      "target": "inherit_color_flat_format_test_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/theme-transformer.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_src": "tests_theme_transformer_test_ts",
+      "_tgt": "theme_transformer_test_findtoken",
+      "source": "tests_theme_transformer_test_ts",
+      "target": "theme_transformer_test_findtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/sketch-component-format.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_src": "tests_sketch_component_format_test_ts",
+      "_tgt": "sketch_component_format_test_token",
+      "source": "tests_sketch_component_format_test_ts",
+      "target": "sketch_component_format_test_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/smooth-shadow-transformer.test.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_src": "tests_smooth_shadow_transformer_test_ts",
+      "_tgt": "smooth_shadow_transformer_test_findtoken",
+      "source": "tests_smooth_shadow_transformer_test_ts",
+      "target": "smooth_shadow_transformer_test_findtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_findsiblingtoken",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_findsiblingtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L28",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_hextosketchcolor",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_hextosketchcolor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L34",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_applyopacitytohex",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_applyopacitytohex",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L52",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_cleanvalue",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_cleanvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L60",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_processshadowlayer",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_processshadowlayer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L72",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_processcomponentshadowlayer",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_processcomponentshadowlayer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L108",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_extractcolorfromvalue",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_extractcolorfromvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L118",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_resolvesketchcolor",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_resolvesketchcolor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L186",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_mapgradientstops",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_mapgradientstops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L195",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_addsketchswatch",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_addsketchswatch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L206",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_sketch_ts",
+      "_tgt": "sketch_sketchformat",
+      "source": "src_core_generator_formats_sketch_ts",
+      "target": "sketch_sketchformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L139",
+      "weight": 1.0,
+      "_src": "sketch_resolvesketchcolor",
+      "_tgt": "sketch_findsiblingtoken",
+      "source": "sketch_findsiblingtoken",
+      "target": "sketch_resolvesketchcolor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_src": "sketch_applyopacitytohex",
+      "_tgt": "sketch_hextosketchcolor",
+      "source": "sketch_hextosketchcolor",
+      "target": "sketch_applyopacitytohex",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L66",
+      "weight": 1.0,
+      "_src": "sketch_processshadowlayer",
+      "_tgt": "sketch_hextosketchcolor",
+      "source": "sketch_hextosketchcolor",
+      "target": "sketch_processshadowlayer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L87",
+      "weight": 1.0,
+      "_src": "sketch_processcomponentshadowlayer",
+      "_tgt": "sketch_hextosketchcolor",
+      "source": "sketch_hextosketchcolor",
+      "target": "sketch_processcomponentshadowlayer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L269",
+      "weight": 1.0,
+      "_src": "sketch_sketchformat",
+      "_tgt": "sketch_hextosketchcolor",
+      "source": "sketch_hextosketchcolor",
+      "target": "sketch_sketchformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L268",
+      "weight": 1.0,
+      "_src": "sketch_sketchformat",
+      "_tgt": "sketch_applyopacitytohex",
+      "source": "sketch_applyopacitytohex",
+      "target": "sketch_sketchformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L62",
+      "weight": 1.0,
+      "_src": "sketch_processshadowlayer",
+      "_tgt": "sketch_cleanvalue",
+      "source": "sketch_cleanvalue",
+      "target": "sketch_processshadowlayer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L76",
+      "weight": 1.0,
+      "_src": "sketch_processcomponentshadowlayer",
+      "_tgt": "sketch_cleanvalue",
+      "source": "sketch_cleanvalue",
+      "target": "sketch_processcomponentshadowlayer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L141",
+      "weight": 1.0,
+      "_src": "sketch_resolvesketchcolor",
+      "_tgt": "sketch_extractcolorfromvalue",
+      "source": "sketch_extractcolorfromvalue",
+      "target": "sketch_resolvesketchcolor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L262",
+      "weight": 1.0,
+      "_src": "sketch_sketchformat",
+      "_tgt": "sketch_resolvesketchcolor",
+      "source": "sketch_resolvesketchcolor",
+      "target": "sketch_sketchformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L257",
+      "weight": 1.0,
+      "_src": "sketch_sketchformat",
+      "_tgt": "sketch_mapgradientstops",
+      "source": "sketch_mapgradientstops",
+      "target": "sketch_sketchformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/sketch.ts",
+      "source_location": "L271",
+      "weight": 1.0,
+      "_src": "sketch_sketchformat",
+      "_tgt": "sketch_addsketchswatch",
+      "source": "sketch_addsketchswatch",
+      "target": "sketch_sketchformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/utils.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_utils_ts",
+      "_tgt": "utils_colortorgba",
+      "source": "src_core_generator_formats_utils_ts",
+      "target": "utils_colortorgba",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/utils.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_utils_ts",
+      "_tgt": "utils_formatshadowlength",
+      "source": "src_core_generator_formats_utils_ts",
+      "target": "utils_formatshadowlength",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/utils.ts",
+      "source_location": "L29",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_utils_ts",
+      "_tgt": "utils_shadowtocss",
+      "source": "src_core_generator_formats_utils_ts",
+      "target": "utils_shadowtocss",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/utils.ts",
+      "source_location": "L53",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_utils_ts",
+      "_tgt": "utils_gradienttocss",
+      "source": "src_core_generator_formats_utils_ts",
+      "target": "utils_gradienttocss",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_css_ts",
+      "_tgt": "src_core_generator_formats_utils_ts",
+      "source": "src_core_generator_formats_utils_ts",
+      "target": "src_core_generator_formats_css_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_css_ts",
+      "_tgt": "css_getfilteredname",
+      "source": "src_core_generator_formats_css_ts",
+      "target": "css_getfilteredname",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L18",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_css_ts",
+      "_tgt": "css_isshadow",
+      "source": "src_core_generator_formats_css_ts",
+      "target": "css_isshadow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_css_ts",
+      "_tgt": "css_isgradient",
+      "source": "src_core_generator_formats_css_ts",
+      "target": "css_isgradient",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L26",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_css_ts",
+      "_tgt": "css_formattokenvalue",
+      "source": "src_core_generator_formats_css_ts",
+      "target": "css_formattokenvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L68",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_css_ts",
+      "_tgt": "css_getgroupcommentpaths",
+      "source": "src_core_generator_formats_css_ts",
+      "target": "css_getgroupcommentpaths",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L76",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_css_ts",
+      "_tgt": "css_shouldinclude",
+      "source": "src_core_generator_formats_css_ts",
+      "target": "css_shouldinclude",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L85",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_css_ts",
+      "_tgt": "css_cssvariablesformat",
+      "source": "src_core_generator_formats_css_ts",
+      "target": "css_cssvariablesformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L105",
+      "weight": 1.0,
+      "_src": "css_cssvariablesformat",
+      "_tgt": "css_getfilteredname",
+      "source": "css_getfilteredname",
+      "target": "css_cssvariablesformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L57",
+      "weight": 1.0,
+      "_src": "css_formattokenvalue",
+      "_tgt": "css_isshadow",
+      "source": "css_isshadow",
+      "target": "css_formattokenvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L61",
+      "weight": 1.0,
+      "_src": "css_formattokenvalue",
+      "_tgt": "css_isgradient",
+      "source": "css_isgradient",
+      "target": "css_formattokenvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L106",
+      "weight": 1.0,
+      "_src": "css_cssvariablesformat",
+      "_tgt": "css_formattokenvalue",
+      "source": "css_formattokenvalue",
+      "target": "css_cssvariablesformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/css.ts",
+      "source_location": "L108",
+      "weight": 1.0,
+      "_src": "css_cssvariablesformat",
+      "_tgt": "css_getgroupcommentpaths",
+      "source": "css_getgroupcommentpaths",
+      "target": "css_cssvariablesformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_flat_ts",
+      "_tgt": "flat_cleanshadowzeropx",
+      "source": "src_core_generator_formats_flat_ts",
+      "target": "flat_cleanshadowzeropx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_flat_ts",
+      "_tgt": "flat_getfilteredname",
+      "source": "src_core_generator_formats_flat_ts",
+      "target": "flat_getfilteredname",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L41",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_flat_ts",
+      "_tgt": "flat_cleaninternalfields",
+      "source": "src_core_generator_formats_flat_ts",
+      "target": "flat_cleaninternalfields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L54",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_flat_ts",
+      "_tgt": "flat_isshadowtoken",
+      "source": "src_core_generator_formats_flat_ts",
+      "target": "flat_isshadowtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_flat_ts",
+      "_tgt": "flat_isinheritcolortoken",
+      "source": "src_core_generator_formats_flat_ts",
+      "target": "flat_isinheritcolortoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L62",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_flat_ts",
+      "_tgt": "flat_formatinheritcolorvalue",
+      "source": "src_core_generator_formats_flat_ts",
+      "target": "flat_formatinheritcolorvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L77",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_flat_ts",
+      "_tgt": "flat_buildflatrecord",
+      "source": "src_core_generator_formats_flat_ts",
+      "target": "flat_buildflatrecord",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L119",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_flat_ts",
+      "_tgt": "flat_flatjsonformat",
+      "source": "src_core_generator_formats_flat_ts",
+      "target": "flat_flatjsonformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L127",
+      "weight": 1.0,
+      "_src": "src_core_generator_formats_flat_ts",
+      "_tgt": "flat_flatjsoncformat",
+      "source": "src_core_generator_formats_flat_ts",
+      "target": "flat_flatjsoncformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L93",
+      "weight": 1.0,
+      "_src": "flat_buildflatrecord",
+      "_tgt": "flat_cleanshadowzeropx",
+      "source": "flat_cleanshadowzeropx",
+      "target": "flat_buildflatrecord",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L144",
+      "weight": 1.0,
+      "_src": "flat_flatjsoncformat",
+      "_tgt": "flat_cleanshadowzeropx",
+      "source": "flat_cleanshadowzeropx",
+      "target": "flat_flatjsoncformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L106",
+      "weight": 1.0,
+      "_src": "flat_buildflatrecord",
+      "_tgt": "flat_getfilteredname",
+      "source": "flat_getfilteredname",
+      "target": "flat_buildflatrecord",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L136",
+      "weight": 1.0,
+      "_src": "flat_flatjsoncformat",
+      "_tgt": "flat_getfilteredname",
+      "source": "flat_getfilteredname",
+      "target": "flat_flatjsoncformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L95",
+      "weight": 1.0,
+      "_src": "flat_buildflatrecord",
+      "_tgt": "flat_cleaninternalfields",
+      "source": "flat_cleaninternalfields",
+      "target": "flat_buildflatrecord",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L146",
+      "weight": 1.0,
+      "_src": "flat_flatjsoncformat",
+      "_tgt": "flat_cleaninternalfields",
+      "source": "flat_cleaninternalfields",
+      "target": "flat_flatjsoncformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L92",
+      "weight": 1.0,
+      "_src": "flat_buildflatrecord",
+      "_tgt": "flat_isshadowtoken",
+      "source": "flat_isshadowtoken",
+      "target": "flat_buildflatrecord",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L143",
+      "weight": 1.0,
+      "_src": "flat_flatjsoncformat",
+      "_tgt": "flat_isshadowtoken",
+      "source": "flat_isshadowtoken",
+      "target": "flat_flatjsoncformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L88",
+      "weight": 1.0,
+      "_src": "flat_buildflatrecord",
+      "_tgt": "flat_isinheritcolortoken",
+      "source": "flat_isinheritcolortoken",
+      "target": "flat_buildflatrecord",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L139",
+      "weight": 1.0,
+      "_src": "flat_flatjsoncformat",
+      "_tgt": "flat_isinheritcolortoken",
+      "source": "flat_isinheritcolortoken",
+      "target": "flat_flatjsoncformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L89",
+      "weight": 1.0,
+      "_src": "flat_buildflatrecord",
+      "_tgt": "flat_formatinheritcolorvalue",
+      "source": "flat_formatinheritcolorvalue",
+      "target": "flat_buildflatrecord",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L140",
+      "weight": 1.0,
+      "_src": "flat_flatjsoncformat",
+      "_tgt": "flat_formatinheritcolorvalue",
+      "source": "flat_formatinheritcolorvalue",
+      "target": "flat_flatjsoncformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/core/generator/formats/flat.ts",
+      "source_location": "L124",
+      "weight": 1.0,
+      "_src": "flat_flatjsonformat",
+      "_tgt": "flat_buildflatrecord",
+      "source": "flat_buildflatrecord",
+      "target": "flat_flatjsonformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L26",
+      "weight": 1.0,
+      "_src": "src_utils_spinner_ts",
+      "_tgt": "spinner_wavespinner",
+      "source": "src_utils_spinner_ts",
+      "target": "spinner_wavespinner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L33",
+      "weight": 1.0,
+      "_src": "spinner_wavespinner",
+      "_tgt": "spinner_wavespinner_constructor",
+      "source": "spinner_wavespinner",
+      "target": "spinner_wavespinner_constructor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L37",
+      "weight": 1.0,
+      "_src": "spinner_wavespinner",
+      "_tgt": "spinner_wavespinner_start",
+      "source": "spinner_wavespinner",
+      "target": "spinner_wavespinner_start",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L46",
+      "weight": 1.0,
+      "_src": "spinner_wavespinner",
+      "_tgt": "spinner_wavespinner_update",
+      "source": "spinner_wavespinner",
+      "target": "spinner_wavespinner_update",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L51",
+      "weight": 1.0,
+      "_src": "spinner_wavespinner",
+      "_tgt": "spinner_wavespinner_stop",
+      "source": "spinner_wavespinner",
+      "target": "spinner_wavespinner_stop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/spinner.ts",
+      "source_location": "L62",
+      "weight": 1.0,
+      "_src": "spinner_wavespinner",
+      "_tgt": "spinner_wavespinner_render",
+      "source": "spinner_wavespinner",
+      "target": "spinner_wavespinner_render",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_vlen",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_vlen",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_vpad",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_vpad",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_clamp",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_clamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L21",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_boxwidth",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_boxwidth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L26",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_bordertop",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_bordertop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L29",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_borderbottom",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_borderbottom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L32",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_midsolid",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_midsolid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L35",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_middashed",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_middashed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L39",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_line",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_line",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L43",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_centerline",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_centerline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L53",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_kvline",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_kvline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L70",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_multivaluelines",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_multivaluelines",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L119",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_buildcontext",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_buildcontext",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L184",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_renderreceipt",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_renderreceipt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L191",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_rendersuccess",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_rendersuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L277",
+      "weight": 1.0,
+      "_src": "src_utils_receipt_ts",
+      "_tgt": "receipt_renderfailed",
+      "source": "src_utils_receipt_ts",
+      "target": "receipt_renderfailed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_src": "receipt_vpad",
+      "_tgt": "receipt_vlen",
+      "source": "receipt_vlen",
+      "target": "receipt_vpad",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L44",
+      "weight": 1.0,
+      "_src": "receipt_centerline",
+      "_tgt": "receipt_vlen",
+      "source": "receipt_vlen",
+      "target": "receipt_centerline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L61",
+      "weight": 1.0,
+      "_src": "receipt_kvline",
+      "_tgt": "receipt_vlen",
+      "source": "receipt_vlen",
+      "target": "receipt_kvline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L77",
+      "weight": 1.0,
+      "_src": "receipt_multivaluelines",
+      "_tgt": "receipt_vlen",
+      "source": "receipt_vlen",
+      "target": "receipt_multivaluelines",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L40",
+      "weight": 1.0,
+      "_src": "receipt_line",
+      "_tgt": "receipt_vpad",
+      "source": "receipt_vpad",
+      "target": "receipt_line",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L67",
+      "weight": 1.0,
+      "_src": "receipt_kvline",
+      "_tgt": "receipt_vpad",
+      "source": "receipt_vpad",
+      "target": "receipt_kvline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L86",
+      "weight": 1.0,
+      "_src": "receipt_multivaluelines",
+      "_tgt": "receipt_vpad",
+      "source": "receipt_vpad",
+      "target": "receipt_multivaluelines",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "_src": "receipt_boxwidth",
+      "_tgt": "receipt_clamp",
+      "source": "receipt_clamp",
+      "target": "receipt_boxwidth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L185",
+      "weight": 1.0,
+      "_src": "receipt_renderreceipt",
+      "_tgt": "receipt_boxwidth",
+      "source": "receipt_boxwidth",
+      "target": "receipt_renderreceipt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L193",
+      "weight": 1.0,
+      "_src": "receipt_rendersuccess",
+      "_tgt": "receipt_bordertop",
+      "source": "receipt_bordertop",
+      "target": "receipt_rendersuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L279",
+      "weight": 1.0,
+      "_src": "receipt_renderfailed",
+      "_tgt": "receipt_bordertop",
+      "source": "receipt_bordertop",
+      "target": "receipt_renderfailed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L194",
+      "weight": 1.0,
+      "_src": "receipt_rendersuccess",
+      "_tgt": "receipt_borderbottom",
+      "source": "receipt_borderbottom",
+      "target": "receipt_rendersuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L280",
+      "weight": 1.0,
+      "_src": "receipt_renderfailed",
+      "_tgt": "receipt_borderbottom",
+      "source": "receipt_borderbottom",
+      "target": "receipt_renderfailed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L195",
+      "weight": 1.0,
+      "_src": "receipt_rendersuccess",
+      "_tgt": "receipt_midsolid",
+      "source": "receipt_midsolid",
+      "target": "receipt_rendersuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L281",
+      "weight": 1.0,
+      "_src": "receipt_renderfailed",
+      "_tgt": "receipt_midsolid",
+      "source": "receipt_midsolid",
+      "target": "receipt_renderfailed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L196",
+      "weight": 1.0,
+      "_src": "receipt_rendersuccess",
+      "_tgt": "receipt_middashed",
+      "source": "receipt_middashed",
+      "target": "receipt_rendersuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L282",
+      "weight": 1.0,
+      "_src": "receipt_renderfailed",
+      "_tgt": "receipt_middashed",
+      "source": "receipt_middashed",
+      "target": "receipt_renderfailed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L199",
+      "weight": 1.0,
+      "_src": "receipt_rendersuccess",
+      "_tgt": "receipt_line",
+      "source": "receipt_line",
+      "target": "receipt_rendersuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L285",
+      "weight": 1.0,
+      "_src": "receipt_renderfailed",
+      "_tgt": "receipt_line",
+      "source": "receipt_line",
+      "target": "receipt_renderfailed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L200",
+      "weight": 1.0,
+      "_src": "receipt_rendersuccess",
+      "_tgt": "receipt_centerline",
+      "source": "receipt_centerline",
+      "target": "receipt_rendersuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L286",
+      "weight": 1.0,
+      "_src": "receipt_renderfailed",
+      "_tgt": "receipt_centerline",
+      "source": "receipt_centerline",
+      "target": "receipt_renderfailed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L204",
+      "weight": 1.0,
+      "_src": "receipt_rendersuccess",
+      "_tgt": "receipt_kvline",
+      "source": "receipt_kvline",
+      "target": "receipt_rendersuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L290",
+      "weight": 1.0,
+      "_src": "receipt_renderfailed",
+      "_tgt": "receipt_kvline",
+      "source": "receipt_kvline",
+      "target": "receipt_renderfailed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L225",
+      "weight": 1.0,
+      "_src": "receipt_rendersuccess",
+      "_tgt": "receipt_multivaluelines",
+      "source": "receipt_multivaluelines",
+      "target": "receipt_rendersuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L141",
+      "weight": 1.0,
+      "_src": "receipt_buildcontext",
+      "_tgt": "receipt_buildcontext_addresource",
+      "source": "receipt_buildcontext",
+      "target": "receipt_buildcontext_addresource",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L145",
+      "weight": 1.0,
+      "_src": "receipt_buildcontext",
+      "_tgt": "receipt_buildcontext_addoutput",
+      "source": "receipt_buildcontext",
+      "target": "receipt_buildcontext_addoutput",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L153",
+      "weight": 1.0,
+      "_src": "receipt_buildcontext",
+      "_tgt": "receipt_buildcontext_setnight",
+      "source": "receipt_buildcontext",
+      "target": "receipt_buildcontext_setnight",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L157",
+      "weight": 1.0,
+      "_src": "receipt_buildcontext",
+      "_tgt": "receipt_buildcontext_setvariants",
+      "source": "receipt_buildcontext",
+      "target": "receipt_buildcontext_setvariants",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L165",
+      "weight": 1.0,
+      "_src": "receipt_buildcontext",
+      "_tgt": "receipt_buildcontext_markfailed",
+      "source": "receipt_buildcontext",
+      "target": "receipt_buildcontext_markfailed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L179",
+      "weight": 1.0,
+      "_src": "receipt_buildcontext",
+      "_tgt": "receipt_buildcontext_status",
+      "source": "receipt_buildcontext",
+      "target": "receipt_buildcontext_status",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L187",
+      "weight": 1.0,
+      "_src": "receipt_renderreceipt",
+      "_tgt": "receipt_rendersuccess",
+      "source": "receipt_renderreceipt",
+      "target": "receipt_rendersuccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/utils/receipt.ts",
+      "source_location": "L188",
+      "weight": 1.0,
+      "_src": "receipt_renderreceipt",
+      "_tgt": "receipt_renderfailed",
+      "source": "receipt_renderreceipt",
+      "target": "receipt_renderfailed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/cli/commands/create.ts",
+      "source_location": "L26",
+      "weight": 1.0,
+      "_src": "src_cli_commands_create_ts",
+      "_tgt": "create_parseclioptions",
+      "source": "src_cli_commands_create_ts",
+      "target": "create_parseclioptions",
+      "confidence_score": 1.0
     }
   ],
   "hyperedges": [
