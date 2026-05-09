@@ -295,11 +295,11 @@ function renderFailed(ctx: BuildContext, w: number): string {
 	lines.push(line(pc.red('  ERRORS'), w));
 	lines.push(line('', w));
 	const categoryLabels: Record<ErrorCategory, string> = {
-		parse: '解析失败',
-		resource: '资源错误',
-		generate: '生成失败',
-		load: '加载失败',
-		config: '配置错误',
+		parse: 'parse error',
+		resource: 'not found',
+		generate: 'gen failed',
+		load: 'load failed',
+		config: 'config err',
 	};
 	for (const err of ctx.errors) {
 		const phase = err.phase ?? err.category;
