@@ -132,5 +132,12 @@ export const createCommand = new Command('create')
 		} finally {
 			spinner.stop();
 			console.log(renderReceipt(ctx));
+			if (ctx.errors.length > 0) {
+				console.log();
+				for (const err of ctx.errors) {
+					const detail = err.line ? `at line ${err.line}` : err.detail;
+					console.error(`${err.message}${detail ? ` (${detail})` : ''}`);
+				}
+			}
 		}
 	});

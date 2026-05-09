@@ -257,7 +257,6 @@ export async function generateTheme(
 		);
 
 		if (!('files' in result)) {
-			ctx?.markFailed('generate', result.message, { phase: 'main generate' });
 			return result;
 		}
 
