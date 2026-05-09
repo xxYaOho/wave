@@ -102,16 +102,16 @@ describe('buildGroupPasses', () => {
 		});
 		const passes = buildGroupPasses(parsed, '/theme');
 		expect(passes).toHaveLength(1);
-		expect(passes[0].platforms).toEqual(['css']);
-		expect(passes[0].outputDir).toBe('/theme/build');
+		expect(passes[0]!.platforms).toEqual(['css']);
+		expect(passes[0]!.outputDir).toBe('/theme/build');
 	});
 
 	test('no groups (backward compat) → single pass with default outputDir', () => {
 		const parsed = makeParsed();
 		const passes = buildGroupPasses(parsed, '/theme');
 		expect(passes).toHaveLength(1);
-		expect(passes[0].outputDir).toBe('/theme/test-theme');
-		expect(passes[0].platforms).toEqual(['json']);
+		expect(passes[0]!.outputDir).toBe('/theme/test-theme');
+		expect(passes[0]!.platforms).toEqual(['json']);
 	});
 
 	test('multiple groups → one pass per group', () => {
@@ -127,10 +127,10 @@ describe('buildGroupPasses', () => {
 		});
 		const passes = buildGroupPasses(parsed, '/theme');
 		expect(passes).toHaveLength(2);
-		expect(passes[0].outputDir).toBe('/theme/build/css');
-		expect(passes[0].platforms).toEqual(['css']);
-		expect(passes[1].outputDir).toBe('/theme/build/sketch');
-		expect(passes[1].platforms).toEqual(['sketch']);
+		expect(passes[0]!.outputDir).toBe('/theme/build/css');
+		expect(passes[0]!.platforms).toEqual(['css']);
+		expect(passes[1]!.outputDir).toBe('/theme/build/sketch');
+		expect(passes[1]!.platforms).toEqual(['sketch']);
 	});
 
 	test('group inherits global params', () => {
@@ -140,8 +140,8 @@ describe('buildGroupPasses', () => {
 		});
 		const passes = buildGroupPasses(parsed, '/theme');
 		expect(passes).toHaveLength(1);
-		expect(passes[0].colorSpace).toBe('oklch');
-		expect(passes[0].platforms).toEqual(['css']);
+		expect(passes[0]!.colorSpace).toBe('oklch');
+		expect(passes[0]!.platforms).toEqual(['css']);
 	});
 
 	test('CLI output overrides all groups', () => {
@@ -153,8 +153,8 @@ describe('buildGroupPasses', () => {
 		});
 		const passes = buildGroupPasses(parsed, '/theme', '/cli/out');
 		expect(passes).toHaveLength(2);
-		expect(passes[0].outputDir).toBe('/cli/out');
-		expect(passes[1].outputDir).toBe('/cli/out');
+		expect(passes[0]!.outputDir).toBe('/cli/out');
+		expect(passes[1]!.outputDir).toBe('/cli/out');
 	});
 
 	test('CLI platform overrides all groups', () => {
@@ -166,7 +166,7 @@ describe('buildGroupPasses', () => {
 		});
 		const passes = buildGroupPasses(parsed, '/theme', undefined, 'json');
 		expect(passes).toHaveLength(2);
-		expect(passes[0].platforms).toEqual(['json']);
-		expect(passes[1].platforms).toEqual(['json']);
+		expect(passes[0]!.platforms).toEqual(['json']);
+		expect(passes[1]!.platforms).toEqual(['json']);
 	});
 });
