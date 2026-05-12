@@ -330,7 +330,7 @@ export const sketchFormat: WaveFormatFn = (
 				} else if (typeof tokenValue === 'object' && tokenValue !== null) {
 					shadowArray = [tokenValue as Record<string, unknown>];
 				}
-				componentObj.shadows = shadowArray
+				componentObj.shadows = [...shadowArray]
 					.reverse()
 					.map(processComponentShadowLayer);
 			} else {
@@ -373,7 +373,7 @@ export const sketchFormat: WaveFormatFn = (
 					shadowArray = [tokenValue as Record<string, unknown>];
 				}
 				styleGroup[styleKey] = {
-					shadow: shadowArray.reverse().map(processShadowLayer),
+					shadow: [...shadowArray].reverse().map(processShadowLayer),
 				};
 			} else if (styleType?.startsWith('gradient')) {
 				let gradientArray: Array<Record<string, unknown>> = [];

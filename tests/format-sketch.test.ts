@@ -121,6 +121,55 @@ describe('sketchFormat (Wave-native)', () => {
 		});
 	});
 
+	test('reverses multi-layer shadow order for sketch', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-style-shadow-multi',
+				path: ['theme', 'style', 'shadow-multi'],
+				value: [
+					{ color: '#000000', offsetX: 0, offsetY: 1, blur: 2, spread: 0 },
+					{ color: '#000000', offsetX: 0, offsetY: 4, blur: 8, spread: 0 },
+					{ color: '#000000', offsetX: 0, offsetY: 8, blur: 16, spread: 0 },
+				],
+				type: 'shadow',
+				_order: 0,
+			},
+		];
+
+		const out = sketchFormat(tokens);
+		const parsed = JSON.parse(out);
+		const shadow = parsed.style['shadow-multi'].shadow;
+
+		expect(shadow).toHaveLength(3);
+		expect(shadow[0]).toMatchObject({ blur: 16, y: 8 });
+		expect(shadow[1]).toMatchObject({ blur: 8, y: 4 });
+		expect(shadow[2]).toMatchObject({ blur: 2, y: 1 });
+	});
+
+	test('does not mutate original token value when reversing shadows', () => {
+		const originalValue = [
+			{ color: '#000000', offsetX: 0, offsetY: 1, blur: 2, spread: 0 },
+			{ color: '#000000', offsetX: 0, offsetY: 4, blur: 8, spread: 0 },
+			{ color: '#000000', offsetX: 0, offsetY: 8, blur: 16, spread: 0 },
+		];
+
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-style-shadow-multi',
+				path: ['theme', 'style', 'shadow-multi'],
+				value: originalValue,
+				type: 'shadow',
+				_order: 0,
+			},
+		];
+
+		sketchFormat(tokens);
+
+		expect((tokens[0].value as unknown[])[0]).toMatchObject({ blur: 2, offsetY: 1 });
+		expect((tokens[0].value as unknown[])[1]).toMatchObject({ blur: 8, offsetY: 4 });
+		expect((tokens[0].value as unknown[])[2]).toMatchObject({ blur: 16, offsetY: 8 });
+	});
+
 	test('omits empty groups from output', () => {
 		const tokens: WaveToken[] = [
 			{
