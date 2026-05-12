@@ -397,7 +397,13 @@ export const sketchFormat: WaveFormatFn = (
 			if (sketchMap) {
 				dimensionGroup[styleKey] = { [sketchMap]: dimValue };
 			} else {
-				dimensionGroup[styleKey] = { value: dimValue };
+				const isShadow =
+					token.type === 'shadow' && Array.isArray(dimValue);
+				dimensionGroup[styleKey] = {
+					value: isShadow
+						? [...(dimValue as unknown[])].reverse()
+						: dimValue,
+				};
 			}
 		}
 	}
