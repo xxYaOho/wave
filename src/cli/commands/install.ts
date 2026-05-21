@@ -13,6 +13,14 @@ interface InstallCommandOptions {
 
 type InstallModule = 'core' | 'compress' | 'motion';
 
+interface InstallPlan {
+	module: InstallModule;
+	tools: string[];
+	command: string[] | null;
+	canInstall: boolean;
+	note?: string;
+}
+
 export function createInstallCommand(
 	name = 'install',
 	module: InstallModule = 'core',
@@ -30,21 +38,46 @@ export function createInstallCommand(
 					JSON.stringify(
 						{
 							kind: 'install-plan',
-							module,
+							module: plan.module,
 							willInstall: false,
 							tools: plan.tools,
 							command: plan.command,
+							canInstall: plan.canInstall,
+							note: plan.note,
 						},
 						null,
 						2,
 					),
 				);
 			} else if (!options.json) {
-				renderInstallPlan(module, plan.tools);
+				renderInstallPlan(module, plan);
 			}
 
 			if (options.check || !options.yes) {
 				process.exitCode = ExitCode.SUCCESS;
+				return;
+			}
+
+			if (!plan.canInstall) {
+				const message =
+					plan.note ?? 'Module-only install is not available in this version.';
+				if (options.json) {
+					console.log(
+						JSON.stringify(
+							{
+								kind: 'install-result',
+								module: plan.module,
+								ok: false,
+								error: message,
+							},
+							null,
+							2,
+						),
+					);
+				} else {
+					console.error(`✗ ${message}`);
+				}
+				process.exitCode = ExitCode.INVALID_COMMAND;
 				return;
 			}
 
@@ -70,7 +103,7 @@ export function createInstallCommand(
 					JSON.stringify(
 						{
 							kind: 'install-result',
-							module,
+							module: plan.module,
 							ok: result.exitCode === 0,
 							exitCode: result.exitCode,
 							stdout: result.stdout,
@@ -89,24 +122,27 @@ export function createInstallCommand(
 		});
 }
 
-function createInstallPlan(module: InstallModule): {
-	tools: string[];
-	command: string[];
-} {
+export function createInstallPlan(module: InstallModule): InstallPlan {
+	const moduleOnlyNote =
+		'Module-only install is not available yet. Use wave install --yes to install the full recommended Wave toolchain.';
 	return {
+		module,
 		tools: TOOL_INSTALL_GROUPS[module],
-		command: ['mise', 'install'],
+		command: module === 'core' ? ['mise', 'install'] : null,
+		canInstall: module === 'core',
+		note: module === 'core' ? undefined : moduleOnlyNote,
 	};
 }
 
-function renderInstallPlan(module: InstallModule, tools: string[]): void {
+function renderInstallPlan(module: InstallModule, plan: InstallPlan): void {
 	const label = module === 'core' ? 'wave' : `wave ${module}`;
 	console.log(`${label} install plan`);
 	console.log('Tools:');
-	for (const tool of tools) {
+	for (const tool of plan.tools) {
 		console.log(`  - ${tool}`);
 	}
-	console.log('Command: mise install');
+	console.log(`Command: ${plan.command?.join(' ') ?? '(check only)'}`);
+	if (plan.note) console.log(`Note: ${plan.note}`);
 }
 
 export const installCommand = createInstallCommand('install');

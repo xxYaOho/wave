@@ -57,5 +57,37 @@ describe('toolchain CLI', () => {
 		expect(result.kind).toBe('install-plan');
 		expect(result.module).toBe('compress');
 		expect(result.willInstall).toBe(false);
+		expect(result.canInstall).toBe(false);
+		expect(result.command).toBeNull();
+		expect(result.note).toContain('wave install --yes');
+	});
+
+	test('module install --yes does not run full mise install', async () => {
+		const { exitCode, stdout, stderr } = await runWave([
+			'compress',
+			'install',
+			'--yes',
+		]);
+
+		expect(exitCode).toBe(2);
+		expect(stdout).toContain('compress install plan');
+		expect(stdout).toContain('Command: (check only)');
+		expect(stderr).toContain('wave install --yes');
+	});
+
+	test('module install --json --yes returns one failed install result', async () => {
+		const { exitCode, stdout } = await runWave([
+			'motion',
+			'install',
+			'--json',
+			'--yes',
+		]);
+		const result = JSON.parse(stdout);
+
+		expect(exitCode).toBe(2);
+		expect(result.kind).toBe('install-result');
+		expect(result.module).toBe('motion');
+		expect(result.ok).toBe(false);
+		expect(result.error).toContain('wave install --yes');
 	});
 });
