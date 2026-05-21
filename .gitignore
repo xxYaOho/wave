@@ -50,6 +50,7 @@
 .sisyphus/
 temp-reference/
 .claude/
+.agents/
 # docs/plan
 
 # Graphify (临时文件与缓存，可随时重建)
