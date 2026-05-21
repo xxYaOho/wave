@@ -3,9 +3,10 @@ import { createCommand } from './commands/create.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { dtCommand } from './commands/dt.ts';
 import { initCommand } from './commands/init.ts';
+import { mgCommand, motionCommand } from './commands/motion.ts';
 import { showCommand } from './commands/show.ts';
 
-export type CommandCategory = 'core' | 'design-token';
+export type CommandCategory = 'core' | 'design-token' | 'motion';
 
 export interface CommandDefinition {
 	name: string;
@@ -19,6 +20,16 @@ export const commandRegistry: CommandDefinition[] = [
 		name: 'dt',
 		category: 'design-token',
 		command: dtCommand,
+	},
+	{
+		name: 'motion',
+		category: 'motion',
+		command: motionCommand,
+	},
+	{
+		name: 'mg',
+		category: 'motion',
+		command: mgCommand,
 	},
 	{
 		name: 'init',

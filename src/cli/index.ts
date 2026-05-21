@@ -4,13 +4,13 @@ import { ExitCode } from '../types/index.ts';
 import { registerCommands } from './registry.ts';
 
 const QUICK_START = `
-  WAVE — Design Token CLI
+  WAVE — Designer Swiss Knife CLI
 
   Quick Start:
-    wave init           Initialize a new theme workspace
-    wave create         Generate design token output
+    wave dt             Generate design token output
+    wave motion gif     Create GIF from PNG frames
+    wave mg apng        Create APNG from PNG frames
     wave doctor         Run health diagnostics
-    wave show           Browse built-in resources
 
   For more information:
     wave help <command>
