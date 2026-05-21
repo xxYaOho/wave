@@ -19,10 +19,12 @@ const QUICK_START = `
 const program = new Command();
 
 const DT_SUBCOMMANDS = new Set(['build', 'init', 'show', 'doctor', 'wcag']);
+const DT_MODULE_FLAGS = new Set(['--help', '-h']);
 
 function normalizeArgv(argv: string[]): string[] {
 	if (argv[2] !== 'dt') return argv;
 	const firstDtArg = argv[3];
+	if (firstDtArg && DT_MODULE_FLAGS.has(firstDtArg)) return argv;
 	if (
 		!firstDtArg ||
 		firstDtArg.startsWith('-') ||

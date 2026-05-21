@@ -22,6 +22,16 @@ async function runWave(
 }
 
 describe('wave dt', () => {
+	test('dt help shows module commands instead of build help', async () => {
+		const { exitCode, stdout } = await runWave(['dt', '--help']);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('Usage: wave dt');
+		expect(stdout).toContain('build');
+		expect(stdout).toContain('wcag');
+		expect(stdout).not.toContain('Usage: wave dt build');
+	});
+
 	test('dt build generates design token output through the new module entry', async () => {
 		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/standard');
 		const outputDir = path.join(rootDir, '.temp-test-dt-build');
@@ -81,6 +91,47 @@ describe('wave dt', () => {
 		expect(stdout).toContain('Contrast Check');
 		expect(stdout).toContain('doctor-contrast-pass');
 		expect(stdout).toContain('🟢 Normal Text   (AAA)');
+	});
+
+	test('dt wcag supports main night scope', async () => {
+		const { exitCode, stdout } = await runWave([
+			'dt',
+			'wcag',
+			'main',
+			'--night',
+			'--file',
+			'tests/fixtures/themes/doctor-contrast-multi/themefile',
+		]);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('doctor-contrast-multi-night');
+	});
+
+	test('dt wcag supports variant scope', async () => {
+		const { exitCode, stdout } = await runWave([
+			'dt',
+			'wcag',
+			'dark',
+			'--file',
+			'tests/fixtures/themes/doctor-contrast-variant-night/themefile',
+		]);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('doctor-contrast-variant-night-dark');
+	});
+
+	test('dt wcag supports variant night scope', async () => {
+		const { exitCode, stdout } = await runWave([
+			'dt',
+			'wcag',
+			'dark',
+			'--night',
+			'--file',
+			'tests/fixtures/themes/doctor-contrast-variant-night/themefile',
+		]);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('doctor-contrast-variant-night-dark-night');
 	});
 
 	test('dt init creates a design-token workspace template', async () => {
