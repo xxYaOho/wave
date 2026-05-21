@@ -1,11 +1,12 @@
 import type { Command } from 'commander';
+import { compressCommand } from './commands/compress.ts';
 import { createCommand } from './commands/create.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { dtCommand } from './commands/dt.ts';
 import { initCommand } from './commands/init.ts';
 import { showCommand } from './commands/show.ts';
 
-export type CommandCategory = 'core' | 'design-token';
+export type CommandCategory = 'core' | 'design-token' | 'compress';
 
 export interface CommandDefinition {
 	name: string;
@@ -19,6 +20,11 @@ export const commandRegistry: CommandDefinition[] = [
 		name: 'dt',
 		category: 'design-token',
 		command: dtCommand,
+	},
+	{
+		name: 'compress',
+		category: 'compress',
+		command: compressCommand,
 	},
 	{
 		name: 'init',
