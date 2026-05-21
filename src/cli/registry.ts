@@ -3,9 +3,11 @@ import { createCommand } from './commands/create.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { dtCommand } from './commands/dt.ts';
 import { initCommand } from './commands/init.ts';
+import { installCommand } from './commands/install.ts';
 import { showCommand } from './commands/show.ts';
+import { createToolModuleCommand } from './commands/tool-module.ts';
 
-export type CommandCategory = 'core' | 'design-token';
+export type CommandCategory = 'core' | 'design-token' | 'compress' | 'motion';
 
 export interface CommandDefinition {
 	name: string;
@@ -37,6 +39,21 @@ export const commandRegistry: CommandDefinition[] = [
 		category: 'core',
 		command: doctorCommand,
 		legacy: true,
+	},
+	{
+		name: 'install',
+		category: 'core',
+		command: installCommand,
+	},
+	{
+		name: 'compress',
+		category: 'compress',
+		command: createToolModuleCommand('compress'),
+	},
+	{
+		name: 'motion',
+		category: 'motion',
+		command: createToolModuleCommand('motion', 'mg'),
 	},
 	{
 		name: 'show',
