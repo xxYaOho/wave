@@ -10,13 +10,14 @@ import type {
 import { readPngSize } from './png.ts';
 
 export type MotionFormat = 'gif' | 'apng';
+export type MotionLoop = 'forever' | 'once';
 
 export interface MotionInput {
 	format: MotionFormat;
 	framesDir: string;
 	fps?: number;
 	quality?: number;
-	loop?: 'forever' | 'once';
+	loop?: string;
 	out?: string;
 	overwrite?: boolean;
 	dryRun?: boolean;
@@ -43,7 +44,7 @@ export interface MotionPlan {
 	frames: MotionFrame[];
 	fps: number;
 	quality: number;
-	loop: 'forever' | 'once';
+	loop: MotionLoop;
 	durationSeconds: number;
 	width: number;
 	height: number;
@@ -72,7 +73,8 @@ export async function createMotionPlan(
 ): Promise<MotionPlan> {
 	const fps = input.fps ?? 24;
 	const quality = input.quality ?? 80;
-	const loop = input.loop ?? 'forever';
+	const rawLoop = input.loop ?? 'forever';
+	const loop: MotionLoop = rawLoop === 'once' ? 'once' : 'forever';
 	const framesDir = path.resolve(input.cwd ?? process.cwd(), input.framesDir);
 	const outputPath = resolveOutputPath(input, framesDir);
 	const issues: MotionIssue[] = [];
@@ -89,6 +91,20 @@ export async function createMotionPlan(
 			code: 'WMG_QUALITY_INVALID',
 			severity: 'error',
 			message: 'quality must be an integer from 1 to 100',
+		});
+	}
+	if (rawLoop !== 'forever' && rawLoop !== 'once') {
+		issues.push({
+			code: 'WMG_LOOP_INVALID',
+			severity: 'error',
+			message: 'loop must be either "forever" or "once"',
+		});
+	}
+	if (input.format === 'gif' && loop === 'once') {
+		issues.push({
+			code: 'WMG_LOOP_UNSUPPORTED',
+			severity: 'error',
+			message: 'GIF loop mode "once" is not supported by the gifski backend',
 		});
 	}
 
@@ -310,7 +326,21 @@ async function scanPngFrames(
 			});
 			continue;
 		}
-		const size = await readPngSize(fullPath);
+		let size: Awaited<ReturnType<typeof readPngSize>>;
+		try {
+			size = await readPngSize(fullPath);
+		} catch (error) {
+			issues.push({
+				code: 'WMG_FRAME_FORMAT_UNSUPPORTED',
+				severity: 'error',
+				message:
+					error instanceof Error
+						? error.message
+						: `${entry} is not a readable PNG file`,
+				path: fullPath,
+			});
+			continue;
+		}
 		frames.push({
 			name: entry,
 			path: fullPath,

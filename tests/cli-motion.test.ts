@@ -147,6 +147,76 @@ describe('wave motion', () => {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
 	});
+
+	test('motion reports invalid png bytes without a runtime stack', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
+		try {
+			const framesDir = path.join(tempDir, 'frames');
+			await fs.mkdir(framesDir);
+			await writePng(path.join(framesDir, '001.png'), 24, 24);
+			await fs.writeFile(path.join(framesDir, '002.png'), 'not a png');
+			const binDir = await createFakeToolDir(tempDir);
+
+			const commandResult = await runWave(
+				['motion', 'gif', framesDir, '--dry-run'],
+				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
+			);
+			expect(commandResult.exitCode).toBe(1);
+			expect(commandResult.stdout).toContain(
+				'ERROR WMG_FRAME_FORMAT_UNSUPPORTED',
+			);
+			expect(commandResult.stderr).not.toContain('Not a PNG file');
+
+			const doctorResult = await runWave(['motion', 'doctor', framesDir], {
+				env: { PATH: `${binDir}:${process.env.PATH ?? ''}` },
+			});
+			expect(doctorResult.exitCode).toBe(1);
+			expect(doctorResult.stdout).toContain(
+				'ERROR WMG_FRAME_FORMAT_UNSUPPORTED',
+			);
+			expect(doctorResult.stderr).not.toContain('Not a PNG file');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('motion validates loop option instead of silently ignoring it', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
+		try {
+			const framesDir = path.join(tempDir, 'frames');
+			await fs.mkdir(framesDir);
+			await writePng(path.join(framesDir, 'a.png'), 24, 24);
+			await writePng(path.join(framesDir, 'b.png'), 24, 24);
+			const binDir = await createFakeToolDir(tempDir);
+
+			const gifResult = await runWave(
+				['motion', 'gif', framesDir, '--dry-run', '--loop', 'once'],
+				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
+			);
+			expect(gifResult.exitCode).toBe(1);
+			expect(gifResult.stdout).toContain('ERROR WMG_LOOP_UNSUPPORTED');
+
+			const invalidResult = await runWave(
+				['motion', 'apng', framesDir, '--dry-run', '--loop', 'twice'],
+				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
+			);
+			expect(invalidResult.exitCode).toBe(1);
+			expect(invalidResult.stdout).toContain('ERROR WMG_LOOP_INVALID');
+
+			const apngOutput = path.join(tempDir, 'loading.png');
+			const apngResult = await runWave(
+				['motion', 'apng', framesDir, '--out', apngOutput, '--loop', 'once'],
+				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
+			);
+			expect(apngResult.exitCode).toBe(0);
+			const apngArgv = JSON.parse(
+				await fs.readFile(`${apngOutput}.argv`, 'utf-8'),
+			);
+			expect(apngArgv.at(-1)).toBe('1');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
 });
 
 async function createFakeToolDir(tempDir: string): Promise<string> {
@@ -173,6 +243,7 @@ if (process.argv.includes('--version')) {
 	process.exit(0);
 }
 await Bun.write(process.argv[2], 'APNG');
+await Bun.write(process.argv[2] + '.argv', JSON.stringify(process.argv.slice(2)));
 `,
 	);
 	return binDir;

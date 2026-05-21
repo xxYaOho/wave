@@ -22,7 +22,7 @@ import { createInstallCommand } from './install.ts';
 interface MotionCommandOptions {
 	fps?: string;
 	quality?: string;
-	loop?: 'forever' | 'once';
+	loop?: string;
 	out?: string;
 	overwrite?: boolean;
 	dryRun?: boolean;
@@ -60,14 +60,13 @@ function createEncodeCommand(format: MotionFormat): Command {
 		.action(async (framesDir: string, options: MotionCommandOptions) => {
 			const runner = new BunCommandRunner();
 			const resolver = new DefaultToolResolver({ runner });
-			const loop = options.loop === 'once' ? 'once' : 'forever';
 			const plan = await createMotionPlan(
 				{
 					format,
 					framesDir,
 					fps: Number(options.fps),
 					quality: Number(options.quality),
-					loop,
+					loop: options.loop,
 					out: options.out,
 					overwrite: options.overwrite,
 					dryRun: options.dryRun,
