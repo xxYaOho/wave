@@ -58,6 +58,31 @@ async function createSingleFakeTool(name: string): Promise<string> {
 	return dir;
 }
 
+async function createLargerFakeTool(name: string): Promise<string> {
+	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-tools-'));
+	const toolScript = `#!/usr/bin/env bun
+import * as fs from 'node:fs/promises';
+const args = process.argv.slice(2);
+if (args.includes('--version') || args.includes('-version')) {
+	console.log('fake-tool 1.0.0');
+	process.exit(0);
+}
+let out = '';
+let input = args[args.length - 1];
+for (let i = 0; i < args.length; i++) {
+	if (['--out', '--output', '-outfile'].includes(args[i])) out = args[i + 1] ?? '';
+	if (args[i] === '--input') input = args[i + 1] ?? input;
+}
+if (!out) out = input;
+const content = await fs.readFile(input);
+await fs.writeFile(out, Buffer.concat([content, content]));
+`;
+	const file = path.join(dir, name);
+	await fs.writeFile(file, toolScript);
+	await fs.chmod(file, 0o755);
+	return dir;
+}
+
 describe('wave compress', () => {
 	test('dry-run previews supported files without writing output', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
@@ -115,6 +140,48 @@ describe('wave compress', () => {
 			expect(exitCode).toBe(0);
 			expect(stdout).toContain('Compress Preview');
 			expect(stdout).not.toContain('WCP_TOOL_MISSING');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('dry-run marks larger optimizer output as unchanged', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tools = await createLargerFakeTool('oxipng');
+		try {
+			await fs.writeFile(path.join(tempDir, 'sample.png'), '12345');
+
+			const { exitCode, stdout } = await runWave(
+				['compress', tempDir, '--type', 'png', '--dry-run'],
+				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('unchanged');
+			expect(stdout).not.toContain('larger');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('--yes copies original bytes when optimizer output is larger', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tools = await createLargerFakeTool('oxipng');
+		try {
+			const outDir = path.join(tempDir, 'out');
+			await fs.writeFile(path.join(tempDir, 'sample.png'), '12345');
+
+			const { exitCode, stdout } = await runWave(
+				['compress', tempDir, '--type', 'png', '--out', outDir, '--yes'],
+				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('unchanged');
+			const output = await fs.readFile(path.join(outDir, 'sample.png'), 'utf-8');
+			expect(output).toBe('12345');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 			await fs.rm(tools, { recursive: true, force: true });

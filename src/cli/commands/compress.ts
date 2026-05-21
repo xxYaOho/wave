@@ -63,11 +63,11 @@ function renderCompressResult(result: CompressResult, dryRun: boolean): string {
 	} else {
 		for (const item of result.items) {
 			const saved =
-				item.savedBytes >= 0
-					? `${formatBytes(item.savedBytes)} saved`
-					: `${formatBytes(Math.abs(item.savedBytes))} larger`;
+				item.status === 'unchanged'
+					? 'unchanged'
+					: `${formatBytes(item.savedBytes)} saved`;
 			lines.push(
-				`- ${item.type} ${item.source} -> ${item.output} (${item.tool}, ${saved}, ${item.savedPercent}%)`,
+				`- ${item.type} ${item.source} -> ${item.output} (${item.tool}, ${saved})`,
 			);
 		}
 	}

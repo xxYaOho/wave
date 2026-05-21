@@ -33,6 +33,7 @@ export interface CompressItemResult {
 	source: string;
 	output: string;
 	type: CompressFileType;
+	status: 'optimized' | 'unchanged';
 	beforeBytes: number;
 	afterBytes: number;
 	savedBytes: number;
@@ -125,17 +126,23 @@ export async function runCompress(
 			});
 
 			const beforeBytes = (await fs.stat(candidate.absolutePath)).size;
-			const afterBytes = (await fs.stat(tempOutput)).size;
+			const previewBytes = (await fs.stat(tempOutput)).size;
+			const status = previewBytes < beforeBytes ? 'optimized' : 'unchanged';
+			const afterBytes = status === 'optimized' ? previewBytes : beforeBytes;
 			const finalOutput = path.join(outDir, candidate.relativePath);
 			const shouldWrite = !!options.yes && !options.dryRun;
 			if (shouldWrite) {
 				await fs.mkdir(path.dirname(finalOutput), { recursive: true });
-				await fs.copyFile(tempOutput, finalOutput);
+				await fs.copyFile(
+					status === 'optimized' ? tempOutput : candidate.absolutePath,
+					finalOutput,
+				);
 			}
 			items.push({
 				source: candidate.absolutePath,
 				output: finalOutput,
 				type: candidate.type,
+				status,
 				beforeBytes,
 				afterBytes,
 				savedBytes: beforeBytes - afterBytes,
