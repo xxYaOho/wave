@@ -5,9 +5,11 @@ const rootDir = path.resolve(import.meta.dir, '..');
 
 async function runWave(
 	args: string[],
+	options: { env?: Record<string, string> } = {},
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(['bun', 'run', 'src/index.ts', ...args], {
+	const proc = Bun.spawn([process.execPath, 'run', 'src/index.ts', ...args], {
 		cwd: rootDir,
+		env: options.env ? { ...process.env, ...options.env } : process.env,
 		stdout: 'pipe',
 		stderr: 'pipe',
 	});
@@ -89,5 +91,30 @@ describe('toolchain CLI', () => {
 		expect(result.module).toBe('motion');
 		expect(result.ok).toBe(false);
 		expect(result.error).toContain('wave install --yes');
+	});
+
+	test('install --yes reports missing mise without a stack trace', async () => {
+		const { exitCode, stdout, stderr } = await runWave(['install', '--yes'], {
+			env: { PATH: '/usr/bin:/bin' },
+		});
+
+		expect(exitCode).toBe(1);
+		expect(stdout).toContain('wave install plan');
+		expect(stderr).toContain('mise is required');
+		expect(stderr).not.toContain('Executable not found');
+		expect(stderr).not.toContain('Bun v');
+	});
+
+	test('install --json --yes reports missing mise as pure JSON', async () => {
+		const { exitCode, stdout, stderr } = await runWave(
+			['install', '--json', '--yes'],
+			{ env: { PATH: '/usr/bin:/bin' } },
+		);
+		const result = JSON.parse(stdout);
+
+		expect(exitCode).toBe(1);
+		expect(stderr).toBe('');
+		expect(result.ok).toBe(false);
+		expect(result.error).toContain('mise is required');
 	});
 });
