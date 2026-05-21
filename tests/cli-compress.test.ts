@@ -25,9 +25,13 @@ async function runWave(
 
 async function createFakeToolDir(): Promise<string> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-tools-'));
-	const toolScript = `#!/usr/bin/env bun
+const toolScript = `#!/usr/bin/env bun
 import * as fs from 'node:fs/promises';
 const args = process.argv.slice(2);
+if (args.includes('--version') || args.includes('-version')) {
+	console.log('fake-tool 1.0.0');
+	process.exit(0);
+}
 let out = '';
 let input = args[args.length - 1];
 for (let i = 0; i < args.length; i++) {
@@ -123,7 +127,7 @@ describe('wave compress', () => {
 		});
 
 		expect(exitCode).not.toBe(0);
-		expect(stdout).toContain('Compress Doctor');
+		expect(stdout).toContain('WCP_TOOL_MISSING');
 		expect(stdout).toContain('WCP_TOOL_MISSING');
 	});
 
@@ -131,7 +135,7 @@ describe('wave compress', () => {
 		const { exitCode, stdout } = await runWave(['compress', 'install', '--check']);
 
 		expect(exitCode).toBe(0);
-		expect(stdout).toContain('Compress Install Plan');
-		expect(stdout).toContain('mise install');
+		expect(stdout).toContain('wave compress install plan');
+		expect(stdout).toContain('Command: (check only)');
 	});
 });

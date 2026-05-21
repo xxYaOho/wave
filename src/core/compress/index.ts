@@ -2,16 +2,17 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import type {
-	CompressMode,
-	CompressToolName,
+	CommandRunner,
+	ToolCapability,
 	ToolResolver,
-	ToolStatus,
-} from './tools.ts';
+	ToolResolution,
+} from '../tools/index.ts';
 import {
-	checkCompressTools,
-	getMissingToolNames,
-	PathToolResolver,
-} from './tools.ts';
+	BunCommandRunner,
+	DefaultToolResolver,
+} from '../tools/index.ts';
+
+export type CompressMode = 'safe' | 'quality';
 
 export type CompressFileType = 'png' | 'jpg' | 'svg' | 'gif';
 
@@ -24,6 +25,7 @@ export interface CompressOptions {
 	dryRun?: boolean;
 	yes?: boolean;
 	resolver?: ToolResolver;
+	runner?: CommandRunner;
 	cwd?: string;
 }
 
@@ -48,7 +50,7 @@ export interface CompressResult {
 	written: boolean;
 	items: CompressItemResult[];
 	issues: CompressIssue[];
-	toolStatuses: ToolStatus[];
+	toolResolutions: ToolResolution[];
 }
 
 export interface CompressIssue {
@@ -72,17 +74,14 @@ export async function runCompress(
 	const input = path.resolve(cwd, options.input);
 	const outDir = path.resolve(cwd, options.outDir ?? './compressed');
 	const mode: CompressMode = options.quality === undefined ? 'safe' : 'quality';
-	const resolver = options.resolver ?? new PathToolResolver();
-	const toolStatuses = await checkCompressTools(resolver, mode);
+	const resolver = options.resolver ?? new DefaultToolResolver();
+	const runner = options.runner ?? new BunCommandRunner();
 	const candidates = await scanCompressCandidates(input, {
 		recursive: !!options.recursive,
 		types: options.types,
 	});
-	const issues = validateToolStatus(
-		toolStatuses,
-		mode,
-		candidates.map((candidate) => candidate.type),
-	);
+	const resolutions = await resolveToolsForCandidates(candidates, mode, resolver);
+	const issues = validateToolResolutions(resolutions);
 
 	if (issues.length > 0) {
 		return {
@@ -94,7 +93,7 @@ export async function runCompress(
 			written: false,
 			items: [],
 			issues,
-			toolStatuses,
+			toolResolutions: resolutions,
 		};
 	}
 
@@ -104,8 +103,8 @@ export async function runCompress(
 		for (const candidate of candidates) {
 			const tempOutput = path.join(tempDir, candidate.relativePath);
 			await fs.mkdir(path.dirname(tempOutput), { recursive: true });
-			const selected = selectTool(candidate.type, mode, toolStatuses);
-			if (!selected) {
+			const resolution = getResolutionForType(resolutions, candidate.type, mode);
+			if (!resolution?.selected) {
 				issues.push({
 					code: 'WCP_TOOL_MISSING',
 					severity: 'error',
@@ -121,8 +120,8 @@ export async function runCompress(
 				type: candidate.type,
 				mode,
 				quality: options.quality,
-				toolPath: selected.path,
-				toolName: selected.name,
+				toolName: resolution.selected.name,
+				runner,
 			});
 
 			const beforeBytes = (await fs.stat(candidate.absolutePath)).size;
@@ -144,7 +143,7 @@ export async function runCompress(
 					beforeBytes === 0
 						? 0
 						: Number((((beforeBytes - afterBytes) / beforeBytes) * 100).toFixed(1)),
-				tool: selected.name,
+				tool: resolution.selected.name,
 				written: shouldWrite,
 			});
 		}
@@ -161,17 +160,8 @@ export async function runCompress(
 		written: items.some((item) => item.written),
 		items,
 		issues,
-		toolStatuses,
+		toolResolutions: resolutions,
 	};
-}
-
-export async function runCompressDoctor(
-	resolver: ToolResolver = new PathToolResolver(),
-	mode: CompressMode = 'quality',
-): Promise<{ ok: boolean; issues: CompressIssue[]; toolStatuses: ToolStatus[] }> {
-	const toolStatuses = await checkCompressTools(resolver, mode);
-	const issues = validateToolStatus(toolStatuses, mode);
-	return { ok: issues.every((issue) => issue.severity !== 'error'), issues, toolStatuses };
 }
 
 async function scanCompressCandidates(
@@ -218,104 +208,83 @@ function detectFileType(filePath: string): CompressFileType | null {
 	return null;
 }
 
-function validateToolStatus(
-	toolStatuses: ToolStatus[],
+async function resolveToolsForCandidates(
+	candidates: FileCandidate[],
 	mode: CompressMode,
-	types: CompressFileType[] = ['png', 'jpg', 'svg', 'gif'],
-): CompressIssue[] {
-	const required = getRequiredToolsForTypes(types, mode);
-	const missing = getMissingToolNames(toolStatuses).filter((name) => {
-		if (!required.has(name)) return false;
-		if (name === 'jpegtran') {
-			return !toolStatuses.some(
-				(status) => status.name === 'mozjpeg' && status.available,
-			);
-		}
-		if (name === 'mozjpeg' && mode === 'safe') {
-			return !toolStatuses.some(
-				(status) => status.name === 'jpegtran' && status.available,
-			);
-		}
-		return true;
-	});
-	if (missing.length === 0) return [];
-	return [
-		{
-			code: 'WCP_TOOL_MISSING',
-			severity: 'error',
-			message: `Missing compress tools: ${missing.join(', ')}`,
-			fix:
-				mode === 'quality'
-					? 'Run wave compress install --check to inspect quality tool requirements.'
-					: 'Run wave compress install --check to inspect safe tool requirements.',
-		},
-	];
-}
-
-function getRequiredToolsForTypes(
-	types: CompressFileType[],
-	mode: CompressMode,
-): Set<CompressToolName> {
-	const required = new Set<CompressToolName>();
-	for (const type of new Set(types)) {
-		if (mode === 'quality') {
-			if (type === 'png') {
-				required.add('pngquant');
-				continue;
-			}
-			if (type === 'jpg') {
-				required.add('mozjpeg');
-				continue;
-			}
-		}
-		if (type === 'png') required.add('oxipng');
-		if (type === 'svg') required.add('svgo');
-		if (type === 'gif') required.add('gifsicle');
-		if (type === 'jpg') {
-			required.add('jpegtran');
-			required.add('mozjpeg');
-		}
+	resolver: ToolResolver,
+): Promise<ToolResolution[]> {
+	const requirements = new Map<string, { capability: ToolCapability; preferred: string[] }>();
+	for (const candidate of candidates) {
+		const requirement = requirementForType(candidate.type, mode);
+		requirements.set(`${requirement.capability}:${mode}`, requirement);
 	}
-	return required;
+	return Promise.all(
+		[...requirements.values()].map((requirement) =>
+			resolver.resolveCapability({
+				capability: requirement.capability,
+				mode,
+				preferred: requirement.preferred,
+			}),
+		),
+	);
 }
 
-function selectTool(
+function requirementForType(
 	type: CompressFileType,
 	mode: CompressMode,
-	toolStatuses: ToolStatus[],
-): { name: CompressToolName; path: string } | null {
-	const available = new Map(
-		toolStatuses
-			.filter((status) => status.path)
-			.map((status) => [status.name, status.path as string]),
-	);
+): { capability: ToolCapability; preferred: string[] } {
 	if (mode === 'quality') {
-		if (type === 'png' && available.has('pngquant')) {
-			return { name: 'pngquant', path: available.get('pngquant')! };
-		}
-		if (type === 'jpg' && available.has('mozjpeg')) {
-			return { name: 'mozjpeg', path: available.get('mozjpeg')! };
-		}
+		if (type === 'png') return { capability: 'compress-png', preferred: ['pngquant'] };
+		if (type === 'jpg') return { capability: 'compress-jpg', preferred: ['mozjpeg'] };
 	}
-	if (type === 'png' && available.has('oxipng')) {
-		return { name: 'oxipng', path: available.get('oxipng')! };
-	}
-	if (type === 'svg' && available.has('svgo')) {
-		return { name: 'svgo', path: available.get('svgo')! };
-	}
-	if (type === 'gif' && available.has('gifsicle')) {
-		return { name: 'gifsicle', path: available.get('gifsicle')! };
-	}
-	if (type === 'jpg') {
-		if (available.has('jpegtran')) {
-			return { name: 'jpegtran', path: available.get('jpegtran')! };
-		}
-		if (available.has('mozjpeg')) {
-			return { name: 'mozjpeg', path: available.get('mozjpeg')! };
-		}
-	}
-	return null;
+	if (type === 'png') return { capability: 'compress-png', preferred: ['oxipng'] };
+	if (type === 'svg') return { capability: 'compress-svg', preferred: ['svgo'] };
+	if (type === 'gif') return { capability: 'compress-gif', preferred: ['gifsicle'] };
+	return { capability: 'compress-jpg', preferred: ['jpegtran', 'mozjpeg'] };
 }
+
+function validateToolResolutions(resolutions: ToolResolution[]): CompressIssue[] {
+	return resolutions
+		.filter((resolution) => !resolution.selected)
+		.map((resolution) => ({
+			code: 'WCP_TOOL_MISSING',
+			severity: 'error',
+			message: resolution.missingReason ?? `Missing tool for ${resolution.requirement.capability}`,
+			fix: 'Run wave compress install --check to inspect tool requirements.',
+		}));
+}
+
+function getResolutionForType(
+	resolutions: ToolResolution[],
+	type: CompressFileType,
+	mode: CompressMode,
+): ToolResolution | undefined {
+	const requirement = requirementForType(type, mode);
+	return resolutions.find(
+		(resolution) =>
+			resolution.requirement.capability === requirement.capability &&
+			resolution.requirement.mode === mode,
+	);
+}
+
+function ensureKnownToolName(toolName: string): string {
+	if (
+		['oxipng', 'pngquant', 'svgo', 'gifsicle', 'jpegtran', 'mozjpeg'].includes(
+			toolName,
+		)
+	) {
+		return toolName;
+	}
+	throw new Error(`Unsupported compress tool: ${toolName}`);
+}
+
+type CompressCommandToolName =
+	| 'oxipng'
+	| 'pngquant'
+	| 'svgo'
+	| 'gifsicle'
+	| 'jpegtran'
+	| 'mozjpeg';
 
 async function compressFile(options: {
 	source: string;
@@ -323,19 +292,18 @@ async function compressFile(options: {
 	type: CompressFileType;
 	mode: CompressMode;
 	quality?: number;
-	toolName: CompressToolName;
-	toolPath: string;
+	toolName: string;
+	runner: CommandRunner;
 }): Promise<void> {
-	const args = buildToolArgs(options);
-	const proc = Bun.spawn([options.toolPath, ...args], {
-		stdout: 'pipe',
-		stderr: 'pipe',
+	const toolName = ensureKnownToolName(options.toolName) as CompressCommandToolName;
+	const args = buildToolArgs({ ...options, toolName });
+	const result = await options.runner.run({
+		command: toolName,
+		args,
 	});
-	const exitCode = await proc.exited;
-	if (exitCode !== 0) {
-		const stderr = await new Response(proc.stderr).text();
+	if (result.exitCode !== 0) {
 		throw new Error(
-			`${options.toolName} failed for ${path.basename(options.source)}: ${stderr.trim()}`,
+			`${toolName} failed for ${path.basename(options.source)}: ${result.stderr.trim()}`,
 		);
 	}
 	if (!(await Bun.file(options.output).exists())) {
@@ -349,7 +317,7 @@ function buildToolArgs(options: {
 	type: CompressFileType;
 	mode: CompressMode;
 	quality?: number;
-	toolName: CompressToolName;
+	toolName: CompressCommandToolName;
 }): string[] {
 	switch (options.toolName) {
 		case 'oxipng':
