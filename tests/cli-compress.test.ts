@@ -98,6 +98,7 @@ describe('wave compress', () => {
 			expect(exitCode).toBe(0);
 			expect(stdout).toContain('Compress Preview');
 			expect(stdout).toContain('sample.png');
+			expect(stdout).toContain('50%');
 			expect(await Bun.file(path.join(rootDir, 'compressed/sample.png')).exists()).toBe(false);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });

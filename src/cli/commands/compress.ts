@@ -65,7 +65,7 @@ function renderCompressResult(result: CompressResult, dryRun: boolean): string {
 			const saved =
 				item.status === 'unchanged'
 					? 'unchanged'
-					: `${formatBytes(item.savedBytes)} saved`;
+					: `${formatBytes(item.savedBytes)} saved, ${item.savedPercent}%`;
 			lines.push(
 				`- ${item.type} ${item.source} -> ${item.output} (${item.tool}, ${saved})`,
 			);
