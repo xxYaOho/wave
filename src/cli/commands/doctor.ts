@@ -112,184 +112,191 @@ interface DoctorCommandOptions {
 	theme?: boolean;
 }
 
-export const doctorCommand = new Command('doctor')
-	.description('Run health diagnostics and contrast checks')
-	.option('-f, --file <path>', 'Themefile path to validate')
-	.option('-o, --output <path>', 'Output directory to check')
-	.option('--contrast', 'Run WCAG contrast check on theme colors')
-	.option('--night', 'Check night variant (use with --contrast)')
-	.option(
-		'--variants <name>',
-		'Check specific variant by name (use with --contrast)',
-	)
-	.addOption(
-		new Command().createOption(
-			'--theme',
-			'(deprecated) Use --contrast instead',
-		).hideHelp(),
-	)
-	.action(async (options: DoctorCommandOptions) => {
-		if (options.theme) {
-			console.error(
-				'Option "--theme" has been renamed to "--contrast".',
-			);
-			console.error('  wave doctor --contrast   Run WCAG contrast check');
-			console.error('  wave doctor --help       Show available options');
-			process.exitCode = ExitCode.INVALID_COMMAND;
-			return;
-		}
-		if (!options.contrast) {
-			console.log('🔍 Running Wave diagnostics...\n');
+export function createDoctorCommand(name = 'doctor'): Command {
+	return new Command(name)
+		.description('Run health diagnostics and contrast checks')
+		.option('-f, --file <path>', 'Themefile path to validate')
+		.option('-o, --output <path>', 'Output directory to check')
+		.option('--contrast', 'Run WCAG contrast check on theme colors')
+		.option('--night', 'Check night variant (use with --contrast)')
+		.option(
+			'--variants <name>',
+			'Check specific variant by name (use with --contrast)',
+		)
+		.addOption(
+			new Command()
+				.createOption('--theme', '(deprecated) Use --contrast instead')
+				.hideHelp(),
+		)
+		.action(async (options: DoctorCommandOptions) => {
+			if (options.theme) {
+				console.error('Option "--theme" has been renamed to "--contrast".');
+				console.error('  wave doctor --contrast   Run WCAG contrast check');
+				console.error('  wave doctor --help       Show available options');
+				process.exitCode = ExitCode.INVALID_COMMAND;
+				return;
+			}
+			if (!options.contrast) {
+				console.log('🔍 Running Wave diagnostics...\n');
 
-			const currentVersion = Bun.version;
-			const minVersion = '1.0.0';
-			const bunPassed = compareVersions(currentVersion, minVersion) >= 0;
-			const icon = bunPassed ? '✓' : '✗';
-			console.log(
-				`${icon} Bun Version: ${bunPassed ? `v${currentVersion}` : `v${currentVersion} (requires >= v${minVersion})`}`,
-			);
-
-			let allPassed = bunPassed;
-
-			if (options.file) {
-				const { validateThemefile } = await import(
-					'../../core/validator/config.ts'
-				);
-				const result = await validateThemefile({ themefilePath: options.file });
-				const configIcon = result.valid ? '✓' : '✗';
+				const currentVersion = Bun.version;
+				const minVersion = '1.0.0';
+				const bunPassed = compareVersions(currentVersion, minVersion) >= 0;
+				const icon = bunPassed ? '✓' : '✗';
 				console.log(
-					`${configIcon} Config File: ${result.valid ? `Valid (${result.config?.THEME || 'unknown'})` : result.errors[0] || 'Unknown error'}`,
+					`${icon} Bun Version: ${bunPassed ? `v${currentVersion}` : `v${currentVersion} (requires >= v${minVersion})`}`,
 				);
-				if (!result.valid) allPassed = false;
-			} else {
-				console.log('✓ Config File: No themefile specified');
+
+				let allPassed = bunPassed;
+
+				if (options.file) {
+					const { validateThemefile } = await import(
+						'../../core/validator/config.ts'
+					);
+					const result = await validateThemefile({
+						themefilePath: options.file,
+					});
+					const configIcon = result.valid ? '✓' : '✗';
+					console.log(
+						`${configIcon} Config File: ${result.valid ? `Valid (${result.config?.THEME || 'unknown'})` : result.errors[0] || 'Unknown error'}`,
+					);
+					if (!result.valid) allPassed = false;
+				} else {
+					console.log('✓ Config File: No themefile specified');
+				}
+
+				console.log('✓ Resources: All built-in resources available');
+				console.log('✓ Output Directory: OK');
+				console.log('');
+
+				if (allPassed) {
+					console.log('All checks passed! 🎉');
+					process.exitCode = ExitCode.SUCCESS;
+				} else {
+					console.log('Some checks failed. Please fix the issues above.');
+					process.exitCode = ExitCode.GENERAL_ERROR;
+				}
+				return;
 			}
 
-			console.log('✓ Resources: All built-in resources available');
-			console.log('✓ Output Directory: OK');
-			console.log('');
-
-			if (allPassed) {
-				console.log('All checks passed! 🎉');
-				process.exitCode = ExitCode.SUCCESS;
-			} else {
-				console.log('Some checks failed. Please fix the issues above.');
-				process.exitCode = ExitCode.GENERAL_ERROR;
-			}
-			return;
-		}
-
-		// --contrast mode
-		const loadResult = await loadThemefile(options.file);
-		if ('error' in loadResult) {
-			console.log(`✗ ${loadResult.error.message}`);
-			process.exitCode = ExitCode.FILE_NOT_FOUND;
-			return;
-		}
-
-		const { parsed, themeDir } = loadResult;
-		const themeName = parsed.THEME || 'unknown';
-
-		const dictResult = await buildDependencyDictionary(parsed, themeDir);
-		if ('error' in dictResult) {
-			console.log(`✗ ${dictResult.error.message}`);
-			process.exitCode = ExitCode.GENERAL_ERROR;
-			return;
-		}
-
-		const dict: DependencyDict = dictResult.dict;
-
-		// Detect available theme files
-		const allThemeFiles = await detectThemeFiles(themeDir);
-		if (allThemeFiles.length === 0) {
-			console.log('No theme files found.');
-			process.exitCode = ExitCode.SUCCESS;
-			return;
-		}
-
-		// Selection strategy:
-		// 1. Explicit --night / --variants → non-interactive, resolve directly
-		// 2. No explicit scope + interactive TTY + single theme → auto-select
-		// 3. No explicit scope + interactive TTY + multiple themes → TUI selector
-		// 4. No explicit scope + non-TTY → default to main
-		let selectedTheme: ThemeFileEntry;
-
-		const hasExplicitScope = !!options.night || !!options.variants;
-		const explicit = resolveExplicitTheme(
-			allThemeFiles,
-			!!options.night,
-			options.variants,
-		);
-		if (hasExplicitScope && !explicit) {
-			return;
-		}
-		if (explicit) {
-			selectedTheme = explicit;
-		} else if (isatty(process.stdout.fd) && isatty(process.stdin.fd)) {
-			// Interactive TTY
-			if (allThemeFiles.length === 1) {
-				selectedTheme = allThemeFiles[0]!;
-			} else {
-				selectedTheme = await selectTheme(allThemeFiles);
-			}
-		} else {
-			// Non-TTY: default to main
-			const mainFile = allThemeFiles.find((f) => f.name === 'main');
-			if (!mainFile) {
-				console.log('✗ No main theme file found');
+			// --contrast mode
+			const loadResult = await loadThemefile(options.file);
+			if ('error' in loadResult) {
+				console.log(`✗ ${loadResult.error.message}`);
 				process.exitCode = ExitCode.FILE_NOT_FOUND;
 				return;
 			}
-			selectedTheme = mainFile;
-		}
 
-		const displayThemeName = `${themeName}${selectedTheme.suffix}`;
+			const { parsed, themeDir } = loadResult;
+			const themeName = parsed.THEME || 'unknown';
 
-		const ctxResult = await createThemeDoctorContext(selectedTheme.path, dict);
-		if (!ctxResult.ok) {
-			console.log(`✗ ${ctxResult.findings[0]!.message}`);
-			process.exitCode = ctxResult.exitCode;
-			return;
-		}
-
-		const context = ctxResult.context;
-		const checkResult = await runThemeContrastCheck(context);
-
-		console.log('Contrast Check');
-		console.log(SEPARATOR);
-		console.log(displayThemeName);
-		console.log(SEPARATOR);
-
-		if (
-			checkResult.reports.length === 0 &&
-			checkResult.blockingErrors.length === 0
-		) {
-			console.log('No wcagPairs found to evaluate.');
-			process.exitCode = ExitCode.SUCCESS;
-			return;
-		}
-
-		for (let i = 0; i < checkResult.reports.length; i++) {
-			const report = checkResult.reports[i];
-			if (i > 0) {
-				console.log(SEPARATOR);
+			const dictResult = await buildDependencyDictionary(parsed, themeDir);
+			if ('error' in dictResult) {
+				console.log(`✗ ${dictResult.error.message}`);
+				process.exitCode = ExitCode.GENERAL_ERROR;
+				return;
 			}
-			console.log(report.pair.name);
-			console.log(`  ${report.ratio.toFixed(2)}:1`);
-			console.log('Score');
-			for (const line of renderScoreLines(report)) {
-				console.log(line);
-			}
-		}
-		console.log(SEPARATOR);
 
-		if (checkResult.blockingErrors.length > 0) {
-			console.log('');
-			for (const err of checkResult.blockingErrors) {
-				console.log(`✗ ${err.message}`);
+			const dict: DependencyDict = dictResult.dict;
+
+			// Detect available theme files
+			const allThemeFiles = await detectThemeFiles(themeDir);
+			if (allThemeFiles.length === 0) {
+				console.log('No theme files found.');
+				process.exitCode = ExitCode.SUCCESS;
+				return;
 			}
-			process.exitCode = ExitCode.GENERAL_ERROR;
-		} else {
-			process.exitCode = ExitCode.SUCCESS;
-		}
-	});
+
+			// Selection strategy:
+			// 1. Explicit --night / --variants → non-interactive, resolve directly
+			// 2. No explicit scope + interactive TTY + single theme → auto-select
+			// 3. No explicit scope + interactive TTY + multiple themes → TUI selector
+			// 4. No explicit scope + non-TTY → default to main
+			let selectedTheme: ThemeFileEntry;
+
+			const hasExplicitScope = !!options.night || !!options.variants;
+			const explicit = resolveExplicitTheme(
+				allThemeFiles,
+				!!options.night,
+				options.variants,
+			);
+			if (hasExplicitScope && !explicit) {
+				return;
+			}
+			if (explicit) {
+				selectedTheme = explicit;
+			} else if (isatty(process.stdout.fd) && isatty(process.stdin.fd)) {
+				// Interactive TTY
+				if (allThemeFiles.length === 1) {
+					selectedTheme = allThemeFiles[0]!;
+				} else {
+					selectedTheme = await selectTheme(allThemeFiles);
+				}
+			} else {
+				// Non-TTY: default to main
+				const mainFile = allThemeFiles.find((f) => f.name === 'main');
+				if (!mainFile) {
+					console.log('✗ No main theme file found');
+					process.exitCode = ExitCode.FILE_NOT_FOUND;
+					return;
+				}
+				selectedTheme = mainFile;
+			}
+
+			const displayThemeName = `${themeName}${selectedTheme.suffix}`;
+
+			const ctxResult = await createThemeDoctorContext(
+				selectedTheme.path,
+				dict,
+			);
+			if (!ctxResult.ok) {
+				console.log(`✗ ${ctxResult.findings[0]!.message}`);
+				process.exitCode = ctxResult.exitCode;
+				return;
+			}
+
+			const context = ctxResult.context;
+			const checkResult = await runThemeContrastCheck(context);
+
+			console.log('Contrast Check');
+			console.log(SEPARATOR);
+			console.log(displayThemeName);
+			console.log(SEPARATOR);
+
+			if (
+				checkResult.reports.length === 0 &&
+				checkResult.blockingErrors.length === 0
+			) {
+				console.log('No wcagPairs found to evaluate.');
+				process.exitCode = ExitCode.SUCCESS;
+				return;
+			}
+
+			for (let i = 0; i < checkResult.reports.length; i++) {
+				const report = checkResult.reports[i];
+				if (!report) continue;
+				if (i > 0) {
+					console.log(SEPARATOR);
+				}
+				console.log(report.pair.name);
+				console.log(`  ${report.ratio.toFixed(2)}:1`);
+				console.log('Score');
+				for (const line of renderScoreLines(report)) {
+					console.log(line);
+				}
+			}
+			console.log(SEPARATOR);
+
+			if (checkResult.blockingErrors.length > 0) {
+				console.log('');
+				for (const err of checkResult.blockingErrors) {
+					console.log(`✗ ${err.message}`);
+				}
+				process.exitCode = ExitCode.GENERAL_ERROR;
+			} else {
+				process.exitCode = ExitCode.SUCCESS;
+			}
+		});
+}
+
+export const doctorCommand = createDoctorCommand('doctor');

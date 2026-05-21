@@ -44,100 +44,104 @@ function parseCliOptions(options: CreateCommandOptions): GenerateOptions {
 	return result;
 }
 
-export const createCommand = new Command('create')
-	.description('Generate design token output')
-	.argument('[name]', 'Theme name to generate')
-	.option('-f, --file <path>', 'Themefile path')
-	.option('--no-night', 'Disable night mode generation')
-	.option('--no-variants', 'Disable variants generation')
-	.option('--variants [names]', 'Specify variants (comma separated)')
-	.option('-o, --output <dir>', 'Output directory')
-	.option(
-		'--platform <list>',
-		'Output platforms (comma separated): json, jsonc, css',
-	)
-	.action(async (name: string | undefined, options: CreateCommandOptions) => {
-		let themeName = name;
+export function createBuildCommand(name = 'create'): Command {
+	return new Command(name)
+		.description('Generate design token output')
+		.argument('[name]', 'Theme name to generate')
+		.option('-f, --file <path>', 'Themefile path')
+		.option('--no-night', 'Disable night mode generation')
+		.option('--no-variants', 'Disable variants generation')
+		.option('--variants [names]', 'Specify variants (comma separated)')
+		.option('-o, --output <dir>', 'Output directory')
+		.option(
+			'--platform <list>',
+			'Output platforms (comma separated): json, jsonc, css',
+		)
+		.action(async (name: string | undefined, options: CreateCommandOptions) => {
+			let themeName = name;
 
-		if (!themeName && !options.file) {
-			const defaultThemefile = 'themefile';
-			const file = Bun.file(defaultThemefile);
-			if (await file.exists()) {
-				options.file = defaultThemefile;
+			if (!themeName && !options.file) {
+				const defaultThemefile = 'themefile';
+				const file = Bun.file(defaultThemefile);
+				if (await file.exists()) {
+					options.file = defaultThemefile;
+					themeName = 'theme';
+				} else {
+					console.error('Error: No themefile found in current directory');
+					console.error('Usage: wave create [path] or wave create -f <path>');
+					console.error('Run "wave init" to create a theme template');
+					process.exitCode = ExitCode.FILE_NOT_FOUND;
+					return;
+				}
+			}
+
+			if (!themeName && options.file) {
 				themeName = 'theme';
-			} else {
-				console.error('Error: No themefile found in current directory');
+			}
+
+			if (!themeName) {
+				console.error('Error: Theme name is required');
 				console.error('Usage: wave create [path] or wave create -f <path>');
-				console.error('Run "wave init" to create a theme template');
-				process.exitCode = ExitCode.FILE_NOT_FOUND;
+				process.exitCode = ExitCode.MISSING_PARAMETER;
 				return;
 			}
-		}
 
-		if (!themeName && options.file) {
-			themeName = 'theme';
-		}
+			const spinner = new WaveSpinner();
+			const ctx = new BuildContext();
+			ctx.themeName = themeName;
+			ctx.version = VERSION;
+			ctx.outputDir = options.output ?? '';
 
-		if (!themeName) {
-			console.error('Error: Theme name is required');
-			console.error('Usage: wave create [path] or wave create -f <path>');
-			process.exitCode = ExitCode.MISSING_PARAMETER;
-			return;
-		}
+			let selectedThemes: ThemeFileEntry[] | undefined;
+			if (
+				process.stdout.isTTY === true &&
+				options.variants === undefined &&
+				options.noVariants !== true
+			) {
+				try {
+					const loadResult = await loadThemefile(options.file);
+					if ('parsed' in loadResult) {
+						const themeFiles = await detectThemeFiles(loadResult.themeDir);
+						if (themeFiles.length > 1) {
+							selectedThemes = await selectThemesToGenerate(themeFiles);
+						}
+					}
+				} catch {
+					// ignore: error will be handled by generateTheme
+				}
+			}
 
-		const spinner = new WaveSpinner();
-		const ctx = new BuildContext();
-		ctx.themeName = themeName;
-		ctx.version = VERSION;
-		ctx.outputDir = options.output ?? '';
+			const input: ThemeGenerationInput = {
+				themeName,
+				themePath: options.file,
+				cliOutput: options.output,
+				cliPlatform: options.platform,
+				generateOptions: parseCliOptions(options),
+				selectedThemes,
+			};
 
-		let selectedThemes: ThemeFileEntry[] | undefined;
-		if (
-			process.stdout.isTTY === true &&
-			options.variants === undefined &&
-			options.noVariants !== true
-		) {
 			try {
-				const loadResult = await loadThemefile(options.file);
-				if ('parsed' in loadResult) {
-					const themeFiles = await detectThemeFiles(loadResult.themeDir);
-					if (themeFiles.length > 1) {
-						selectedThemes = await selectThemesToGenerate(themeFiles);
+				spinner.start('Generating theme...');
+				const result = await generateTheme(input, ctx);
+				spinner.stop();
+				process.exitCode = result.ok ? ExitCode.SUCCESS : result.exitCode;
+			} catch (err) {
+				spinner.stop();
+				const msg = err instanceof Error ? err.message : String(err);
+				ctx.markFailed('generate', msg, { phase: 'unknown' });
+				process.exitCode = ExitCode.GENERAL_ERROR;
+			} finally {
+				spinner.stop();
+				console.log(renderReceipt(ctx));
+				if (ctx.errors.length > 0) {
+					console.log();
+					for (const err of ctx.errors) {
+						const detail = err.line ? `at line ${err.line}` : err.detail;
+						console.error(`${err.message}${detail ? ` (${detail})` : ''}`);
 					}
 				}
-			} catch {
-				// ignore: error will be handled by generateTheme
 			}
-		}
+		});
+}
 
-		const input: ThemeGenerationInput = {
-			themeName,
-			themePath: options.file,
-			cliOutput: options.output,
-			cliPlatform: options.platform,
-			generateOptions: parseCliOptions(options),
-			selectedThemes,
-		};
-
-		try {
-			spinner.start('Generating theme...');
-			const result = await generateTheme(input, ctx);
-			spinner.stop();
-			process.exitCode = result.ok ? ExitCode.SUCCESS : result.exitCode;
-		} catch (err) {
-			spinner.stop();
-			const msg = err instanceof Error ? err.message : String(err);
-			ctx.markFailed('generate', msg, { phase: 'unknown' });
-			process.exitCode = ExitCode.GENERAL_ERROR;
-		} finally {
-			spinner.stop();
-			console.log(renderReceipt(ctx));
-			if (ctx.errors.length > 0) {
-				console.log();
-				for (const err of ctx.errors) {
-					const detail = err.line ? `at line ${err.line}` : err.detail;
-					console.error(`${err.message}${detail ? ` (${detail})` : ''}`);
-				}
-			}
-		}
-	});
+export const createCommand = createBuildCommand('create');

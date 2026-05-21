@@ -148,7 +148,8 @@ async function findResource(
 		});
 
 	if (matches.length === 0) return null;
-	if (matches.length === 1) return matches[0];
+	const singleMatch = matches[0];
+	if (matches.length === 1 && singleMatch) return singleMatch;
 	return { ambiguous: matches.map((m) => m.category) };
 }
 
@@ -194,10 +195,16 @@ async function showResource(
 		} else {
 			// flat-json
 			const namespace = Object.keys(resourceData!)[0];
+			if (!namespace) {
+				return {
+					ok: false,
+					message: `Built-in resource is empty: ${name}`,
+					exitCode: ExitCode.GENERAL_ERROR,
+				};
+			}
 			const flattened = flattenResource(
-				(resourceData as Record<string, Record<string, unknown>>)[
-					namespace
-				] ?? {},
+				(resourceData as Record<string, Record<string, unknown>>)[namespace] ??
+					{},
 				[namespace],
 			);
 			console.log(stringifyCompact(flattened));
@@ -213,84 +220,98 @@ async function showResource(
 	}
 }
 
-export const showCommand = new Command('show')
-	.description('Browse built-in resources')
-	.argument('[category]', 'Resource category: palette, dimension')
-	.argument('[name]', 'Resource name (e.g. tailwindcss4, wave)')
-	.option(
-		'--format <type>',
-		'Output format: flat-json, json, yaml',
-		'flat-json',
-	)
-	.action(async (category?: string, name?: string, options?: ShowCommandOptions) => {
-		const format = options?.format ?? 'flat-json';
+export function createShowCommand(name = 'show'): Command {
+	return new Command(name)
+		.description('Browse built-in resources')
+		.argument('[category]', 'Resource category: palette, dimension')
+		.argument('[name]', 'Resource name (e.g. tailwindcss4, wave)')
+		.option(
+			'--format <type>',
+			'Output format: flat-json, json, yaml',
+			'flat-json',
+		)
+		.action(
+			async (
+				category?: string,
+				name?: string,
+				options?: ShowCommandOptions,
+			) => {
+				const format = options?.format ?? 'flat-json';
 
-		// No arguments: list all categories and resources
-		if (!category) {
-			const palettes = getBuiltinNames(getBuiltinPalettePath);
-			const dimensions = getBuiltinNames(getBuiltinDimensionPath);
+				// No arguments: list all categories and resources
+				if (!category) {
+					const palettes = getBuiltinNames(getBuiltinPalettePath);
+					const dimensions = getBuiltinNames(getBuiltinDimensionPath);
 
-			if (palettes.length > 0) {
-				logger.info('Palettes:');
-				for (const n of palettes) {
-					console.log(`  ${n}`);
+					if (palettes.length > 0) {
+						logger.info('Palettes:');
+						for (const n of palettes) {
+							console.log(`  ${n}`);
+						}
+						console.log();
+					}
+
+					if (dimensions.length > 0) {
+						logger.info('Dimensions:');
+						for (const n of dimensions) {
+							console.log(`  ${n}`);
+						}
+						console.log();
+					}
+
+					process.exitCode = ExitCode.SUCCESS;
+					return;
 				}
-				console.log();
-			}
 
-			if (dimensions.length > 0) {
-				logger.info('Dimensions:');
-				for (const n of dimensions) {
-					console.log(`  ${n}`);
+				// One argument: could be category or resource name
+				if (category && !name) {
+					if (VALID_CATEGORIES.includes(category.toLowerCase())) {
+						const cat = category.toLowerCase();
+						const names = getBuiltinNames(
+							cat === 'palette'
+								? getBuiltinPalettePath
+								: getBuiltinDimensionPath,
+						);
+						logger.info(`${cat === 'palette' ? 'Palettes' : 'Dimensions'}:`);
+						for (const n of names) {
+							console.log(`  ${n}`);
+						}
+						console.log();
+						process.exitCode = ExitCode.SUCCESS;
+						return;
+					}
+
+					// Fallback: treat category as resource name for compatibility
+					const result = await showResource(category, format);
+					if (!result.ok) {
+						logger.error(result.message);
+						process.exitCode = result.exitCode;
+						return;
+					}
+					process.exitCode = ExitCode.SUCCESS;
+					return;
 				}
-				console.log();
-			}
 
-			process.exitCode = ExitCode.SUCCESS;
-			return;
-		}
+				// Two arguments: category + name
+				if (category && name) {
+					if (!VALID_CATEGORIES.includes(category.toLowerCase())) {
+						logger.error(
+							`Unknown category: ${category}. Supported: palette, dimension`,
+						);
+						process.exitCode = ExitCode.INVALID_PARAMETER;
+						return;
+					}
 
-		// One argument: could be category or resource name
-		if (category && !name) {
-			if (VALID_CATEGORIES.includes(category.toLowerCase())) {
-				const cat = category.toLowerCase();
-				const names = getBuiltinNames(
-					cat === 'palette' ? getBuiltinPalettePath : getBuiltinDimensionPath,
-				);
-				logger.info(`${cat === 'palette' ? 'Palettes' : 'Dimensions'}:`);
-				for (const n of names) {
-					console.log(`  ${n}`);
+					const result = await showResource(name, format);
+					if (!result.ok) {
+						logger.error(result.message);
+						process.exitCode = result.exitCode;
+						return;
+					}
+					process.exitCode = ExitCode.SUCCESS;
 				}
-				console.log();
-				process.exitCode = ExitCode.SUCCESS;
-				return;
-			}
+			},
+		);
+}
 
-			// Fallback: treat category as resource name for compatibility
-			const result = await showResource(category, format);
-			if (!result.ok) {
-				logger.error(result.message);
-				process.exitCode = result.exitCode;
-				return;
-			}
-			process.exitCode = ExitCode.SUCCESS;
-			return;
-		}
-
-		// Two arguments: category + name
-		if (category && name) {
-			if (!VALID_CATEGORIES.includes(category.toLowerCase())) {
-				logger.error(`Unknown category: ${category}. Supported: palette, dimension`);
-				process.exitCode = ExitCode.INVALID_PARAMETER;
-				return;
-			}
-
-			const result = await showResource(name, format);
-			if (!result.ok) {
-				logger.error(result.message);
-				process.exitCode = result.exitCode;
-				return;
-			}
-			process.exitCode = ExitCode.SUCCESS;
-		}
-	});
+export const showCommand = createShowCommand('show');

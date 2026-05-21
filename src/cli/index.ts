@@ -1,10 +1,7 @@
 import { Command, CommanderError } from 'commander';
 import { VERSION } from '../config/index.ts';
 import { ExitCode } from '../types/index.ts';
-import { createCommand } from './commands/create.ts';
-import { doctorCommand } from './commands/doctor.ts';
-import { initCommand } from './commands/init.ts';
-import { showCommand } from './commands/show.ts';
+import { registerCommands } from './registry.ts';
 
 const QUICK_START = `
   WAVE — Design Token CLI
@@ -20,6 +17,21 @@ const QUICK_START = `
 `;
 
 const program = new Command();
+
+const DT_SUBCOMMANDS = new Set(['build', 'init', 'show', 'doctor', 'wcag']);
+
+function normalizeArgv(argv: string[]): string[] {
+	if (argv[2] !== 'dt') return argv;
+	const firstDtArg = argv[3];
+	if (
+		!firstDtArg ||
+		firstDtArg.startsWith('-') ||
+		!DT_SUBCOMMANDS.has(firstDtArg)
+	) {
+		return [...argv.slice(0, 3), 'build', ...argv.slice(3)];
+	}
+	return argv;
+}
 
 program
 	.name('wave')
@@ -50,19 +62,14 @@ program
 		console.log(VERSION);
 	});
 
-program.addCommand(initCommand);
-program.addCommand(createCommand);
-program.addCommand(doctorCommand);
-program.addCommand(showCommand);
+registerCommands(program);
 
 // Legacy command migration hints
 program
 	.command('theme')
 	.description('(deprecated) Use "wave create" instead')
 	.action(() => {
-		console.error(
-			'Command "wave theme" has been renamed to "wave create".',
-		);
+		console.error('Command "wave theme" has been renamed to "wave create".');
 		console.error('  wave create          Generate design token output');
 		console.error('  wave create --help   Show available options');
 		process.exitCode = ExitCode.INVALID_COMMAND;
@@ -72,9 +79,7 @@ program
 	.command('list')
 	.description('(deprecated) Use "wave show" instead')
 	.action(() => {
-		console.error(
-			'Command "wave list" has been merged into "wave show".',
-		);
+		console.error('Command "wave list" has been merged into "wave show".');
 		console.error('  wave show            Browse built-in resources');
 		console.error('  wave show --help     Show available options');
 		process.exitCode = ExitCode.INVALID_COMMAND;
@@ -84,4 +89,4 @@ program.action(() => {
 	console.log(QUICK_START);
 });
 
-program.parse();
+program.parse(normalizeArgv(process.argv));
