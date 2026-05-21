@@ -1,26 +1,22 @@
-export interface PlannedCommand {
-	command: string;
-	args: string[];
-	cwd?: string;
-}
-
-export interface CommandResult {
-	exitCode: number;
-	stdout: string;
-	stderr: string;
-}
-
-export interface CommandRunner {
-	run(command: PlannedCommand): Promise<CommandResult>;
-}
+import type { CommandResult, CommandRunner, PlannedCommand } from './types.ts';
 
 export class BunCommandRunner implements CommandRunner {
 	async run(command: PlannedCommand): Promise<CommandResult> {
-		const proc = Bun.spawn([command.command, ...command.args], {
-			cwd: command.cwd,
-			stdout: 'pipe',
-			stderr: 'pipe',
-		});
+		let proc: Bun.Subprocess<'pipe', 'pipe', 'pipe'>;
+		try {
+			proc = Bun.spawn([command.command, ...(command.args ?? [])], {
+				cwd: command.cwd,
+				env: command.env ? { ...process.env, ...command.env } : process.env,
+				stdout: 'pipe',
+				stderr: 'pipe',
+			});
+		} catch (error) {
+			return {
+				exitCode: 127,
+				stdout: '',
+				stderr: error instanceof Error ? error.message : String(error),
+			};
+		}
 
 		const [stdout, stderr, exitCode] = await Promise.all([
 			new Response(proc.stdout).text(),

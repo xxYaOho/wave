@@ -1,11 +1,12 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import type { CommandRunner, PlannedCommand } from '../tools/command-runner.ts';
 import type {
+	CommandRunner,
+	PlannedCommand,
 	ToolCapability,
 	ToolResolver,
 	ToolResolution,
-} from '../tools/tool-resolver.ts';
+} from '../tools/index.ts';
 import { readPngSize } from './png.ts';
 
 export type MotionFormat = 'gif' | 'apng';

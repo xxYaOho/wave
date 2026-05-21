@@ -1,5 +1,5 @@
-import { Command } from 'commander';
 import { isatty } from 'node:tty';
+import { Command } from 'commander';
 import { runThemeContrastCheck } from '../../core/doctor/registry.ts';
 import {
 	createThemeDoctorContext,
@@ -7,6 +7,7 @@ import {
 	type ThemeFileEntry,
 } from '../../core/doctor/theme-context.ts';
 import { selectTheme } from '../../core/doctor/theme-select.ts';
+import { runToolchainDoctor } from '../../core/doctor/toolchain.ts';
 import type { DependencyDict } from '../../core/pipeline/theme-pipeline.ts';
 import {
 	buildDependencyDictionary,
@@ -16,13 +17,6 @@ import type { DoctorThemeReport } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 
 const SEPARATOR = '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~';
-
-interface DoctorCommandOptions {
-	file?: string;
-	contrast?: boolean;
-	night?: boolean;
-	variants?: string;
-}
 
 function renderScoreLines(report: DoctorThemeReport): string[] {
 	const lines: string[] = [];
@@ -110,6 +104,9 @@ interface DoctorCommandOptions {
 	night?: boolean;
 	variants?: string;
 	theme?: boolean;
+	json?: boolean;
+	verbose?: boolean;
+	status?: boolean;
 }
 
 export function createDoctorCommand(name = 'doctor'): Command {
@@ -119,6 +116,9 @@ export function createDoctorCommand(name = 'doctor'): Command {
 		.option('-o, --output <path>', 'Output directory to check')
 		.option('--contrast', 'Run WCAG contrast check on theme colors')
 		.option('--night', 'Check night variant (use with --contrast)')
+		.option('--json', 'Output structured JSON for core diagnostics')
+		.option('--verbose', 'Show detailed core diagnostics')
+		.option('--status', 'Show compact core health status')
 		.option(
 			'--variants <name>',
 			'Check specific variant by name (use with --contrast)',
@@ -137,6 +137,32 @@ export function createDoctorCommand(name = 'doctor'): Command {
 				return;
 			}
 			if (!options.contrast) {
+				const toolchain = await runToolchainDoctor({ module: 'core' });
+				if (options.json) {
+					console.log(JSON.stringify(toolchain, null, 2));
+					process.exitCode = toolchain.ok
+						? ExitCode.SUCCESS
+						: ExitCode.GENERAL_ERROR;
+					return;
+				}
+				if (options.status) {
+					const failed = toolchain.checks.filter(
+						(check) => check.status === 'fail',
+					).length;
+					const warned = toolchain.checks.filter(
+						(check) => check.status === 'warn',
+					).length;
+					const passed = toolchain.checks.filter(
+						(check) => check.status === 'pass',
+					).length;
+					console.log(
+						`wave: ${toolchain.ok ? 'ok' : 'needs attention'} (${passed} pass, ${warned} warn, ${failed} fail)`,
+					);
+					process.exitCode = toolchain.ok
+						? ExitCode.SUCCESS
+						: ExitCode.GENERAL_ERROR;
+					return;
+				}
 				console.log('🔍 Running Wave diagnostics...\n');
 
 				const currentVersion = Bun.version;
@@ -167,9 +193,15 @@ export function createDoctorCommand(name = 'doctor'): Command {
 
 				console.log('✓ Resources: All built-in resources available');
 				console.log('✓ Output Directory: OK');
+				if (options.verbose || toolchain.issues.length > 0) {
+					for (const check of toolchain.checks) {
+						const icon = check.status === 'pass' ? '✓' : '✗';
+						console.log(`${icon} ${check.name}: ${check.message}`);
+					}
+				}
 				console.log('');
 
-				if (allPassed) {
+				if (allPassed && toolchain.ok) {
 					console.log('All checks passed! 🎉');
 					process.exitCode = ExitCode.SUCCESS;
 				} else {

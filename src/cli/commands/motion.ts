@@ -8,9 +8,16 @@ import {
 	type MotionIssue,
 	type MotionPlan,
 } from '../../core/motion/index.ts';
-import { BunCommandRunner } from '../../core/tools/command-runner.ts';
-import { LocalToolResolver } from '../../core/tools/tool-resolver.ts';
+import {
+	runToolchainDoctor,
+	type ToolchainDoctorResult,
+} from '../../core/doctor/toolchain.ts';
+import {
+	BunCommandRunner,
+	DefaultToolResolver,
+} from '../../core/tools/index.ts';
 import { ExitCode } from '../../types/index.ts';
+import { createInstallCommand } from './install.ts';
 
 interface MotionCommandOptions {
 	fps?: string;
@@ -24,6 +31,7 @@ interface MotionCommandOptions {
 interface MotionDoctorOptions {
 	json?: boolean;
 	verbose?: boolean;
+	status?: boolean;
 }
 
 export function createMotionCommand(name = 'motion'): Command {
@@ -34,7 +42,7 @@ export function createMotionCommand(name = 'motion'): Command {
 	command.addCommand(createEncodeCommand('gif'));
 	command.addCommand(createEncodeCommand('apng'));
 	command.addCommand(createMotionDoctorCommand());
-	command.addCommand(createMotionInstallCommand());
+	command.addCommand(createInstallCommand('install', 'motion'));
 
 	return command;
 }
@@ -51,7 +59,7 @@ function createEncodeCommand(format: MotionFormat): Command {
 		.option('--dry-run', 'Show the encode plan without writing output')
 		.action(async (framesDir: string, options: MotionCommandOptions) => {
 			const runner = new BunCommandRunner();
-			const resolver = new LocalToolResolver(runner);
+			const resolver = new DefaultToolResolver({ runner });
 			const loop = options.loop === 'once' ? 'once' : 'forever';
 			const plan = await createMotionPlan(
 				{
@@ -100,17 +108,35 @@ function createMotionDoctorCommand(): Command {
 		.argument('[framesDir]', 'Directory containing PNG frames')
 		.option('--json', 'Output structured JSON')
 		.option('--verbose', 'Show details even when there are no issues')
+		.option('--status', 'Show compact health status')
 		.action(
 			async (framesDir: string | undefined, options: MotionDoctorOptions) => {
 				const runner = new BunCommandRunner();
-				const resolver = new LocalToolResolver(runner);
+				const resolver = new DefaultToolResolver({ runner });
+				const toolchain = await runToolchainDoctor({
+					module: 'motion',
+					resolver,
+				});
 				const result = await runMotionDoctor(framesDir, resolver);
 
 				if (options.json) {
-					console.log(JSON.stringify(result, null, 2));
+					console.log(
+						JSON.stringify(
+							{
+								...toolchain,
+								frames: result.frames,
+								frameDetails: result.details,
+								frameIssues: result.issues,
+							},
+							null,
+							2,
+						),
+					);
+				} else if (options.status) {
+					renderToolchainStatus(toolchain);
 				} else {
 					console.log('Motion Doctor');
-					renderToolResolutions(result.toolResolutions);
+					renderToolchainVerbose(toolchain);
 					renderIssues(result.issues);
 					if (options.verbose || result.issues.length === 0) {
 						for (const detail of result.details) {
@@ -122,25 +148,12 @@ function createMotionDoctorCommand(): Command {
 					}
 				}
 
-				process.exitCode = hasBlockingMotionIssues(result.issues)
-					? ExitCode.GENERAL_ERROR
-					: ExitCode.SUCCESS;
+				process.exitCode =
+					!toolchain.ok || hasBlockingMotionIssues(result.issues)
+						? ExitCode.GENERAL_ERROR
+						: ExitCode.SUCCESS;
 			},
 		);
-}
-
-function createMotionInstallCommand(): Command {
-	return new Command('install')
-		.description('Show motion tool installation plan')
-		.option('--check', 'Show planned tools without installing')
-		.action(() => {
-			console.log('Motion tools');
-			console.log('- gifski   encode GIF from PNG frames');
-			console.log('- apngasm  encode APNG from PNG frames');
-			console.log('');
-			console.log('Run mise install to install configured tools.');
-			process.exitCode = ExitCode.SUCCESS;
-		});
 }
 
 function renderMotionPlan(plan: MotionPlan): void {
@@ -154,18 +167,25 @@ function renderMotionPlan(plan: MotionPlan): void {
 	console.log(`Tool        ${plan.tool}`);
 }
 
-function renderToolResolutions(
-	resolutions: Awaited<ReturnType<typeof runMotionDoctor>>['toolResolutions'],
-): void {
-	for (const resolution of resolutions) {
-		const capability = resolution.requirement.capability;
-		if (resolution.selected) {
-			console.log(
-				`${capability} available (${resolution.selected.name}${resolution.selected.version ? ` ${resolution.selected.version}` : ''})`,
-			);
-		} else {
-			console.log(`${capability} missing`);
-		}
+function renderToolchainStatus(result: ToolchainDoctorResult): void {
+	const failed = result.checks.filter(
+		(check) => check.status === 'fail',
+	).length;
+	const warned = result.checks.filter(
+		(check) => check.status === 'warn',
+	).length;
+	const passed = result.checks.filter(
+		(check) => check.status === 'pass',
+	).length;
+	console.log(
+		`${result.module}: ${result.ok ? 'ok' : 'needs attention'} (${passed} pass, ${warned} warn, ${failed} fail)`,
+	);
+}
+
+function renderToolchainVerbose(result: ToolchainDoctorResult): void {
+	for (const check of result.checks) {
+		console.log(`${check.status.toUpperCase()} ${check.name}`);
+		console.log(check.message);
 	}
 }
 

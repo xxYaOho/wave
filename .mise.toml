@@ -1,0 +1,13 @@
+[tools]
+bun = "1.3.6"
+node = "20"
+pnpm = "latest"
+
+# Wave toolchain recommendations. Exact backend packages can vary by platform;
+# doctor/install commands use this file as the project-level mise entrypoint.
+oxipng = "latest"
+pngquant = "latest"
+svgo = "latest"
+gifsicle = "latest"
+gifski = "latest"
+apngasm = "latest"

@@ -72,8 +72,8 @@ describe('wave motion', () => {
 
 			expect(exitCode).toBe(0);
 			expect(stdout).toContain('Motion Doctor');
-			expect(stdout).toContain('encode-gif available');
-			expect(stdout).toContain('encode-apng available');
+			expect(stdout).toContain('PASS GIF encoding');
+			expect(stdout).toContain('PASS APNG encoding');
 			expect(stdout).toContain('WARNING WMG_NON_PNG_IGNORED');
 			expect(stdout).toContain('2 frames, 64x64, duration 0.08s at 24 fps');
 		} finally {
