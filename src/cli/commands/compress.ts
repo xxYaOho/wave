@@ -95,7 +95,7 @@ function createCompressRunCommand(name = 'run'): Command {
 		previous?: string[],
 	) => string[])
 	.option('-q, --quality <value>', 'Enable quality mode with lossy quality 1-100')
-	.option('-o, --out <path>', 'Output directory', './compressed')
+	.option('-o, --out <path>', 'Output directory')
 	.option('--dry-run', 'Preview compression without writing output')
 	.option('--yes', 'Write previewed output without prompting')
 	.option('--json', 'Output JSON and do not prompt')

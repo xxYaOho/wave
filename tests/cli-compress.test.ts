@@ -110,8 +110,54 @@ describe('wave compress', () => {
 			expect(stdout).toContain('sample.png');
 			expect(stdout).toContain('50%');
 			expect(
+				await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists(),
+			).toBe(false);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('--yes writes default output under input directory wave-compress', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tools = await createFakeToolDir();
+		try {
+			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
+
+			const { exitCode, stdout } = await runWave(
+				['compress', tempDir, '--type', 'png', '--yes'],
+				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain(path.join(tempDir, 'wave-compress'));
+			expect(
+				await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists(),
+			).toBe(true);
+			expect(
 				await Bun.file(path.join(rootDir, 'compressed/sample.png')).exists(),
 			).toBe(false);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('file input defaults output to parent wave-compress directory', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tools = await createFakeToolDir();
+		try {
+			const source = path.join(tempDir, 'sample.png');
+			await fs.writeFile(source, '0123456789');
+
+			const { exitCode, stdout } = await runWave(
+				['compress', source, '--type', 'png', '--yes'],
+				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain(path.join(tempDir, 'wave-compress'));
+			expect(await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists()).toBe(true);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 			await fs.rm(tools, { recursive: true, force: true });

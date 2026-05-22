@@ -73,7 +73,9 @@ export async function runCompress(
 ): Promise<CompressResult> {
 	const cwd = options.cwd ?? process.cwd();
 	const input = path.resolve(cwd, options.input);
-	const outDir = path.resolve(cwd, options.outDir ?? './compressed');
+	const outDir = options.outDir
+		? path.resolve(cwd, options.outDir)
+		: await defaultCompressOutputDir(input);
 	const mode: CompressMode = options.quality === undefined ? 'safe' : 'quality';
 	const resolver = options.resolver ?? new DefaultToolResolver();
 	const runner = options.runner ?? new BunCommandRunner();
@@ -169,6 +171,12 @@ export async function runCompress(
 		issues,
 		toolResolutions: resolutions,
 	};
+}
+
+async function defaultCompressOutputDir(input: string): Promise<string> {
+	const stat = await fs.stat(input);
+	const baseDir = stat.isDirectory() ? input : path.dirname(input);
+	return path.join(baseDir, 'wave-compress');
 }
 
 async function scanCompressCandidates(
