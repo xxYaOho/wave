@@ -45,47 +45,20 @@ function parseCliOptions(options: CreateCommandOptions): GenerateOptions {
 }
 
 export function createBuildCommand(name = 'create'): Command {
-	const isDesignTokenBuild = name === 'build';
 	return new Command(name)
 		.description('Generate design token output')
-		.argument(
-			isDesignTokenBuild ? '[file]' : '[name]',
-			isDesignTokenBuild ? 'main.yaml path' : 'Theme name to generate',
-		)
-		.option(
-			'-f, --file <path>',
-			isDesignTokenBuild ? 'main.yaml or themefile path' : 'Themefile path',
-		)
+		.argument('[name]', 'Theme name to generate')
+		.option('-f, --file <path>', 'Themefile path')
 		.option('--no-night', 'Disable night mode generation')
 		.option('--no-variants', 'Disable variants generation')
 		.option('--variants [names]', 'Specify variants (comma separated)')
 		.option('-o, --output <dir>', 'Output directory')
 		.option(
 			'--platform <list>',
-			'Output platforms (comma separated): json, jsonc, css, sketch',
+			'Output platforms (comma separated): json, jsonc, css',
 		)
 		.action(async (name: string | undefined, options: CreateCommandOptions) => {
 			let themeName = name;
-
-			if (isDesignTokenBuild) {
-				if (name) {
-					options.file = name;
-				} else if (!options.file) {
-					const defaultMainYaml = 'main.yaml';
-					const file = Bun.file(defaultMainYaml);
-					if (await file.exists()) {
-						options.file = defaultMainYaml;
-					} else {
-						console.error('Error: No main.yaml found in current directory');
-						console.error(
-							'Usage: wave dt build [main.yaml] or wave dt build -f <path>',
-						);
-						process.exitCode = ExitCode.FILE_NOT_FOUND;
-						return;
-					}
-				}
-				themeName = 'theme';
-			}
 
 			if (!themeName && !options.file) {
 				const defaultThemefile = 'themefile';

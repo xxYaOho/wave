@@ -2,7 +2,6 @@ import * as path from 'node:path';
 import {
 	type ColorSpaceFormat,
 	type DimensionResult,
-	type DtcgTokenGroup,
 	ExitCode,
 	type PaletteResult,
 	type ParsedThemefile,
@@ -37,8 +36,6 @@ export interface ThemefileLoadResult {
 	themeDir: string;
 	themefilePath: string;
 	themefileContent: string;
-	tokenPath?: string;
-	tokenContent?: string;
 }
 
 export interface DependencyDict {
@@ -86,194 +83,6 @@ function isParseError(result: unknown): result is ParseError {
 	);
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isMainYamlPath(filePath: string): boolean {
-	return path.basename(filePath) === 'main.yaml';
-}
-
-function scalarToString(value: unknown, field: string): string {
-	if (typeof value !== 'string' || value.trim() === '') {
-		throw new Error(`$config.${field} must be a non-empty string`);
-	}
-	return value;
-}
-
-function optionalScalarToString(
-	value: unknown,
-	field: string,
-): string | undefined {
-	if (value === undefined) return undefined;
-	return scalarToString(value, field);
-}
-
-function numberToParam(value: unknown, field: string): string | undefined {
-	if (value === undefined) return undefined;
-	if (typeof value !== 'number' || !Number.isFinite(value)) {
-		throw new Error(`$config.${field} must be a number`);
-	}
-	return String(value);
-}
-
-function stringArrayToParam(value: unknown, field: string): string | undefined {
-	if (value === undefined) return undefined;
-	if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
-		throw new Error(`$config.${field} must be a string array`);
-	}
-	return value.join(',');
-}
-
-function variantsToParam(value: unknown, field: string): string | undefined {
-	if (value === undefined) return undefined;
-	if (value === false) return 'false';
-	if (value === 'auto') return 'auto';
-	if (Array.isArray(value) && value.every((item) => typeof item === 'string')) {
-		return value.join(',');
-	}
-	throw new Error(`$config.${field} must be "auto", false, or a string array`);
-}
-
-function nightToParam(value: unknown, field: string): string | undefined {
-	if (value === undefined) return undefined;
-	if (value === false) return 'false';
-	if (value === 'auto') return 'auto';
-	throw new Error(`$config.${field} must be "auto" or false`);
-}
-
-function parameterToThemefileParams(
-	value: unknown,
-	prefix: string,
-): ParameterSet {
-	if (value === undefined) return {};
-	if (!isRecord(value)) {
-		throw new Error(`$config.${prefix} must be an object`);
-	}
-
-	const allowed = new Set([
-		'outputDir',
-		'platform',
-		'filterLayer',
-		'colorSpace',
-		'night',
-		'variants',
-	]);
-	const unknown = Object.keys(value).filter((key) => !allowed.has(key));
-	if (unknown.length > 0) {
-		throw new Error(`Unknown $config.${prefix} field: ${unknown[0]}`);
-	}
-
-	const params: ParameterSet = {};
-	const outputDir = optionalScalarToString(
-		value.outputDir,
-		`${prefix}.outputDir`,
-	);
-	if (outputDir !== undefined) params.output = outputDir;
-
-	const platform = stringArrayToParam(value.platform, `${prefix}.platform`);
-	if (platform !== undefined) params.platform = platform;
-
-	const filterLayer = numberToParam(value.filterLayer, `${prefix}.filterLayer`);
-	if (filterLayer !== undefined) params.filterLayer = filterLayer;
-
-	const colorSpace = optionalScalarToString(
-		value.colorSpace,
-		`${prefix}.colorSpace`,
-	);
-	if (colorSpace !== undefined) params.colorSpace = colorSpace;
-
-	const night = nightToParam(value.night, `${prefix}.night`);
-	if (night !== undefined) params.night = night;
-
-	const variants = variantsToParam(value.variants, `${prefix}.variants`);
-	if (variants !== undefined) params.variants = variants;
-
-	return params;
-}
-
-function resourceEntries(
-	resource: Record<string, unknown>,
-	kind: string,
-): { kind: string; ref: string }[] {
-	const value = resource[kind];
-	if (value === undefined) return [];
-	if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
-		throw new Error(`$config.resource.${kind} must be a string array`);
-	}
-	return value.map((ref) => ({ kind, ref }));
-}
-
-function parseConfigMainYaml(
-	content: string,
-	filePath: string,
-): ThemefileLoadResult | { error: Error | ParseError } {
-	const parsedYaml = parseThemeYaml(content);
-	if (isParseError(parsedYaml)) {
-		return { error: parsedYaml };
-	}
-
-	const raw = parsedYaml.raw as Record<string, unknown>;
-	const config = raw.$config;
-	if (!isRecord(config)) {
-		return { error: new Error('main.yaml is missing required $config object') };
-	}
-
-	const allowed = new Set(['theme', 'resource', 'parameter', 'parameterGroup']);
-	const unknown = Object.keys(config).filter((key) => !allowed.has(key));
-	if (unknown.length > 0) {
-		return { error: new Error(`Unknown $config field: ${unknown[0]}`) };
-	}
-
-	try {
-		const theme = scalarToString(config.theme, 'theme');
-		if (!isRecord(config.resource)) {
-			throw new Error('$config.resource must be an object');
-		}
-		const resources = [
-			...resourceEntries(config.resource, 'palette'),
-			...resourceEntries(config.resource, 'dimension'),
-			...resourceEntries(config.resource, 'custom'),
-		];
-		if (resources.length === 0) {
-			throw new Error('$config.resource must declare at least one resource');
-		}
-
-		const parameter = parameterToThemefileParams(config.parameter, 'parameter');
-		const groups: ParsedThemefile['groups'] = [];
-		if (config.parameterGroup !== undefined) {
-			if (!isRecord(config.parameterGroup)) {
-				throw new Error('$config.parameterGroup must be an object');
-			}
-			for (const [name, groupValue] of Object.entries(config.parameterGroup)) {
-				groups.push({
-					name,
-					PARAMETER: parameterToThemefileParams(
-						groupValue,
-						`parameterGroup.${name}`,
-					),
-				});
-			}
-		}
-
-		return {
-			parsed: {
-				THEME: theme,
-				PARAMETER: parameter,
-				resources,
-				groups,
-			},
-			themeDir: path.dirname(filePath),
-			themefilePath: filePath,
-			themefileContent: content,
-			tokenPath: filePath,
-			tokenContent: content,
-		};
-	} catch (err) {
-		return { error: err instanceof Error ? err : new Error(String(err)) };
-	}
-}
-
 export async function loadThemefile(
 	themePath?: string,
 ): Promise<ThemefileLoadResult | { error: ParseError | Error }> {
@@ -290,10 +99,6 @@ export async function loadThemefile(
 		themefileContent = await loadYamlFile(themefilePath);
 	} catch (err) {
 		return { error: err instanceof Error ? err : new Error(String(err)) };
-	}
-
-	if (isMainYamlPath(themefilePath)) {
-		return parseConfigMainYaml(themefileContent, themefilePath);
 	}
 
 	const parsed = parseThemefile(themefileContent);
@@ -412,21 +217,18 @@ export async function processThemeDocument(
 	yamlPath: string,
 	dict: DependencyDict,
 	colorSpace?: ColorSpaceFormat,
-	contentOverride?: string,
 ): Promise<ThemeDocumentResult> {
-	let content = contentOverride;
-	if (content === undefined) {
-		const file = Bun.file(yamlPath);
-		if (!(await file.exists())) {
-			return {
-				ok: false,
-				reason: 'file_not_found',
-				message: `File not found: ${yamlPath}`,
-				exitCode: ExitCode.FILE_NOT_FOUND,
-			};
-		}
-		content = await file.text();
+	const file = Bun.file(yamlPath);
+	if (!(await file.exists())) {
+		return {
+			ok: false,
+			reason: 'file_not_found',
+			message: `File not found: ${yamlPath}`,
+			exitCode: ExitCode.FILE_NOT_FOUND,
+		};
 	}
+
+	const content = await file.text();
 	const parsed = parseThemeYaml(content);
 
 	if (isParseError(parsed)) {
@@ -465,13 +267,11 @@ export async function processThemeDocument(
 
 	try {
 		// 展开 $extends 继承（在引用解析之前）
-		const tokenTree = { ...parsed.raw } as DtcgTokenGroup;
-		delete tokenTree.$config;
 		const rootKeys = new Set(
-			Object.keys(tokenTree).filter((k) => !k.startsWith('$')),
+			Object.keys(parsed.raw).filter((k) => !k.startsWith('$')),
 		);
 		if (rootKeys.size === 0) rootKeys.add('theme');
-		const expanded = expandExtends(tokenTree, rootKeys);
+		const expanded = expandExtends(parsed.raw, rootKeys);
 
 		const resolved = resolveReferences(expanded, sources);
 		const transformResult = transformToWaveTokens(
@@ -660,12 +460,7 @@ export function buildGroupPasses(
 
 	for (const group of parsed.groups) {
 		const merged = mergeParameters(parsed.PARAMETER, group.PARAMETER);
-		const resolved = resolveParameters(
-			merged,
-			themeDir,
-			cliOutput,
-			cliPlatform,
-		);
+		const resolved = resolveParameters(merged, themeDir, cliOutput, cliPlatform);
 		if (!resolved.outputDir) resolved.outputDir = defaultOutputDir;
 
 		// Conflict detection: duplicate (outputDir, platform) combinations
