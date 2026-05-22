@@ -321,10 +321,10 @@ function resolveDtcgRef(
 
 // 递归处理嵌套对象/数组中的 $ref（Pass 1：外部引用）
 type NestedValue =
-	| DtcgScalarValue
+	| DtcgValue
 	| DtcgRefValue
 	| NestedValue[]
-	| { [key: string]: NestedValue };
+	| { [key: string]: NestedValue | undefined };
 
 function resolveNestedRefs(
 	value: NestedValue,
@@ -361,7 +361,7 @@ function resolveNestedRefs(
 		);
 		if (refMatch) {
 			const refPath = refMatch[1]!;
-			const prefix = refPath.split('.')[0];
+			const prefix = refPath.split('.')[0]!;
 
 			// Internal reference (belongs to document) - keep for Pass 2, don't treat as error
 			if (rootKeys.has(prefix)) {
@@ -404,6 +404,9 @@ function resolveNestedRefs(
 	if (typeof value === 'object' && value !== null) {
 		const resolved: { [key: string]: NestedValue } = {};
 		for (const [key, val] of Object.entries(value)) {
+			if (val === undefined) {
+				continue;
+			}
 			resolved[key] = resolveNestedRefs(
 				val,
 				sources,
@@ -483,6 +486,9 @@ function resolveNestedInternalRefs(
 	if (typeof value === 'object' && value !== null) {
 		const resolved: { [key: string]: NestedValue } = {};
 		for (const [key, val] of Object.entries(value)) {
+			if (val === undefined) {
+				continue;
+			}
 			resolved[key] = resolveNestedInternalRefs(
 				val,
 				sources,
@@ -526,12 +532,12 @@ function resolveExternalReference(
 	const prefix = path[0];
 	const pathWithoutPrefix = path.slice(1);
 
-	if (pathWithoutPrefix.length < 1) {
+	if (!prefix || pathWithoutPrefix.length < 1) {
 		logger.warn(`Reference path too short: ${ref}`);
 		return undefined;
 	}
 
-	if (rootKeys.has(prefix) || !prefix) {
+	if (rootKeys.has(prefix)) {
 		return undefined;
 	}
 
@@ -569,7 +575,7 @@ function resolveInternalReference(
 	}
 
 	// Check if the reference prefix belongs to this document
-	const prefix = pathStr.split('.')[0];
+	const prefix = pathStr.split('.')[0]!;
 	if (!rootKeys.has(prefix)) {
 		return undefined;
 	}
@@ -625,7 +631,7 @@ function resolveExternalDtcgValue(
 		);
 		if (refMatch) {
 			const refPath = refMatch[1]!;
-			const prefix = refPath.split('.')[0];
+			const prefix = refPath.split('.')[0]!;
 
 			// Internal reference (belongs to document) - keep for Pass 2, don't treat as error
 			if (rootKeys.has(prefix)) {
@@ -668,6 +674,9 @@ function resolveExternalDtcgValue(
 		const resolved: Record<string, NestedValue> = {};
 
 		for (const [key, val] of Object.entries(value)) {
+			if (val === undefined) {
+				continue;
+			}
 			if (Array.isArray(val)) {
 				// 使用 resolveNestedRefs 处理数组（包括嵌套对象中的 $ref）
 				const resolvedArray = val.map((item, index) => {
@@ -718,7 +727,7 @@ function resolveExternalDtcgValue(
 				);
 				if (refMatch) {
 					const refPath = refMatch[1]!;
-					const prefix = refPath.split('.')[0];
+					const prefix = refPath.split('.')[0]!;
 
 					// Internal reference (belongs to document) - keep for Pass 2, don't treat as error
 					if (rootKeys.has(prefix)) {
@@ -825,6 +834,9 @@ function resolveInternalDtcgValue(
 		const resolved: Record<string, NestedValue> = {};
 
 		for (const [key, val] of Object.entries(value)) {
+			if (val === undefined) {
+				continue;
+			}
 			if (Array.isArray(val)) {
 				// 使用 resolveNestedInternalRefs 处理数组（包括嵌套对象中的 $ref）
 				const resolvedArray = val.map((item, index) =>
@@ -1146,7 +1158,7 @@ function hasInternalReferences(
 	if (typeof value === 'string') {
 		const match = value.match(REFERENCE_PATTERN);
 		if (match && match[1]) {
-			const prefix = match[1].split('.')[0];
+			const prefix = match[1].split('.')[0]!;
 			return rootKeys.has(prefix);
 		}
 		return false;
@@ -1160,6 +1172,9 @@ function hasInternalReferences(
 	// 处理对象
 	if (typeof value === 'object' && value !== null) {
 		for (const [, val] of Object.entries(value)) {
+			if (val === undefined) {
+				continue;
+			}
 			if (hasInternalReferences(val, rootKeys)) {
 				return true;
 			}
@@ -1481,12 +1496,18 @@ function deepMergeGroups(
 				if (
 					typeof parentExtensions === 'object' &&
 					parentExtensions !== null &&
+					!Array.isArray(parentExtensions) &&
 					typeof childValue === 'object' &&
-					childValue !== null
+					childValue !== null &&
+					!Array.isArray(childValue)
 				) {
 					result[key] = { ...parentExtensions, ...childValue };
-				} else {
-					result[key] = childValue;
+				} else if (
+					typeof childValue === 'object' &&
+					childValue !== null &&
+					!Array.isArray(childValue)
+				) {
+					result[key] = childValue as Record<string, unknown>;
 				}
 			} else {
 				// $type, $description 等：子直接覆盖父

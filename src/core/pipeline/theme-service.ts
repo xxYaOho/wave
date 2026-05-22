@@ -73,14 +73,17 @@ async function generatePass(
 	filterLayer: number | undefined,
 	colorSpace: string | undefined,
 	_generateOptions: GenerateOptions,
+	mainYamlPathOverride?: string,
+	mainYamlContentOverride?: string,
 	selectedThemes?: ThemeFileEntry[],
 	ctx?: BuildContext,
 ): Promise<{ files: string[] } | ThemeGenerationFailure> {
 	const files: string[] = [];
 
-	const mainYamlPath = path.join(themeDir, 'main.yaml');
+	const mainYamlPath = mainYamlPathOverride ?? path.join(themeDir, 'main.yaml');
 	const mainYamlFile = Bun.file(mainYamlPath);
-	const hasMainYaml = await mainYamlFile.exists();
+	const hasMainYaml =
+		mainYamlContentOverride !== undefined || (await mainYamlFile.exists());
 
 	if (hasMainYaml && isSelected(selectedThemes, 'main')) {
 		if (!ctx) logger.info('Found main.yaml, parsing theme tokens...');
@@ -88,6 +91,7 @@ async function generatePass(
 			mainYamlPath,
 			dict,
 			colorSpace as import('../../types/index.ts').ColorSpaceFormat | undefined,
+			mainYamlContentOverride,
 		);
 
 		if (!parseResult.ok) {
@@ -177,6 +181,7 @@ export async function generateTheme(
 			: 'themefile parse';
 		ctx?.markFailed('load', err.message, {
 			phase,
+			detail: err.message,
 			line: 'line' in err ? (err as { line: number }).line : undefined,
 		});
 		if (err.message.includes('not found')) {
@@ -201,7 +206,7 @@ export async function generateTheme(
 		};
 	}
 
-	const { parsed, themeDir } = loadResult;
+	const { parsed, themeDir, mainYamlPath, mainYamlContent } = loadResult;
 	const resolvedThemeName = parsed.THEME || themeName;
 
 	// Step 2: Build dependency dictionary (once)
@@ -252,6 +257,8 @@ export async function generateTheme(
 			pass.filterLayer,
 			pass.colorSpace,
 			generateOptions,
+			mainYamlPath,
+			mainYamlContent,
 			selectedThemes,
 			ctx,
 		);

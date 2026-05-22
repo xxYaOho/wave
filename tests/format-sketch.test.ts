@@ -165,9 +165,10 @@ describe('sketchFormat (Wave-native)', () => {
 
 		sketchFormat(tokens);
 
-		expect((tokens[0].value as unknown[])[0]).toMatchObject({ blur: 2, offsetY: 1 });
-		expect((tokens[0].value as unknown[])[1]).toMatchObject({ blur: 8, offsetY: 4 });
-		expect((tokens[0].value as unknown[])[2]).toMatchObject({ blur: 16, offsetY: 8 });
+		const value = tokens[0]!.value as unknown[];
+		expect(value[0]).toMatchObject({ blur: 2, offsetY: 1 });
+		expect(value[1]).toMatchObject({ blur: 8, offsetY: 4 });
+		expect(value[2]).toMatchObject({ blur: 16, offsetY: 8 });
 	});
 
 	test('omits empty groups from output', () => {

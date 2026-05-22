@@ -79,10 +79,11 @@ function multiValueLines(
 	for (let i = 0; i < values.length; i++) {
 		const prefix = i === 0 ? keyPart : indent;
 		const maxValue = w - vlen(prefix);
+		const current = values[i] ?? '';
 		const value =
-			vlen(values[i]) > maxValue
-				? `${values[i].slice(0, Math.max(0, maxValue - 3))}...`
-				: values[i];
+			vlen(current) > maxValue
+				? `${current.slice(0, Math.max(0, maxValue - 3))}...`
+				: current;
 		lines.push(`│ ${vpad(`${prefix}${value}`, w)} │`);
 	}
 	return lines;
@@ -306,7 +307,11 @@ function renderFailed(ctx: BuildContext, w: number): string {
 		const label = categoryLabels[err.category] ?? err.category;
 		lines.push(kvLine(phase, pc.red(label), undefined, w));
 		if (err.detail || err.line) {
-			const detail = err.line ? `line ${err.line}` : err.detail;
+			const detail = err.line
+				? err.detail
+					? `line ${err.line}: ${err.detail}`
+					: `line ${err.line}`
+				: err.detail;
 			const indent = ' '.repeat(KEY_COL + 2);
 			lines.push(line(`${indent}${pc.red(detail)}`, w));
 		}

@@ -2,6 +2,12 @@ import { describe, expect, test } from 'bun:test';
 import { parseThemefile } from '../src/core/parser/themefile.ts';
 
 describe('parseThemefile GROUP directive', () => {
+	function expectGroup<T>(groups: T[], index: number): T {
+		const group = groups[index];
+		expect(group).toBeDefined();
+		return group!;
+	}
+
 	test('no GROUP → groups is empty array', () => {
 		const content = `
 THEME test
@@ -29,8 +35,9 @@ GROUP {
 		expect('resources' in result).toBe(true);
 		if ('resources' in result) {
 			expect(result.groups).toHaveLength(1);
-			expect(result.groups[0].name).toBeUndefined();
-			expect(result.groups[0].PARAMETER).toEqual({ platform: 'css' });
+			const group = expectGroup(result.groups, 0);
+			expect(group.name).toBeUndefined();
+			expect(group.PARAMETER).toEqual({ platform: 'css' });
 		}
 	});
 
@@ -48,8 +55,9 @@ GROUP "css" {
 		expect('resources' in result).toBe(true);
 		if ('resources' in result) {
 			expect(result.groups).toHaveLength(1);
-			expect(result.groups[0].name).toBe('css');
-			expect(result.groups[0].PARAMETER).toEqual({
+			const group = expectGroup(result.groups, 0);
+			expect(group.name).toBe('css');
+			expect(group.PARAMETER).toEqual({
 				platform: 'css',
 				filterLayer: '3',
 			});
@@ -73,9 +81,11 @@ GROUP "sketch" {
 		expect('resources' in result).toBe(true);
 		if ('resources' in result) {
 			expect(result.groups).toHaveLength(2);
-			expect(result.groups[0].name).toBe('css');
-			expect(result.groups[1].name).toBe('sketch');
-			expect(result.groups[1].PARAMETER.output).toBe('./build/sketch');
+			const cssGroup = expectGroup(result.groups, 0);
+			const sketchGroup = expectGroup(result.groups, 1);
+			expect(cssGroup.name).toBe('css');
+			expect(sketchGroup.name).toBe('sketch');
+			expect(sketchGroup.PARAMETER.output).toBe('./build/sketch');
 		}
 	});
 
@@ -137,7 +147,9 @@ GROUP "css" {
 		const result = parseThemefile(content);
 		expect('line' in result).toBe(true);
 		if ('line' in result) {
-			expect(result.message).toContain('Only PARAMETER is allowed inside GROUP');
+			expect(result.message).toContain(
+				'Only PARAMETER is allowed inside GROUP',
+			);
 		}
 	});
 
@@ -153,7 +165,9 @@ GROUP "css" {
 		const result = parseThemefile(content);
 		expect('line' in result).toBe(true);
 		if ('line' in result) {
-			expect(result.message).toContain('Only PARAMETER is allowed inside GROUP');
+			expect(result.message).toContain(
+				'Only PARAMETER is allowed inside GROUP',
+			);
 		}
 	});
 
@@ -173,7 +187,8 @@ GROUP "css" {
 		expect('resources' in result).toBe(true);
 		if ('resources' in result) {
 			expect(result.groups).toHaveLength(1);
-			expect(result.groups[0].PARAMETER).toEqual({
+			const group = expectGroup(result.groups, 0);
+			expect(group.PARAMETER).toEqual({
 				platform: 'css',
 				filterLayer: '2',
 			});
@@ -192,8 +207,9 @@ GROUP "empty" {
 		expect('resources' in result).toBe(true);
 		if ('resources' in result) {
 			expect(result.groups).toHaveLength(1);
-			expect(result.groups[0].name).toBe('empty');
-			expect(result.groups[0].PARAMETER).toEqual({});
+			const group = expectGroup(result.groups, 0);
+			expect(group.name).toBe('empty');
+			expect(group.PARAMETER).toEqual({});
 		}
 	});
 
@@ -217,7 +233,8 @@ GROUP "css" {
 				colorSpace: 'hex',
 			});
 			expect(result.groups).toHaveLength(1);
-			expect(result.groups[0].PARAMETER).toEqual({
+			const group = expectGroup(result.groups, 0);
+			expect(group.PARAMETER).toEqual({
 				platform: 'css',
 				output: './build/css',
 			});

@@ -1,5 +1,6 @@
 import type { ResolvedTokenGroup } from '../../types/index.ts';
 import {
+	type DoctorFinding,
 	type DoctorNamedPair,
 	type DoctorRunResult,
 	type DoctorThemeReport,

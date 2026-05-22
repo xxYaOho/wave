@@ -205,7 +205,9 @@ describe('smoothGradient transformation', () => {
 		const result = transformToWaveTokens(input);
 		const token = findToken(result.tokens, 'gradient-smooth');
 		expect(token.value).toHaveLength(3);
-		expect((token as Record<string, unknown>).$extensions).toBeUndefined();
+		expect(
+			(token as unknown as Record<string, unknown>).$extensions,
+		).toBeUndefined();
 	});
 
 	test('scales positions within original range [0, 0.5]', () => {
