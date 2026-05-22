@@ -6,7 +6,7 @@
 
 ## Mental Model（agent 必读）
 
-wave 是面向 UI/UX 设计师的 CLI 工具集，当前核心能力是 design token 生成。
+wave 是面向 UI/UX 设计师的本地 CLI 工具集。当前已包含 design token、素材压缩、PNG 帧动效生成和本地工具链检查。
 
 **当前 token 生成的数据流：**
 
@@ -18,7 +18,7 @@ themefile（声明数据源 + 输出参数）
     ↓
 颜色转换（colorSpace 在输出阶段介入）
     ↓
-输出文件（.json / .jsonc / .css）
+输出文件（.json / .jsonc / .css / sketch JSON）
 ```
 
 **认知边界：**
@@ -27,12 +27,18 @@ themefile（声明数据源 + 输出参数）
 - main.yaml：唯一的 token 内容来源
 - RESOURCE：只提供引用解析数据，不直接输出
 - colorSpace 转换发生在输出阶段，不影响引用解析过程
+- dt：当前是 design-token 模块入口，内部仍复用 themefile 主链路
+- compress：只处理已有 PNG/JPG/SVG/GIF 素材压缩，不从帧生成动效
+- motion/mg：只从 PNG 帧目录生成 GIF/APNG
+- install/doctor：检查和安装本地工具链，不改变 token 数据模型
 
 **常见误区：**
 
 - ❌ 不要在资源文件里加输出逻辑
 - ❌ 不要绕过 main.yaml 直接从资源生成 token
 - ❌ 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
+- ❌ 不要把 compress 和 motion 的外部工具判断各写一套；应复用 `ToolResolver` / `CommandRunner`
+- ❌ 不要把当前版本误写成已完成 `main.yaml::$config` 的 vNext 模型；当前仍以 `themefile` 为入口
 
 ---
 
@@ -41,12 +47,46 @@ themefile（声明数据源 + 输出参数）
 - `wave create`：读取当前目录 `themefile` 文件生成 token
 - `wave create [path]`：指定 themefile 路径生成
 - `wave create -f <path>`：使用 `-f` 指定 themefile 文件
-- `wave doctor`：健康检查
+- `wave dt`：design-token 模块入口，默认等价于 `wave dt build`
+- `wave dt build`：生成 design token 输出，当前复用 `wave create` 主链路
+- `wave dt init`：初始化主题工作区
+- `wave dt show`：浏览内置资源
+- `wave dt doctor`：design-token 健康检查入口，当前复用 `wave doctor`
+- `wave dt wcag`：运行 WCAG 对比度检查
+- `wave doctor`：核心运行环境和本地工具链健康检查
 - `wave doctor --contrast`：WCAG 对比度检查
+- `wave install`：通过 mise 安装推荐工具链
+- `wave compress`：压缩 PNG/JPG/SVG/GIF 素材，内部归一化为 `wave compress run`
+- `wave compress doctor`：检查压缩工具链
+- `wave compress install`：安装压缩工具组
+- `wave motion gif <framesDir>`：从 PNG 帧目录生成 GIF
+- `wave motion apng <framesDir>`：从 PNG 帧目录生成 APNG
+- `wave motion doctor [framesDir]`：检查动效工具链和可选帧目录
+- `wave motion install`：安装动效工具组
+- `wave mg`：`wave motion` 的 alias
 - `wave show`：浏览内置资源
 - `wave init`：初始化主题工作区
 - `wave help`：显示帮助
 - `wave --version`：显示版本号
+
+### dt 命令
+
+`dt` 是 design-token 能力域入口。当前版本还没有切到 vNext 的 `main.yaml::$config` 模型，`dt build` 仍读取 `themefile`。
+
+- `wave dt`：内部归一化为 `wave dt build`
+- `wave dt build [name]`：生成 design token 输出
+- `wave dt init`：创建 themefile / main.yaml 模板
+- `wave dt show [category] [name]`：浏览内置资源
+- `wave dt doctor`：运行 design-token 健康检查
+- `wave dt wcag [scope]`：运行 WCAG 对比度检查
+
+`wave dt wcag` 规则：
+
+- 不传 `scope` 时检查 main
+- `scope=main` 时检查 `main.yaml`
+- 其他 scope 视作 variant 名称
+- `--night` 检查 night 版本
+- `--variants <name>` 可显式指定 variant，优先于 scope 推断
 
 ### show 命令
 
@@ -67,6 +107,42 @@ themefile（声明数据源 + 输出参数）
 - `--platform <list>`：指定输出平台（逗号分隔）：`json`、`jsonc`、`css`、`sketch`
 - `--init`：创建主题模板（生成 themefile、main.yaml、manual.md）
 - `-o, --output <dir>`：指定输出目录
+
+### toolchain 命令
+
+Wave 不捆绑 `oxipng`、`pngquant`、`svgo`、`gifsicle`、`gifski`、`apngasm`、`jpegtran`、`mozjpeg` 等二进制工具。工具发现、版本检查、安装计划和命令执行通过 `src/core/tools/*` 的 `ToolResolver` / `CommandRunner` 统一处理。
+
+**工具能力：**
+
+| 能力 | 候选工具 |
+|------|----------|
+| `compress-png` | `oxipng`, `pngquant` |
+| `compress-jpg` | `jpegtran`, `mozjpeg` |
+| `compress-svg` | `svgo` |
+| `compress-gif` | `gifsicle` |
+| `encode-gif` | `gifski` |
+| `encode-apng` | `apngasm` |
+
+**安装入口：**
+
+- `wave install --check`：展示完整推荐工具链安装计划，不执行安装
+- `wave install --yes`：执行 `mise run install:wave`
+- `wave compress install --check`：展示压缩工具组安装计划
+- `wave compress install --yes`：执行 `mise run install:compress`
+- `wave motion install --check`：展示动效工具组安装计划
+- `wave motion install --yes`：执行 `mise run install:motion`
+- `--json`：输出结构化 install plan 或 install result
+
+缺少 `mise` 时，安装命令返回用户可读错误，不输出 Bun runtime stack。
+
+**doctor 入口：**
+
+- `wave doctor`：核心环境和全量工具摘要；缺少模块工具在 core 视角降级为 warning
+- `wave doctor --json`：输出 `ToolchainDoctorResult`
+- `wave doctor --status`：输出紧凑状态
+- `wave compress doctor`：检查压缩工具链；缺少工具为 error
+- `wave motion doctor [framesDir]`：检查动效工具链和可选帧目录；缺少工具为 warning，帧目录错误为 error
+- 模块 doctor 支持 `--json`、`--status`、`--verbose`
 
 ---
 
@@ -173,6 +249,123 @@ GROUP "sketch" {
 上述配置会产生两次构建：css 组输出到 `./build/css`，sketch 组输出到 `./build/sketch`，两组均继承全局 `colorSpace hex`。
 
 **冲突检测：** 多个 GROUP 产生相同的 `(outputDir, platform)` 组合时，系统输出 warning。
+
+---
+
+## Compress 行为
+
+`compress` 处理已有素材文件。它不生成动效，不上传第三方服务，不覆盖源文件。
+
+### 命令形态
+
+```bash
+wave compress [input]
+wave compress run [input]
+wave compress doctor
+wave compress install
+```
+
+`wave compress [input]` 是低记忆入口。CLI 会把它归一化为 `wave compress run [input]`，同时保留 `doctor` 和 `install` 作为真实子命令。
+
+### run 参数
+
+- `[input]`：文件或目录，默认 `.`
+- `--recursive`：递归扫描子目录
+- `--type <type>`：限制类型，支持 `png`、`jpg`、`svg`、`gif`，可重复
+- `-q, --quality <value>`：启用质量模式，取值 1-100
+- `-o, --out <path>`：指定输出目录
+- `--dry-run`：只预览，不写文件
+- `--yes`：写入预览结果
+- `--json`：输出 JSON；不带 `--yes` 时强制 dry-run
+
+### 扫描与输出
+
+- 目录输入默认只扫描当前一级文件。
+- 文件输入只处理该文件。
+- 不传 `--out` 时，目录输入输出到 `<input-dir>/wave-compress/`。
+- 不传 `--out` 时，文件输入输出到 `<file-parent>/wave-compress/`。
+- 显式 `--out` 按当前 cwd 解析相对路径。
+- 输出保留输入相对路径结构。
+
+### 预览与安全落盘
+
+`compress` 总是先写入临时目录并计算真实大小差异。
+
+- 不传 `--yes`：只展示 Compress Preview，不写最终输出。
+- `--dry-run`：只展示 preview，不询问也不写最终输出。
+- `--yes`：写入最终输出。
+- 若优化产物更小，状态为 `optimized`，写入优化产物。
+- 若优化产物不更小，状态为 `unchanged`，写入原始字节。
+- receipt 中 `optimized` 行显示 `saved, <percent>%`；`unchanged` 行显示 `unchanged`。
+
+### 工具选择
+
+| 文件类型 | safe 模式 | quality 模式 |
+|----------|-----------|--------------|
+| PNG | `oxipng` | `pngquant` |
+| JPG/JPEG | `jpegtran`，fallback `mozjpeg` | `mozjpeg` |
+| SVG | `svgo` | `svgo` |
+| GIF | `gifsicle` | `gifsicle` |
+
+`--quality` 只影响 PNG/JPG 的工具选择。SVG/GIF 仍走 safe 工具。
+
+### 诊断
+
+`wave compress doctor` 只检查工具链，不处理文件。缺少当前模块所需工具时退出码非 0。`--json` 输出结构化诊断，`--status` 输出紧凑状态，`--verbose` 输出候选工具详情。
+
+---
+
+## Motion 行为
+
+`motion` 从 PNG 帧目录生成 GIF 或 APNG。`mg` 是 `motion` 的 alias。
+
+### 命令形态
+
+```bash
+wave motion gif <framesDir>
+wave motion apng <framesDir>
+wave mg gif <framesDir>
+wave mg apng <framesDir>
+wave motion doctor [framesDir]
+wave motion install
+```
+
+### 参数
+
+- `<framesDir>`：PNG 帧目录
+- `--fps <number>`：帧率，默认 `24`，必须大于 0
+- `--quality <number>`：编码质量，默认 `80`，取值 1-100
+- `--loop <mode>`：循环模式，默认 `forever`，支持 `forever` / `once`
+- `-o, --out <path>`：输出文件路径
+- `--overwrite`：允许覆盖已有输出
+- `--dry-run`：展示计划，不执行编码
+
+### 帧目录规则
+
+- 只支持 PNG 文件。
+- 非 PNG 文件会被忽略并产生 `WMG_NON_PNG_IGNORED` warning。
+- 文件按名称自然排序。
+- 至少需要 2 帧，否则 `WMG_FRAME_COUNT_LOW`。
+- 所有帧尺寸必须一致，否则 `WMG_FRAME_SIZE_MISMATCH`。
+- 无效 PNG 返回 `WMG_FRAME_FORMAT_UNSUPPORTED`，不泄漏运行时 stack。
+
+### 输出路径
+
+- GIF 默认输出到帧目录同级的 `<frames-dir-name>.gif`。
+- APNG 默认输出到帧目录同级的 `<frames-dir-name>.png`。
+- 指定 `--out` 时按当前 cwd 解析相对路径。
+- 输出已存在且未传 `--overwrite` 时返回 `WMG_OUTPUT_EXISTS`。
+
+### 后端工具
+
+- GIF 使用 `gifski`。
+- APNG 使用 `apngasm`。
+- GIF 后端不支持 `--loop once`，会返回 `WMG_LOOP_UNSUPPORTED`。
+- APNG 将 `forever` 映射为 `-l 0`，`once` 映射为 `-l 1`。
+
+### 诊断
+
+`wave motion doctor` 检查 `gifski` 和 `apngasm`。缺少工具为 warning；带 `framesDir` 时还会检查帧目录。帧数量不足、尺寸不一致、PNG 无效等为 blocking error。
 
 ---
 

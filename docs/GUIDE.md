@@ -1,6 +1,6 @@
 # Wave 使用指南
 
-面向 UI/UX 设计师的 Design Token CLI 工具完整指南。
+面向 UI/UX 设计师的本地设计交付 CLI 使用指南。
 
 ---
 
@@ -8,6 +8,9 @@
 
 - [准备工作](#准备工作)
 - [基础用法](#基础用法)
+- [本地工具链](#本地工具链)
+- [素材压缩](#素材压缩)
+- [动效生成](#动效生成)
 - [引用系统](#引用系统)
 - [进阶主题](#进阶主题)
 - [内置资源](#内置资源)
@@ -20,21 +23,24 @@
 
 ### 安装
 
-1. **安装 Bun**: <https://bun.sh>
+1. **安装 mise**: <https://mise.jdx.dev/>
 
 2. **安装 Wave**:
 
 ```bash
 git clone <repository-url>
 cd wave
-bun install
+mise install
+pnpm install
 ```
 
 3. **验证安装**:
 
 ```bash
-bun run wave --version
+pnpm dev -- --version
 ```
+
+> 说明：Bun 是 Wave CLI 的运行时；pnpm 负责依赖安装和 lockfile 管理；mise 负责安装 Bun、pnpm 和本地图片/动效工具。
 
 ### 项目结构
 
@@ -164,12 +170,172 @@ wave create -f ./my-theme/themefile
 wave create my-theme -f ./my-theme/themefile
 ```
 
+也可以使用 design-token 模块入口：
+
+```bash
+# 等价于 wave dt build
+wave dt
+
+# 显式构建设计令牌
+wave dt build
+
+# 通过 dt 入口运行 WCAG 对比度检查
+wave dt wcag
+wave dt wcag dark --night
+```
+
+当前版本的 `wave dt build` 仍复用 `themefile` + `main.yaml` 主链路。`create`、`show`、`init` 仍保留为兼容入口。
+
 **输出文件**:
 
 - `{theme}.json` - JSON 格式（紧凑，默认）
 - `{theme}.jsonc` - JSON with Comments（带注释）
 - `{theme}.css` - CSS 变量
 - `{theme}2sketch.json` - Sketch API 兼容格式
+
+---
+
+## 本地工具链
+
+Wave 不捆绑图片压缩和动效编码工具。它通过本机工具完成压缩和编码，并提供 doctor/install 入口降低配置成本。
+
+### 检查环境
+
+```bash
+# 检查 Wave 运行时和本地工具摘要
+wave doctor
+
+# 紧凑状态
+wave doctor --status
+
+# 结构化输出
+wave doctor --json
+```
+
+### 查看安装计划
+
+```bash
+wave install --check
+wave compress install --check
+wave motion install --check
+```
+
+### 执行安装
+
+```bash
+wave install --yes
+wave compress install --yes
+wave motion install --yes
+```
+
+这些命令调用项目 `.mise.toml` 中的 mise task。缺少 mise 时，Wave 会提示先安装 mise，不会输出 Bun 运行时堆栈。
+
+工具分组：
+
+| 模块 | 需要的本地工具 |
+|------|----------------|
+| `compress` | `oxipng`, `pngquant`, `svgo`, `gifsicle`, `jpegtran` 或 `mozjpeg` |
+| `motion` | `gifski`, `apngasm` |
+
+---
+
+## 素材压缩
+
+`wave compress` 用于压缩已有 PNG/JPG/SVG/GIF 文件，不负责从帧生成动效。
+
+```bash
+# 预览当前目录支持的文件，不落盘
+wave compress . --dry-run
+
+# 压缩目录中的素材并写入默认输出目录
+wave compress ./assets --yes
+
+# 只处理 PNG
+wave compress ./assets --type png --yes
+
+# 递归扫描子目录
+wave compress ./assets --recursive --yes
+
+# 显式指定输出目录
+wave compress ./assets --out ./optimized --yes
+
+# JSON 输出，适合脚本读取
+wave compress ./assets --json
+```
+
+真实子命令是 `wave compress run`。为了降低记忆成本，`wave compress ./assets` 会在内部归一化为 `wave compress run ./assets`。
+
+默认行为：
+
+- 不传 `--yes` 时只做 preview，不写文件。
+- `--dry-run` 只展示预览，不询问也不写文件。
+- `--yes` 会写入预览结果。
+- 不传 `--recursive` 时，目录输入只扫描当前一级文件。
+- 不传 `--out` 时，目录输入输出到 `<input-dir>/wave-compress/`；文件输入输出到 `<file-parent>/wave-compress/`。
+- 若优化结果比原文件更大，Wave 会把该文件标为 `unchanged`，落盘时复制原文件字节，不使用更大的优化产物。
+
+安全模式与质量模式：
+
+| 模式 | 触发方式 | 工具选择 |
+|------|----------|----------|
+| safe | 默认 | PNG 用 `oxipng`，JPG 用 `jpegtran` 或 `mozjpeg`，SVG 用 `svgo`，GIF 用 `gifsicle` |
+| quality | 传 `--quality 1-100` | PNG 用 `pngquant`，JPG 用 `mozjpeg` |
+
+检查压缩工具：
+
+```bash
+wave compress doctor
+wave compress doctor --status
+wave compress doctor --json
+```
+
+---
+
+## 动效生成
+
+`wave motion` 用于把 PNG 帧目录编码为 GIF 或 APNG。`wave mg` 是同等 alias。
+
+```bash
+# 生成 GIF
+wave motion gif ./frames
+
+# 生成 APNG
+wave motion apng ./frames
+
+# 使用 alias
+wave mg gif ./frames
+
+# 指定帧率、输出路径
+wave motion gif ./frames --fps 24 --out loading.gif
+
+# 仅展示计划，不生成文件
+wave motion apng ./frames --dry-run
+
+# 覆盖已有输出
+wave motion gif ./frames --overwrite
+```
+
+默认行为：
+
+- 输入必须是 PNG 帧目录。
+- 帧文件按文件名自然排序。
+- 至少需要 2 帧。
+- 所有帧尺寸必须一致。
+- 默认 `fps=24`，`quality=80`，`loop=forever`。
+- 不传 `--out` 时，GIF 输出到帧目录同级的 `<frames-dir-name>.gif`，APNG 输出到 `<frames-dir-name>.png`。
+- 输出已存在时默认报错；传 `--overwrite` 才覆盖。
+- 非 PNG 文件会被忽略并报告 warning。
+- 无效 PNG 会报告 `WMG_FRAME_FORMAT_UNSUPPORTED`，不会泄漏运行时堆栈。
+- GIF 后端不支持 `--loop once`，会明确报错；APNG 支持 `forever` 和 `once`。
+
+检查动效工具和帧目录：
+
+```bash
+wave motion doctor
+wave motion doctor ./frames
+wave motion doctor ./frames --verbose
+wave motion doctor ./frames --json
+```
 
 ---
 

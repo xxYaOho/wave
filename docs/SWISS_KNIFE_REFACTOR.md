@@ -1,7 +1,9 @@
 # Wave 瑞士军刀化重构设计
 
-> 状态：设计草案
+> 状态：蓝图 + 部分已落地
 > 目标：记录 Wave 从单一 design token CLI 演进为设计师本地瑞士军刀 CLI 的产品与工程决策。
+
+> 当前事实同步：`dt` 入口、toolchain doctor/install、`compress`、`motion`/`mg` 已合入当前代码；`pnpm` 已成为依赖管理器，Bun 仍是 CLI runtime。当前版本仍以 `themefile` + `main.yaml` 为 design-token 主链路，尚未完全切到本文规划的 `main.yaml::$config`、monorepo、Turborepo、Vitest 和 `WorkspaceIO` 包结构。真实当前行为以 `docs/SPEC.md` 为准。
 
 ---
 
@@ -11,7 +13,7 @@ Wave 的长期定位是 **Designer Swiss Knife CLI**：一把面向 UI/UX 设计
 
 当前 Wave 的核心能力是 design token 生成。重构后，design token 只是 Wave 的第一个能力域，后续还会纳入素材压缩、动效资产生成等高频设计交付工作。
 
-`docs/SPEC.md` 仍记录当前旧版行为。本文记录下一阶段产品和工程架构设计；瑞士军刀化重构完成并真实改变行为后，再更新 `docs/SPEC.md`。
+`docs/SPEC.md` 记录当前真实行为快照。本文记录产品和工程架构蓝图；当实现与蓝图不同步时，以 `docs/SPEC.md` 和源码为准。
 
 ## 二、问题定义
 
@@ -150,7 +152,7 @@ wave compress . --yes
 wave compress . --recursive
 wave compress . --type jpg --type png
 wave compress . --quality 80
-wave compress . --out ./compressed
+wave compress . --out ./optimized
 wave compress install
 wave compress doctor
 ```
@@ -159,7 +161,7 @@ wave compress doctor
 
 - 默认只扫描输入目录的当前一级文件，不递归子目录。
 - 默认执行 preview-run：先压缩到临时目录，计算真实压缩效果，再展示小票并询问是否落盘。
-- 默认输出到 `./compressed`，不覆盖源文件。
+- 默认输出到输入所在目录的 `wave-compress/`，不覆盖源文件。
 - v1 只有默认 safe 策略，优先无损或低风险优化。
 - `--quality/-q` 是显式有损压缩入口；不传时不启用。
 - 不使用 Tinify/TinyPNG，不上传素材到第三方服务。
@@ -888,9 +890,9 @@ d.jpg     240 KB    unchanged
 
 默认输出：
 
-- 目录输入默认输出到 `./compressed`。
-- 文件输入默认输出到同目录的压缩副本。
-- `--out` 可以覆盖输出目录或输出文件。
+- 目录输入默认输出到 `<input-dir>/wave-compress/`。
+- 文件输入默认输出到 `<file-parent>/wave-compress/`。
+- `--out` 可以覆盖输出目录。
 - 默认不覆盖源文件。
 
 默认工具策略：

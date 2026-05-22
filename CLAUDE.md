@@ -2,7 +2,7 @@
 
 ## 项目描述
 
-Wave 是面向 UI/UX 设计师的 Design Token CLI。它读取 `themefile` 和 `main.yaml`，解析内置或自定义资源，完成引用解析、颜色转换、扩展 token 转换，并输出 `json`、`jsonc`、`css`、`sketch` 等格式。核心目标是让设计师用少量配置生成可交付、可检查、可复用的设计令牌。
+Wave 是面向 UI/UX 设计师的本地设计交付 CLI。当前能力包含 design token 生成、本地素材压缩、PNG 帧动效生成和工具链诊断/安装。Design token 主链路读取 `themefile` 和 `main.yaml`，解析内置或自定义资源，完成引用解析、颜色转换、扩展 token 转换，并输出 `json`、`jsonc`、`css`、`sketch` 等格式。
 
 ## 愿景
 
@@ -45,10 +45,11 @@ Wave 是面向 UI/UX 设计师的 Design Token CLI。它读取 `themefile` 和 `
 ## 必要命令
 
 ```bash
-bun run dev -- --help
-bun run dev -- create -f tests/fixtures/themes/standard/themefile
-bun run dev -- doctor --contrast -f tests/fixtures/themes/doctor-contrast-pass/themefile
-bun run typecheck
+pnpm dev -- --help
+pnpm dev -- create -f tests/fixtures/themes/standard/themefile
+pnpm dev -- doctor --contrast -f tests/fixtures/themes/doctor-contrast-pass/themefile
+pnpm typecheck
+bun test
 ```
 
 ## 不要误改

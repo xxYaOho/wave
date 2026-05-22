@@ -1,8 +1,8 @@
 # Wave
 
-面向 UI/UX 设计师的 Design Token CLI 工具。
+面向 UI/UX 设计师的本地设计交付 CLI。
 
-**一分钟生成专业级设计令牌。**
+Wave 现在覆盖三类高频工作：生成 design token、压缩设计素材、从 PNG 帧生成 GIF/APNG 动效。
 
 ```
 themefile → main.yaml → tokens.json
@@ -27,7 +27,7 @@ theme:
 生成令牌：
 
 ```bash
-$ wave create
+$ pnpm dev -- create
 ✓ Generated: theme.json
 ```
 
@@ -44,15 +44,16 @@ $ wave create
 
 ## 安装
 
-**前置要求**: [Bun](https://bun.sh) 运行时
+**前置要求**: [mise](https://mise.jdx.dev/) 管理的 Bun 运行时与 pnpm 包管理器
 
 ```bash
 # 克隆仓库
 git clone https://github.com/yourusername/wave.git
 cd wave
 
-# 安装依赖
-bun install
+# 安装工具链与依赖
+mise install
+pnpm install
 ```
 
 ---
@@ -96,7 +97,7 @@ theme:
 ### 3. 生成
 
 ```bash
-bun run wave create
+pnpm dev -- create
 ```
 
 输出：
@@ -121,6 +122,9 @@ PARAMETER platform json,jsonc,css,sketch
 | **Palette** | 内置色板 | `leonardo`, `tailwindcss4` |
 | **Dimension** | 内置尺寸 | `wave` |
 | **Custom** | 自定义资源 | `./tokens/brand.yml` |
+| **Toolchain** | 本地工具检查与安装入口 | `wave doctor`, `wave install` |
+| **Compress** | PNG/JPG/SVG/GIF 本地压缩 | `wave compress ./assets` |
+| **Motion** | PNG 帧生成 GIF/APNG | `wave motion gif ./frames` |
 
 ---
 
@@ -129,7 +133,7 @@ PARAMETER platform json,jsonc,css,sketch
 - **完整指南**: [docs/GUIDE.md](./docs/GUIDE.md) - 学习所有功能
 - **技术规范**: [docs/SPEC.md](./docs/SPEC.md) - 系统行为参考
 - **变更记录**: [docs/CHANGELOG.md](./docs/CHANGELOG.md) - 版本更新
-- **未来评估**: [docs/future-evaluations.md](./docs/future-evaluations.md) - 技术方向备忘
+- **vNext 蓝图**: [docs/SWISS_KNIFE_REFACTOR.md](./docs/SWISS_KNIFE_REFACTOR.md) - 瑞士军刀化重构设计
 
 ---
 
@@ -138,6 +142,10 @@ PARAMETER platform json,jsonc,css,sketch
 ```bash
 # 生成主题（当前目录）
 wave create
+
+# design-token 模块入口（当前仍复用 themefile 主链路）
+wave dt build
+wave dt wcag
 
 # 指定 themefile
 wave create -f ./path/to/themefile
@@ -160,10 +168,23 @@ wave show wave
 
 # 创建主题模板
 wave init
+
+# 检查本地工具链
+wave doctor
+wave install --check
+
+# 压缩素材
+wave compress ./assets --dry-run
+wave compress ./assets --type png --yes
+
+# 从 PNG 帧生成动效
+wave motion gif ./frames --fps 24 --out loading.gif
+wave motion apng ./frames --fps 24 --out loading.png
+wave mg gif ./frames
 ```
 
 ---
 
 **当前版本**: 运行 `wave --version` 查看
 
-This project was created using `bun init` in bun v1.3.6. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+Bun 是 Wave CLI 的运行时，pnpm 负责依赖安装和 lockfile 管理。
