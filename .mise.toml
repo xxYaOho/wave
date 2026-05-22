@@ -2,12 +2,44 @@
 bun = "1.3.6"
 node = "20"
 pnpm = "latest"
-
-# Wave toolchain recommendations. Exact backend packages can vary by platform;
-# doctor/install commands use this file as the project-level mise entrypoint.
 oxipng = "latest"
-pngquant = "latest"
 svgo = "latest"
-gifsicle = "latest"
-gifski = "latest"
-apngasm = "latest"
+
+# Tool names unsupported by the mise registry are installed through tasks.
+# On macOS these tasks use Homebrew formulae rather than invalid mise tools.
+
+[tasks."install:compress"]
+description = "Install Wave compress toolchain"
+run = """
+set -e
+if ! command -v brew >/dev/null 2>&1; then
+  echo "Homebrew is required to install compress tools that are not in the mise registry: pngquant, gifsicle, mozjpeg." >&2
+  exit 1
+fi
+mise install
+brew install oxipng pngquant svgo gifsicle mozjpeg
+"""
+
+[tasks."install:motion"]
+description = "Install Wave motion toolchain"
+run = """
+set -e
+if ! command -v brew >/dev/null 2>&1; then
+  echo "Homebrew is required to install motion tools that are not in the mise registry: gifski, apngasm." >&2
+  exit 1
+fi
+mise install
+brew install gifski apngasm
+"""
+
+[tasks."install:wave"]
+description = "Install full recommended Wave toolchain"
+run = """
+set -e
+if ! command -v brew >/dev/null 2>&1; then
+  echo "Homebrew is required to install Wave tools that are not in the mise registry: pngquant, gifsicle, mozjpeg, gifski, apngasm." >&2
+  exit 1
+fi
+mise install
+brew install oxipng pngquant svgo gifsicle mozjpeg gifski apngasm
+"""

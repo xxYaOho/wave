@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import * as path from 'node:path';
+import { createInstallPlan } from '../src/cli/commands/install.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 
@@ -59,38 +60,30 @@ describe('toolchain CLI', () => {
 		expect(result.kind).toBe('install-plan');
 		expect(result.module).toBe('compress');
 		expect(result.willInstall).toBe(false);
-		expect(result.canInstall).toBe(false);
-		expect(result.command).toBeNull();
-		expect(result.note).toContain('wave install --yes');
+		expect(result.canInstall).toBe(true);
+		expect(result.command).toEqual(['mise', 'run', 'install:compress']);
+		expect(result.note).toContain('install:compress');
 	});
 
-	test('module install --yes does not run full mise install', async () => {
-		const { exitCode, stdout, stderr } = await runWave([
-			'compress',
-			'install',
-			'--yes',
-		]);
-
-		expect(exitCode).toBe(2);
-		expect(stdout).toContain('compress install plan');
-		expect(stdout).toContain('Command: (check only)');
-		expect(stderr).toContain('wave install --yes');
+	test('module install plans use module-specific mise tasks', () => {
+		expect(createInstallPlan('compress')).toMatchObject({
+			module: 'compress',
+			canInstall: true,
+			command: ['mise', 'run', 'install:compress'],
+		});
+		expect(createInstallPlan('motion')).toMatchObject({
+			module: 'motion',
+			canInstall: true,
+			command: ['mise', 'run', 'install:motion'],
+		});
 	});
 
-	test('module install --json --yes returns one failed install result', async () => {
-		const { exitCode, stdout } = await runWave([
-			'motion',
-			'install',
-			'--json',
-			'--yes',
-		]);
-		const result = JSON.parse(stdout);
-
-		expect(exitCode).toBe(2);
-		expect(result.kind).toBe('install-result');
-		expect(result.module).toBe('motion');
-		expect(result.ok).toBe(false);
-		expect(result.error).toContain('wave install --yes');
+	test('core install plan uses the full wave install task', () => {
+		expect(createInstallPlan('core')).toMatchObject({
+			module: 'core',
+			canInstall: true,
+			command: ['mise', 'run', 'install:wave'],
+		});
 	});
 
 	test('install --yes reports missing mise without a stack trace', async () => {

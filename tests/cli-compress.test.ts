@@ -9,12 +9,15 @@ async function runWave(
 	args: string[],
 	options: { cwd?: string; env?: Record<string, string> } = {},
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn([process.execPath, 'run', path.join(rootDir, 'src/index.ts'), ...args], {
-		cwd: options.cwd ?? rootDir,
-		env: { ...process.env, ...options.env },
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
+	const proc = Bun.spawn(
+		[process.execPath, 'run', path.join(rootDir, 'src/index.ts'), ...args],
+		{
+			cwd: options.cwd ?? rootDir,
+			env: { ...process.env, ...options.env },
+			stdout: 'pipe',
+			stderr: 'pipe',
+		},
+	);
 
 	const stdout = await new Response(proc.stdout).text();
 	const stderr = await new Response(proc.stderr).text();
@@ -25,7 +28,7 @@ async function runWave(
 
 async function createFakeToolDir(): Promise<string> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-tools-'));
-const toolScript = `#!/usr/bin/env bun
+	const toolScript = `#!/usr/bin/env bun
 import * as fs from 'node:fs/promises';
 const args = process.argv.slice(2);
 if (args.includes('--version') || args.includes('-version')) {
@@ -42,7 +45,14 @@ if (!out) out = input;
 const content = await fs.readFile(input);
 await fs.writeFile(out, content.subarray(0, Math.max(1, Math.floor(content.length / 2))));
 `;
-	for (const name of ['oxipng', 'svgo', 'gifsicle', 'jpegtran', 'pngquant', 'mozjpeg']) {
+	for (const name of [
+		'oxipng',
+		'svgo',
+		'gifsicle',
+		'jpegtran',
+		'pngquant',
+		'mozjpeg',
+	]) {
 		const file = path.join(dir, name);
 		await fs.writeFile(file, toolScript);
 		await fs.chmod(file, 0o755);
@@ -99,7 +109,9 @@ describe('wave compress', () => {
 			expect(stdout).toContain('Compress Preview');
 			expect(stdout).toContain('sample.png');
 			expect(stdout).toContain('50%');
-			expect(await Bun.file(path.join(rootDir, 'compressed/sample.png')).exists()).toBe(false);
+			expect(
+				await Bun.file(path.join(rootDir, 'compressed/sample.png')).exists(),
+			).toBe(false);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 			await fs.rm(tools, { recursive: true, force: true });
@@ -111,7 +123,10 @@ describe('wave compress', () => {
 		const tools = await createFakeToolDir();
 		try {
 			const outDir = path.join(tempDir, 'out');
-			await fs.writeFile(path.join(tempDir, 'sample.svg'), '<svg>123456789</svg>');
+			await fs.writeFile(
+				path.join(tempDir, 'sample.svg'),
+				'<svg>123456789</svg>',
+			);
 
 			const { exitCode, stdout } = await runWave(
 				['compress', tempDir, '--type', 'svg', '--out', outDir, '--yes'],
@@ -120,7 +135,9 @@ describe('wave compress', () => {
 
 			expect(exitCode).toBe(0);
 			expect(stdout).toContain('Compress Receipt');
-			expect(await Bun.file(path.join(outDir, 'sample.svg')).exists()).toBe(true);
+			expect(await Bun.file(path.join(outDir, 'sample.svg')).exists()).toBe(
+				true,
+			);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 			await fs.rm(tools, { recursive: true, force: true });
@@ -131,7 +148,10 @@ describe('wave compress', () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
 		const tools = await createSingleFakeTool('svgo');
 		try {
-			await fs.writeFile(path.join(tempDir, 'sample.svg'), '<svg>123456789</svg>');
+			await fs.writeFile(
+				path.join(tempDir, 'sample.svg'),
+				'<svg>123456789</svg>',
+			);
 
 			const { exitCode, stdout } = await runWave(
 				['compress', tempDir, '--type', 'svg', '--dry-run'],
@@ -181,7 +201,10 @@ describe('wave compress', () => {
 
 			expect(exitCode).toBe(0);
 			expect(stdout).toContain('unchanged');
-			const output = await fs.readFile(path.join(outDir, 'sample.png'), 'utf-8');
+			const output = await fs.readFile(
+				path.join(outDir, 'sample.png'),
+				'utf-8',
+			);
 			expect(output).toBe('12345');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
@@ -200,10 +223,14 @@ describe('wave compress', () => {
 	});
 
 	test('install --check renders install plan without executing', async () => {
-		const { exitCode, stdout } = await runWave(['compress', 'install', '--check']);
+		const { exitCode, stdout } = await runWave([
+			'compress',
+			'install',
+			'--check',
+		]);
 
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('wave compress install plan');
-		expect(stdout).toContain('Command: (check only)');
+		expect(stdout).toContain('Command: mise run install:compress');
 	});
 });
