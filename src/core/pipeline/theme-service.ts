@@ -63,6 +63,39 @@ function isSelected(
 	return selected.some((s) => s.name === name);
 }
 
+function mergeConfigGenerateOptions(
+	parameter: Record<string, string | undefined>,
+	options: GenerateOptions,
+): GenerateOptions {
+	const merged: GenerateOptions = { ...options };
+
+	if (parameter.night === 'false') {
+		merged.night = false;
+	} else if (parameter.night === 'auto') {
+		merged.night = true;
+	}
+
+	if (parameter.variants === 'false') {
+		merged.variants = [];
+	} else if (parameter.variants === 'auto') {
+		merged.variants = undefined;
+	} else if (parameter.variants) {
+		merged.variants = parameter.variants
+			.split(',')
+			.map((item) => item.trim())
+			.filter(Boolean);
+	}
+
+	if (options.night === false) {
+		merged.night = false;
+	}
+	if (options.variants !== undefined) {
+		merged.variants = options.variants;
+	}
+
+	return merged;
+}
+
 async function generatePass(
 	resolvedThemeName: string,
 	themeDir: string,
@@ -75,12 +108,15 @@ async function generatePass(
 	_generateOptions: GenerateOptions,
 	selectedThemes?: ThemeFileEntry[],
 	ctx?: BuildContext,
+	mainYamlPathOverride?: string,
+	mainYamlContentOverride?: string,
 ): Promise<{ files: string[] } | ThemeGenerationFailure> {
 	const files: string[] = [];
 
-	const mainYamlPath = path.join(themeDir, 'main.yaml');
+	const mainYamlPath = mainYamlPathOverride ?? path.join(themeDir, 'main.yaml');
 	const mainYamlFile = Bun.file(mainYamlPath);
-	const hasMainYaml = await mainYamlFile.exists();
+	const hasMainYaml =
+		mainYamlContentOverride !== undefined || (await mainYamlFile.exists());
 
 	if (hasMainYaml && isSelected(selectedThemes, 'main')) {
 		if (!ctx) logger.info('Found main.yaml, parsing theme tokens...');
@@ -88,6 +124,7 @@ async function generatePass(
 			mainYamlPath,
 			dict,
 			colorSpace as import('../../types/index.ts').ColorSpaceFormat | undefined,
+			mainYamlContentOverride,
 		);
 
 		if (!parseResult.ok) {
@@ -201,8 +238,12 @@ export async function generateTheme(
 		};
 	}
 
-	const { parsed, themeDir } = loadResult;
+	const { parsed, themeDir, tokenPath, tokenContent } = loadResult;
 	const resolvedThemeName = parsed.THEME || themeName;
+	const resolvedGenerateOptions = mergeConfigGenerateOptions(
+		parsed.PARAMETER,
+		generateOptions,
+	);
 
 	// Step 2: Build dependency dictionary (once)
 	const depResult = await buildDependencyDictionary(parsed, themeDir);
@@ -251,9 +292,11 @@ export async function generateTheme(
 			pass.platforms,
 			pass.filterLayer,
 			pass.colorSpace,
-			generateOptions,
+			resolvedGenerateOptions,
 			selectedThemes,
 			ctx,
+			tokenPath,
+			tokenContent,
 		);
 
 		if (!('files' in result)) {
@@ -270,7 +313,7 @@ export async function generateTheme(
 	const primaryColorSpace = firstPass.colorSpace;
 
 	// Step 5: Generate night mode
-	const nightResult = detectNightMode(themeDir, generateOptions);
+	const nightResult = detectNightMode(themeDir, resolvedGenerateOptions);
 	if (nightResult.available) {
 		ctx?.setNight('enabled');
 	} else if (nightResult.message.includes('disabled')) {
@@ -339,7 +382,7 @@ export async function generateTheme(
 	}
 
 	// Step 6: Generate variants
-	const variantsDetection = detectVariants(themeDir, generateOptions);
+	const variantsDetection = detectVariants(themeDir, resolvedGenerateOptions);
 	const variantNames = variantsDetection.files.map((f) =>
 		path.basename(f, '.yaml'),
 	);

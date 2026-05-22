@@ -57,6 +57,120 @@ describe('wave dt', () => {
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
 
+	test('dt build reads main.yaml $config without themefile fallback', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-dt-config-'));
+		const outputDir = path.join(tempDir, 'theme');
+		const mainYamlPath = path.join(tempDir, 'main.yaml');
+
+		await fs.writeFile(
+			path.join(tempDir, 'themefile'),
+			[
+				'THEME wrong-theme',
+				'RESOURCE palette tailwindcss4',
+				'RESOURCE dimension wave',
+				'PARAMETER output ./wrong',
+				'PARAMETER platform json',
+			].join('\n'),
+			'utf-8',
+		);
+		await fs.writeFile(
+			mainYamlPath,
+			[
+				'$schema: "https://www.designtokens.org/tr/2025.10/format/"',
+				'$config:',
+				'  theme: config-theme',
+				'  resource:',
+				'    palette:',
+				'      - tailwindcss4',
+				'    dimension:',
+				'      - wave',
+				'  parameter:',
+				'    outputDir: ./theme',
+				'    platform:',
+				'      - json',
+				'    night: false',
+				'    variants: false',
+				'theme:',
+				'  color:',
+				'    $type: color',
+				'    primary:',
+				'      $value: "{tailwindcss4.color.indigo.600}"',
+			].join('\n'),
+			'utf-8',
+		);
+
+		try {
+			const proc = Bun.spawn(
+				[
+					'bun',
+					'run',
+					path.join(rootDir, 'src/index.ts'),
+					'dt',
+					'build',
+					mainYamlPath,
+				],
+				{
+					cwd: tempDir,
+					stdout: 'pipe',
+					stderr: 'pipe',
+				},
+			);
+			const exitCode = await proc.exited;
+			expect(exitCode).toBe(0);
+
+			const output = JSON.parse(
+				await fs.readFile(path.join(outputDir, 'config-theme.json'), 'utf-8'),
+			);
+			expect(output['theme-color-primary']).toBe('#4f39f6');
+			expect(output.$config).toBeUndefined();
+			expect(await Bun.file(path.join(tempDir, 'wrong')).exists()).toBe(false);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('dt build rejects main.yaml without $config', async () => {
+		const tempDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-dt-missing-config-'),
+		);
+		const mainYamlPath = path.join(tempDir, 'main.yaml');
+		await fs.writeFile(
+			mainYamlPath,
+			[
+				'theme:',
+				'  color:',
+				'    $type: color',
+				'    primary:',
+				'      $value: "#000000"',
+			].join('\n'),
+			'utf-8',
+		);
+
+		try {
+			const proc = Bun.spawn(
+				[
+					'bun',
+					'run',
+					path.join(rootDir, 'src/index.ts'),
+					'dt',
+					'build',
+					mainYamlPath,
+				],
+				{
+					cwd: tempDir,
+					stdout: 'pipe',
+					stderr: 'pipe',
+				},
+			);
+			const stderr = await new Response(proc.stderr).text();
+			const exitCode = await proc.exited;
+			expect(exitCode).not.toBe(0);
+			expect(stderr).toContain('main.yaml is missing required $config object');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	test('dt without subcommand defaults to build', async () => {
 		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/standard');
 		const outputDir = path.join(rootDir, '.temp-test-dt-default-build');
