@@ -87,5 +87,5 @@ function firstLine(text: string): string | undefined {
 
 function acceptsNonZeroVersionProbe(name: string, output: string): boolean {
 	if (name !== 'apngasm') return false;
-	return /APNG Assembler|apngasm/i.test(output);
+	return /APNG Assembler/i.test(output);
 }

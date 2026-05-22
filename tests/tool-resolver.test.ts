@@ -83,4 +83,23 @@ describe('ToolResolver', () => {
 		expect(resolution.selected?.available).toBe(true);
 		expect(resolution.selected?.version).toContain('APNG Assembler');
 	});
+
+	test('does not accept missing apngasm command output as available', async () => {
+		const resolver = new DefaultToolResolver({
+			runner: new FakeRunner({}),
+		});
+
+		const resolution = await resolver.resolveCapability({
+			capability: 'encode-apng',
+			mode: 'encode',
+			preferred: ['apngasm'],
+		});
+
+		expect(resolution.selected).toBeUndefined();
+		expect(resolution.missingReason).toContain('encode-apng');
+		expect(resolution.candidates[0]?.available).toBe(false);
+		expect(resolution.candidates[0]?.missingReason).toContain(
+			'command not found',
+		);
+	});
 });
