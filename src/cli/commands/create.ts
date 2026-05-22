@@ -59,6 +59,10 @@ export function createBuildCommand(name = 'create'): Command {
 		)
 		.action(async (name: string | undefined, options: CreateCommandOptions) => {
 			let themeName = name;
+			if (themeName && /\.ya?ml$/i.test(themeName)) {
+				options.file = options.file ?? themeName;
+				themeName = 'theme';
+			}
 
 			if (!themeName && !options.file) {
 				const defaultThemefile = 'themefile';

@@ -79,6 +79,48 @@ describe('wave dt', () => {
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
 
+	test('dt build accepts main.yaml with $config as the design-token entry', async () => {
+		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/config-main');
+		const outputDir = path.join(fixtureDir, 'theme');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const { exitCode, stdout } = await runWave([
+			'dt',
+			'build',
+			path.join(fixtureDir, 'main.yaml'),
+		]);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('config-main.css');
+		expect(stdout).toContain('config-main2sketch.json');
+		expect(
+			await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(path.join(outputDir, 'config-main2sketch.json')).exists(),
+		).toBe(true);
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+	});
+
+	test('dt build main.yaml fails clearly when $config is missing', async () => {
+		const fixtureDir = path.join(
+			rootDir,
+			'tests/fixtures/themes/config-main-missing',
+		);
+
+		const { exitCode, stdout } = await runWave([
+			'dt',
+			'build',
+			path.join(fixtureDir, 'main.yaml'),
+		]);
+
+		expect(exitCode).toBe(12);
+		expect(stdout).toContain('Missing required $config in main.yaml entry');
+		expect(stdout).not.toContain('themefile load');
+	});
+
 	test('dt wcag runs contrast checks as a dedicated design-token command', async () => {
 		const { exitCode, stdout } = await runWave([
 			'dt',

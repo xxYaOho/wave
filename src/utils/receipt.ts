@@ -307,7 +307,11 @@ function renderFailed(ctx: BuildContext, w: number): string {
 		const label = categoryLabels[err.category] ?? err.category;
 		lines.push(kvLine(phase, pc.red(label), undefined, w));
 		if (err.detail || err.line) {
-			const detail = err.line ? `line ${err.line}` : err.detail;
+			const detail = err.line
+				? err.detail
+					? `line ${err.line}: ${err.detail}`
+					: `line ${err.line}`
+				: err.detail;
 			const indent = ' '.repeat(KEY_COL + 2);
 			lines.push(line(`${indent}${pc.red(detail)}`, w));
 		}

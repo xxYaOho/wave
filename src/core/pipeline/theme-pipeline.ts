@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import * as yaml from 'js-yaml';
 import {
 	type ColorSpaceFormat,
 	type DimensionResult,
@@ -36,6 +37,8 @@ export interface ThemefileLoadResult {
 	themeDir: string;
 	themefilePath: string;
 	themefileContent: string;
+	mainYamlPath?: string;
+	mainYamlContent?: string;
 }
 
 export interface DependencyDict {
@@ -74,6 +77,125 @@ async function loadYamlFile(filePath: string): Promise<string> {
 	return await file.text();
 }
 
+function toStringList(value: unknown): string[] {
+	if (Array.isArray(value)) {
+		return value.filter((item): item is string => typeof item === 'string');
+	}
+	if (typeof value === 'string') return [value];
+	return [];
+}
+
+function normalizeParameterValue(value: unknown): string | undefined {
+	if (Array.isArray(value)) {
+		return value
+			.filter((item): item is string => typeof item === 'string')
+			.join(',');
+	}
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number') return String(value);
+	if (typeof value === 'boolean') return String(value);
+	return undefined;
+}
+
+function normalizeParameterSet(value: unknown): ParameterSet {
+	const params: ParameterSet = {};
+	if (!value || typeof value !== 'object' || Array.isArray(value))
+		return params;
+	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+		const normalized = normalizeParameterValue(raw);
+		if (normalized !== undefined) {
+			const mappedKey = key === 'outputDir' ? 'output' : key;
+			params[mappedKey] = normalized;
+		}
+	}
+	return params;
+}
+
+function parseMainConfig(
+	content: string,
+	mainPath: string,
+): { parsed: ParsedThemefile; tokenContent: string } | ParseError {
+	let loaded: unknown;
+	try {
+		loaded = yaml.load(content);
+	} catch (err) {
+		if (err instanceof yaml.YAMLException) {
+			return {
+				line: err.mark?.line ? err.mark.line + 1 : 1,
+				message: `YAML 语法错误: ${err.message}`,
+			};
+		}
+		return {
+			line: 1,
+			message: `解析错误: ${err instanceof Error ? err.message : String(err)}`,
+		};
+	}
+
+	if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded)) {
+		return { line: 1, message: 'main.yaml root must be an object' };
+	}
+
+	const root = loaded as Record<string, unknown>;
+	const config = root.$config;
+	if (!config || typeof config !== 'object' || Array.isArray(config)) {
+		return { line: 1, message: 'Missing required $config in main.yaml entry' };
+	}
+
+	const configObj = config as Record<string, unknown>;
+	const theme =
+		typeof configObj.theme === 'string'
+			? configObj.theme
+			: path.basename(path.dirname(mainPath));
+	const resources: { kind: string; ref: string }[] = [];
+	const resourceConfig = configObj.resource;
+	if (
+		resourceConfig &&
+		typeof resourceConfig === 'object' &&
+		!Array.isArray(resourceConfig)
+	) {
+		for (const [kind, refs] of Object.entries(
+			resourceConfig as Record<string, unknown>,
+		)) {
+			for (const ref of toStringList(refs)) {
+				resources.push({ kind, ref });
+			}
+		}
+	}
+	if (resources.length === 0) {
+		return {
+			line: 1,
+			message: 'Missing required $config.resource declarations',
+		};
+	}
+
+	const parameter = normalizeParameterSet(configObj.parameter);
+	const groups = [] as ParsedThemefile['groups'];
+	const parameterGroup = configObj.parameterGroup;
+	if (
+		parameterGroup &&
+		typeof parameterGroup === 'object' &&
+		!Array.isArray(parameterGroup)
+	) {
+		for (const [name, groupParams] of Object.entries(
+			parameterGroup as Record<string, unknown>,
+		)) {
+			groups.push({ name, PARAMETER: normalizeParameterSet(groupParams) });
+		}
+	}
+
+	const tokenRoot = { ...root };
+	delete tokenRoot.$config;
+	return {
+		parsed: {
+			THEME: theme,
+			PARAMETER: parameter,
+			resources,
+			groups,
+		},
+		tokenContent: yaml.dump(tokenRoot, { lineWidth: -1 }),
+	};
+}
+
 function isParseError(result: unknown): result is ParseError {
 	return (
 		typeof result === 'object' &&
@@ -86,13 +208,33 @@ function isParseError(result: unknown): result is ParseError {
 export async function loadThemefile(
 	themePath?: string,
 ): Promise<ThemefileLoadResult | { error: ParseError | Error }> {
-	const themeDir = themePath
-		? path.dirname(expandHomePath(themePath))
+	const expandedThemePath = themePath ? expandHomePath(themePath) : undefined;
+	const themeDir = expandedThemePath
+		? path.dirname(expandedThemePath)
 		: process.cwd();
 
-	const themefilePath = themePath
-		? expandHomePath(themePath)
-		: path.join(themeDir, 'themefile');
+	if (expandedThemePath && /\.ya?ml$/i.test(expandedThemePath)) {
+		let mainYamlContent: string;
+		try {
+			mainYamlContent = await loadYamlFile(expandedThemePath);
+		} catch (err) {
+			return { error: err instanceof Error ? err : new Error(String(err)) };
+		}
+		const configResult = parseMainConfig(mainYamlContent, expandedThemePath);
+		if (isParseError(configResult)) {
+			return { error: configResult };
+		}
+		return {
+			parsed: configResult.parsed,
+			themeDir,
+			themefilePath: expandedThemePath,
+			themefileContent: mainYamlContent,
+			mainYamlPath: expandedThemePath,
+			mainYamlContent: configResult.tokenContent,
+		};
+	}
+
+	const themefilePath = expandedThemePath ?? path.join(themeDir, 'themefile');
 
 	let themefileContent: string;
 	try {
@@ -217,18 +359,21 @@ export async function processThemeDocument(
 	yamlPath: string,
 	dict: DependencyDict,
 	colorSpace?: ColorSpaceFormat,
+	contentOverride?: string,
 ): Promise<ThemeDocumentResult> {
-	const file = Bun.file(yamlPath);
-	if (!(await file.exists())) {
-		return {
-			ok: false,
-			reason: 'file_not_found',
-			message: `File not found: ${yamlPath}`,
-			exitCode: ExitCode.FILE_NOT_FOUND,
-		};
+	let content = contentOverride;
+	if (content === undefined) {
+		const file = Bun.file(yamlPath);
+		if (!(await file.exists())) {
+			return {
+				ok: false,
+				reason: 'file_not_found',
+				message: `File not found: ${yamlPath}`,
+				exitCode: ExitCode.FILE_NOT_FOUND,
+			};
+		}
+		content = await file.text();
 	}
-
-	const content = await file.text();
 	const parsed = parseThemeYaml(content);
 
 	if (isParseError(parsed)) {
@@ -460,7 +605,12 @@ export function buildGroupPasses(
 
 	for (const group of parsed.groups) {
 		const merged = mergeParameters(parsed.PARAMETER, group.PARAMETER);
-		const resolved = resolveParameters(merged, themeDir, cliOutput, cliPlatform);
+		const resolved = resolveParameters(
+			merged,
+			themeDir,
+			cliOutput,
+			cliPlatform,
+		);
 		if (!resolved.outputDir) resolved.outputDir = defaultOutputDir;
 
 		// Conflict detection: duplicate (outputDir, platform) combinations
