@@ -396,9 +396,12 @@ function buildCommand(args: {
 	return {
 		command: args.tool,
 		args: [
+			'-o',
 			args.outputPath,
 			...args.frames.map((frame) => frame.path),
+			'-d',
 			String(Math.round(1000 / args.fps)),
+			'-l',
 			args.loop === 'forever' ? '0' : '1',
 		],
 	};

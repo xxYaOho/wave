@@ -212,6 +212,9 @@ describe('wave motion', () => {
 			const apngArgv = JSON.parse(
 				await fs.readFile(`${apngOutput}.argv`, 'utf-8'),
 			);
+			expect(apngArgv).toContain('-o');
+			expect(apngArgv).toContain('-d');
+			expect(apngArgv).toContain('-l');
 			expect(apngArgv.at(-1)).toBe('1');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
@@ -242,8 +245,10 @@ if (process.argv.includes('--version')) {
 	console.log('apngasm 1.0.0');
 	process.exit(0);
 }
-await Bun.write(process.argv[2], 'APNG');
-await Bun.write(process.argv[2] + '.argv', JSON.stringify(process.argv.slice(2)));
+const outputIndex = process.argv.indexOf('-o');
+const outputPath = process.argv[outputIndex + 1];
+await Bun.write(outputPath, 'APNG');
+await Bun.write(outputPath + '.argv', JSON.stringify(process.argv.slice(2)));
 `,
 	);
 	return binDir;
