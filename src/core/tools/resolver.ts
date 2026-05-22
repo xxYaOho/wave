@@ -52,7 +52,7 @@ export class DefaultToolResolver implements ToolResolver {
 		try {
 			const result = await this.runner.run({ command: name, args });
 			const output = `${result.stdout}\n${result.stderr}`.trim();
-			if (result.exitCode === 0) {
+			if (result.exitCode === 0 || acceptsNonZeroVersionProbe(name, output)) {
 				return {
 					name,
 					command: name,
@@ -83,4 +83,9 @@ function firstLine(text: string): string | undefined {
 		.map((part) => part.trim())
 		.find(Boolean);
 	return line || undefined;
+}
+
+function acceptsNonZeroVersionProbe(name: string, output: string): boolean {
+	if (name !== 'apngasm') return false;
+	return /APNG Assembler/i.test(output);
 }
