@@ -16,7 +16,7 @@ type InstallModule = 'core' | 'compress' | 'motion';
 interface InstallPlan {
 	module: InstallModule;
 	tools: string[];
-	command: string[] | null;
+	command: string[];
 	canInstall: boolean;
 	note?: string;
 }
@@ -97,7 +97,8 @@ export function createInstallCommand(
 				return;
 			}
 
-			const result = await runner.run({ command: 'mise', args: ['install'] });
+			const [command, ...args] = plan.command;
+			const result = await runner.run({ command: command!, args });
 			if (options.json) {
 				console.log(
 					JSON.stringify(
@@ -123,14 +124,16 @@ export function createInstallCommand(
 }
 
 export function createInstallPlan(module: InstallModule): InstallPlan {
-	const moduleOnlyNote =
-		'Module-only install is not available yet. Use wave install --yes to install the full recommended Wave toolchain.';
+	const taskName = module === 'core' ? 'install:wave' : `install:${module}`;
 	return {
 		module,
 		tools: TOOL_INSTALL_GROUPS[module],
-		command: module === 'core' ? ['mise', 'install'] : null,
-		canInstall: module === 'core',
-		note: module === 'core' ? undefined : moduleOnlyNote,
+		command: ['mise', 'run', taskName],
+		canInstall: true,
+		note:
+			module === 'core'
+				? 'Runs mise install and installs the full recommended Wave toolchain.'
+				: `Runs the ${taskName} task for this module tool group.`,
 	};
 }
 
@@ -141,7 +144,7 @@ function renderInstallPlan(module: InstallModule, plan: InstallPlan): void {
 	for (const tool of plan.tools) {
 		console.log(`  - ${tool}`);
 	}
-	console.log(`Command: ${plan.command?.join(' ') ?? '(check only)'}`);
+	console.log(`Command: ${plan.command.join(' ')}`);
 	if (plan.note) console.log(`Note: ${plan.note}`);
 }
 
