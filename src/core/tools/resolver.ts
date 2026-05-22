@@ -41,7 +41,6 @@ export class DefaultToolResolver implements ToolResolver {
 	private candidateNames(requirement: ToolRequirement): string[] {
 		const base = TOOL_CANDIDATES[requirement.capability] ?? [];
 		const preferred = requirement.preferred ?? [];
-		if (preferred.length > 0) return preferred;
 		return [
 			...preferred,
 			...base.filter((candidate) => !preferred.includes(candidate)),

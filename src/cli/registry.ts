@@ -1,4 +1,5 @@
 import type { Command } from 'commander';
+import { compressCommand } from './commands/compress.ts';
 import { createCommand } from './commands/create.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { dtCommand } from './commands/dt.ts';
@@ -6,7 +7,6 @@ import { initCommand } from './commands/init.ts';
 import { installCommand } from './commands/install.ts';
 import { mgCommand, motionCommand } from './commands/motion.ts';
 import { showCommand } from './commands/show.ts';
-import { createToolModuleCommand } from './commands/tool-module.ts';
 
 export type CommandCategory = 'core' | 'design-token' | 'compress' | 'motion';
 
@@ -22,6 +22,11 @@ export const commandRegistry: CommandDefinition[] = [
 		name: 'dt',
 		category: 'design-token',
 		command: dtCommand,
+	},
+	{
+		name: 'compress',
+		category: 'compress',
+		command: compressCommand,
 	},
 	{
 		name: 'motion',
@@ -55,11 +60,6 @@ export const commandRegistry: CommandDefinition[] = [
 		name: 'install',
 		category: 'core',
 		command: installCommand,
-	},
-	{
-		name: 'compress',
-		category: 'compress',
-		command: createToolModuleCommand('compress'),
 	},
 	{
 		name: 'show',

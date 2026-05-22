@@ -25,7 +25,7 @@ export function createToolModuleCommand(
 	return command;
 }
 
-function createToolDoctorCommand(module: ToolModule): Command {
+export function createToolDoctorCommand(module: ToolModule): Command {
 	return new Command('doctor')
 		.description(`Check ${module} toolchain`)
 		.option('--json', 'Output structured JSON only')
