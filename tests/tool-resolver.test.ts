@@ -6,12 +6,19 @@ import {
 } from '../src/core/tools/index.ts';
 
 class FakeRunner implements CommandRunner {
-	constructor(private readonly available: Record<string, string>) {}
+	constructor(
+		private readonly available: Record<string, string>,
+		private readonly exitCodes: Record<string, number> = {},
+	) {}
 
 	async run(command: PlannedCommand) {
 		const version = this.available[command.command];
 		if (version) {
-			return { exitCode: 0, stdout: version, stderr: '' };
+			return {
+				exitCode: this.exitCodes[command.command] ?? 0,
+				stdout: version,
+				stderr: '',
+			};
 		}
 		return {
 			exitCode: 127,
@@ -56,5 +63,24 @@ describe('ToolResolver', () => {
 		expect(resolution.candidates[0]?.missingReason).toContain(
 			'command not found',
 		);
+	});
+
+	test('accepts apngasm version output even when it exits 2', async () => {
+		const resolver = new DefaultToolResolver({
+			runner: new FakeRunner(
+				{ apngasm: 'APNG Assembler v3.1.10 (frontend v3.1.10)' },
+				{ apngasm: 2 },
+			),
+		});
+
+		const resolution = await resolver.resolveCapability({
+			capability: 'encode-apng',
+			mode: 'encode',
+			preferred: ['apngasm'],
+		});
+
+		expect(resolution.selected?.name).toBe('apngasm');
+		expect(resolution.selected?.available).toBe(true);
+		expect(resolution.selected?.version).toContain('APNG Assembler');
 	});
 });
