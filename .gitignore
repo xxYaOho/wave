@@ -51,7 +51,8 @@
 temp-reference/
 .claude/
 .agents/
-# docs/plan
+skills-lock.json
+.sc
 
 # Graphify (临时文件与缓存，可随时重建)
 .graphify_*
