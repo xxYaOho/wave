@@ -11,6 +11,7 @@ describe('buildDependencyDictionary', () => {
 		const parsed: ParsedThemefile = {
 			THEME: 'test',
 			PARAMETER: {},
+			groups: [],
 			resources: [
 				{ kind: 'palette', ref: 'leonardo' },
 				{ kind: 'dimension', ref: 'wave' },
@@ -42,6 +43,7 @@ describe('buildDependencyDictionary', () => {
 		const parsed: ParsedThemefile = {
 			THEME: 'test',
 			PARAMETER: {},
+			groups: [],
 			resources: [
 				{ kind: 'custom', ref: paletteFile },
 				{ kind: 'custom', ref: dimFile },
@@ -62,6 +64,7 @@ describe('buildDependencyDictionary', () => {
 		const parsed: ParsedThemefile = {
 			THEME: 'test',
 			PARAMETER: {},
+			groups: [],
 			resources: [{ kind: 'palette', ref: 'leonardo' }],
 		};
 

@@ -79,10 +79,11 @@ function multiValueLines(
 	for (let i = 0; i < values.length; i++) {
 		const prefix = i === 0 ? keyPart : indent;
 		const maxValue = w - vlen(prefix);
+		const current = values[i] ?? '';
 		const value =
-			vlen(values[i]) > maxValue
-				? `${values[i].slice(0, Math.max(0, maxValue - 3))}...`
-				: values[i];
+			vlen(current) > maxValue
+				? `${current.slice(0, Math.max(0, maxValue - 3))}...`
+				: current;
 		lines.push(`│ ${vpad(`${prefix}${value}`, w)} │`);
 	}
 	return lines;

@@ -4,6 +4,7 @@ import {
 	type DoctorFinding,
 	type DtcgTokenGroup,
 	ExitCode,
+	type ExitCodeType,
 	type ParsedThemefile,
 	type ReferenceDataSources,
 	type ResolvedTokenGroup,
@@ -205,7 +206,7 @@ export async function createThemeDoctorContext(
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
-		let exitCode = ExitCode.GENERAL_ERROR;
+		let exitCode = ExitCode.GENERAL_ERROR as ExitCodeType;
 		if (message.toLowerCase().includes('circular')) {
 			exitCode = ExitCode.INVALID_PARAMETER;
 		} else if (message.toLowerCase().includes('unresolved')) {

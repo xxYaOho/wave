@@ -36,6 +36,9 @@ function resolveColorToChroma(
 		try {
 			let color: chroma.Color;
 			const [a, b, c] = value.components;
+			if (a === undefined || b === undefined || c === undefined) {
+				return null;
+			}
 			switch (value.colorSpace) {
 				case 'oklch':
 					color = chroma.oklch(a, b, c);
@@ -69,12 +72,6 @@ function computeRatio(
 	return (lighter + 0.05) / (darker + 0.05);
 }
 
-const THRESHOLDS: Record<string, Record<string, number>> = {
-	'Normal Text': { AA: 4.5, AAA: 7 },
-	'Large Text': { AA: 3, AAA: 4.5 },
-	'UI Components': { AA: 3 },
-};
-
 export function evaluateContrast(
 	backgroundValue: unknown,
 	foregroundValue: unknown,
@@ -97,17 +94,17 @@ export function evaluateContrast(
 
 	const scores: DoctorScoreLine[] = [];
 
-	const normalAA = ratio >= THRESHOLDS['Normal Text'].AA;
-	const normalAAA = ratio >= THRESHOLDS['Normal Text'].AAA;
+	const normalAA = ratio >= 4.5;
+	const normalAAA = ratio >= 7;
 	scores.push({ dimension: 'Normal Text', level: 'AA', pass: normalAA });
 	scores.push({ dimension: 'Normal Text', level: 'AAA', pass: normalAAA });
 
-	const largeAA = ratio >= THRESHOLDS['Large Text'].AA;
-	const largeAAA = ratio >= THRESHOLDS['Large Text'].AAA;
+	const largeAA = ratio >= 3;
+	const largeAAA = ratio >= 4.5;
 	scores.push({ dimension: 'Large Text', level: 'AA', pass: largeAA });
 	scores.push({ dimension: 'Large Text', level: 'AAA', pass: largeAAA });
 
-	const uiAA = ratio >= THRESHOLDS['UI Components'].AA;
+	const uiAA = ratio >= 3;
 	scores.push({ dimension: 'UI Components', level: 'AA', pass: uiAA });
 
 	return { success: true, ratio, scores };

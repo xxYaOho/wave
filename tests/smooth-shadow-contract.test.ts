@@ -94,6 +94,8 @@ describe('smoothShadow contract', () => {
 		const result = transformToWaveTokens(input);
 		const token = findToken(result.tokens, 'shadow-raised');
 		expect(token.value).toHaveLength(2);
-		expect((token as Record<string, unknown>).$extensions).toBeUndefined();
+		expect(
+			(token as unknown as Record<string, unknown>).$extensions,
+		).toBeUndefined();
 	});
 });

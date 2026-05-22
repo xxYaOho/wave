@@ -205,15 +205,14 @@ export interface BuiltinDimension {
 // DTCG types
 
 export type DtcgScalarValue = string | number | boolean;
-export type DtcgObjectValue = Record<
-	string,
-	DtcgScalarValue | DtcgScalarValue[]
->;
+export type DtcgObjectValue = {
+	[key: string]: DtcgValue | undefined;
+};
 
 // DTCG $ref 引用类型 - 允许 $ref 与其他属性共存
 export interface DtcgRefValue {
 	$ref: string;
-	[key: string]: DtcgScalarValue | DtcgScalarValue[] | undefined;
+	[key: string]: DtcgValue | undefined;
 }
 
 export type DtcgValue =
@@ -237,7 +236,13 @@ export interface DtcgTokenGroup {
 	$type?: string;
 	$description?: string;
 	$extensions?: Record<string, unknown>;
-	[key: string]: DtcgTokenNode | string | number | boolean | undefined;
+	[key: string]:
+		| DtcgTokenNode
+		| Record<string, unknown>
+		| string
+		| number
+		| boolean
+		| undefined;
 }
 
 export interface ThemeYamlResult {
@@ -289,6 +294,7 @@ export interface ResolvedTokenGroup {
 	[key: string]:
 		| ResolvedDtcgToken
 		| ResolvedTokenGroup
+		| Record<string, unknown>
 		| string
 		| number
 		| boolean

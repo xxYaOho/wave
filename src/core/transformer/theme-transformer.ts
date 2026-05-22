@@ -282,7 +282,11 @@ function interpolateShadowValue(base: unknown, coeff: number): string | number {
 	if (typeof base === 'string') {
 		const match = base.trim().match(/^(-?\d+(\.\d+)?)\s*([a-z%]*)$/i);
 		if (match) {
-			const value = parseFloat(match[1]);
+			const rawValue = match[1];
+			if (rawValue === undefined) {
+				return base;
+			}
+			const value = parseFloat(rawValue);
 			const unit = match[3] || '';
 			if (unit === 'rem') {
 				return `${roundTo(value * coeff, 3)}rem`;
@@ -583,7 +587,7 @@ function transformToken(
 					processedLayer.color = { opacity: roundTo(alpha, 2) };
 					currentColorShadowAlpha = alpha;
 				}
-				processedValue = [processedLayer];
+				processedValue = [processedLayer as DtcgValue];
 			}
 		}
 	}
