@@ -511,6 +511,17 @@ describe('wave motion', () => {
 		expect(unknown.exitCode).not.toBe(0);
 		expect(unknown.stderr).toContain("too many arguments for 'mg'");
 		expect(unknown.stderr).not.toContain('Missing format');
+		expect(unknown.stderr).not.toContain('CommanderError');
+		expect(unknown.stderr).not.toContain('node_modules');
+		expect(unknown.stderr).not.toContain('Bun v');
+
+		const unknownMotion = await runWave(['motion', 'webp']);
+		expect(unknownMotion.exitCode).not.toBe(0);
+		expect(unknownMotion.stderr).toContain("too many arguments for 'motion'");
+		expect(unknownMotion.stderr).not.toContain('Missing format');
+		expect(unknownMotion.stderr).not.toContain('CommanderError');
+		expect(unknownMotion.stderr).not.toContain('node_modules');
+		expect(unknownMotion.stderr).not.toContain('Bun v');
 	});
 });
 

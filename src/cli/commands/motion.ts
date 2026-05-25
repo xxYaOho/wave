@@ -74,7 +74,8 @@ export function createMotionCommand(name = 'motion'): Command {
 		}
 		if (
 			error instanceof CommanderError &&
-			error.code === 'commander.unknownCommand'
+			(error.code === 'commander.unknownCommand' ||
+				error.code === 'commander.excessArguments')
 		) {
 			process.exitCode = ExitCode.INVALID_COMMAND;
 			return;
