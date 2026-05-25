@@ -289,7 +289,6 @@ function createCompressRunCommand(name = 'run'): Command {
 export const compressCommand = new Command('compress')
 	.description('Compress and optimize design assets')
 	.helpOption('-h, --help', 'Show help')
-	.addHelpText('beforeAll', COMPRESS_HELP)
 	.configureHelp({ formatHelp: () => COMPRESS_HELP })
 	.addHelpCommand(false)
 	.addCommand(createCompressRunCommand('run'))

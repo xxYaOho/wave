@@ -103,6 +103,7 @@ describe('wave compress', () => {
 
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Wave Compress');
+		expect(stdout.match(/Wave Compress/g)?.length).toBe(1);
 		expect(stdout).toContain('wave compress [file-or-dir] [options]');
 		expect(stdout).toContain('wave compress -f <file-or-dir> [options]');
 		expect(stdout).toContain('--force');
