@@ -1,17 +1,17 @@
 import { Command } from 'commander';
 import {
-	createMotionPlan,
-	encodeMotionPlan,
-	hasBlockingMotionIssues,
-	runMotionDoctor,
-	type MotionFormat,
-	type MotionIssue,
-	type MotionPlan,
-} from '../../core/motion/index.ts';
-import {
 	runToolchainDoctor,
 	type ToolchainDoctorResult,
 } from '../../core/doctor/toolchain.ts';
+import {
+	createMotionPlan,
+	encodeMotionPlan,
+	hasBlockingMotionIssues,
+	type MotionFormat,
+	type MotionIssue,
+	type MotionPlan,
+	runMotionDoctor,
+} from '../../core/motion/index.ts';
 import {
 	BunCommandRunner,
 	DefaultToolResolver,
@@ -20,10 +20,12 @@ import { ExitCode } from '../../types/index.ts';
 import { createInstallCommand } from './install.ts';
 
 interface MotionCommandOptions {
+	file?: string;
 	fps?: string;
 	quality?: string;
 	loop?: string;
 	out?: string;
+	force?: boolean;
 	overwrite?: boolean;
 	dryRun?: boolean;
 }
@@ -48,57 +50,97 @@ export function createMotionCommand(name = 'motion'): Command {
 }
 
 function createEncodeCommand(format: MotionFormat): Command {
+	const formatName = format.toUpperCase();
+	const extension = format === 'gif' ? '.gif' : '.png';
 	return new Command(format)
 		.description(`Create ${format.toUpperCase()} from a PNG frame directory`)
-		.argument('<framesDir>', 'Directory containing PNG frames')
-		.option('--fps <number>', 'Frames per second', '24')
-		.option('--quality <number>', 'Encoder quality from 1 to 100', '80')
-		.option('--loop <mode>', 'Loop mode: forever or once', 'forever')
+		.argument('[framesDir]', 'Directory containing PNG frames')
+		.option('-f, --file <path>', 'PNG frame directory')
+		.option('--fps <n>', 'Frames per second. Default: 24', '24')
+		.option('--quality <n>', 'Encoder quality, 1-100. Default: 80', '80')
+		.option('--loop <mode>', 'forever or once. Default: forever', 'forever')
 		.option('-o, --out <path>', 'Output file path')
-		.option('--overwrite', 'Overwrite existing output')
-		.option('--dry-run', 'Show the encode plan without writing output')
-		.action(async (framesDir: string, options: MotionCommandOptions) => {
-			const runner = new BunCommandRunner();
-			const resolver = new DefaultToolResolver({ runner });
-			const plan = await createMotionPlan(
-				{
-					format,
-					framesDir,
-					fps: Number(options.fps),
-					quality: Number(options.quality),
-					loop: options.loop,
-					out: options.out,
-					overwrite: options.overwrite,
-					dryRun: options.dryRun,
-				},
-				resolver,
-			);
-
-			renderMotionPlan(plan);
-			renderIssues(plan.issues);
-
-			if (hasBlockingMotionIssues(plan.issues)) {
-				process.exitCode = ExitCode.GENERAL_ERROR;
-				return;
-			}
-
-			if (options.dryRun) {
-				process.exitCode = ExitCode.SUCCESS;
-				return;
-			}
-
-			try {
-				const result = await encodeMotionPlan(plan, runner);
-				if (result.outputSize !== undefined) {
-					console.log(`Output Size ${formatBytes(result.outputSize)}`);
+		.option('--dry-run', 'Show plan only, no write')
+		.option('--force', 'Allow overwriting existing output file')
+		.option('--overwrite', 'Allow overwriting existing output file')
+		.addHelpText('beforeAll', formatHelp(formatName, extension))
+		.action(
+			async (
+				framesDir: string | undefined,
+				_options: MotionCommandOptions,
+				command: Command,
+			) => {
+				const parsedOptions = command.opts<MotionCommandOptions>();
+				const inputFramesDir = framesDir ?? parsedOptions.file;
+				if (!inputFramesDir) {
+					console.error('Missing required PNG frame directory.');
+					process.exitCode = ExitCode.GENERAL_ERROR;
+					return;
 				}
-				process.exitCode = ExitCode.SUCCESS;
-			} catch (error) {
-				console.log(`ERROR  WMG_ENCODE_FAILED`);
-				console.log(error instanceof Error ? error.message : String(error));
-				process.exitCode = ExitCode.GENERAL_ERROR;
-			}
-		});
+				const runner = new BunCommandRunner();
+				const resolver = new DefaultToolResolver({ runner });
+				const plan = await createMotionPlan(
+					{
+						format,
+						framesDir: inputFramesDir,
+						fps: Number(parsedOptions.fps),
+						quality: Number(parsedOptions.quality),
+						loop: parsedOptions.loop,
+						out: parsedOptions.out,
+						overwrite: parsedOptions.force || parsedOptions.overwrite,
+						dryRun: parsedOptions.dryRun,
+					},
+					resolver,
+				);
+
+				const phase = parsedOptions.dryRun ? 'plan' : 'receipt';
+
+				if (hasBlockingMotionIssues(plan.issues)) {
+					console.log(renderMotionReceipt(plan, phase));
+					process.exitCode = ExitCode.GENERAL_ERROR;
+					return;
+				}
+
+				if (parsedOptions.dryRun) {
+					console.log(renderMotionReceipt(plan, 'plan'));
+					process.exitCode = ExitCode.SUCCESS;
+					return;
+				}
+
+				try {
+					const result = await encodeMotionPlan(plan, runner);
+					console.log(renderMotionReceipt(plan, 'receipt', result.outputSize));
+					process.exitCode = ExitCode.SUCCESS;
+				} catch (error) {
+					console.log(`ERROR  WMG_ENCODE_FAILED`);
+					console.log(error instanceof Error ? error.message : String(error));
+					process.exitCode = ExitCode.GENERAL_ERROR;
+				}
+			},
+		);
+}
+
+function formatHelp(formatName: string, extension: string): string {
+	return `
+Wave Motion ${formatName}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Usage:
+    wave motion ${formatName.toLowerCase()} [frames-dir] [options]
+    wave motion ${formatName.toLowerCase()} -f <frames-dir> [options]
+
+  Options:
+    -f, --file <path>    PNG frame directory
+    --fps <n>            Frames per second. Default: 24
+    --quality <n>        Encoder quality, 1-100. Default: 80
+    --loop <mode>        forever or once. Default: forever
+    -o, --out <path>     Output file path
+    --dry-run            Show plan only, no write
+    --force              Allow overwriting existing output file
+    -h, --help           Show help
+
+  Default output:
+    <frames-dir>/wave-mg/<frames-dir-name>@<fps>fps${extension}
+`;
 }
 
 function createMotionDoctorCommand(): Command {
@@ -155,15 +197,59 @@ function createMotionDoctorCommand(): Command {
 		);
 }
 
-function renderMotionPlan(plan: MotionPlan): void {
-	console.log('Motion Plan');
-	console.log(`Format      ${plan.format.toUpperCase()}`);
-	console.log(`Frames      ${plan.frames.length}`);
-	console.log(`FPS         ${plan.fps}`);
-	console.log(`Duration    ${plan.durationSeconds.toFixed(2)}s`);
-	console.log(`Size        ${plan.width} x ${plan.height}`);
-	console.log(`Output      ${plan.outputPath}`);
-	console.log(`Tool        ${plan.tool}`);
+function renderMotionReceipt(
+	plan: MotionPlan,
+	phase: 'plan' | 'receipt',
+	outputSize?: number,
+): string {
+	const title = phase === 'plan' ? 'MOTION PLAN' : 'MOTION RECEIPT';
+	const footer =
+		phase === 'plan' ? 'Dry run. No file written.' : 'Motion export complete.';
+	const rows: Array<[string, string]> = [
+		['Format', plan.format.toUpperCase()],
+		['Frames', String(plan.frames.length)],
+		['FPS', String(plan.fps)],
+		['Duration', `${plan.durationSeconds.toFixed(2)}s`],
+		['Size', `${plan.width} x ${plan.height}`],
+		['Output', plan.outputPath],
+		['Tool', plan.tool],
+	];
+	if (outputSize !== undefined) {
+		rows.push(['Output Size', formatBytes(outputSize)]);
+	}
+
+	const w = 58;
+	const lines: string[] = [];
+	lines.push(`┌${'─'.repeat(w)}┐`);
+	lines.push(centerBox(`✦  ${title}  ✦`, w));
+	lines.push(`├${'─'.repeat(w)}┤`);
+	for (const [key, value] of rows) {
+		lines.push(kvBox(key, value, w));
+	}
+	if (plan.issues.length > 0) {
+		const warnings = plan.issues.filter(
+			(issue) => issue.severity === 'warning',
+		);
+		const errors = plan.issues.filter((issue) => issue.severity === 'error');
+		if (warnings.length > 0) {
+			lines.push(`├ ${'╌'.repeat(w - 2)} ┤`);
+			lines.push(boxLine('  WARNINGS', w));
+			for (const issue of warnings) {
+				lines.push(boxLine(`  ${issue.code} ${issue.message}`, w));
+			}
+		}
+		if (errors.length > 0) {
+			lines.push(`├ ${'╌'.repeat(w - 2)} ┤`);
+			lines.push(boxLine('  ERRORS', w));
+			for (const issue of errors) {
+				lines.push(boxLine(`  ${issue.code} ${issue.message}`, w));
+			}
+		}
+	}
+	lines.push(`├${'─'.repeat(w)}┤`);
+	lines.push(centerBox(footer, w));
+	lines.push(`└${'─'.repeat(w)}┘`);
+	return lines.join('\n');
 }
 
 function renderToolchainStatus(result: ToolchainDoctorResult): void {
@@ -188,6 +274,13 @@ function renderToolchainVerbose(result: ToolchainDoctorResult): void {
 	}
 }
 
+function formatBytes(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	const kb = bytes / 1024;
+	if (kb < 1024) return `${kb.toFixed(1)} KB`;
+	return `${(kb / 1024).toFixed(1)} MB`;
+}
+
 function renderIssues(issues: MotionIssue[]): void {
 	for (const issue of issues) {
 		console.log(`${issue.severity.toUpperCase()} ${issue.code}`);
@@ -195,11 +288,35 @@ function renderIssues(issues: MotionIssue[]): void {
 	}
 }
 
-function formatBytes(bytes: number): string {
-	if (bytes < 1024) return `${bytes} B`;
-	const kb = bytes / 1024;
-	if (kb < 1024) return `${kb.toFixed(1)} KB`;
-	return `${(kb / 1024).toFixed(1)} MB`;
+function centerBox(content: string, width: number): string {
+	const visible = content.length;
+	const left = Math.max(0, Math.floor((width - visible) / 2));
+	const right = Math.max(0, width - visible - left);
+	return `│${' '.repeat(left)}${content}${' '.repeat(right)}│`;
+}
+
+function boxLine(content: string, width: number): string {
+	return `│ ${fit(content, width - 2).padEnd(width - 2, ' ')} │`;
+}
+
+function kvBox(key: string, value: string, width: number): string {
+	const keyPart = `  ${key.padEnd(20, ' ')}`;
+	const valueWidth = width - 2 - keyPart.length;
+	return boxLine(`${keyPart}${fit(value, valueWidth)}`, width);
+}
+
+function fit(value: string, width: number): string {
+	if (value.length <= width) return value;
+	if (value.startsWith('/') || value.startsWith('~/')) {
+		const parts = value.split('/');
+		const basename = parts.at(-1) ?? value;
+		const parent = parts.at(-2);
+		const suffix = parent ? `.../${parent}/${basename}` : `.../${basename}`;
+		if (suffix.length <= width) return suffix;
+		const basenameSuffix = `.../${basename}`;
+		if (basenameSuffix.length <= width) return basenameSuffix;
+	}
+	return `${value.slice(0, Math.max(0, width - 3))}...`;
 }
 
 export const motionCommand = createMotionCommand('motion');

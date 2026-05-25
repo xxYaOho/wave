@@ -4,8 +4,8 @@ import type {
 	CommandRunner,
 	PlannedCommand,
 	ToolCapability,
-	ToolResolver,
 	ToolResolution,
+	ToolResolver,
 } from '../tools/index.ts';
 import { readPngSize } from './png.ts';
 
@@ -358,7 +358,11 @@ function resolveOutputPath(input: MotionInput, framesDir: string): string {
 	}
 	const parsed = path.parse(framesDir);
 	const extension = input.format === 'gif' ? '.gif' : '.png';
-	return path.join(parsed.dir, `${parsed.name}${extension}`);
+	return path.join(
+		framesDir,
+		'wave-mg',
+		`${parsed.name}@${input.fps ?? 24}fps${extension}`,
+	);
 }
 
 function capabilityForFormat(format: MotionFormat): ToolCapability {
