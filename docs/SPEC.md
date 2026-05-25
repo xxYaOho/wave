@@ -298,13 +298,17 @@ wave compress install
 
 `compress` 总是先写入临时目录并计算真实大小差异。
 
-- 不传 `--yes`：展示 Compress Preview，并询问 `Write compressed output? [y/N]`；确认后写入，默认不写入。
-- `--dry-run`：只展示 preview，不询问也不写最终输出。
-- `--yes`：写入最终输出。
+- 不传 `--yes` / `--dry-run` / `--json`：先扫描输入并确认 `Confirm compressing the files in the current directory?`，只展示友好路径和匹配文件数；用户拒绝或取消时安静退出，不写文件、不输出 receipt。
+- 用户确认后执行压缩，TTY 下用 `yocto-spinner` 显示 `Compressing` loading；完成后只输出一次 `COMPRESS RECEIPT`。
+- `--dry-run`：只展示一次 `COMPRESS PREVIEW`，不询问也不写最终输出。
+- `--yes`：跳过确认并写入最终输出，TTY 下显示 `Compressing` loading。
+- `--json`：不确认、不显示 loading、不输出 box receipt；不带 `--yes` 时强制 dry-run 并输出 preview JSON。
+- `--json --yes`：执行写入并输出 result JSON。
 - 默认不覆盖已有输出；目标文件已存在且未传 `--force` 时返回 `WCP_OUTPUT_EXISTS`。
 - 若优化产物更小，状态为 `optimized`，写入优化产物。
 - 若优化产物不更小，状态为 `unchanged`，写入原始字节。
 - receipt 中 `optimized` 行显示 `saved, <percent>%`；`unchanged` 行显示 `unchanged`。
+- 成功写入 receipt 的结尾显示 `Reduce space usage by <percent>%.`，百分比按所有文件合计的压缩前后字节计算，保留两位小数。
 
 ### 工具选择
 

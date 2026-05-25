@@ -53,6 +53,13 @@ export interface CompressResult {
 	toolResolutions: ToolResolution[];
 }
 
+export interface CompressInputPreview {
+	input: string;
+	outDir: string;
+	scanned: number;
+	matched: number;
+}
+
 export interface CompressIssue {
 	code: string;
 	severity: 'error' | 'warning';
@@ -65,6 +72,30 @@ interface FileCandidate {
 	absolutePath: string;
 	relativePath: string;
 	type: CompressFileType;
+}
+
+export async function previewCompressInput(
+	options: Pick<
+		CompressOptions,
+		'input' | 'outDir' | 'recursive' | 'types' | 'cwd'
+	>,
+): Promise<CompressInputPreview> {
+	const cwd = options.cwd ?? process.cwd();
+	const input = path.resolve(cwd, options.input);
+	const outDir = options.outDir
+		? path.resolve(cwd, options.outDir)
+		: await defaultCompressOutputDir(input);
+	const candidates = await scanCompressCandidates(input, {
+		recursive: !!options.recursive,
+		types: options.types,
+	});
+
+	return {
+		input,
+		outDir,
+		scanned: candidates.length,
+		matched: candidates.length,
+	};
 }
 
 export async function runCompress(

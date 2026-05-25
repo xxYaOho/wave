@@ -1,12 +1,15 @@
+import * as path from 'node:path';
 import * as readline from 'node:readline/promises';
 import { Command } from 'commander';
 import pc from 'picocolors';
 import {
 	type CompressFileType,
 	type CompressResult,
+	previewCompressInput,
 	runCompress,
 } from '../../core/compress/index.ts';
 import { ExitCode } from '../../types/index.ts';
+import { startLoading } from '../../utils/loading.ts';
 import {
 	borderBottom,
 	borderTop,
@@ -37,18 +40,17 @@ interface CompressCommandOptions {
 const COMPRESS_HELP = `Wave Compress
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Usage:
-    wave compress [file-or-dir] [options]
-    wave compress -f <file-or-dir> [options]
+    wave compress [options]
+    wave compress <command> [options]
 
-  Examples:
-    wave compress ./assets
-    wave compress -f ./assets --dry-run
-    wave compress -f ./assets --yes
-    wave compress -f ./assets --type png --type jpg
+  Commands:
+    run             Compress PNG, JPG, SVG, and GIF assets
+    doctor          Check compress toolchain health
+    install         Show or run compress tool installation
 
   Options:
-    -f, --file <path>    File or directory to compress
-    --type <type>        Limit file type: png, jpg, svg, gif. Repeatable
+    -f, --file <path>    File or directory to compress. Default: .
+    --type <type>        Limit file type. Repeatable: png, jpg, svg, gif
     --recursive          Scan nested folders
     -q, --quality <n>    Use lossy quality mode, 1-100
     -o, --out <path>     Output directory
@@ -58,8 +60,8 @@ const COMPRESS_HELP = `Wave Compress
     --json               Output JSON only, no prompt
     -h, --help           Show help
 
-  Default behavior:
-    Preview first, then ask whether to write output: [y/N]`;
+  For more help on a command:
+    wave compress <command> --help`;
 
 function parseQuality(value: string | undefined): number | undefined {
 	if (value === undefined) return undefined;
@@ -103,8 +105,12 @@ function renderCompressResult(
 	lines.push(line('', width));
 	lines.push(solid);
 	lines.push(kvLine('Mode', result.mode, undefined, width));
-	lines.push(kvLine('Input', result.input, undefined, width));
-	lines.push(kvLine('Output', result.outDir, undefined, width));
+	lines.push(
+		kvLine('Input', formatDisplayPath(result.input), undefined, width),
+	);
+	lines.push(
+		kvLine('Output', formatDisplayPath(result.outDir), undefined, width),
+	);
 	lines.push(kvLine('Files', String(result.items.length), undefined, width));
 	lines.push(dashed);
 	lines.push(line('  FILES', width));
@@ -149,7 +155,7 @@ function renderCompressResult(
 		const summary = hasError
 			? 'Compression blocked'
 			: result.written
-				? 'Compressed output written'
+				? renderCompressSavedSummary(result)
 				: 'Preview only, no files written';
 		lines.push(centerLine(summary, width));
 	}
@@ -165,6 +171,24 @@ function formatBytes(bytes: number): string {
 
 function formatPercent(value: number): string {
 	return Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
+}
+
+function formatReceiptPercent(value: number): string {
+	return value.toFixed(2);
+}
+
+function renderCompressSavedSummary(result: CompressResult): string {
+	const beforeBytes = result.items.reduce(
+		(sum, item) => sum + item.beforeBytes,
+		0,
+	);
+	const afterBytes = result.items.reduce(
+		(sum, item) => sum + item.afterBytes,
+		0,
+	);
+	const savedPercent =
+		beforeBytes === 0 ? 0 : ((beforeBytes - afterBytes) / beforeBytes) * 100;
+	return `Reduce space usage by ${formatReceiptPercent(savedPercent)}%.`;
 }
 
 function truncate(text: string, width: number): string {
@@ -188,6 +212,52 @@ function fileLine(
 		sizeWidth,
 	)}${vpad(truncate(tool, toolWidth), toolWidth)}${truncate(savedText, savedWidth)}`;
 	return line(content, width);
+}
+
+function renderCompressConfirmation(input: string, fileCount: number): string {
+	return [
+		'Confirm compressing the files in the current directory?',
+		formatDisplayPath(input),
+		`${fileCount} ${fileCount === 1 ? 'file' : 'files'}`,
+	].join('\n');
+}
+
+function formatDisplayPath(input: string): string {
+	const normalizedInput = path.resolve(input);
+	const relativeToCwd = path.relative(process.cwd(), normalizedInput);
+	if (relativeToCwd === '') return '.';
+	if (!relativeToCwd.startsWith('..') && !path.isAbsolute(relativeToCwd)) {
+		return `./${relativeToCwd}`;
+	}
+
+	const home = process.env.HOME;
+	if (home) {
+		const relativeToHome = path.relative(home, normalizedInput);
+		if (relativeToHome === '') return '~';
+		if (!relativeToHome.startsWith('..') && !path.isAbsolute(relativeToHome)) {
+			return `~/${relativeToHome}`;
+		}
+	}
+
+	return normalizedInput;
+}
+
+async function confirmCompress(
+	input: string,
+	fileCount: number,
+): Promise<boolean> {
+	if (process.stdin.isTTY !== true || process.stdout.isTTY !== true) {
+		console.log(`${renderCompressConfirmation(input, fileCount)}\n[y/N]`);
+		return shouldWriteCompressedOutput();
+	}
+
+	const { confirm, isCancel } = await import('@clack/prompts');
+	const confirmed = await confirm({
+		message: renderCompressConfirmation(input, fileCount),
+		initialValue: false,
+	});
+	if (isCancel(confirmed)) return false;
+	return confirmed;
 }
 
 async function shouldWriteCompressedOutput(): Promise<boolean> {
@@ -228,40 +298,46 @@ function createCompressRunCommand(name = 'run'): Command {
 		.action(async (input: string, options: CompressCommandOptions) => {
 			try {
 				const resolvedInput = options.file ?? input ?? '.';
-				const result = await runCompress({
-					input: resolvedInput,
-					outDir: options.out,
-					recursive: options.recursive,
-					types: parseTypes(options.type),
-					quality: parseQuality(options.quality),
-					dryRun: options.dryRun || (options.json && !options.yes),
-					yes: options.yes,
-					force: options.force,
-				});
-				let outputResult = result;
-				const hasError = result.issues.some(
-					(issue) => issue.severity === 'error',
-				);
-				const shouldPrompt =
-					!hasError && !options.dryRun && !options.yes && !options.json;
+				const types = parseTypes(options.type);
+				const quality = parseQuality(options.quality);
+				const shouldPrompt = !options.dryRun && !options.yes && !options.json;
+				if (shouldPrompt) {
+					const preview = await previewCompressInput({
+						input: resolvedInput,
+						outDir: options.out,
+						recursive: options.recursive,
+						types,
+					});
+					if (!(await confirmCompress(preview.input, preview.matched))) {
+						process.exitCode = ExitCode.SUCCESS;
+						return;
+					}
+				}
+				const loading =
+					!options.json && !options.dryRun
+						? startLoading('Compressing')
+						: undefined;
+				let result: CompressResult;
+				try {
+					result = await runCompress({
+						input: resolvedInput,
+						outDir: options.out,
+						recursive: options.recursive,
+						types,
+						quality,
+						dryRun: options.dryRun || (options.json && !options.yes),
+						yes: options.yes || shouldPrompt,
+						force: options.force,
+					});
+				} finally {
+					loading?.stop();
+				}
 				if (options.json) {
 					console.log(JSON.stringify(result, null, 2));
 				} else {
-					console.log(renderCompressResult(result, { prompt: shouldPrompt }));
-					if (shouldPrompt && (await shouldWriteCompressedOutput())) {
-						outputResult = await runCompress({
-							input: resolvedInput,
-							outDir: options.out,
-							recursive: options.recursive,
-							types: parseTypes(options.type),
-							quality: parseQuality(options.quality),
-							yes: true,
-							force: options.force,
-						});
-						console.log(renderCompressResult(outputResult));
-					}
+					console.log(renderCompressResult(result));
 				}
-				process.exitCode = outputResult.issues.some(
+				process.exitCode = result.issues.some(
 					(issue) => issue.severity === 'error',
 				)
 					? ExitCode.GENERAL_ERROR

@@ -271,9 +271,14 @@ wave compress ./assets --json
 
 默认行为：
 
-- 不传 `--yes` 时只做 preview，不写文件。
-- `--dry-run` 只展示预览，不询问也不写文件。
-- `--yes` 会写入预览结果。
+- 不传 `--yes` / `--dry-run` / `--json` 时，Wave 会先确认要压缩的路径和匹配文件数；确认后执行压缩，并只输出一次最终 receipt。
+- 用户拒绝确认时，Wave 不写文件，也不输出 receipt。
+- `--dry-run` 只展示一次预览，不询问也不写文件。
+- `--yes` 跳过确认并直接写入最终结果。
+- `--json` 输出 preview JSON，不确认、不显示 loading、不输出 box receipt，也不写文件。
+- `--json --yes` 写入文件并输出 result JSON，适合脚本读取。
+- TTY 下写入阶段会显示 `Compressing` loading；非 TTY、CI 和 JSON 输出不会显示 loading。
+- 成功写入后的 receipt 结尾会显示 `Reduce space usage by <percent>%.`，百分比按所有文件合计的压缩前后大小计算。
 - 不传 `--recursive` 时，目录输入只扫描当前一级文件。
 - 不传 `--out` 时，目录输入输出到 `<input-dir>/wave-compress/`；文件输入输出到 `<file-parent>/wave-compress/`。
 - 若优化结果比原文件更大，Wave 会把该文件标为 `unchanged`，落盘时复制原文件字节，不使用更大的优化产物。
