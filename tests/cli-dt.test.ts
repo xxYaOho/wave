@@ -228,6 +228,66 @@ describe('wave dt', () => {
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
 
+	test('dt build writes variants for every parameter group pass', async () => {
+		const fixtureDir = path.join(
+			rootDir,
+			'tests/fixtures/themes/config-group-variants',
+		);
+		const outputDir = path.join(fixtureDir, 'theme');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const { exitCode, stdout } = await runWave(
+			['dt', 'build', '--variants', 'dark'],
+			fixtureDir,
+		);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('config-group-variants.css');
+		expect(stdout).toContain('config-group-variants-night.css');
+		expect(stdout).toContain('config-group-variants-dark.css');
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'css', 'config-group-variants.css'),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'sketch', 'config-group-variants2sketch.json'),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'css', 'config-group-variants-night.css'),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(
+					outputDir,
+					'sketch',
+					'config-group-variants-night2sketch.json',
+				),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'css', 'config-group-variants-dark.css'),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(
+					outputDir,
+					'sketch',
+					'config-group-variants-dark2sketch.json',
+				),
+			).exists(),
+		).toBe(true);
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+	});
+
 	test('dt build main.yaml fails clearly when $config is missing', async () => {
 		const fixtureDir = path.join(
 			rootDir,

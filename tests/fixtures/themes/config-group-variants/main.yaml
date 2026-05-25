@@ -1,0 +1,33 @@
+$schema: "https://www.designtokens.org/tr/2025.10/format/"
+
+$config:
+  theme: config-group-variants
+  resource:
+    palette:
+      - tailwindcss4
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./theme
+  parameterGroup:
+    css:
+      platform:
+        - css
+      outputDir: ./theme/css
+      filterLayer: 2
+    sketch:
+      platform:
+        - sketch
+      outputDir: ./theme/sketch
+      filterLayer: 1
+
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "{tailwindcss4.color.indigo.600}"
+  dimension:
+    $type: dimension
+    alpha:
+      sm:
+        $value: "{wave.dimension.alpha.200}"

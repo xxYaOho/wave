@@ -11,6 +11,7 @@ import {
 	validatePaletteSchema,
 } from '../../core/parser/index.ts';
 import type {
+	ColorSpaceFormat,
 	ExitCodeType,
 	GenerateOptions,
 	ResolvedTokenGroup,
@@ -270,12 +271,6 @@ export async function generateTheme(
 		generatedFiles.push(...result.files);
 	}
 
-	// Use first pass output dir for night/variants (backward compat)
-	const primaryOutputDir = firstPass.outputDir;
-	const primaryPlatforms = firstPass.platforms;
-	const primaryFilterLayer = firstPass.filterLayer;
-	const primaryColorSpace = firstPass.colorSpace;
-
 	// Step 5: Generate night mode
 	const nightResult = detectNightMode(themeDir, generateOptions);
 	if (nightResult.available) {
@@ -293,54 +288,62 @@ export async function generateTheme(
 		const hasNightYaml = await nightYamlFile.exists();
 
 		if (hasNightYaml) {
-			if (!ctx)
-				logger.info('Found main@night.yaml, parsing night theme tokens...');
-			const nightParseResult = await processThemeDocument(
-				nightYamlPath,
-				dict,
-				primaryColorSpace,
-			);
-
-			if (!nightParseResult.ok) {
-				const msg = nightParseResult.line
-					? `${nightParseResult.message} at line ${nightParseResult.line}`
-					: nightParseResult.message;
-				ctx?.markFailed('parse', msg, { phase: 'night parse' });
-				return {
-					ok: false,
-					exitCode: nightParseResult.exitCode,
-					message: msg,
-				};
-			}
-
-			const nightGenResult = await generateTokens({
-				themeName: `${resolvedThemeName}-night`,
-				outputDir: primaryOutputDir,
-				tokens: nightParseResult.tree,
-				platform: primaryPlatforms,
-				filterLayer: primaryFilterLayer,
-				groupComments: nightParseResult.groupComments,
-			});
-
-			if (nightGenResult.success) {
-				generatedFiles.push(...nightGenResult.files);
-				ctx?.addOutput('night', nightGenResult.files);
+			for (const pass of passes) {
 				if (!ctx)
-					logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
+					logger.info('Found main@night.yaml, parsing night theme tokens...');
+				const nightParseResult = await processThemeDocument(
+					nightYamlPath,
+					dict,
+					pass.colorSpace as ColorSpaceFormat | undefined,
+				);
+
+				if (!nightParseResult.ok) {
+					const msg = nightParseResult.line
+						? `${nightParseResult.message} at line ${nightParseResult.line}`
+						: nightParseResult.message;
+					ctx?.markFailed('parse', msg, { phase: 'night parse' });
+					return {
+						ok: false,
+						exitCode: nightParseResult.exitCode,
+						message: msg,
+					};
+				}
+
+				const nightGenResult = await generateTokens({
+					themeName: `${resolvedThemeName}-night`,
+					outputDir: pass.outputDir,
+					tokens: nightParseResult.tree,
+					platform: pass.platforms,
+					filterLayer: pass.filterLayer,
+					groupComments: nightParseResult.groupComments,
+				});
+
+				if (nightGenResult.success) {
+					generatedFiles.push(...nightGenResult.files);
+					ctx?.addOutput('night', nightGenResult.files);
+					if (!ctx)
+						logger.success(
+							`Generated night: ${nightGenResult.files.join(', ')}`,
+						);
+				}
 			}
 		} else {
-			const nightGenResult = await generateThemeTokens(
-				`${resolvedThemeName}-night`,
-				primaryOutputDir,
-				depResult,
-				primaryPlatforms,
-				primaryFilterLayer,
-			);
-			if (nightGenResult.success) {
-				generatedFiles.push(...nightGenResult.files);
-				ctx?.addOutput('night', nightGenResult.files);
-				if (!ctx)
-					logger.success(`Generated night: ${nightGenResult.files.join(', ')}`);
+			for (const pass of passes) {
+				const nightGenResult = await generateThemeTokens(
+					`${resolvedThemeName}-night`,
+					pass.outputDir,
+					depResult,
+					pass.platforms,
+					pass.filterLayer,
+				);
+				if (nightGenResult.success) {
+					generatedFiles.push(...nightGenResult.files);
+					ctx?.addOutput('night', nightGenResult.files);
+					if (!ctx)
+						logger.success(
+							`Generated night: ${nightGenResult.files.join(', ')}`,
+						);
+				}
 			}
 		}
 	}
@@ -371,40 +374,42 @@ export async function generateTheme(
 				: variantName;
 			const suffix = isNightVariant ? `-${baseName}-night` : `-${baseName}`;
 
-			const variantTokens = await processThemeDocument(
-				variantFile,
-				dict,
-				primaryColorSpace,
-			);
+			for (const pass of passes) {
+				const variantTokens = await processThemeDocument(
+					variantFile,
+					dict,
+					pass.colorSpace as ColorSpaceFormat | undefined,
+				);
 
-			if (!variantTokens.ok) {
-				const msg = variantTokens.line
-					? `${variantTokens.message} at line ${variantTokens.line}`
-					: variantTokens.message;
-				ctx?.markFailed('parse', msg, { phase: 'variant parse' });
-				return {
-					ok: false,
-					exitCode: variantTokens.exitCode,
-					message: msg,
-				};
-			}
+				if (!variantTokens.ok) {
+					const msg = variantTokens.line
+						? `${variantTokens.message} at line ${variantTokens.line}`
+						: variantTokens.message;
+					ctx?.markFailed('parse', msg, { phase: 'variant parse' });
+					return {
+						ok: false,
+						exitCode: variantTokens.exitCode,
+						message: msg,
+					};
+				}
 
-			const variantResult = await generateTokens({
-				themeName: `${resolvedThemeName}${suffix}`,
-				outputDir: primaryOutputDir,
-				tokens: variantTokens.tree,
-				platform: primaryPlatforms,
-				filterLayer: primaryFilterLayer,
-				groupComments: variantTokens.groupComments,
-			});
+				const variantResult = await generateTokens({
+					themeName: `${resolvedThemeName}${suffix}`,
+					outputDir: pass.outputDir,
+					tokens: variantTokens.tree,
+					platform: pass.platforms,
+					filterLayer: pass.filterLayer,
+					groupComments: variantTokens.groupComments,
+				});
 
-			if (variantResult.success) {
-				generatedFiles.push(...variantResult.files);
-				ctx?.addOutput('variant', variantResult.files, variantName);
-				if (!ctx) {
-					logger.success(
-						`Generated variant ${variantName}: ${variantResult.files.join(', ')}`,
-					);
+				if (variantResult.success) {
+					generatedFiles.push(...variantResult.files);
+					ctx?.addOutput('variant', variantResult.files, variantName);
+					if (!ctx) {
+						logger.success(
+							`Generated variant ${variantName}: ${variantResult.files.join(', ')}`,
+						);
+					}
 				}
 			}
 		}
@@ -413,7 +418,7 @@ export async function generateTheme(
 	return {
 		ok: true,
 		themeName: resolvedThemeName,
-		outputDir: primaryOutputDir,
+		outputDir: firstPass.outputDir,
 		generatedFiles,
 	};
 }

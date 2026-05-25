@@ -1,0 +1,10 @@
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "{tailwindcss4.color.gray.900}"
+  dimension:
+    $type: dimension
+    alpha:
+      sm:
+        $value: "{wave.dimension.alpha.300}"
