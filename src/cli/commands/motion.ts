@@ -284,16 +284,14 @@ function motionHelp(commandName: string): string {
 Wave Motion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Usage:
-    wave ${commandName}                         Select APNG or GIF interactively
-    wave ${commandName} apng [frames-dir] [options]
-    wave ${commandName} gif [frames-dir] [options]
-    wave ${commandName} doctor [frames-dir]
-    wave ${commandName} install [options]
+    wave ${commandName} [options]
+    wave ${commandName} <command> [options]
 
-  Defaults:
-    frames-dir           Current directory when omitted
-    output               <frames-dir>/wave-mg/<frames-dir-name>@<fps>fps.<ext>
-    APNG extension       .png
+  Commands:
+    apng            Create APNG from PNG frames
+    gif             Create GIF from PNG frames
+    doctor          Check motion tools and optional PNG frame directory
+    install         Show or run motion tool installation
 
   Options:
     -f, --file <path>    PNG frame directory
@@ -304,6 +302,9 @@ Wave Motion
     --dry-run            Show plan only, no write
     --force              Allow overwriting existing output file
     -h, --help           Show help
+
+  For more help on a command:
+    wave ${commandName} <command> --help
 `;
 }
 

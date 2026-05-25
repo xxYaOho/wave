@@ -495,9 +495,31 @@ describe('wave motion', () => {
 	test('motion module help, doctor, install, and unknown command are not captured by empty action', async () => {
 		const help = await runWave(['mg', '-h']);
 		expect(help.exitCode).toBe(0);
-		expect(help.stdout).toContain('wave mg apng [frames-dir] [options]');
-		expect(help.stdout).toContain('APNG extension       .png');
+		expect(help.stdout).toContain('Usage:');
+		expect(help.stdout).toContain('wave mg [options]');
+		expect(help.stdout).toContain('wave mg <command> [options]');
+		expect(help.stdout).toContain('Commands:');
+		expect(help.stdout).toContain(
+			'apng            Create APNG from PNG frames',
+		);
+		expect(help.stdout).toContain('gif             Create GIF from PNG frames');
+		expect(help.stdout).toContain('doctor          Check motion tools');
+		expect(help.stdout).toContain(
+			'install         Show or run motion tool installation',
+		);
+		expect(help.stdout).toContain('For more help on a command:');
+		expect(help.stdout).toContain('wave mg <command> --help');
+		expect(help.stdout).not.toContain('Defaults:');
+		expect(help.stdout).not.toContain('APNG extension');
 		expect(help.stderr).not.toContain('Missing format');
+
+		const motionHelp = await runWave(['motion', '-h']);
+		expect(motionHelp.exitCode).toBe(0);
+		expect(motionHelp.stdout).toContain('wave motion [options]');
+		expect(motionHelp.stdout).toContain('wave motion <command> [options]');
+		expect(motionHelp.stdout).toContain('Commands:');
+		expect(motionHelp.stdout).toContain('wave motion <command> --help');
+		expect(motionHelp.stdout).not.toContain('Defaults:');
 
 		const doctor = await runWave(['mg', 'doctor', '--status']);
 		expect(doctor.stdout).toContain('motion:');
