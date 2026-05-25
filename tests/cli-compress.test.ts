@@ -104,12 +104,20 @@ describe('wave compress', () => {
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Wave Compress');
 		expect(stdout.match(/Wave Compress/g)?.length).toBe(1);
-		expect(stdout).toContain('wave compress [file-or-dir] [options]');
-		expect(stdout).toContain('wave compress -f <file-or-dir> [options]');
-		expect(stdout).toContain('--force');
+		expect(stdout).toContain('wave compress [options]');
+		expect(stdout).toContain('wave compress <command> [options]');
+		expect(stdout).toContain('Commands:');
 		expect(stdout).toContain(
-			'Confirm path and file count, then write one final receipt.',
+			'run             Compress PNG, JPG, SVG, and GIF assets',
 		);
+		expect(stdout).toContain('doctor          Check compress toolchain health');
+		expect(stdout).toContain(
+			'install         Show or run compress tool installation',
+		);
+		expect(stdout).toContain('--force');
+		expect(stdout).toContain('For more help on a command:');
+		expect(stdout).not.toContain('Examples:');
+		expect(stdout).not.toContain('Default behavior:');
 	});
 
 	test('wave compress help renders help instead of treating help as input', async () => {
@@ -117,7 +125,7 @@ describe('wave compress', () => {
 
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Wave Compress');
-		expect(stdout).toContain('wave compress ./assets');
+		expect(stdout).toContain('wave compress <command> [options]');
 		expect(stderr).not.toContain('ENOENT');
 	});
 
@@ -203,20 +211,28 @@ describe('wave compress', () => {
 	});
 
 	test('--yes writes default output under input directory wave-compress', async () => {
-		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tempDir = path.join(rootDir, '.temp-test-wave-compress-receipt');
 		const tools = await createFakeToolDir();
 		try {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.mkdir(tempDir, { recursive: true });
 			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
 
 			const { exitCode, stdout } = await runWave(
 				['compress', tempDir, '--type', 'png', '--yes'],
-				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
+				{
+					cwd: tempDir,
+					env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
+				},
 			);
 
 			expect(exitCode).toBe(0);
 			expect(stdout).toContain('COMPRESS RECEIPT');
 			expect(stdout.match(/COMPRESS RECEIPT/g)?.length).toBe(1);
 			expect(stdout).not.toContain('COMPRESS PREVIEW');
+			expect(stdout).toContain('Input               .');
+			expect(stdout).toContain('Output              ./wave-compress');
+			expect(stdout).not.toContain(tempDir);
 			expect(stdout).toContain('Output');
 			expect(
 				await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists(),

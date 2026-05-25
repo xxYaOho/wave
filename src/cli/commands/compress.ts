@@ -40,18 +40,17 @@ interface CompressCommandOptions {
 const COMPRESS_HELP = `Wave Compress
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Usage:
-    wave compress [file-or-dir] [options]
-    wave compress -f <file-or-dir> [options]
+    wave compress [options]
+    wave compress <command> [options]
 
-  Examples:
-    wave compress ./assets
-    wave compress -f ./assets --dry-run
-    wave compress -f ./assets --yes
-    wave compress -f ./assets --type png --type jpg
+  Commands:
+    run             Compress PNG, JPG, SVG, and GIF assets
+    doctor          Check compress toolchain health
+    install         Show or run compress tool installation
 
   Options:
-    -f, --file <path>    File or directory to compress
-    --type <type>        Limit file type: png, jpg, svg, gif. Repeatable
+    -f, --file <path>    File or directory to compress. Default: .
+    --type <type>        Limit file type. Repeatable: png, jpg, svg, gif
     --recursive          Scan nested folders
     -q, --quality <n>    Use lossy quality mode, 1-100
     -o, --out <path>     Output directory
@@ -61,9 +60,8 @@ const COMPRESS_HELP = `Wave Compress
     --json               Output JSON only, no prompt
     -h, --help           Show help
 
-  Default behavior:
-    Confirm path and file count, then write one final receipt.
-    Use --dry-run for preview only, or --json for machine output.`;
+  For more help on a command:
+    wave compress <command> --help`;
 
 function parseQuality(value: string | undefined): number | undefined {
 	if (value === undefined) return undefined;
@@ -107,8 +105,12 @@ function renderCompressResult(
 	lines.push(line('', width));
 	lines.push(solid);
 	lines.push(kvLine('Mode', result.mode, undefined, width));
-	lines.push(kvLine('Input', result.input, undefined, width));
-	lines.push(kvLine('Output', result.outDir, undefined, width));
+	lines.push(
+		kvLine('Input', formatDisplayPath(result.input), undefined, width),
+	);
+	lines.push(
+		kvLine('Output', formatDisplayPath(result.outDir), undefined, width),
+	);
 	lines.push(kvLine('Files', String(result.items.length), undefined, width));
 	lines.push(dashed);
 	lines.push(line('  FILES', width));
