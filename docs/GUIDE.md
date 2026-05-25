@@ -173,18 +173,22 @@ wave create my-theme -f ./my-theme/themefile
 也可以使用 design-token 模块入口：
 
 ```bash
-# 等价于 wave dt build
+# 当前目录有 main.yaml 时自动读取
+wave design-token
 wave dt
 
 # 显式构建设计令牌
 wave dt build
+
+# 指定 main.yaml 路径
+wave dt -f ./my-theme/main.yaml
 
 # 通过 dt 入口运行 WCAG 对比度检查
 wave dt wcag
 wave dt wcag dark --night
 ```
 
-当前版本的 `wave dt build` 仍复用 `themefile` + `main.yaml` 主链路。`create`、`show`、`init` 仍保留为兼容入口。
+当前版本中，`wave create` 仍默认读取当前目录 `themefile`；`wave dt` / `wave design-token` 默认读取当前目录 `main.yaml`，并继续复用 token 生成主链路。`create`、`show`、`init` 仍保留为兼容入口。
 
 **输出文件**:
 

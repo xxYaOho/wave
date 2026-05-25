@@ -18,9 +18,31 @@ interface CreateCommandOptions {
 	file?: string;
 	night?: boolean;
 	noVariants?: boolean;
+	variant?: string[];
 	variants?: string | boolean;
+	out?: string;
 	output?: string;
 	platform?: string;
+}
+
+interface BuildCommandConfig {
+	defaultFile?: string;
+	fileHelp?: string;
+	missingFileHelp?: string[];
+}
+
+function splitList(value: string): string[] {
+	return value
+		.split(',')
+		.map((s) => s.trim())
+		.filter(Boolean);
+}
+
+function collectRepeatable(
+	value: string,
+	previous: string[] | undefined,
+): string[] {
+	return [...(previous ?? []), ...splitList(value)];
 }
 
 function parseCliOptions(options: CreateCommandOptions): GenerateOptions {
@@ -28,31 +50,35 @@ function parseCliOptions(options: CreateCommandOptions): GenerateOptions {
 		night: options.night !== false,
 	};
 
-	if (options.noVariants === true) {
+	if (options.variant && options.variant.length > 0) {
+		result.variants = options.variant;
+	} else if (options.noVariants === true) {
 		result.variants = [];
 	} else if (options.variants === false) {
 		result.variants = [];
 	} else if (options.variants === undefined || options.variants === true) {
 		result.variants = undefined;
 	} else if (typeof options.variants === 'string') {
-		result.variants = options.variants
-			.split(',')
-			.map((s) => s.trim())
-			.filter(Boolean);
+		result.variants = splitList(options.variants);
 	}
 
 	return result;
 }
 
-export function createBuildCommand(name = 'create'): Command {
+export function createBuildCommand(
+	name = 'create',
+	config: BuildCommandConfig = {},
+): Command {
 	return new Command(name)
 		.description('Generate design token output')
 		.argument('[name]', 'Theme name to generate')
-		.option('-f, --file <path>', 'Themefile path')
+		.option('-f, --file <path>', config.fileHelp ?? 'Themefile path')
 		.option('--no-night', 'Disable night mode generation')
 		.option('--no-variants', 'Disable variants generation')
+		.option('--variant <name>', 'Build selected variant', collectRepeatable)
 		.option('--variants [names]', 'Specify variants (comma separated)')
-		.option('-o, --output <dir>', 'Output directory')
+		.option('-o, --out <path>', 'Output directory')
+		.option('--output <dir>', 'Output directory')
 		.option(
 			'--platform <list>',
 			'Output platforms (comma separated): json, jsonc, css',
@@ -65,15 +91,20 @@ export function createBuildCommand(name = 'create'): Command {
 			}
 
 			if (!themeName && !options.file) {
-				const defaultThemefile = 'themefile';
-				const file = Bun.file(defaultThemefile);
+				const defaultInput = config.defaultFile ?? 'themefile';
+				const file = Bun.file(defaultInput);
 				if (await file.exists()) {
-					options.file = defaultThemefile;
+					options.file = defaultInput;
 					themeName = 'theme';
 				} else {
-					console.error('Error: No themefile found in current directory');
-					console.error('Usage: wave create [path] or wave create -f <path>');
-					console.error('Run "wave init" to create a theme template');
+					const helpLines = config.missingFileHelp ?? [
+						'Error: No themefile found in current directory',
+						'Usage: wave create [path] or wave create -f <path>',
+						'Run "wave init" to create a theme template',
+					];
+					for (const line of helpLines) {
+						console.error(line);
+					}
 					process.exitCode = ExitCode.FILE_NOT_FOUND;
 					return;
 				}
@@ -94,7 +125,8 @@ export function createBuildCommand(name = 'create'): Command {
 			const ctx = new BuildContext();
 			ctx.themeName = themeName;
 			ctx.version = VERSION;
-			ctx.outputDir = options.output ?? '';
+			const output = options.out ?? options.output;
+			ctx.outputDir = output ?? '';
 
 			let selectedThemes: ThemeFileEntry[] | undefined;
 			if (
@@ -118,7 +150,7 @@ export function createBuildCommand(name = 'create'): Command {
 			const input: ThemeGenerationInput = {
 				themeName,
 				themePath: options.file,
-				cliOutput: options.output,
+				cliOutput: output,
 				cliPlatform: options.platform,
 				generateOptions: parseCliOptions(options),
 				selectedThemes,

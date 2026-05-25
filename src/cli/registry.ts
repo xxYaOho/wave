@@ -2,7 +2,7 @@ import type { Command } from 'commander';
 import { compressCommand } from './commands/compress.ts';
 import { createCommand } from './commands/create.ts';
 import { doctorCommand } from './commands/doctor.ts';
-import { dtCommand } from './commands/dt.ts';
+import { designTokenCommand, dtCommand } from './commands/dt.ts';
 import { initCommand } from './commands/init.ts';
 import { installCommand } from './commands/install.ts';
 import { mgCommand, motionCommand } from './commands/motion.ts';
@@ -18,6 +18,11 @@ export interface CommandDefinition {
 }
 
 export const commandRegistry: CommandDefinition[] = [
+	{
+		name: 'design-token',
+		category: 'design-token',
+		command: designTokenCommand,
+	},
 	{
 		name: 'dt',
 		category: 'design-token',

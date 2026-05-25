@@ -27,7 +27,7 @@ themefile（声明数据源 + 输出参数）
 - main.yaml：唯一的 token 内容来源
 - RESOURCE：只提供引用解析数据，不直接输出
 - colorSpace 转换发生在输出阶段，不影响引用解析过程
-- dt：当前是 design-token 模块入口，内部仍复用 themefile 主链路
+- dt：当前是 design-token 模块入口，默认读取当前目录 `main.yaml`，内部仍复用 token 生成主链路
 - compress：只处理已有 PNG/JPG/SVG/GIF 素材压缩，不从帧生成动效
 - motion/mg：只从 PNG 帧目录生成 GIF/APNG
 - install/doctor：检查和安装本地工具链，不改变 token 数据模型
@@ -38,7 +38,7 @@ themefile（声明数据源 + 输出参数）
 - ❌ 不要绕过 main.yaml 直接从资源生成 token
 - ❌ 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
 - ❌ 不要把 compress 和 motion 的外部工具判断各写一套；应复用 `ToolResolver` / `CommandRunner`
-- ❌ 不要把当前版本误写成已完成 `main.yaml::$config` 的 vNext 模型；当前仍以 `themefile` 为入口
+- ❌ 不要把 `create` 误写成已完成 `main.yaml::$config` 的 vNext 模型；`create` 仍以 `themefile` 为默认入口
 
 ---
 
@@ -47,8 +47,10 @@ themefile（声明数据源 + 输出参数）
 - `wave create`：读取当前目录 `themefile` 文件生成 token
 - `wave create [path]`：指定 themefile 路径生成
 - `wave create -f <path>`：使用 `-f` 指定 themefile 文件
-- `wave dt`：design-token 模块入口，默认等价于 `wave dt build`
-- `wave dt build`：生成 design token 输出，当前复用 `wave create` 主链路
+- `wave design-token`：design-token 模块入口，默认等价于 `wave design-token build`
+- `wave design-token build`：生成 design token 输出，默认读取当前目录 `main.yaml`
+- `wave dt`：`wave design-token` 的 alias，默认等价于 `wave dt build`
+- `wave dt build`：生成 design token 输出，默认读取当前目录 `main.yaml`
 - `wave dt init`：初始化主题工作区
 - `wave dt show`：浏览内置资源
 - `wave dt doctor`：design-token 健康检查入口，当前复用 `wave doctor`
@@ -66,15 +68,17 @@ themefile（声明数据源 + 输出参数）
 - `wave mg`：`wave motion` 的 alias
 - `wave show`：浏览内置资源
 - `wave init`：初始化主题工作区
-- `wave help`：显示帮助
+- `wave` / `wave -h` / `wave help`：显示顶层帮助
 - `wave --version`：显示版本号
 
 ### dt 命令
 
-`dt` 是 design-token 能力域入口。当前版本还没有切到 vNext 的 `main.yaml::$config` 模型，`dt build` 仍读取 `themefile`。
+`design-token` 是 design-token 能力域入口，`dt` 是 alias。当前版本已经支持以含 `$config` 的 `main.yaml` 作为 design-token 入口；`create` 仍保留 `themefile` 默认入口。
 
-- `wave dt`：内部归一化为 `wave dt build`
-- `wave dt build [name]`：生成 design token 输出
+- `wave dt`：内部归一化为 `wave dt build`，默认使用 `./main.yaml`
+- `wave design-token`：内部归一化为 `wave design-token build`，默认使用 `./main.yaml`
+- `wave dt build [path]`：生成 design token 输出；`path` 可为 `main.yaml` 或兼容的 `themefile`
+- `wave dt build -f <path>`：指定 `main.yaml` 或兼容的 `themefile`
 - `wave dt init`：创建 themefile / main.yaml 模板
 - `wave dt show [category] [name]`：浏览内置资源
 - `wave dt doctor`：运行 design-token 健康检查
@@ -106,7 +110,8 @@ themefile（声明数据源 + 输出参数）
 - `--variants [names]`：指定变体（逗号分隔）
 - `--platform <list>`：指定输出平台（逗号分隔）：`json`、`jsonc`、`css`、`sketch`
 - `--init`：创建主题模板（生成 themefile、main.yaml、manual.md）
-- `-o, --output <dir>`：指定输出目录
+- `-o, --out <path>`：指定输出目录
+- `--output <dir>`：兼容旧参数，等价于 `--out`
 
 ### toolchain 命令
 
