@@ -155,7 +155,7 @@ function renderCompressResult(
 		const summary = hasError
 			? 'Compression blocked'
 			: result.written
-				? 'Compressed output written'
+				? renderCompressSavedSummary(result)
 				: 'Preview only, no files written';
 		lines.push(centerLine(summary, width));
 	}
@@ -171,6 +171,24 @@ function formatBytes(bytes: number): string {
 
 function formatPercent(value: number): string {
 	return Number.isInteger(value) ? `${value}%` : `${value.toFixed(1)}%`;
+}
+
+function formatReceiptPercent(value: number): string {
+	return value.toFixed(2);
+}
+
+function renderCompressSavedSummary(result: CompressResult): string {
+	const beforeBytes = result.items.reduce(
+		(sum, item) => sum + item.beforeBytes,
+		0,
+	);
+	const afterBytes = result.items.reduce(
+		(sum, item) => sum + item.afterBytes,
+		0,
+	);
+	const savedPercent =
+		beforeBytes === 0 ? 0 : ((beforeBytes - afterBytes) / beforeBytes) * 100;
+	return `Reduce space usage by ${formatReceiptPercent(savedPercent)}%.`;
 }
 
 function truncate(text: string, width: number): string {

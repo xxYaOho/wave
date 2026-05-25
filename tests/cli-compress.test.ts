@@ -233,6 +233,7 @@ describe('wave compress', () => {
 			expect(stdout).toContain('Input               .');
 			expect(stdout).toContain('Output              ./wave-compress');
 			expect(stdout).not.toContain(tempDir);
+			expect(stdout).toContain('Reduce space usage by 50.00%.');
 			expect(stdout).toContain('Output');
 			expect(
 				await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists(),
@@ -240,6 +241,41 @@ describe('wave compress', () => {
 			expect(
 				await Bun.file(path.join(rootDir, 'compressed/sample.png')).exists(),
 			).toBe(false);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('--yes summarizes total reduced space usage', async () => {
+		const tempDir = path.join(rootDir, '.temp-test-wave-compress-summary');
+		const tools = await createFakeToolDir();
+		try {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.mkdir(tempDir, { recursive: true });
+			await fs.writeFile(path.join(tempDir, 'small.png'), '0123456789');
+			await fs.writeFile(
+				path.join(tempDir, 'large.png'),
+				'01234567890123456789',
+			);
+
+			const { exitCode, stdout } = await runWave(
+				['compress', tempDir, '--type', 'png', '--yes'],
+				{
+					cwd: tempDir,
+					env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
+				},
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout.match(/COMPRESS RECEIPT/g)?.length).toBe(1);
+			expect(stdout).toContain('Reduce space usage by 50.00%.');
+			expect(
+				await Bun.file(path.join(tempDir, 'wave-compress/small.png')).exists(),
+			).toBe(true);
+			expect(
+				await Bun.file(path.join(tempDir, 'wave-compress/large.png')).exists(),
+			).toBe(true);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 			await fs.rm(tools, { recursive: true, force: true });

@@ -307,6 +307,7 @@ wave compress install
 - 若优化产物更小，状态为 `optimized`，写入优化产物。
 - 若优化产物不更小，状态为 `unchanged`，写入原始字节。
 - receipt 中 `optimized` 行显示 `saved, <percent>%`；`unchanged` 行显示 `unchanged`。
+- 成功写入 receipt 的结尾显示 `Reduce space usage by <percent>%.`，百分比按所有文件合计的压缩前后字节计算，保留两位小数。
 
 ### 工具选择
 
