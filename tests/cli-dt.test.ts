@@ -4,12 +4,14 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 
 const rootDir = path.resolve(import.meta.dir, '..');
+const cliEntry = path.join(rootDir, 'src/index.ts');
 
 async function runWave(
 	args: string[],
+	cwd = rootDir,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(['bun', 'run', 'src/index.ts', ...args], {
-		cwd: rootDir,
+	const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
+		cwd,
 		stdout: 'pipe',
 		stderr: 'pipe',
 	});
@@ -22,14 +24,43 @@ async function runWave(
 }
 
 describe('wave dt', () => {
-	test('dt help shows module commands instead of build help', async () => {
+	test('top-level help shows actionable command overview', async () => {
+		const bare = await runWave([]);
+		const help = await runWave(['-h']);
+
+		for (const result of [bare, help]) {
+			expect(result.exitCode).toBe(0);
+			expect(result.stdout).toContain('Wave CLI');
+			expect(result.stdout).toContain('wave <command> [options]');
+			expect(result.stdout).toContain(
+				'design-token   Build and inspect design tokens',
+			);
+			expect(result.stdout).toContain('dt             Alias of design-token');
+			expect(result.stdout).toContain('wave <command> --help');
+			expect(result.stdout).not.toContain('--no-night');
+			expect(result.stdout).not.toContain('--variant');
+		}
+	});
+
+	test('dt help shows design-token module help instead of build help', async () => {
 		const { exitCode, stdout } = await runWave(['dt', '--help']);
 
 		expect(exitCode).toBe(0);
-		expect(stdout).toContain('Usage: wave dt');
-		expect(stdout).toContain('build');
-		expect(stdout).toContain('wcag');
+		expect(stdout).toContain('Wave Design Token');
+		expect(stdout).toContain('Usage:');
+		expect(stdout).toContain('wave dt [options]');
+		expect(stdout).toContain('build           Build design token output');
+		expect(stdout).toContain('wcag            Check color contrast');
+		expect(stdout).toContain('-f, --file <path>    main.yaml path');
 		expect(stdout).not.toContain('Usage: wave dt build');
+	});
+
+	test('design-token help matches dt module help', async () => {
+		const dt = await runWave(['dt', '--help']);
+		const designToken = await runWave(['design-token', '--help']);
+
+		expect(designToken.exitCode).toBe(0);
+		expect(designToken.stdout).toBe(dt.stdout);
 	});
 
 	test('dt build generates design token output through the new module entry', async () => {
@@ -79,6 +110,28 @@ describe('wave dt', () => {
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
 
+	test('design-token without subcommand defaults to build', async () => {
+		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/standard');
+		const outputDir = path.join(rootDir, '.temp-test-design-token-build');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const { exitCode } = await runWave([
+			'design-token',
+			'-f',
+			path.join(fixtureDir, 'themefile'),
+			'-o',
+			outputDir,
+		]);
+
+		expect(exitCode).toBe(0);
+		expect(
+			await Bun.file(path.join(outputDir, 'test-standard.json')).exists(),
+		).toBe(true);
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+	});
+
 	test('dt build accepts main.yaml with $config as the design-token entry', async () => {
 		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/config-main');
 		const outputDir = path.join(fixtureDir, 'theme');
@@ -99,6 +152,137 @@ describe('wave dt', () => {
 		).toBe(true);
 		expect(
 			await Bun.file(path.join(outputDir, 'config-main2sketch.json')).exists(),
+		).toBe(true);
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+	});
+
+	test('dt without explicit input defaults to current directory main.yaml', async () => {
+		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/config-main');
+		const outputDir = path.join(fixtureDir, 'theme');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const { exitCode, stdout } = await runWave(['dt'], fixtureDir);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('config-main.css');
+		expect(stdout).not.toContain('No themefile found');
+		expect(
+			await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
+		).toBe(true);
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+	});
+
+	test('dt accepts positional and -f main.yaml inputs', async () => {
+		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/config-main');
+		const outputDir = path.join(fixtureDir, 'theme');
+		const mainYaml = path.join(fixtureDir, 'main.yaml');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const positional = await runWave(['dt', mainYaml]);
+		expect(positional.exitCode).toBe(0);
+		expect(
+			await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
+		).toBe(true);
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const fileFlag = await runWave(['dt', '-f', mainYaml]);
+		expect(fileFlag.exitCode).toBe(0);
+		expect(
+			await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
+		).toBe(true);
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+	});
+
+	test('dt supports repeatable --variant alias for selected variants', async () => {
+		const fixtureDir = path.join(
+			rootDir,
+			'tests/fixtures/baseline-independent',
+		);
+		const outputDir = path.join(rootDir, '.temp-test-dt-variant-alias');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const { exitCode } = await runWave([
+			'dt',
+			'-f',
+			path.join(fixtureDir, 'themefile'),
+			'-o',
+			outputDir,
+			'--variant',
+			'dark',
+		]);
+
+		expect(exitCode).toBe(0);
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'baseline-independent-dark.json'),
+			).exists(),
+		).toBe(true);
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+	});
+
+	test('dt build writes variants for every parameter group pass', async () => {
+		const fixtureDir = path.join(
+			rootDir,
+			'tests/fixtures/themes/config-group-variants',
+		);
+		const outputDir = path.join(fixtureDir, 'theme');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const { exitCode, stdout } = await runWave(
+			['dt', 'build', '--variants', 'dark'],
+			fixtureDir,
+		);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('config-group-variants.css');
+		expect(stdout).toContain('config-group-variants-night.css');
+		expect(stdout).toContain('config-group-variants-dark.css');
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'css', 'config-group-variants.css'),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'sketch', 'config-group-variants2sketch.json'),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'css', 'config-group-variants-night.css'),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(
+					outputDir,
+					'sketch',
+					'config-group-variants-night2sketch.json',
+				),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'css', 'config-group-variants-dark.css'),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(
+					outputDir,
+					'sketch',
+					'config-group-variants-dark2sketch.json',
+				),
+			).exists(),
 		).toBe(true);
 
 		await fs.rm(outputDir, { recursive: true, force: true });

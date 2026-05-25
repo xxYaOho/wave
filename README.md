@@ -143,12 +143,16 @@ PARAMETER platform json,jsonc,css,sketch
 # 生成主题（当前目录）
 wave create
 
-# design-token 模块入口（当前仍复用 themefile 主链路）
-wave dt build
+# design-token 模块入口（当前目录有 main.yaml 时自动读取）
+wave design-token
+wave dt
 wave dt wcag
 
 # 指定 themefile
 wave create -f ./path/to/themefile
+
+# 指定 main.yaml
+wave dt -f ./path/to/main.yaml
 
 # 仅生成 CSS
 wave create --platform css
