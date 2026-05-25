@@ -67,6 +67,13 @@ export interface MotionDoctorResult {
 	issues: MotionIssue[];
 }
 
+export interface MotionFrameInspection {
+	framesDir: string;
+	frames: MotionFrame[];
+	details: string[];
+	issues: MotionIssue[];
+}
+
 export async function createMotionPlan(
 	input: MotionInput,
 	toolResolver: ToolResolver,
@@ -277,6 +284,58 @@ export async function runMotionDoctor(
 
 	return {
 		toolResolutions,
+		frames: scanResult.frames,
+		details,
+		issues,
+	};
+}
+
+export async function inspectMotionFrames(
+	framesDir: string,
+	options: { cwd?: string; fps?: number } = {},
+): Promise<MotionFrameInspection> {
+	const resolvedFramesDir = path.resolve(
+		options.cwd ?? process.cwd(),
+		framesDir,
+	);
+	const fps = options.fps ?? 24;
+	const scanResult = await scanPngFrames(resolvedFramesDir);
+	const issues = [...scanResult.issues];
+	const details: string[] = [];
+	const firstFrame = scanResult.frames[0];
+
+	if (scanResult.frames.length < 2) {
+		issues.push({
+			code: 'WMG_FRAME_COUNT_LOW',
+			severity: 'error',
+			message: 'motion requires at least 2 PNG frames',
+			path: resolvedFramesDir,
+		});
+	}
+
+	if (firstFrame) {
+		for (const frame of scanResult.frames) {
+			if (
+				frame.width !== firstFrame.width ||
+				frame.height !== firstFrame.height
+			) {
+				issues.push({
+					code: 'WMG_FRAME_SIZE_MISMATCH',
+					severity: 'error',
+					message: `${frame.name} is ${frame.width}x${frame.height}, expected ${firstFrame.width}x${firstFrame.height}`,
+					path: frame.path,
+				});
+			}
+		}
+		if (fps > 0) {
+			details.push(
+				`${scanResult.frames.length} frames, ${firstFrame.width}x${firstFrame.height}, duration ${(scanResult.frames.length / fps).toFixed(2)}s at ${fps} fps`,
+			);
+		}
+	}
+
+	return {
+		framesDir: resolvedFramesDir,
 		frames: scanResult.frames,
 		details,
 		issues,

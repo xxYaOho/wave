@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import { Command, CommanderError } from 'commander';
 import {
 	runToolchainDoctor,
 	type ToolchainDoctorResult,
@@ -7,6 +7,7 @@ import {
 	createMotionPlan,
 	encodeMotionPlan,
 	hasBlockingMotionIssues,
+	inspectMotionFrames,
 	type MotionFormat,
 	type MotionIssue,
 	type MotionPlan,
@@ -41,10 +42,46 @@ export function createMotionCommand(name = 'motion'): Command {
 		'Create animated assets from PNG frames',
 	);
 
+	addEncodeOptions(command);
 	command.addCommand(createEncodeCommand('gif'));
 	command.addCommand(createEncodeCommand('apng'));
 	command.addCommand(createMotionDoctorCommand());
 	command.addCommand(createInstallCommand('install', 'motion'));
+	command.configureHelp({
+		formatHelp: () => motionHelp(name),
+	});
+	command.action(
+		async (_options: MotionCommandOptions, actionCommand: Command) => {
+			const parsedOptions = actionCommand.opts<MotionCommandOptions>();
+			if (!isInteractive()) {
+				renderMissingFormat(name);
+				return;
+			}
+			const framesDir = parsedOptions.file ?? '.';
+			if (!(await validateInteractiveFrames(framesDir, parsedOptions))) return;
+			const format = await selectMotionFormat(name);
+			if (!format) return;
+			await runEncode(format, framesDir, parsedOptions);
+		},
+	);
+	command.exitOverride((error) => {
+		if (
+			error instanceof CommanderError &&
+			error.code === 'commander.helpDisplayed'
+		) {
+			process.exitCode = ExitCode.SUCCESS;
+			return;
+		}
+		if (
+			error instanceof CommanderError &&
+			(error.code === 'commander.unknownCommand' ||
+				error.code === 'commander.excessArguments')
+		) {
+			process.exitCode = ExitCode.INVALID_COMMAND;
+			return;
+		}
+		throw error;
+	});
 
 	return command;
 }
@@ -52,9 +89,60 @@ export function createMotionCommand(name = 'motion'): Command {
 function createEncodeCommand(format: MotionFormat): Command {
 	const formatName = format.toUpperCase();
 	const extension = format === 'gif' ? '.gif' : '.png';
-	return new Command(format)
+	const command = new Command(format)
 		.description(`Create ${format.toUpperCase()} from a PNG frame directory`)
-		.argument('[framesDir]', 'Directory containing PNG frames')
+		.argument('[framesDir]', 'Directory containing PNG frames');
+	addEncodeOptions(command);
+	command
+		.configureHelp({
+			formatHelp: () => formatHelp(formatName, extension),
+		})
+		.action(
+			async (
+				framesDir: string | undefined,
+				options: MotionCommandOptions,
+				command: Command,
+			) => {
+				const parsedOptions = mergeMotionOptions(command, options);
+				await runEncode(
+					format,
+					framesDir ?? parsedOptions.file ?? '.',
+					parsedOptions,
+				);
+			},
+		);
+	return command;
+}
+
+function mergeMotionOptions(
+	command: Command,
+	options: MotionCommandOptions,
+): MotionCommandOptions {
+	const parentOptions = command.parent?.opts<MotionCommandOptions>() ?? {};
+	const merged: MotionCommandOptions = { ...options };
+
+	for (const key of [
+		'file',
+		'fps',
+		'quality',
+		'loop',
+		'out',
+		'force',
+		'overwrite',
+		'dryRun',
+	] as const) {
+		const childSource = command.getOptionValueSource(key);
+		const parentSource = command.parent?.getOptionValueSource(key);
+		if (childSource !== 'cli' && parentSource && parentSource !== 'default') {
+			merged[key] = parentOptions[key] as never;
+		}
+	}
+
+	return merged;
+}
+
+function addEncodeOptions(command: Command): Command {
+	return command
 		.option('-f, --file <path>', 'PNG frame directory')
 		.option('--fps <n>', 'Frames per second. Default: 24', '24')
 		.option('--quality <n>', 'Encoder quality, 1-100. Default: 80', '80')
@@ -62,64 +150,109 @@ function createEncodeCommand(format: MotionFormat): Command {
 		.option('-o, --out <path>', 'Output file path')
 		.option('--dry-run', 'Show plan only, no write')
 		.option('--force', 'Allow overwriting existing output file')
-		.option('--overwrite', 'Allow overwriting existing output file')
-		.configureHelp({
-			formatHelp: () => formatHelp(formatName, extension),
-		})
-		.action(
-			async (
-				framesDir: string | undefined,
-				_options: MotionCommandOptions,
-				command: Command,
-			) => {
-				const parsedOptions = command.opts<MotionCommandOptions>();
-				const inputFramesDir = framesDir ?? parsedOptions.file;
-				if (!inputFramesDir) {
-					console.error('Missing required PNG frame directory.');
-					process.exitCode = ExitCode.GENERAL_ERROR;
-					return;
-				}
-				const runner = new BunCommandRunner();
-				const resolver = new DefaultToolResolver({ runner });
-				const plan = await createMotionPlan(
-					{
-						format,
-						framesDir: inputFramesDir,
-						fps: Number(parsedOptions.fps),
-						quality: Number(parsedOptions.quality),
-						loop: parsedOptions.loop,
-						out: parsedOptions.out,
-						overwrite: parsedOptions.force || parsedOptions.overwrite,
-						dryRun: parsedOptions.dryRun,
-					},
-					resolver,
-				);
+		.option('--overwrite', 'Allow overwriting existing output file');
+}
 
-				const phase = parsedOptions.dryRun ? 'plan' : 'receipt';
+async function runEncode(
+	format: MotionFormat,
+	framesDir: string,
+	options: MotionCommandOptions,
+): Promise<void> {
+	const runner = new BunCommandRunner();
+	const resolver = new DefaultToolResolver({ runner });
+	const plan = await createMotionPlan(
+		{
+			format,
+			framesDir,
+			fps: Number(options.fps),
+			quality: Number(options.quality),
+			loop: options.loop,
+			out: options.out,
+			overwrite: options.force || options.overwrite,
+			dryRun: options.dryRun,
+		},
+		resolver,
+	);
 
-				if (hasBlockingMotionIssues(plan.issues)) {
-					console.log(renderMotionReceipt(plan, phase));
-					process.exitCode = ExitCode.GENERAL_ERROR;
-					return;
-				}
+	const phase = options.dryRun ? 'plan' : 'receipt';
 
-				if (parsedOptions.dryRun) {
-					console.log(renderMotionReceipt(plan, 'plan'));
-					process.exitCode = ExitCode.SUCCESS;
-					return;
-				}
+	if (hasBlockingMotionIssues(plan.issues)) {
+		console.log(renderMotionReceipt(plan, phase));
+		process.exitCode = ExitCode.GENERAL_ERROR;
+		return;
+	}
 
-				try {
-					const result = await encodeMotionPlan(plan, runner);
-					console.log(renderMotionReceipt(plan, 'receipt', result.outputSize));
-					process.exitCode = ExitCode.SUCCESS;
-				} catch (error) {
-					console.log(`ERROR  WMG_ENCODE_FAILED`);
-					console.log(error instanceof Error ? error.message : String(error));
-					process.exitCode = ExitCode.GENERAL_ERROR;
-				}
-			},
-		);
+	if (options.dryRun) {
+		console.log(renderMotionReceipt(plan, 'plan'));
+		process.exitCode = ExitCode.SUCCESS;
+		return;
+	}
+
+	try {
+		const result = await encodeMotionPlan(plan, runner);
+		console.log(renderMotionReceipt(plan, 'receipt', result.outputSize));
+		process.exitCode = ExitCode.SUCCESS;
+	} catch (error) {
+		console.log(`ERROR  WMG_ENCODE_FAILED`);
+		console.log(error instanceof Error ? error.message : String(error));
+		process.exitCode = ExitCode.GENERAL_ERROR;
+	}
+}
+
+async function validateInteractiveFrames(
+	framesDir: string,
+	options: MotionCommandOptions,
+): Promise<boolean> {
+	const result = await inspectMotionFrames(framesDir, {
+		fps: Number(options.fps),
+	});
+	const errors = result.issues.filter((issue) => issue.severity === 'error');
+	if (errors.length === 0) return true;
+
+	console.log('ERRORS');
+	for (const issue of errors) {
+		console.log(`${issue.code} ${issue.message}`);
+	}
+	process.exitCode = ExitCode.GENERAL_ERROR;
+	return false;
+}
+
+async function selectMotionFormat(
+	commandName: string,
+): Promise<MotionFormat | undefined> {
+	if (!isInteractive()) {
+		renderMissingFormat(commandName);
+		return undefined;
+	}
+
+	const { isCancel, select } = await import('@clack/prompts');
+	const selected = await select<MotionFormat>({
+		message: 'Generate format',
+		options: [
+			{ value: 'apng', label: 'APNG' },
+			{ value: 'gif', label: 'GIF' },
+		],
+		initialValue: 'apng',
+	});
+
+	if (isCancel(selected)) {
+		console.error('Motion generation cancelled.');
+		process.exitCode = ExitCode.GENERAL_ERROR;
+		return undefined;
+	}
+
+	return selected as MotionFormat;
+}
+
+function isInteractive(): boolean {
+	return process.stdin.isTTY === true && process.stdout.isTTY === true;
+}
+
+function renderMissingFormat(commandName: string): void {
+	console.error(
+		`Missing format in non-interactive mode. Use wave ${commandName} apng or wave ${commandName} gif.`,
+	);
+	process.exitCode = ExitCode.GENERAL_ERROR;
 }
 
 function formatHelp(formatName: string, extension: string): string {
@@ -128,6 +261,7 @@ Wave Motion ${formatName}
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Usage:
     wave motion ${formatName.toLowerCase()} [frames-dir] [options]
+    wave motion ${formatName.toLowerCase()} [options]
     wave motion ${formatName.toLowerCase()} -f <frames-dir> [options]
 
   Options:
@@ -142,6 +276,35 @@ Wave Motion ${formatName}
 
   Default output:
     <frames-dir>/wave-mg/<frames-dir-name>@<fps>fps${extension}
+`;
+}
+
+function motionHelp(commandName: string): string {
+	return `
+Wave Motion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Usage:
+    wave ${commandName} [options]
+    wave ${commandName} <command> [options]
+
+  Commands:
+    apng            Create APNG from PNG frames
+    gif             Create GIF from PNG frames
+    doctor          Check motion tools and optional PNG frame directory
+    install         Show or run motion tool installation
+
+  Options:
+    -f, --file <path>    PNG frame directory
+    --fps <n>            Frames per second. Default: 24
+    --quality <n>        Encoder quality, 1-100. Default: 80
+    --loop <mode>        forever or once. Default: forever
+    -o, --out <path>     Output file path
+    --dry-run            Show plan only, no write
+    --force              Allow overwriting existing output file
+    -h, --help           Show help
+
+  For more help on a command:
+    wave ${commandName} <command> --help
 `;
 }
 

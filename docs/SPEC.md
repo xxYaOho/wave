@@ -61,8 +61,9 @@ themefile（声明数据源 + 输出参数）
 - `wave compress`：压缩 PNG/JPG/SVG/GIF 素材，内部归一化为 `wave compress run`
 - `wave compress doctor`：检查压缩工具链
 - `wave compress install`：安装压缩工具组
-- `wave motion gif <framesDir>`：从 PNG 帧目录生成 GIF
-- `wave motion apng <framesDir>`：从 PNG 帧目录生成 APNG
+- `wave motion`：TTY 下从当前目录检查 PNG 帧并选择 GIF/APNG；非 TTY 下要求显式格式
+- `wave motion gif [framesDir]`：从 PNG 帧目录生成 GIF；省略目录时使用当前目录
+- `wave motion apng [framesDir]`：从 PNG 帧目录生成 APNG；省略目录时使用当前目录
 - `wave motion doctor [framesDir]`：检查动效工具链和可选帧目录
 - `wave motion install`：安装动效工具组
 - `wave mg`：`wave motion` 的 alias
@@ -329,17 +330,31 @@ wave compress install
 ### 命令形态
 
 ```bash
-wave motion gif <framesDir>
-wave motion apng <framesDir>
-wave mg gif <framesDir>
-wave mg apng <framesDir>
+wave motion
+wave mg
+wave motion gif [framesDir]
+wave motion apng [framesDir]
+wave mg gif [framesDir]
+wave mg apng [framesDir]
 wave motion doctor [framesDir]
 wave motion install
 ```
 
+`wave motion` 与 `wave mg` 空参数仅在 TTY 下进入交互。CLI 先检查当前目录是否是合法 PNG 帧目录；合法时用 `@clack/prompts` 选择格式，默认高亮 APNG。非 TTY 下空参数不进入交互、不默认生成，输出：
+
+```text
+Missing format in non-interactive mode. Use wave mg apng or wave mg gif.
+```
+
+`wave motion` 入口会使用对应命令名：
+
+```text
+Missing format in non-interactive mode. Use wave motion apng or wave motion gif.
+```
+
 ### 参数
 
-- `<framesDir>`：PNG 帧目录
+- `<framesDir>`：PNG 帧目录；省略时使用当前目录 `.`
 - `--fps <number>`：帧率，默认 `24`，必须大于 0
 - `--quality <number>`：编码质量，默认 `80`，取值 1-100
 - `--loop <mode>`：循环模式，默认 `forever`，支持 `forever` / `once`
@@ -358,8 +373,8 @@ wave motion install
 
 ### 输出路径
 
-- GIF 默认输出到帧目录同级的 `<frames-dir-name>.gif`。
-- APNG 默认输出到帧目录同级的 `<frames-dir-name>.png`。
+- GIF 默认输出到帧目录内的 `wave-mg/<frames-dir-name>@<fps>fps.gif`。
+- APNG 默认输出到帧目录内的 `wave-mg/<frames-dir-name>@<fps>fps.png`。
 - 指定 `--out` 时按当前 cwd 解析相对路径。
 - 输出已存在且未传 `--overwrite` 时返回 `WMG_OUTPUT_EXISTS`。
 
