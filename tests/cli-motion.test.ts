@@ -312,6 +312,8 @@ describe('wave motion', () => {
 		expect(apng.stdout).toContain('Wave Motion APNG');
 		expect(apng.stdout).toContain('wave motion apng -f <frames-dir>');
 		expect(apng.stdout).toContain('--force');
+		expect(apng.stdout).not.toContain('Usage: wave motion apng [options]');
+		expect(apng.stdout).not.toContain('--overwrite');
 		expect(apng.stdout).toContain(
 			'<frames-dir>/wave-mg/<frames-dir-name>@<fps>fps.png',
 		);
@@ -321,6 +323,8 @@ describe('wave motion', () => {
 		expect(gif.stdout).toContain(
 			'<frames-dir>/wave-mg/<frames-dir-name>@<fps>fps.gif',
 		);
+		expect(gif.stdout).not.toContain('Usage: wave motion gif [options]');
+		expect(gif.stdout).not.toContain('--overwrite');
 	});
 });
 

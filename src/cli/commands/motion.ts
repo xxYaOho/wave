@@ -63,7 +63,9 @@ function createEncodeCommand(format: MotionFormat): Command {
 		.option('--dry-run', 'Show plan only, no write')
 		.option('--force', 'Allow overwriting existing output file')
 		.option('--overwrite', 'Allow overwriting existing output file')
-		.addHelpText('beforeAll', formatHelp(formatName, extension))
+		.configureHelp({
+			formatHelp: () => formatHelp(formatName, extension),
+		})
 		.action(
 			async (
 				framesDir: string | undefined,
