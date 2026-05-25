@@ -42,14 +42,65 @@ describe('wave motion', () => {
 			);
 
 			expect(exitCode).toBe(0);
-			expect(stdout).toContain('Motion Plan');
-			expect(stdout).toContain('Format      GIF');
-			expect(stdout).toContain('Frames      2');
-			expect(stdout).toContain('FPS         12');
-			expect(stdout).toContain('Duration    0.17s');
-			expect(stdout).toContain('Size        320 x 240');
-			expect(stdout).toContain('Tool        gifski');
+			expect(stdout).toContain('MOTION PLAN');
+			expect(stdout).toContain('Format              GIF');
+			expect(stdout).toContain('Frames              2');
+			expect(stdout).toContain('FPS                 12');
+			expect(stdout).toContain('Duration            0.17s');
+			expect(stdout).toContain('Size                320 x 240');
+			expect(stdout).toContain('Tool                gifski');
+			expect(stdout).toContain('wave-mg/frames@12fps.gif');
+			expect(stdout).toContain('Dry run. No file written.');
 			expect(await fileExists(path.join(tempDir, 'frames.gif'))).toBe(false);
+			expect(
+				await fileExists(path.join(framesDir, 'wave-mg', 'frames@12fps.gif')),
+			).toBe(false);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('motion apng dry-run defaults to wave-mg png output', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
+		try {
+			const framesDir = path.join(tempDir, 'frames');
+			await fs.mkdir(framesDir);
+			await writePng(path.join(framesDir, '1.png'), 100, 100);
+			await writePng(path.join(framesDir, '2.png'), 100, 100);
+			const binDir = await createFakeToolDir(tempDir);
+
+			const { exitCode, stdout } = await runWave(
+				['motion', 'apng', framesDir, '--dry-run'],
+				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('MOTION PLAN');
+			expect(stdout).toContain('Format              APNG');
+			expect(stdout).toContain('wave-mg/frames@24fps.png');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('motion respects explicit output path and -f frames directory', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
+		try {
+			const framesDir = path.join(tempDir, 'frames');
+			const outputPath = path.join(tempDir, 'custom.anything');
+			await fs.mkdir(framesDir);
+			await writePng(path.join(framesDir, '1.png'), 100, 100);
+			await writePng(path.join(framesDir, '2.png'), 100, 100);
+			const binDir = await createFakeToolDir(tempDir);
+
+			const { exitCode, stdout } = await runWave(
+				['motion', 'apng', '-f', framesDir, '--out', outputPath, '--dry-run'],
+				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('custom.anything');
+			expect(stdout).not.toContain('frames@24fps.png');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
@@ -88,7 +139,11 @@ describe('wave motion', () => {
 			await fs.mkdir(framesDir);
 			await writePng(path.join(framesDir, 'a.png'), 16, 16);
 			await writePng(path.join(framesDir, 'b.png'), 16, 16);
-			await fs.writeFile(path.join(tempDir, 'frames.gif'), 'exists');
+			await fs.mkdir(path.join(framesDir, 'wave-mg'));
+			await fs.writeFile(
+				path.join(framesDir, 'wave-mg', 'frames@24fps.gif'),
+				'exists',
+			);
 			const binDir = await createFakeToolDir(tempDir);
 
 			const { exitCode, stdout } = await runWave(
@@ -97,7 +152,38 @@ describe('wave motion', () => {
 			);
 
 			expect(exitCode).toBe(1);
-			expect(stdout).toContain('ERROR WMG_OUTPUT_EXISTS');
+			expect(stdout).toContain('ERRORS');
+			expect(stdout).toContain('WMG_OUTPUT_EXISTS');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('motion force and overwrite allow existing output', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
+		try {
+			const framesDir = path.join(tempDir, 'frames');
+			const outputDir = path.join(framesDir, 'wave-mg');
+			const outputPath = path.join(outputDir, 'frames@24fps.gif');
+			await fs.mkdir(outputDir, { recursive: true });
+			await writePng(path.join(framesDir, 'a.png'), 16, 16);
+			await writePng(path.join(framesDir, 'b.png'), 16, 16);
+			await fs.writeFile(outputPath, 'exists');
+			const binDir = await createFakeToolDir(tempDir);
+
+			const forceResult = await runWave(
+				['motion', 'gif', framesDir, '--dry-run', '--force'],
+				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
+			);
+			expect(forceResult.exitCode).toBe(0);
+			expect(forceResult.stdout).toContain('MOTION PLAN');
+
+			const overwriteResult = await runWave(
+				['motion', 'gif', framesDir, '--dry-run', '--overwrite'],
+				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
+			);
+			expect(overwriteResult.exitCode).toBe(0);
+			expect(overwriteResult.stdout).toContain('MOTION PLAN');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
@@ -118,7 +204,7 @@ describe('wave motion', () => {
 			);
 
 			expect(exitCode).toBe(1);
-			expect(stdout).toContain('ERROR WMG_FRAME_SIZE_MISMATCH');
+			expect(stdout).toContain('WMG_FRAME_SIZE_MISMATCH');
 			expect(stdout).toContain('b.png is 32x16, expected 16x16');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
@@ -141,7 +227,8 @@ describe('wave motion', () => {
 			);
 
 			expect(exitCode).toBe(0);
-			expect(stdout).toContain('Output Size 6 B');
+			expect(stdout).toContain('MOTION RECEIPT');
+			expect(stdout).toContain('Output Size         6 B');
 			expect(await fs.readFile(outputPath, 'utf-8')).toBe('GIF89a');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
@@ -162,9 +249,7 @@ describe('wave motion', () => {
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 			expect(commandResult.exitCode).toBe(1);
-			expect(commandResult.stdout).toContain(
-				'ERROR WMG_FRAME_FORMAT_UNSUPPORTED',
-			);
+			expect(commandResult.stdout).toContain('WMG_FRAME_FORMAT_UNSUPPORTED');
 			expect(commandResult.stderr).not.toContain('Not a PNG file');
 
 			const doctorResult = await runWave(['motion', 'doctor', framesDir], {
@@ -194,14 +279,14 @@ describe('wave motion', () => {
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 			expect(gifResult.exitCode).toBe(1);
-			expect(gifResult.stdout).toContain('ERROR WMG_LOOP_UNSUPPORTED');
+			expect(gifResult.stdout).toContain('WMG_LOOP_UNSUPPORTED');
 
 			const invalidResult = await runWave(
 				['motion', 'apng', framesDir, '--dry-run', '--loop', 'twice'],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 			expect(invalidResult.exitCode).toBe(1);
-			expect(invalidResult.stdout).toContain('ERROR WMG_LOOP_INVALID');
+			expect(invalidResult.stdout).toContain('WMG_LOOP_INVALID');
 
 			const apngOutput = path.join(tempDir, 'loading.png');
 			const apngResult = await runWave(
@@ -219,6 +304,27 @@ describe('wave motion', () => {
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
+	});
+
+	test('motion format help documents force and default output', async () => {
+		const apng = await runWave(['motion', 'apng', '-h']);
+		expect(apng.exitCode).toBe(0);
+		expect(apng.stdout).toContain('Wave Motion APNG');
+		expect(apng.stdout).toContain('wave motion apng -f <frames-dir>');
+		expect(apng.stdout).toContain('--force');
+		expect(apng.stdout).not.toContain('Usage: wave motion apng [options]');
+		expect(apng.stdout).not.toContain('--overwrite');
+		expect(apng.stdout).toContain(
+			'<frames-dir>/wave-mg/<frames-dir-name>@<fps>fps.png',
+		);
+
+		const gif = await runWave(['motion', 'gif', '-h']);
+		expect(gif.exitCode).toBe(0);
+		expect(gif.stdout).toContain(
+			'<frames-dir>/wave-mg/<frames-dir-name>@<fps>fps.gif',
+		);
+		expect(gif.stdout).not.toContain('Usage: wave motion gif [options]');
+		expect(gif.stdout).not.toContain('--overwrite');
 	});
 });
 
