@@ -7,17 +7,21 @@ const rootDir = path.resolve(import.meta.dir, '..');
 
 async function runWave(
 	args: string[],
-	options: { cwd?: string; env?: Record<string, string> } = {},
+	options: { cwd?: string; env?: Record<string, string>; input?: string } = {},
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
 	const proc = Bun.spawn(
 		[process.execPath, 'run', path.join(rootDir, 'src/index.ts'), ...args],
 		{
 			cwd: options.cwd ?? rootDir,
 			env: { ...process.env, ...options.env },
+			stdin: 'pipe',
 			stdout: 'pipe',
 			stderr: 'pipe',
 		},
 	);
+
+	proc.stdin.write(options.input ?? '');
+	proc.stdin.end();
 
 	const stdout = await new Response(proc.stdout).text();
 	const stderr = await new Response(proc.stderr).text();
@@ -94,6 +98,27 @@ await fs.writeFile(out, Buffer.concat([content, content]));
 }
 
 describe('wave compress', () => {
+	test('module help is actionable at wave compress -h', async () => {
+		const { exitCode, stdout } = await runWave(['compress', '-h']);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('Wave Compress');
+		expect(stdout.match(/Wave Compress/g)?.length).toBe(1);
+		expect(stdout).toContain('wave compress [file-or-dir] [options]');
+		expect(stdout).toContain('wave compress -f <file-or-dir> [options]');
+		expect(stdout).toContain('--force');
+		expect(stdout).toContain('Preview first, then ask whether to write output');
+	});
+
+	test('wave compress help renders help instead of treating help as input', async () => {
+		const { exitCode, stdout, stderr } = await runWave(['compress', 'help']);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('Wave Compress');
+		expect(stdout).toContain('wave compress ./assets');
+		expect(stderr).not.toContain('ENOENT');
+	});
+
 	test('dry-run previews supported files without writing output', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
 		const tools = await createFakeToolDir();
@@ -106,12 +131,57 @@ describe('wave compress', () => {
 			);
 
 			expect(exitCode).toBe(0);
-			expect(stdout).toContain('Compress Preview');
+			expect(stdout).toContain('COMPRESS PREVIEW');
 			expect(stdout).toContain('sample.png');
 			expect(stdout).toContain('50%');
+			expect(stdout).toContain('oxipng');
 			expect(
 				await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists(),
 			).toBe(false);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('default prompt accepts no and exits without writing output', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tools = await createFakeToolDir();
+		try {
+			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
+
+			const { exitCode, stdout } = await runWave(['compress', tempDir], {
+				env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
+				input: 'n\n',
+			});
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('Write compressed output? [y/N]');
+			expect(
+				await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists(),
+			).toBe(false);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('default prompt accepts yes and writes output', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tools = await createFakeToolDir();
+		try {
+			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
+
+			const { exitCode, stdout } = await runWave(['compress', tempDir], {
+				env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
+				input: 'y\n',
+			});
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('Write compressed output? [y/N]');
+			expect(
+				await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists(),
+			).toBe(true);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 			await fs.rm(tools, { recursive: true, force: true });
@@ -130,7 +200,8 @@ describe('wave compress', () => {
 			);
 
 			expect(exitCode).toBe(0);
-			expect(stdout).toContain(path.join(tempDir, 'wave-compress'));
+			expect(stdout).toContain('COMPRESS RECEIPT');
+			expect(stdout).toContain('Output');
 			expect(
 				await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists(),
 			).toBe(true);
@@ -156,8 +227,11 @@ describe('wave compress', () => {
 			);
 
 			expect(exitCode).toBe(0);
-			expect(stdout).toContain(path.join(tempDir, 'wave-compress'));
-			expect(await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists()).toBe(true);
+			expect(stdout).toContain('COMPRESS RECEIPT');
+			expect(stdout).toContain('Output');
+			expect(
+				await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists(),
+			).toBe(true);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 			await fs.rm(tools, { recursive: true, force: true });
@@ -180,7 +254,7 @@ describe('wave compress', () => {
 			);
 
 			expect(exitCode).toBe(0);
-			expect(stdout).toContain('Compress Receipt');
+			expect(stdout).toContain('COMPRESS RECEIPT');
 			expect(await Bun.file(path.join(outDir, 'sample.svg')).exists()).toBe(
 				true,
 			);
@@ -205,7 +279,7 @@ describe('wave compress', () => {
 			);
 
 			expect(exitCode).toBe(0);
-			expect(stdout).toContain('Compress Preview');
+			expect(stdout).toContain('COMPRESS PREVIEW');
 			expect(stdout).not.toContain('WCP_TOOL_MISSING');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
@@ -252,6 +326,85 @@ describe('wave compress', () => {
 				'utf-8',
 			);
 			expect(output).toBe('12345');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('existing output without --force fails with WCP_OUTPUT_EXISTS', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tools = await createFakeToolDir();
+		try {
+			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
+			await fs.mkdir(path.join(tempDir, 'wave-compress'));
+			await fs.writeFile(path.join(tempDir, 'wave-compress/sample.png'), 'old');
+
+			const { exitCode, stdout } = await runWave(
+				['compress', tempDir, '--type', 'png', '--yes'],
+				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
+			);
+
+			expect(exitCode).not.toBe(0);
+			expect(stdout).toContain('COMPRESS PREVIEW');
+			expect(stdout).toContain('WCP_OUTPUT_EXISTS');
+			expect(stdout).toContain('Compression blocked');
+			expect(
+				await fs.readFile(
+					path.join(tempDir, 'wave-compress/sample.png'),
+					'utf-8',
+				),
+			).toBe('old');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('--force allows overwriting existing output', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tools = await createFakeToolDir();
+		try {
+			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
+			await fs.mkdir(path.join(tempDir, 'wave-compress'));
+			await fs.writeFile(path.join(tempDir, 'wave-compress/sample.png'), 'old');
+
+			const { exitCode } = await runWave(
+				['compress', tempDir, '--type', 'png', '--yes', '--force'],
+				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
+			);
+
+			expect(exitCode).toBe(0);
+			expect(
+				await fs.readFile(
+					path.join(tempDir, 'wave-compress/sample.png'),
+					'utf-8',
+				),
+			).toBe('01234');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('--json is non-interactive and only prints JSON', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tools = await createFakeToolDir();
+		try {
+			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
+
+			const { exitCode, stdout } = await runWave(
+				['compress', tempDir, '--type', 'png', '--json'],
+				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).not.toContain('COMPRESS PREVIEW');
+			expect(stdout).not.toContain('Write compressed output');
+			expect(JSON.parse(stdout).items[0].source).toContain('sample.png');
+			expect(
+				await Bun.file(path.join(tempDir, 'wave-compress/sample.png')).exists(),
+			).toBe(false);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 			await fs.rm(tools, { recursive: true, force: true });

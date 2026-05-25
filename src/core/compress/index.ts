@@ -4,13 +4,10 @@ import * as path from 'node:path';
 import type {
 	CommandRunner,
 	ToolCapability,
-	ToolResolver,
 	ToolResolution,
+	ToolResolver,
 } from '../tools/index.ts';
-import {
-	BunCommandRunner,
-	DefaultToolResolver,
-} from '../tools/index.ts';
+import { BunCommandRunner, DefaultToolResolver } from '../tools/index.ts';
 
 export type CompressMode = 'safe' | 'quality';
 
@@ -24,6 +21,7 @@ export interface CompressOptions {
 	quality?: number;
 	dryRun?: boolean;
 	yes?: boolean;
+	force?: boolean;
 	resolver?: ToolResolver;
 	runner?: CommandRunner;
 	cwd?: string;
@@ -32,6 +30,7 @@ export interface CompressOptions {
 export interface CompressItemResult {
 	source: string;
 	output: string;
+	relativePath: string;
 	type: CompressFileType;
 	status: 'optimized' | 'unchanged';
 	beforeBytes: number;
@@ -83,8 +82,13 @@ export async function runCompress(
 		recursive: !!options.recursive,
 		types: options.types,
 	});
-	const resolutions = await resolveToolsForCandidates(candidates, mode, resolver);
+	const resolutions = await resolveToolsForCandidates(
+		candidates,
+		mode,
+		resolver,
+	);
 	const issues = validateToolResolutions(resolutions);
+	const shouldWrite = !!options.yes && !options.dryRun;
 
 	if (issues.length > 0) {
 		return {
@@ -100,13 +104,34 @@ export async function runCompress(
 		};
 	}
 
+	if (shouldWrite && !options.force) {
+		const outputIssues = await validateOutputTargets(candidates, outDir);
+		if (outputIssues.length > 0) {
+			return {
+				mode,
+				input,
+				outDir,
+				scanned: candidates.length,
+				matched: candidates.length,
+				written: false,
+				items: [],
+				issues: outputIssues,
+				toolResolutions: resolutions,
+			};
+		}
+	}
+
 	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
 	const items: CompressItemResult[] = [];
 	try {
 		for (const candidate of candidates) {
 			const tempOutput = path.join(tempDir, candidate.relativePath);
 			await fs.mkdir(path.dirname(tempOutput), { recursive: true });
-			const resolution = getResolutionForType(resolutions, candidate.type, mode);
+			const resolution = getResolutionForType(
+				resolutions,
+				candidate.type,
+				mode,
+			);
 			if (!resolution?.selected) {
 				issues.push({
 					code: 'WCP_TOOL_MISSING',
@@ -132,7 +157,6 @@ export async function runCompress(
 			const status = previewBytes < beforeBytes ? 'optimized' : 'unchanged';
 			const afterBytes = status === 'optimized' ? previewBytes : beforeBytes;
 			const finalOutput = path.join(outDir, candidate.relativePath);
-			const shouldWrite = !!options.yes && !options.dryRun;
 			if (shouldWrite) {
 				await fs.mkdir(path.dirname(finalOutput), { recursive: true });
 				await fs.copyFile(
@@ -143,6 +167,7 @@ export async function runCompress(
 			items.push({
 				source: candidate.absolutePath,
 				output: finalOutput,
+				relativePath: candidate.relativePath,
 				type: candidate.type,
 				status,
 				beforeBytes,
@@ -151,7 +176,9 @@ export async function runCompress(
 				savedPercent:
 					beforeBytes === 0
 						? 0
-						: Number((((beforeBytes - afterBytes) / beforeBytes) * 100).toFixed(1)),
+						: Number(
+								(((beforeBytes - afterBytes) / beforeBytes) * 100).toFixed(1),
+							),
 				tool: resolution.selected.name,
 				written: shouldWrite,
 			});
@@ -223,12 +250,44 @@ function detectFileType(filePath: string): CompressFileType | null {
 	return null;
 }
 
+async function validateOutputTargets(
+	candidates: FileCandidate[],
+	outDir: string,
+): Promise<CompressIssue[]> {
+	const issues: CompressIssue[] = [];
+	for (const candidate of candidates) {
+		const output = path.join(outDir, candidate.relativePath);
+		if (await fileExists(output)) {
+			issues.push({
+				code: 'WCP_OUTPUT_EXISTS',
+				severity: 'error',
+				message: `Output already exists: ${output}`,
+				path: output,
+				fix: 'Pass --force to overwrite existing output files.',
+			});
+		}
+	}
+	return issues;
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+	try {
+		await fs.access(filePath);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 async function resolveToolsForCandidates(
 	candidates: FileCandidate[],
 	mode: CompressMode,
 	resolver: ToolResolver,
 ): Promise<ToolResolution[]> {
-	const requirements = new Map<string, { capability: ToolCapability; preferred: string[] }>();
+	const requirements = new Map<
+		string,
+		{ capability: ToolCapability; preferred: string[] }
+	>();
 	for (const candidate of candidates) {
 		const requirement = requirementForType(candidate.type, mode);
 		requirements.set(`${requirement.capability}:${mode}`, requirement);
@@ -249,22 +308,31 @@ function requirementForType(
 	mode: CompressMode,
 ): { capability: ToolCapability; preferred: string[] } {
 	if (mode === 'quality') {
-		if (type === 'png') return { capability: 'compress-png', preferred: ['pngquant'] };
-		if (type === 'jpg') return { capability: 'compress-jpg', preferred: ['mozjpeg'] };
+		if (type === 'png')
+			return { capability: 'compress-png', preferred: ['pngquant'] };
+		if (type === 'jpg')
+			return { capability: 'compress-jpg', preferred: ['mozjpeg'] };
 	}
-	if (type === 'png') return { capability: 'compress-png', preferred: ['oxipng'] };
-	if (type === 'svg') return { capability: 'compress-svg', preferred: ['svgo'] };
-	if (type === 'gif') return { capability: 'compress-gif', preferred: ['gifsicle'] };
+	if (type === 'png')
+		return { capability: 'compress-png', preferred: ['oxipng'] };
+	if (type === 'svg')
+		return { capability: 'compress-svg', preferred: ['svgo'] };
+	if (type === 'gif')
+		return { capability: 'compress-gif', preferred: ['gifsicle'] };
 	return { capability: 'compress-jpg', preferred: ['jpegtran', 'mozjpeg'] };
 }
 
-function validateToolResolutions(resolutions: ToolResolution[]): CompressIssue[] {
+function validateToolResolutions(
+	resolutions: ToolResolution[],
+): CompressIssue[] {
 	return resolutions
 		.filter((resolution) => !resolution.selected)
 		.map((resolution) => ({
 			code: 'WCP_TOOL_MISSING',
 			severity: 'error',
-			message: resolution.missingReason ?? `Missing tool for ${resolution.requirement.capability}`,
+			message:
+				resolution.missingReason ??
+				`Missing tool for ${resolution.requirement.capability}`,
 			fix: 'Run wave compress install --check to inspect tool requirements.',
 		}));
 }
@@ -310,7 +378,9 @@ async function compressFile(options: {
 	toolName: string;
 	runner: CommandRunner;
 }): Promise<void> {
-	const toolName = ensureKnownToolName(options.toolName) as CompressCommandToolName;
+	const toolName = ensureKnownToolName(
+		options.toolName,
+	) as CompressCommandToolName;
 	const args = buildToolArgs({ ...options, toolName });
 	const result = await options.runner.run({
 		command: toolName,
@@ -351,8 +421,21 @@ function buildToolArgs(options: {
 		case 'gifsicle':
 			return ['--optimize=3', '--output', options.output, options.source];
 		case 'jpegtran':
-			return ['-copy', 'none', '-optimize', '-outfile', options.output, options.source];
+			return [
+				'-copy',
+				'none',
+				'-optimize',
+				'-outfile',
+				options.output,
+				options.source,
+			];
 		case 'mozjpeg':
-			return ['-quality', String(options.quality ?? 85), '-outfile', options.output, options.source];
+			return [
+				'-quality',
+				String(options.quality ?? 85),
+				'-outfile',
+				options.output,
+				options.source,
+			];
 	}
 }

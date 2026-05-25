@@ -4,43 +4,76 @@ import pc from 'picocolors';
 // biome-ignore lint/complexity/useRegexLiterals: 字面量含 \x1b 被 noControlCharactersInRegex 禁止
 const ANSI_RE = new RegExp('\\x1b\\[[0-9;]*m', 'g');
 
-function vlen(text: string): number {
-	return text.replace(ANSI_RE, '').length;
+export function vlen(text: string): number {
+	let width = 0;
+	for (const char of text.replace(ANSI_RE, '')) {
+		width += isWideChar(char) ? 2 : 1;
+	}
+	return width;
 }
 
-function vpad(text: string, width: number): string {
+function isWideChar(char: string): boolean {
+	const code = char.codePointAt(0) ?? 0;
+	return (
+		(code >= 0x1100 && code <= 0x115f) ||
+		(code >= 0x2e80 && code <= 0xa4cf) ||
+		(code >= 0xac00 && code <= 0xd7a3) ||
+		(code >= 0xf900 && code <= 0xfaff) ||
+		(code >= 0xfe10 && code <= 0xfe19) ||
+		(code >= 0xfe30 && code <= 0xfe6f) ||
+		(code >= 0xff00 && code <= 0xff60) ||
+		(code >= 0xffe0 && code <= 0xffe6)
+	);
+}
+
+export function vpad(text: string, width: number): string {
 	const len = vlen(text);
 	if (len >= width) return text;
 	return text + ' '.repeat(width - len);
 }
 
-function clamp(n: number, min: number, max: number): number {
+export function vtruncate(text: string, width: number): string {
+	if (vlen(text) <= width) return text;
+	if (width <= 3) return '.'.repeat(Math.max(0, width));
+
+	let output = '';
+	let currentWidth = 0;
+	for (const char of text.replace(ANSI_RE, '')) {
+		const charWidth = isWideChar(char) ? 2 : 1;
+		if (currentWidth + charWidth > width - 3) break;
+		output += char;
+		currentWidth += charWidth;
+	}
+	return `${output}...`;
+}
+
+export function clamp(n: number, min: number, max: number): number {
 	return Math.min(Math.max(n, min), max);
 }
 
-function boxWidth(): number {
+export function boxWidth(): number {
 	const cols = process.stdout.columns ?? 60;
 	return clamp(Math.floor(cols * 0.6), 60, 80);
 }
 
-function borderTop(w: number): string {
+export function borderTop(w: number): string {
 	return `┌${'─'.repeat(w + 2)}┐`;
 }
-function borderBottom(w: number): string {
+export function borderBottom(w: number): string {
 	return `└${'─'.repeat(w + 2)}┘`;
 }
-function midSolid(w: number): string {
+export function midSolid(w: number): string {
 	return `├${'─'.repeat(w + 2)}┤`;
 }
-function midDashed(w: number): string {
+export function midDashed(w: number): string {
 	return `├ ${'╌'.repeat(w)} ┤`;
 }
 
-function line(content: string, w: number): string {
+export function line(content: string, w: number): string {
 	return `│ ${vpad(content, w)} │`;
 }
 
-function centerLine(content: string, w: number): string {
+export function centerLine(content: string, w: number): string {
 	const visual = vlen(content);
 	const leftPad = Math.floor((w - visual) / 2);
 	const rightPad = w - visual - leftPad;
@@ -48,30 +81,27 @@ function centerLine(content: string, w: number): string {
 	return `│ ${padded} │`;
 }
 
-const KEY_COL = 20;
+export const RECEIPT_KEY_COL = 20;
 
-function kvLine(
+export function kvLine(
 	key: string,
 	value: string,
 	suffix: string | undefined,
 	w: number,
 ): string {
 	const suffixStr = suffix ? `  ${suffix}` : '';
-	const keyPart = `  ${key.padEnd(KEY_COL, ' ')}`;
+	const keyPart = `  ${key.padEnd(RECEIPT_KEY_COL, ' ')}`;
 	const available = w - vlen(keyPart) - vlen(suffixStr);
-	const v =
-		vlen(value) > available
-			? `${value.slice(0, Math.max(0, available - 3))}...`
-			: value;
-	const vPadded = v.padEnd(available, ' ');
+	const v = vtruncate(value, available);
+	const vPadded = vpad(v, available);
 	return `│ ${vpad(`${keyPart}${vPadded}${suffixStr}`, w)} │`;
 }
 
-function multiValueLines(
+export function multiValueLines(
 	key: string,
 	values: string[],
 	w: number,
-	keyCol = KEY_COL,
+	keyCol = RECEIPT_KEY_COL,
 ): string[] {
 	const keyPart = `  ${key.padEnd(keyCol, ' ')}`;
 	const indent = ' '.repeat(vlen(keyPart));
@@ -80,10 +110,7 @@ function multiValueLines(
 		const prefix = i === 0 ? keyPart : indent;
 		const maxValue = w - vlen(prefix);
 		const current = values[i] ?? '';
-		const value =
-			vlen(current) > maxValue
-				? `${current.slice(0, Math.max(0, maxValue - 3))}...`
-				: current;
+		const value = vtruncate(current, maxValue);
 		lines.push(`│ ${vpad(`${prefix}${value}`, w)} │`);
 	}
 	return lines;
@@ -235,7 +262,7 @@ function renderSuccess(ctx: BuildContext, w: number): string {
 			const maxLabelLen = Math.max(
 				...variants.map((o) => vlen(`❖ ${o.label ?? 'unknown'}`)),
 			);
-			const variantKeyCol = Math.max(KEY_COL, maxLabelLen) + 4;
+			const variantKeyCol = Math.max(RECEIPT_KEY_COL, maxLabelLen) + 4;
 			for (const out of variants) {
 				const label = out.label ?? 'unknown';
 				lines.push(
@@ -312,7 +339,7 @@ function renderFailed(ctx: BuildContext, w: number): string {
 					? `line ${err.line}: ${err.detail}`
 					: `line ${err.line}`
 				: err.detail;
-			const indent = ' '.repeat(KEY_COL + 2);
+			const indent = ' '.repeat(RECEIPT_KEY_COL + 2);
 			lines.push(line(`${indent}${pc.red(detail)}`, w));
 		}
 	}
