@@ -26,6 +26,58 @@ async function runWave(
 	return { exitCode, stdout, stderr };
 }
 
+async function runWavePty(
+	args: string[],
+	options: {
+		cwd: string;
+		env?: Record<string, string>;
+		input?: string;
+		delayMs?: number;
+	},
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+	const envAssignments = {
+		...(process.env as Record<string, string | undefined>),
+		...options.env,
+		TERM: 'xterm-256color',
+	};
+	const envArgs = Object.entries(envAssignments)
+		.filter(
+			(entry): entry is [string, string] =>
+				typeof entry[1] === 'string' && entry[1].length > 0,
+		)
+		.map(([key, value]) => `set env(${key}) ${tclQuote(value)}`);
+	const proc = Bun.spawn(
+		[
+			'expect',
+			'-c',
+			[
+				'set timeout 10',
+				`cd ${tclQuote(options.cwd)}`,
+				...envArgs,
+				'log_user 1',
+				`spawn bun run ${tclQuote(path.join(rootDir, 'src/index.ts'))} ${args.map(tclQuote).join(' ')}`,
+				...(options.delayMs ? [`after ${options.delayMs}`] : []),
+				`send ${tclQuote(options.input ?? '\\r')}`,
+				'expect eof',
+				'catch wait result',
+				'exit [lindex $result 3]',
+			].join('\n'),
+		],
+		{
+			cwd: rootDir,
+			env: { ...process.env, TERM: 'xterm-256color' },
+			stdout: 'pipe',
+			stderr: 'pipe',
+		},
+	);
+
+	const stdout = await new Response(proc.stdout).text();
+	const stderr = await new Response(proc.stderr).text();
+	const exitCode = await proc.exited;
+
+	return { exitCode, stdout, stderr };
+}
+
 describe('wave motion', () => {
 	test('mg gif dry-run shows frame plan and does not write output', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
@@ -82,6 +134,119 @@ describe('wave motion', () => {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
 	});
+
+	test('motion explicit format without frames dir defaults to current directory', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
+		try {
+			const framesDir = path.join(tempDir, 'frames');
+			await fs.mkdir(framesDir);
+			await writePng(path.join(framesDir, '1.png'), 100, 100);
+			await writePng(path.join(framesDir, '2.png'), 100, 100);
+			const binDir = await createFakeToolDir(tempDir);
+
+			const { exitCode, stdout } = await runWave(
+				['motion', 'apng', '--dry-run', '--fps', '12'],
+				{
+					cwd: framesDir,
+					env: { PATH: `${binDir}:${process.env.PATH ?? ''}` },
+				},
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('Format              APNG');
+			expect(stdout).toContain('FPS                 12');
+			expect(stdout).toContain('wave-mg/frames@12fps.png');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('mg explicit format without frames dir defaults to current directory', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
+		try {
+			const framesDir = path.join(tempDir, 'frames');
+			await fs.mkdir(framesDir);
+			await writePng(path.join(framesDir, '1.png'), 100, 100);
+			await writePng(path.join(framesDir, '2.png'), 100, 100);
+			const binDir = await createFakeToolDir(tempDir);
+
+			const { exitCode, stdout } = await runWave(['mg', 'gif', '--dry-run'], {
+				cwd: framesDir,
+				env: { PATH: `${binDir}:${process.env.PATH ?? ''}` },
+			});
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('Format              GIF');
+			expect(stdout).toContain('wave-mg/frames@24fps.gif');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('mg without format fails deterministically in non-interactive mode', async () => {
+		const { exitCode, stderr } = await runWave(['mg']);
+
+		expect(exitCode).toBe(1);
+		expect(stderr).toContain(
+			'Missing format in non-interactive mode. Use wave mg apng or wave mg gif.',
+		);
+	});
+
+	test('motion without format fails deterministically in non-interactive mode', async () => {
+		const { exitCode, stderr } = await runWave(['motion']);
+
+		expect(exitCode).toBe(1);
+		expect(stderr).toContain(
+			'Missing format in non-interactive mode. Use wave motion apng or wave motion gif.',
+		);
+	});
+
+	test('mg without format checks current directory before prompting', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
+		try {
+			const { exitCode, stdout } = await runWavePty(['mg'], {
+				cwd: tempDir,
+				input: '\r',
+			});
+
+			expect(exitCode).toBe(1);
+			expect(stdout).toContain('ERRORS');
+			expect(stdout).toContain('WMG_FRAME_COUNT_LOW');
+			expect(stdout).not.toContain('Generate format');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('mg without format in TTY selects APNG by default and uses fps option', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
+		try {
+			const framesDir = path.join(tempDir, 'frames');
+			await fs.mkdir(framesDir);
+			await writePng(path.join(framesDir, '1.png'), 100, 100);
+			await writePng(path.join(framesDir, '2.png'), 100, 100);
+			const binDir = await createFakeToolDir(tempDir);
+
+			const { exitCode, stdout } = await runWavePty(
+				['mg', '--dry-run', '--fps', '12'],
+				{
+					cwd: framesDir,
+					env: { PATH: `${binDir}:${process.env.PATH ?? ''}` },
+					input: '\r',
+					delayMs: 500,
+				},
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('APNG');
+			expect(stdout).toContain('MOTION PLAN');
+			expect(stdout).toContain('Format              APNG');
+			expect(stdout).toContain('FPS                 12');
+			expect(stdout).toContain('wave-mg/frames@12fps.png');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	}, 10000);
 
 	test('motion respects explicit output path and -f frames directory', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
@@ -326,7 +491,32 @@ describe('wave motion', () => {
 		expect(gif.stdout).not.toContain('Usage: wave motion gif [options]');
 		expect(gif.stdout).not.toContain('--overwrite');
 	});
+
+	test('motion module help, doctor, install, and unknown command are not captured by empty action', async () => {
+		const help = await runWave(['mg', '-h']);
+		expect(help.exitCode).toBe(0);
+		expect(help.stdout).toContain('wave mg apng [frames-dir] [options]');
+		expect(help.stdout).toContain('APNG extension       .png');
+		expect(help.stderr).not.toContain('Missing format');
+
+		const doctor = await runWave(['mg', 'doctor', '--status']);
+		expect(doctor.stdout).toContain('motion:');
+		expect(doctor.stderr).not.toContain('Missing format');
+
+		const install = await runWave(['motion', 'install', '--check']);
+		expect(install.stdout).toContain('wave motion install plan');
+		expect(install.stderr).not.toContain('Missing format');
+
+		const unknown = await runWave(['mg', 'webp']);
+		expect(unknown.exitCode).not.toBe(0);
+		expect(unknown.stderr).toContain("too many arguments for 'mg'");
+		expect(unknown.stderr).not.toContain('Missing format');
+	});
 });
+
+function tclQuote(value: string): string {
+	return `{${value.replaceAll('\\', '\\\\').replaceAll('}', '\\}')}}`;
+}
 
 async function createFakeToolDir(tempDir: string): Promise<string> {
 	const binDir = path.join(tempDir, 'bin');

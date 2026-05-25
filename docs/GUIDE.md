@@ -300,11 +300,18 @@ wave compress doctor --json
 `wave motion` 用于把 PNG 帧目录编码为 GIF 或 APNG。`wave mg` 是同等 alias。
 
 ```bash
+# 在当前目录有 PNG 序列帧时选择 APNG/GIF
+wave motion
+wave mg
+
 # 生成 GIF
 wave motion gif ./frames
 
 # 生成 APNG
 wave motion apng ./frames
+
+# 当前目录就是帧目录时，可以省略目录
+wave mg apng
 
 # 使用 alias
 wave mg gif ./frames
@@ -321,12 +328,14 @@ wave motion gif ./frames --overwrite
 
 默认行为：
 
-- 输入必须是 PNG 帧目录。
+- 输入必须是 PNG 帧目录；明确格式但省略目录时，默认使用当前目录。
+- `wave motion` / `wave mg` 空参数只在 TTY 下进入格式选择，默认高亮 APNG。
+- 非 TTY 下空参数会提示使用 `wave mg apng` / `wave mg gif` 或对应 `wave motion` 命令。
 - 帧文件按文件名自然排序。
 - 至少需要 2 帧。
 - 所有帧尺寸必须一致。
 - 默认 `fps=24`，`quality=80`，`loop=forever`。
-- 不传 `--out` 时，GIF 输出到帧目录同级的 `<frames-dir-name>.gif`，APNG 输出到 `<frames-dir-name>.png`。
+- 不传 `--out` 时，GIF 输出到帧目录内的 `wave-mg/<frames-dir-name>@<fps>fps.gif`，APNG 输出到 `wave-mg/<frames-dir-name>@<fps>fps.png`。
 - 输出已存在时默认报错；传 `--overwrite` 才覆盖。
 - 非 PNG 文件会被忽略并报告 warning。
 - 无效 PNG 会报告 `WMG_FRAME_FORMAT_UNSUPPORTED`，不会泄漏运行时堆栈。
