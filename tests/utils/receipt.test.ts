@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { BuildContext, renderReceipt } from '../../src/utils/receipt.ts';
+import {
+	BuildContext,
+	renderReceipt,
+	vlen,
+	vpad,
+	vtruncate,
+} from '../../src/utils/receipt.ts';
 
 describe('renderReceipt', () => {
 	test('renders success receipt with all sections', () => {
@@ -62,5 +68,11 @@ describe('renderReceipt', () => {
 		expect(out).toContain('1.0.0');
 		expect(out).not.toContain('RESOURCES');
 		expect(out).not.toContain('OUTPUTS');
+	});
+
+	test('measures and truncates CJK visual width', () => {
+		expect(vlen('会见管理.png')).toBe(12);
+		expect(vpad('会见', 6)).toBe('会见  ');
+		expect(vtruncate('刑释人员校验.png', 10)).toBe('刑释人...');
 	});
 });

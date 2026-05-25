@@ -176,6 +176,7 @@ wave install --check
 # 压缩素材
 wave compress ./assets --dry-run
 wave compress ./assets --type png --yes
+wave compress ./assets --type png --yes --force
 
 # 从 PNG 帧生成动效
 wave motion gif ./frames --fps 24 --out loading.gif

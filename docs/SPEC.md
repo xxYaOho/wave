@@ -275,7 +275,8 @@ wave compress install
 - `-q, --quality <value>`：启用质量模式，取值 1-100
 - `-o, --out <path>`：指定输出目录
 - `--dry-run`：只预览，不写文件
-- `--yes`：写入预览结果
+- `--yes`：跳过确认并写入预览结果
+- `--force`：允许覆盖已有输出文件；`--yes` 不隐含 `--force`
 - `--json`：输出 JSON；不带 `--yes` 时强制 dry-run
 
 ### 扫描与输出
@@ -291,9 +292,10 @@ wave compress install
 
 `compress` 总是先写入临时目录并计算真实大小差异。
 
-- 不传 `--yes`：只展示 Compress Preview，不写最终输出。
+- 不传 `--yes`：展示 Compress Preview，并询问 `Write compressed output? [y/N]`；确认后写入，默认不写入。
 - `--dry-run`：只展示 preview，不询问也不写最终输出。
 - `--yes`：写入最终输出。
+- 默认不覆盖已有输出；目标文件已存在且未传 `--force` 时返回 `WCP_OUTPUT_EXISTS`。
 - 若优化产物更小，状态为 `optimized`，写入优化产物。
 - 若优化产物不更小，状态为 `unchanged`，写入原始字节。
 - receipt 中 `optimized` 行显示 `saved, <percent>%`；`unchanged` 行显示 `unchanged`。
