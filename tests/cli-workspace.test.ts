@@ -251,6 +251,65 @@ describe('wave workspace', () => {
 				openAfterCreate: 'flase',
 			}),
 		).toThrow('WWK_CONFIG_INVALID');
+
+		expect(() =>
+			validateWorkspaceConfig({
+				...DEFAULT_WORKSPACE_CONFIG,
+				name: { separator: '/', parts: ['type', 'title'] },
+			}),
+		).toThrow('WWK_FOLDER_PATH_INVALID');
+
+		expect(() =>
+			validateWorkspaceConfig({
+				...DEFAULT_WORKSPACE_CONFIG,
+				type: {
+					enabled: true,
+					default: '../FEAT',
+					content: [{ code: '../FEAT', label: 'Bad type' }],
+				},
+			}),
+		).toThrow('WWK_FOLDER_PATH_INVALID');
+
+		expect(() =>
+			validateWorkspaceConfig({
+				...DEFAULT_WORKSPACE_CONFIG,
+				version: { enabled: true, default: 'v1.0.0', prefix: '../v' },
+			}),
+		).toThrow('WWK_FOLDER_PATH_INVALID');
+
+		expect(() =>
+			validateWorkspaceConfig({
+				...DEFAULT_WORKSPACE_CONFIG,
+				folders: [{ path: 'Docs', placeholder: '../../escape' }],
+			}),
+		).toThrow('WWK_FOLDER_PATH_INVALID');
+	});
+
+	test('workspace name parts cannot escape baseDir', () => {
+		const config = structuredClone(DEFAULT_WORKSPACE_CONFIG);
+		config.name.parts = ['title'];
+		config.type.enabled = false;
+		config.date.enabled = false;
+		config.tags.enabled = false;
+
+		expect(() =>
+			buildWorkspacePlan(config, { title: '../../escaped' }),
+		).toThrow('WWK_FOLDER_PATH_INVALID');
+
+		expect(() => buildWorkspacePlan(config, { title: '/escaped' })).toThrow(
+			'WWK_FOLDER_PATH_INVALID',
+		);
+	});
+
+	test('tags cannot introduce path traversal into workspace name', () => {
+		const config = structuredClone(DEFAULT_WORKSPACE_CONFIG);
+		config.name.parts = ['title', 'tags'];
+		config.type.enabled = false;
+		config.date.enabled = false;
+
+		expect(() =>
+			buildWorkspacePlan(config, { title: '项目', tags: '../escape' }),
+		).toThrow('WWK_FOLDER_PATH_INVALID');
 	});
 
 	test('config parse failure uses WWK_CONFIG_PARSE_FAILED', async () => {

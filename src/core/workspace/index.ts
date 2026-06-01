@@ -272,7 +272,14 @@ export function validateWorkspaceConfig(raw: unknown): WorkspaceConfig {
 			'type.default must match one type.content code.',
 		);
 	}
-	for (const folder of config.folders) validateFolderPath(folder.path);
+	validateNameSeparator(config.name.separator);
+	validateVersionPrefix(config.version.prefix);
+	for (const entry of config.type.content)
+		validateNameSegment(entry.code, 'type code');
+	for (const folder of config.folders) {
+		validateFolderPath(folder.path);
+		if (folder.placeholder) validatePlaceholderName(folder.placeholder);
+	}
 
 	return config;
 }
@@ -316,9 +323,12 @@ export function buildWorkspacePlan(
 		.filter((part) => isPartEnabled(config, part))
 		.map((part) => values[part]?.trim())
 		.filter((value): value is string => !!value);
+	for (const part of nameParts)
+		validateNameSegment(part, 'workspace name part');
 	const workspaceName = nameParts.join(config.name.separator);
 	const baseDir = resolveWorkspacePath(config.baseDir, cwd);
 	const targetDir = path.join(baseDir, workspaceName);
+	assertInsideDirectory(baseDir, targetDir, 'workspace target');
 
 	return {
 		config,
@@ -356,6 +366,7 @@ export async function createWorkspace(
 			await fs.mkdir(folderPath, { recursive: true });
 			if (folder.placeholder) {
 				const placeholderPath = path.join(folderPath, folder.placeholder);
+				assertInsideDirectory(plan.targetDir, placeholderPath, 'placeholder');
 				await fs.writeFile(placeholderPath, '', 'utf-8');
 				placeholderFiles.push(placeholderPath);
 			}
@@ -437,6 +448,74 @@ function validateFolderPath(folderPath: string): void {
 		throw new WorkspaceError(
 			'WWK_FOLDER_PATH_INVALID',
 			`Folder path must be relative and stay inside the workspace: ${folderPath}`,
+		);
+	}
+}
+
+function validateNameSeparator(separator: string): void {
+	if (separator === '') return;
+	if (hasPathBoundarySyntax(separator)) {
+		throw new WorkspaceError(
+			'WWK_FOLDER_PATH_INVALID',
+			`Workspace name separator must not contain path syntax: ${separator}`,
+		);
+	}
+}
+
+function validateVersionPrefix(prefix: string): void {
+	if (prefix === '') return;
+	if (hasPathBoundarySyntax(prefix)) {
+		throw new WorkspaceError(
+			'WWK_FOLDER_PATH_INVALID',
+			`Version prefix must not contain path syntax: ${prefix}`,
+		);
+	}
+}
+
+function validateNameSegment(segment: string, label: string): void {
+	if (!segment.trim() || hasPathBoundarySyntax(segment)) {
+		throw new WorkspaceError(
+			'WWK_FOLDER_PATH_INVALID',
+			`${label} must not contain path syntax: ${segment}`,
+		);
+	}
+}
+
+function validatePlaceholderName(placeholder: string): void {
+	if (
+		placeholder !== path.basename(placeholder) ||
+		hasPathBoundarySyntax(placeholder)
+	) {
+		throw new WorkspaceError(
+			'WWK_FOLDER_PATH_INVALID',
+			`Placeholder must be a basename inside its folder: ${placeholder}`,
+		);
+	}
+}
+
+function hasPathBoundarySyntax(value: string): boolean {
+	return (
+		path.isAbsolute(value) ||
+		value.split(/[\\/]+/).includes('..') ||
+		value.includes('/') ||
+		value.includes('\\')
+	);
+}
+
+function assertInsideDirectory(
+	parentDir: string,
+	childPath: string,
+	label: string,
+): void {
+	const relative = path.relative(parentDir, childPath);
+	if (
+		relative === '' ||
+		relative.startsWith('..') ||
+		path.isAbsolute(relative)
+	) {
+		throw new WorkspaceError(
+			'WWK_FOLDER_PATH_INVALID',
+			`${label} must stay inside ${parentDir}: ${childPath}`,
 		);
 	}
 }
