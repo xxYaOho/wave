@@ -6,7 +6,7 @@
 
 ## Mental Model（agent 必读）
 
-wave 是面向 UI/UX 设计师的本地 CLI 工具集。当前已包含 design token、素材压缩、PNG 帧动效生成和本地工具链检查。
+wave 是面向 UI/UX 设计师的本地 CLI 工具集。当前已包含 design token、素材压缩、PNG 帧动效生成、本地设计项目工作区创建和本地工具链检查。
 
 **当前 token 生成的数据流：**
 
@@ -30,6 +30,7 @@ themefile（声明数据源 + 输出参数）
 - dt：当前是 design-token 模块入口，默认读取当前目录 `main.yaml`，内部仍复用 token 生成主链路
 - compress：只处理已有 PNG/JPG/SVG/GIF 素材压缩，不从帧生成动效
 - motion/mg：只从 PNG 帧目录生成 GIF/APNG
+- workspace：按 `~/.config/wave/workspace.yaml` 或内置默认配置创建本地设计项目目录
 - install/doctor：检查和安装本地工具链，不改变 token 数据模型
 
 **常见误区：**
@@ -67,6 +68,8 @@ themefile（声明数据源 + 输出参数）
 - `wave motion doctor [framesDir]`：检查动效工具链和可选帧目录
 - `wave motion install`：安装动效工具组
 - `wave mg`：`wave motion` 的 alias
+- `wave workspace`：进入工作区创建流程，等价于 `wave workspace create`
+- `wave workspace create`：按配置创建本地设计项目工作区
 - `wave show`：浏览内置资源
 - `wave init`：初始化主题工作区
 - `wave` / `wave -h` / `wave help`：显示顶层帮助
@@ -392,6 +395,81 @@ Missing format in non-interactive mode. Use wave motion apng or wave motion gif.
 ### 诊断
 
 `wave motion doctor` 检查 `gifski` 和 `apngasm`。缺少工具为 warning；带 `framesDir` 时还会检查帧目录。帧数量不足、尺寸不一致、PNG 无效等为 blocking error。
+
+---
+
+## Workspace 行为
+
+`workspace` 创建本地设计项目目录。它不修改 design token 数据，不读取 `themefile` 或 `main.yaml`。
+
+### 命令形态
+
+```bash
+wave workspace
+wave workspace create
+```
+
+`wave workspace` 是低记忆入口。CLI 会把它归一化为 `wave workspace create`。
+
+### 配置
+
+配置文件默认读取：
+
+```text
+~/.config/wave/workspace.yaml
+```
+
+测试或临时运行可用 `WAVE_WORKSPACE_CONFIG` 覆盖配置路径。配置不存在时使用内置默认配置：
+
+- `baseDir: ~/Documents/Work`
+- `openAfterCreate: true`
+- 名称顺序：`type`、`title`、`version`、`date`、`tags`
+- 默认类型：`FEAT`、`VIZ`、`BUG`、`OPT`
+- 默认目录：`1.Docs`、`2.Public`、`3.Reference`、`4.Output`、`9.Archive`
+
+### 配置规则
+
+- `name.parts` 使用裸字段名，支持 `type`、`title`、`version`、`date`、`tags`。
+- `name.parts` 同时控制 prompt 顺序和工作区名称顺序。
+- `enabled: false` 的字段会跳过 prompt 和名称片段。
+- 空 optional 值会跳过，不产生重复分隔符。
+- `title` 在 v1 必须保持 `enabled: true` 和 `required: true`。
+- `type.content` 至少包含一个条目。
+- `type.default` 必须匹配 `type.content[].code`。
+- `version.prefix` 会标准化输入，例如 prefix 为 `v` 时，`1.0.0` 变为 `v1.0.0`。
+- `tags.style` v1 仅支持 `bracket`，`UI,前端` 变为 `[UI][前端]`。
+- `folders[].path` 必须是相对路径，不能包含 `..`。
+- `folders[].placeholder` 可选；省略时只创建目录。
+
+### 创建行为
+
+确认创建后，Wave 会：
+
+1. 创建 `baseDir`。
+2. 若目标工作区目录已存在，返回 `WWK_WORKSPACE_EXISTS`，不覆盖。
+3. 创建目标工作区目录。
+4. 按配置顺序创建 `folders`。
+5. 为配置了 `placeholder` 的目录创建占位文件。
+6. 生成 `README.md`。
+7. 仅在 `openAfterCreate: true` 时打开 Finder；打开失败只输出 warning，不回滚已创建文件。
+
+### Receipt
+
+创建完成后输出一次 `WORKSPACE` receipt。receipt 展示 `Type`、`Project`、`Workspace`、`FOLDERS` 和 `Workspace created`，不展示配置路径或 placeholder 文件。`version.enabled: false` 时不展示 `Version`。
+
+### 错误码
+
+| Code | Meaning |
+| --- | --- |
+| `WWK_CONFIG_PARSE_FAILED` | YAML 无法解析。 |
+| `WWK_CONFIG_INVALID` | 配置 schema 校验失败。 |
+| `WWK_NAME_PART_UNKNOWN` | `name.parts` 引用了未知字段。 |
+| `WWK_TITLE_REQUIRED` | `title` 被禁用或为空。 |
+| `WWK_TYPE_EMPTY` | `type.content` 为空。 |
+| `WWK_TYPE_DEFAULT_INVALID` | `type.default` 不匹配任何 type code。 |
+| `WWK_FOLDER_PATH_INVALID` | folder path 是绝对路径或包含 `..`。 |
+| `WWK_WORKSPACE_EXISTS` | 目标工作区已存在。 |
+| `WWK_CREATE_FAILED` | 目录、placeholder 或 README 创建失败。 |
 
 ---
 

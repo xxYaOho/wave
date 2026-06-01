@@ -2,7 +2,7 @@
 
 面向 UI/UX 设计师的本地设计交付 CLI。
 
-Wave 现在覆盖三类高频工作：生成 design token、压缩设计素材、从 PNG 帧生成 GIF/APNG 动效。
+Wave 现在覆盖四类高频工作：生成 design token、压缩设计素材、从 PNG 帧生成 GIF/APNG 动效、创建本地设计项目工作区。
 
 ```
 themefile → main.yaml → tokens.json
@@ -125,6 +125,7 @@ PARAMETER platform json,jsonc,css,sketch
 | **Toolchain** | 本地工具检查与安装入口 | `wave doctor`, `wave install` |
 | **Compress** | PNG/JPG/SVG/GIF 本地压缩 | `wave compress ./assets` |
 | **Motion** | PNG 帧生成 GIF/APNG | `wave motion gif ./frames` |
+| **Workspace** | 按团队配置创建本地设计项目目录 | `wave workspace` |
 
 ---
 
@@ -186,6 +187,9 @@ wave compress ./assets --type png --yes --force
 wave motion gif ./frames --fps 24 --out loading.gif
 wave motion apng ./frames --fps 24 --out loading.png
 wave mg gif ./frames
+
+# 创建设计项目工作区
+wave workspace
 ```
 
 ---
