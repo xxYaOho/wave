@@ -12,6 +12,7 @@ const TOP_LEVEL_HELP = `Wave CLI
     design-token   Build and inspect design tokens
     compress       Compress PNG, JPG, SVG, and GIF assets
     motion         Build GIF/APNG from PNG frames
+    workspace      Create local design project workspaces
     doctor         Check local Wave environment and tools
     install        Show or run recommended tool installation
 
@@ -43,6 +44,8 @@ const DESIGN_TOKEN_SUBCOMMANDS = new Set([
 const DESIGN_TOKEN_MODULE_FLAGS = new Set(['--help', '-h']);
 const COMPRESS_SUBCOMMANDS = new Set(['run', 'doctor', 'install', 'help']);
 const COMPRESS_MODULE_FLAGS = new Set(['--help', '-h']);
+const WORKSPACE_SUBCOMMANDS = new Set(['create', 'help']);
+const WORKSPACE_MODULE_FLAGS = new Set(['--help', '-h']);
 
 function isTopLevelHelp(argv: string[]): boolean {
 	const arg = argv[2];
@@ -66,6 +69,20 @@ function normalizeArgv(argv: string[]): string[] {
 			!COMPRESS_SUBCOMMANDS.has(firstCompressArg)
 		) {
 			return [...argv.slice(0, 3), 'run', ...argv.slice(3)];
+		}
+		return argv;
+	}
+	if (argv[2] === 'workspace') {
+		const firstWorkspaceArg = argv[3];
+		if (firstWorkspaceArg && WORKSPACE_MODULE_FLAGS.has(firstWorkspaceArg)) {
+			return argv;
+		}
+		if (
+			!firstWorkspaceArg ||
+			firstWorkspaceArg.startsWith('-') ||
+			!WORKSPACE_SUBCOMMANDS.has(firstWorkspaceArg)
+		) {
+			return [...argv.slice(0, 3), 'create', ...argv.slice(3)];
 		}
 		return argv;
 	}

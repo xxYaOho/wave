@@ -7,8 +7,14 @@ import { initCommand } from './commands/init.ts';
 import { installCommand } from './commands/install.ts';
 import { mgCommand, motionCommand } from './commands/motion.ts';
 import { showCommand } from './commands/show.ts';
+import { workspaceCommand } from './commands/workspace.ts';
 
-export type CommandCategory = 'core' | 'design-token' | 'compress' | 'motion';
+export type CommandCategory =
+	| 'core'
+	| 'design-token'
+	| 'compress'
+	| 'motion'
+	| 'workspace';
 
 export interface CommandDefinition {
 	name: string;
@@ -37,6 +43,11 @@ export const commandRegistry: CommandDefinition[] = [
 		name: 'motion',
 		category: 'motion',
 		command: motionCommand,
+	},
+	{
+		name: 'workspace',
+		category: 'workspace',
+		command: workspaceCommand,
 	},
 	{
 		name: 'mg',
