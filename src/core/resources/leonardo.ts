@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as yaml from 'js-yaml';
+import { getBuiltinPalettePath } from '../resolver/builtin.ts';
 import { leonardoRecipePath } from './paths.ts';
 
 const SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
@@ -175,11 +176,63 @@ function toYaml(namespace: string, data: Record<string, unknown>): string {
 	);
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+async function buildBuiltinLeonardoResources(): Promise<{
+	files: { name: string; content: string }[];
+}> {
+	const raw = await fs.readFile(getBuiltinPalettePath('leonardo'), 'utf-8');
+	const parsed = yaml.load(raw) as unknown;
+	if (!isPlainObject(parsed) || !isPlainObject(parsed.leonardo)) {
+		throw new Error('Builtin Leonardo palette is invalid');
+	}
+	const colorRoot = parsed.leonardo.color;
+	if (!isPlainObject(colorRoot)) {
+		throw new Error('Builtin Leonardo palette is missing color root');
+	}
+
+	const light: Record<string, unknown> = {};
+	const dark: Record<string, unknown> = {};
+	for (const [name, value] of Object.entries(colorRoot)) {
+		if (name.startsWith('$')) continue;
+		if (!isPlainObject(value)) {
+			light[name] = value;
+			dark[name] = value;
+			continue;
+		}
+		if (isPlainObject(value.light)) light[name] = value.light;
+		else if ('$value' in value) light[name] = value;
+		if (isPlainObject(value.dark)) dark[name] = value.dark;
+		else if ('$value' in value) dark[name] = value;
+	}
+
+	return {
+		files: [
+			{
+				name: 'leonardo-light',
+				content: toYaml('leonardo-light', light),
+			},
+			{
+				name: 'leonardo-dark',
+				content: toYaml('leonardo-dark', dark),
+			},
+		],
+	};
+}
+
 export async function buildLeonardoResources(): Promise<{
 	files: { name: string; content: string }[];
 	recipeSource: 'user' | 'builtin';
 }> {
 	const { recipe, source } = await loadRecipe();
+	if (source === 'builtin') {
+		return {
+			recipeSource: source,
+			files: (await buildBuiltinLeonardoResources()).files,
+		};
+	}
 	return {
 		recipeSource: source,
 		files: [

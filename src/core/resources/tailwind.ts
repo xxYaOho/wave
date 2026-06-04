@@ -246,7 +246,12 @@ function tokenFromCssValue(value: string): { $value: unknown } {
 	const normalized = value.trim();
 	if (normalized.startsWith('oklch(') && normalized.endsWith(')')) {
 		const inner = normalized.slice(6, -1).trim();
-		const parts = inner.split(/\s+/).map((part) => Number(part));
+		const parts = inner.split(/\s+/).map((part, index) => {
+			if (index === 0 && part.endsWith('%')) {
+				return Number(part.slice(0, -1)) / 100;
+			}
+			return Number(part);
+		});
 		if (parts.length === 3 && parts.every((part) => Number.isFinite(part))) {
 			return {
 				$value: {
