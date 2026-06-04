@@ -9,9 +9,11 @@ const cliEntry = path.join(rootDir, 'src/index.ts');
 async function runWave(
 	args: string[],
 	cwd = rootDir,
+	env: Record<string, string> = {},
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
 	const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
 		cwd,
+		env: { ...process.env, ...env },
 		stdout: 'pipe',
 		stderr: 'pipe',
 	});
@@ -397,5 +399,146 @@ describe('wave dt', () => {
 		expect(stdout).toContain('Dimensions:');
 		expect(stdout).toContain('tailwindcss4');
 		expect(stdout).toContain('wave');
+	});
+
+	test('dt update help documents public options without running update', async () => {
+		const { exitCode, stdout, stderr } = await runWave([
+			'dt',
+			'update',
+			'--help',
+		]);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('Wave Design Token Resource Update');
+		expect(stdout).toContain('wave dt update [name] [options]');
+		expect(stdout).toContain('--version <version>');
+		expect(stdout).not.toContain('--tailwind-version');
+		expect(stderr).toBe('');
+	});
+
+	test('dt update tailwindcss --version 3 writes cache and state', async () => {
+		const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-resource-'));
+		try {
+			const env = {
+				HOME: tempHome,
+				WAVE_TAILWIND_FIXTURE_DIR: path.join(
+					rootDir,
+					'tests/fixtures/resources',
+				),
+			};
+			const result = await runWave(
+				['dt', 'update', 'tailwindcss', '--version', '3'],
+				rootDir,
+				env,
+			);
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stdout).toContain('Updated tailwindcss 3.4.17 (v3)');
+
+			const cachePath = path.join(
+				tempHome,
+				'.cache/wave/resources/tailwindcss.yaml',
+			);
+			const statePath = path.join(
+				tempHome,
+				'.local/state/wave/resources/state.json',
+			);
+			expect(await Bun.file(cachePath).exists()).toBe(true);
+			expect(await Bun.file(statePath).exists()).toBe(true);
+			const cache = await fs.readFile(cachePath, 'utf-8');
+			expect(cache).toContain('tailwindcss:');
+			expect(cache).toContain('#ef4444');
+			const state = JSON.parse(await fs.readFile(statePath, 'utf-8'));
+			expect(state.tailwindcss).toMatchObject({
+				updatedBefore: true,
+				requestedVersion: '3',
+				resolvedVersion: '3.4.17',
+				activeMajor: 3,
+			});
+		} finally {
+			await fs.rm(tempHome, { recursive: true, force: true });
+		}
+	});
+
+	test('dt update tailwindcss --version 4 writes OKLCH cache', async () => {
+		const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-resource-'));
+		try {
+			const result = await runWave(
+				['dt', 'update', 'tailwindcss', '--version', '4'],
+				rootDir,
+				{
+					HOME: tempHome,
+					WAVE_TAILWIND_FIXTURE_DIR: path.join(
+						rootDir,
+						'tests/fixtures/resources',
+					),
+				},
+			);
+
+			expect(result.exitCode).toBe(0);
+			const cache = await fs.readFile(
+				path.join(tempHome, '.cache/wave/resources/tailwindcss.yaml'),
+				'utf-8',
+			);
+			expect(cache).toContain('colorSpace: oklch');
+			expect(cache).toContain('components:');
+			expect(cache).toContain('#000');
+		} finally {
+			await fs.rm(tempHome, { recursive: true, force: true });
+		}
+	});
+
+	test('dt update leonardo writes light and dark generated resources', async () => {
+		const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-resource-'));
+		try {
+			const configDir = path.join(tempHome, '.config/wave/resources');
+			await fs.mkdir(configDir, { recursive: true });
+			await fs.writeFile(
+				path.join(configDir, 'leonardo.yaml'),
+				'colors:\n  brand: "#3366ff"\nratios:\n  values: [1, 2, 3]\n',
+				'utf-8',
+			);
+
+			const result = await runWave(['dt', 'update', 'leonardo'], rootDir, {
+				HOME: tempHome,
+			});
+
+			expect(result.exitCode).toBe(0);
+			expect(result.stdout).toContain('Updated leonardo (user recipe)');
+			expect(
+				await Bun.file(
+					path.join(tempHome, '.cache/wave/resources/leonardo-light.yaml'),
+				).exists(),
+			).toBe(true);
+			expect(
+				await Bun.file(
+					path.join(tempHome, '.cache/wave/resources/leonardo-dark.yaml'),
+				).exists(),
+			).toBe(true);
+			const light = await fs.readFile(
+				path.join(tempHome, '.cache/wave/resources/leonardo-light.yaml'),
+				'utf-8',
+			);
+			expect(light).toContain('leonardo-light:');
+			expect(light).toContain('brand:');
+		} finally {
+			await fs.rm(tempHome, { recursive: true, force: true });
+		}
+	});
+
+	test('dt status shows cache and state locations', async () => {
+		const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-resource-'));
+		try {
+			const result = await runWave(['dt', 'status'], rootDir, {
+				HOME: tempHome,
+			});
+			expect(result.exitCode).toBe(0);
+			expect(result.stdout).toContain('Wave Resource Status');
+			expect(result.stdout).toContain('.cache/wave/resources');
+			expect(result.stdout).toContain('tailwindcss');
+			expect(result.stdout).toContain('leonardo');
+		} finally {
+			await fs.rm(tempHome, { recursive: true, force: true });
+		}
 	});
 });

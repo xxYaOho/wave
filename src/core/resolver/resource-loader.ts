@@ -1,6 +1,8 @@
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import type { ParseError } from '../../types/index.ts';
+import { restoreResourceCache } from '../resources/manager.ts';
+import { resourceCachePath } from '../resources/paths.ts';
 import { validateGenericResource } from '../schema/resource.ts';
 import { getResourcesDir } from './index.ts';
 
@@ -16,19 +18,27 @@ function isBareName(ref: string): boolean {
 	return !ref.includes('/') && !ref.startsWith('./') && !ref.startsWith('../');
 }
 
-function resolveResourcePath(
+async function resolveResourcePath(
 	kind: string,
 	ref: string,
 	themeDir: string,
-): { path: string; isBuiltin: boolean } {
+): Promise<{ path: string; source: 'builtin' | 'cache' | 'user' }> {
 	if (kind === 'custom') {
 		if (path.isAbsolute(ref)) {
-			return { path: ref, isBuiltin: false };
+			return { path: ref, source: 'user' };
 		}
-		return { path: path.join(themeDir, ref), isBuiltin: false };
+		return { path: path.join(themeDir, ref), source: 'user' };
 	}
 
 	if (isBareName(ref)) {
+		const cachePath = resourceCachePath(ref);
+		if (await Bun.file(cachePath).exists()) {
+			return { path: cachePath, source: 'cache' };
+		}
+		const restored = await restoreResourceCache(ref);
+		if (restored) {
+			return { path: restored, source: 'cache' };
+		}
 		const typeDir =
 			kind === 'palette'
 				? 'palettes'
@@ -37,11 +47,11 @@ function resolveResourcePath(
 					: 'brands';
 		return {
 			path: path.join(getResourcesDir(), typeDir, `${ref}.yaml`),
-			isBuiltin: true,
+			source: 'builtin',
 		};
 	}
 
-	return { path: path.join(themeDir, ref), isBuiltin: false };
+	return { path: path.join(themeDir, ref), source: 'user' };
 }
 
 export async function loadResource(
@@ -49,7 +59,7 @@ export async function loadResource(
 	ref: string,
 	themeDir: string,
 ): Promise<LoadedResource | ParseError> {
-	const { path: filePath } = resolveResourcePath(kind, ref, themeDir);
+	const { path: filePath } = await resolveResourcePath(kind, ref, themeDir);
 
 	let content: string;
 	try {
@@ -119,8 +129,7 @@ export async function loadResource(
 	};
 }
 
-const REF_PATTERN = /\{([a-zA-Z][a-zA-Z0-9]*)\./g;
-const DTCG_REF_PATTERN = /"\$ref"\s*:\s*"#\/([^/]+)\//;
+const REF_PATTERN = /\{([a-zA-Z][a-zA-Z0-9-]*)\./g;
 
 function findCrossDependencyReferences(
 	data: unknown,

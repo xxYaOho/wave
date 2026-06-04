@@ -229,12 +229,15 @@ export async function generateTheme(
 	// Collect resources
 	for (const { kind, ref } of parsed.resources) {
 		const loaded = Object.values(dict).find((e) => e.kind === kind);
-		const isBuiltin = loaded?.path.includes('src/resources') ?? false;
-		ctx?.addResource(kind, ref, isBuiltin ? 'builtin' : 'user');
+		const source = loaded?.path.includes('src/resources')
+			? 'builtin'
+			: loaded?.path.includes('/.cache/wave/resources/') ||
+					loaded?.path.includes('\\.cache\\wave\\resources\\')
+				? 'cache'
+				: 'user';
+		ctx?.addResource(kind, ref, source);
 		if (!ctx) {
-			logger.success(
-				`Resource [${kind}]: ${ref} (${isBuiltin ? 'builtin' : 'user'})`,
-			);
+			logger.success(`Resource [${kind}]: ${ref} (${source})`);
 		}
 	}
 
