@@ -1,87 +1,47 @@
 # Wave
 
-面向 UI/UX 设计师的本地设计交付 CLI。
-
-Wave 现在覆盖四类高频工作：生成 design token、压缩设计素材、从 PNG 帧生成 GIF/APNG 动效、创建本地设计项目工作区。
-
-```
-themefile → main.yaml → tokens.json
-```
-
----
-
-## 一分钟预览
-
-定义主题（`main.yaml`）：
-
-```yaml
-theme:
-  color:
-    primary:
-      $value: "#0066cc"
-    text:
-      default:
-        $value: "#333333"
-```
-
-生成令牌：
+Wave 是面向 UI/UX 设计师的本地设计交付 CLI。它把 design token 生成、素材压缩、PNG 帧动效生成、项目工作区创建和本地工具链诊断放在一个低记忆入口里。
 
 ```bash
-$ pnpm dev -- create
-✓ Generated: theme.json
+wave <command> [options]
 ```
 
-输出（`theme.jsonc`）：
+## 能做什么
 
-```json
-{
-  "color-primary": "#0066cc",
-  "color-text-default": "#333333"
-}
-```
+| 能力 | 命令 | 说明 |
+| --- | --- | --- |
+| Design Token | `wave dt` | 读取 `main.yaml`，生成 `json`、`jsonc`、`css`、`sketch` 等输出。 |
+| 素材压缩 | `wave compress` | 压缩 PNG、JPG、SVG、GIF，支持 dry-run、递归扫描和覆盖保护。 |
+| 动效生成 | `wave motion` / `wave mg` | 从 PNG 帧生成 GIF 或 APNG。 |
+| 工作区创建 | `wave workspace` | 按 `~/.config/wave/workspace.yaml` 创建本地设计项目目录。 |
+| 工具链 | `wave doctor` / `wave install` | 检查和安装本地依赖工具。 |
 
----
+## 安装开发环境
 
-## 安装
-
-**前置要求**: [mise](https://mise.jdx.dev/) 管理的 Bun 运行时与 pnpm 包管理器
+本仓库使用 mise 管理运行环境，使用 pnpm 安装依赖。
 
 ```bash
-# 克隆仓库
-git clone https://github.com/yourusername/wave.git
-cd wave
-
-# 安装工具链与依赖
 mise install
 pnpm install
 ```
 
----
+验证 CLI：
 
-## 第一个主题
-
-### 1. 创建 themefile
-
-在项目目录创建 `themefile`：
-
-```
-THEME my-theme
-RESOURCE palette leonardo
-RESOURCE dimension wave
+```bash
+pnpm dev -- --help
 ```
 
-也支持自定义资源：
+构建单文件 CLI：
 
-```
-THEME my-theme
-RESOURCE palette leonardo
-RESOURCE dimension wave
-RESOURCE custom ./brand-colors.yml
+```bash
+pnpm build
 ```
 
-### 2. 创建 main.yaml
+## 快速开始
 
-同一目录创建 `main.yaml`：
+### 生成 design token
+
+在项目目录准备 `main.yaml`：
 
 ```yaml
 $scheme: ~
@@ -89,111 +49,130 @@ theme:
   color:
     $type: color
     primary:
-      $value: "{leonardo.global.color.corerainBlue.light.600}"
-    background:
-      $value: "#ffffff"
+      $value: "#0066cc"
 ```
 
-### 3. 生成
+生成输出：
 
 ```bash
-pnpm dev -- create
-```
-
-输出：
-- `my-theme.json` - 紧凑格式（默认）
-- `my-theme.jsonc` - 带注释格式
-- `my-theme.css` - CSS 变量格式
-- `my-theme2sketch.json` - Sketch API 兼容格式
-
-多平台输出：
-```
-PARAMETER platform json,jsonc,css,sketch
-```
-
----
-
-## 核心概念
-
-| 概念 | 说明 | 示例 |
-|------|------|------|
-| **themefile** | 配置声明文件 | `THEME`, `RESOURCE`, `PARAMETER` |
-| **main.yaml** | 主题内容定义 | `theme.color.primary.$value` |
-| **Palette** | 内置色板 | `leonardo`, `tailwindcss4` |
-| **Dimension** | 内置尺寸 | `wave` |
-| **Custom** | 自定义资源 | `./tokens/brand.yml` |
-| **Toolchain** | 本地工具检查与安装入口 | `wave doctor`, `wave install` |
-| **Compress** | PNG/JPG/SVG/GIF 本地压缩 | `wave compress ./assets` |
-| **Motion** | PNG 帧生成 GIF/APNG | `wave motion gif ./frames` |
-| **Workspace** | 按团队配置创建本地设计项目目录 | `wave workspace` |
-
----
-
-## 下一步
-
-- **完整指南**: [docs/GUIDE.md](./docs/GUIDE.md) - 学习所有功能
-- **技术规范**: [docs/SPEC.md](./docs/SPEC.md) - 系统行为参考
-- **变更记录**: [docs/CHANGELOG.md](./docs/CHANGELOG.md) - 版本更新
-- **vNext 蓝图**: [docs/SWISS_KNIFE_REFACTOR.md](./docs/SWISS_KNIFE_REFACTOR.md) - 瑞士军刀化重构设计
-
----
-
-## 快速命令
-
-```bash
-# 生成主题（当前目录）
-wave create
-
-# design-token 模块入口（当前目录有 main.yaml 时自动读取）
-wave design-token
 wave dt
-wave dt wcag
+```
 
-# 指定 themefile
-wave create -f ./path/to/themefile
+常用选项：
 
-# 指定 main.yaml
-wave dt -f ./path/to/main.yaml
+```bash
+wave dt -f ./main.yaml
+wave dt --platform json --platform css
+wave dt --variant dark
+wave dt --no-night
+wave dt show
+wave dt doctor
+```
 
-# 仅生成 CSS
-wave create --platform css
+### 压缩设计素材
 
-# 生成多个格式
-wave create --platform json,jsonc,css,sketch
-
-# 跳过 night 模式
-wave create --no-night
-
-# 浏览内置资源
-wave show
-
-# 查看内置资源详情
-wave show tailwindcss4
-wave show wave
-
-# 创建主题模板
-wave init
-
-# 检查本地工具链
-wave doctor
-wave install --check
-
-# 压缩素材
+```bash
 wave compress ./assets --dry-run
+wave compress ./assets --type png --recursive
 wave compress ./assets --type png --yes
-wave compress ./assets --type png --yes --force
+```
 
-# 从 PNG 帧生成动效
+### 生成动效
+
+```bash
 wave motion gif ./frames --fps 24 --out loading.gif
 wave motion apng ./frames --fps 24 --out loading.png
 wave mg gif ./frames
+```
 
-# 创建设计项目工作区
+### 创建本地项目工作区
+
+```bash
 wave workspace
 ```
 
----
+Workspace 默认读取：
 
-**当前版本**: 运行 `wave --version` 查看
+```text
+~/.config/wave/workspace.yaml
+```
 
-Bun 是 Wave CLI 的运行时，pnpm 负责依赖安装和 lockfile 管理。
+配置不存在时使用内置默认配置。需要调整命名、版本号、目录结构或 Finder 打开行为时，见 [MANUAL.md](./MANUAL.md)。
+
+## 命令索引
+
+```text
+design-token   Build and inspect design tokens
+compress       Compress PNG, JPG, SVG, and GIF assets
+motion         Build GIF/APNG from PNG frames
+workspace      Create local design project workspaces
+doctor         Check local Wave environment and tools
+install        Show or run recommended tool installation
+```
+
+别名：
+
+```text
+dt             Alias of design-token
+mg             Alias of motion
+```
+
+Legacy 入口仍可使用：
+
+```bash
+wave create
+wave init
+wave show
+```
+
+新脚本和文档优先使用模块化入口：`wave dt`、`wave compress`、`wave motion`、`wave workspace`。
+
+## 项目结构
+
+```text
+src/
+  cli/                 CLI 命令入口
+  core/                核心行为：pipeline、resolver、compress、motion、workspace
+  resources/           内置 resource
+  utils/               receipt、文件扫描等通用工具
+docs/
+  GUIDE.md             功能指南
+  SPEC.md              当前行为快照和内部心智模型
+  SWISS_KNIFE_REFACTOR.md
+MANUAL.md              用户手册
+tests/                 bun:test 测试
+```
+
+## 常用开发命令
+
+```bash
+pnpm dev -- --help
+pnpm dev -- dt --help
+pnpm dev -- compress --help
+pnpm dev -- motion --help
+pnpm dev -- workspace --help
+pnpm typecheck
+bun test
+```
+
+Workspace 相关隔离验证：
+
+```bash
+WAVE_WORKSPACE_CONFIG=/tmp/workspace.yaml pnpm dev -- workspace
+```
+
+## 文档
+
+- [MANUAL.md](./MANUAL.md)：用户手册，记录日常命令和可编辑配置。
+- [docs/GUIDE.md](./docs/GUIDE.md)：完整功能指南。
+- [docs/SPEC.md](./docs/SPEC.md)：系统行为快照，适合实现和 review 前阅读。
+- [docs/CHANGELOG.md](./docs/CHANGELOG.md)：变更记录。
+- [docs/SWISS_KNIFE_REFACTOR.md](./docs/SWISS_KNIFE_REFACTOR.md)：瑞士军刀化重构路线。
+
+## 版本
+
+版本唯一真源是 [package.json](./package.json)。运行以下命令查看当前 CLI 版本：
+
+```bash
+wave --version
+```
