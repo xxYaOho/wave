@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import type { ResolvedResource, ResourceType } from '../../types/index.ts';
+import { resourceCachePath } from '../resources/paths.ts';
 
 export {
 	getBuiltinDimensionPath,
@@ -37,6 +38,14 @@ export function resolveResource(
 	let isBuiltin: boolean;
 
 	if (isBareName(reference)) {
+		const cachePath = resourceCachePath(reference);
+		if (checkExists(cachePath)) {
+			return {
+				path: cachePath,
+				isBuiltin: false,
+				exists: true,
+			};
+		}
 		const typeDir =
 			type === 'palette'
 				? 'palettes'

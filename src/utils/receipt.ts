@@ -116,7 +116,7 @@ export function multiValueLines(
 	return lines;
 }
 
-export type ResourceSource = 'builtin' | 'user';
+export type ResourceSource = 'builtin' | 'cache' | 'user';
 export type OutputScope = 'main' | 'night' | 'variant';
 export type ErrorCategory =
 	| 'resource'

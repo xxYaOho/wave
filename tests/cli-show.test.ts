@@ -1,13 +1,17 @@
 import { describe, expect, test } from 'bun:test';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 
 const rootDir = path.resolve(__dirname, '..');
 
 async function runWave(
 	args: string[],
+	env: Record<string, string> = {},
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
 	const proc = Bun.spawn(['bun', 'run', 'src/index.ts', ...args], {
 		cwd: rootDir,
+		env: { ...process.env, ...env },
 		stdout: 'pipe',
 		stderr: 'pipe',
 	});
@@ -90,6 +94,34 @@ describe('wave show', () => {
 
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('tailwindcss4:');
+	});
+
+	test('shows updated cache resource without network access', async () => {
+		const tempHome = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-show-cache-'),
+		);
+		const env = {
+			HOME: tempHome,
+			WAVE_TAILWIND_FIXTURE_DIR: path.join(rootDir, 'tests/fixtures/resources'),
+		};
+		try {
+			const update = await runWave(
+				['dt', 'update', 'tailwindcss', '--version', '3'],
+				env,
+			);
+			expect(update.exitCode).toBe(0);
+
+			const show = await runWave(['show', 'tailwindcss'], {
+				HOME: tempHome,
+				WAVE_TAILWIND_FIXTURE_DIR: '/no/such/fixture',
+			});
+
+			expect(show.exitCode).toBe(0);
+			const parsed = JSON.parse(show.stdout);
+			expect(parsed['tailwindcss.color.red.500']).toBe('#ef4444');
+		} finally {
+			await fs.rm(tempHome, { recursive: true, force: true });
+		}
 	});
 
 	test('returns error for nonexistent resource', async () => {

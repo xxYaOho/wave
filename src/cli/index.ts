@@ -31,6 +31,19 @@ const TOP_LEVEL_HELP = `Wave CLI
   For more help on a command:
     wave <command> --help`;
 
+const DT_UPDATE_HELP = `Wave Design Token Resource Update
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Usage:
+    wave dt update [name] [options]
+
+  Names:
+    tailwindcss      Update Tailwind CSS resource cache
+    leonardo         Generate Leonardo light/dark resource cache
+
+  Options:
+    --version <version>    Tailwind CSS version: latest, 3, or 4
+    -h, --help             Show help`;
+
 const program = new Command();
 
 const DESIGN_TOKEN_COMMANDS = new Set(['design-token', 'dt']);
@@ -40,6 +53,8 @@ const DESIGN_TOKEN_SUBCOMMANDS = new Set([
 	'wcag',
 	'show',
 	'init',
+	'update',
+	'status',
 ]);
 const DESIGN_TOKEN_MODULE_FLAGS = new Set(['--help', '-h']);
 const COMPRESS_SUBCOMMANDS = new Set(['run', 'doctor', 'install', 'help']);
@@ -54,6 +69,14 @@ function isTopLevelHelp(argv: string[]): boolean {
 		arg === '-h' ||
 		arg === '--help' ||
 		(arg === 'help' && argv.length === 3)
+	);
+}
+
+function isDesignTokenUpdateHelp(argv: string[]): boolean {
+	return (
+		DESIGN_TOKEN_COMMANDS.has(argv[2] ?? '') &&
+		argv[3] === 'update' &&
+		(argv.includes('--help') || argv.includes('-h'))
 	);
 }
 
@@ -88,6 +111,11 @@ function normalizeArgv(argv: string[]): string[] {
 	}
 	if (!DESIGN_TOKEN_COMMANDS.has(argv[2] ?? '')) return argv;
 	const firstTokenArg = argv[3];
+	if (firstTokenArg === 'update') {
+		return argv.map((arg, index) =>
+			index > 3 && arg === '--version' ? '--tailwind-version' : arg,
+		);
+	}
 	if (firstTokenArg && DESIGN_TOKEN_MODULE_FLAGS.has(firstTokenArg)) {
 		return argv;
 	}
@@ -153,6 +181,9 @@ program
 
 if (isTopLevelHelp(process.argv)) {
 	console.log(TOP_LEVEL_HELP);
+	process.exitCode = ExitCode.SUCCESS;
+} else if (isDesignTokenUpdateHelp(process.argv)) {
+	console.log(DT_UPDATE_HELP);
 	process.exitCode = ExitCode.SUCCESS;
 } else {
 	program.parse(normalizeArgv(process.argv));

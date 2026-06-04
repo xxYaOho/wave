@@ -54,6 +54,8 @@ themefile（声明数据源 + 输出参数）
 - `wave dt build`：生成 design token 输出，默认读取当前目录 `main.yaml`
 - `wave dt init`：初始化主题工作区
 - `wave dt show`：浏览内置资源
+- `wave dt update [name]`：显式更新本地 design-token resource cache
+- `wave dt status`：查看本地 resource cache/state 状态
 - `wave dt doctor`：design-token 健康检查入口，当前复用 `wave doctor`
 - `wave dt wcag`：运行 WCAG 对比度检查
 - `wave doctor`：核心运行环境和本地工具链健康检查
@@ -489,9 +491,50 @@ wave workspace create
 
 **引用查找顺序：**
 
-1. 内置资源名（如 `leonardo`）
-2. 相对路径（相对于 themefile 目录）
-3. 绝对路径
+1. 显式项目路径：相对路径（相对于 themefile 目录）或绝对路径
+2. 用户本地 cache：`~/.cache/wave/resources/<name>.yaml`
+3. 内置资源名：`src/resources/<kind>/<name>.yaml`
+
+显式项目路径不被 cache 覆盖。裸资源名才会进入 cache/builtin 查找。
+
+### Resource Update / Status
+
+`build/create/show` 不联网，也不隐式更新资源。资源更新只发生在显式命令：
+
+```bash
+wave dt update
+wave dt update tailwindcss
+wave dt update tailwindcss --version 3
+wave dt update tailwindcss --version 4
+wave dt update leonardo
+wave dt status
+```
+
+**本地路径：**
+
+- cache：`~/.cache/wave/resources/`
+- state：`~/.local/state/wave/resources/state.json`
+- config：`~/.config/wave/resources/`
+- Leonardo recipe：`~/.config/wave/resources/leonardo.yaml`
+
+**Tailwind CSS：**
+
+- `wave dt update tailwindcss` 默认请求 `tailwindcss@latest`，解析为精确版本后写入 state。
+- `--version 3` 读取 Tailwind v3 colors source，输出 hex DTCG token。
+- `--version 4` 读取 Tailwind v4 `theme.css`，输出 OKLCH DTCG object；black/white 等非 OKLCH 值按源保留。
+- 当前用户资源名统一写入 cache 文件 `tailwindcss.yaml`，namespace 为 `tailwindcss`。
+
+**Leonardo：**
+
+- `wave dt update leonardo` 优先读取用户 recipe；不存在则使用 builtin recipe。
+- cache 输出拆成 `leonardo-light.yaml` 与 `leonardo-dark.yaml`。
+- namespace 分别为 `leonardo-light` 与 `leonardo-dark`，引用形如 `{leonardo-light.color.red.600}`。
+
+**恢复策略：**
+
+- 从未更新过：只使用 builtin，不联网。
+- 更新过且 cache 存在：优先使用 cache。
+- 更新过但 cache 丢失：裸资源名读取时按 state 自动恢复 cache；恢复失败时 fallback builtin，并输出明确提示。
 
 **custom 资源限制：**
 
