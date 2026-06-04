@@ -7,6 +7,7 @@ import {
 	loadBuiltinDimension,
 	loadBuiltinPalette,
 } from '../../core/resolver/builtin.ts';
+import { loadResource } from '../../core/resolver/resource-loader.ts';
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 
@@ -127,9 +128,35 @@ type ResourceMatch = {
 	filePath: string;
 };
 
+function inferCategoryFromPath(filePath: string): string | null {
+	if (filePath.includes(`${path.sep}palettes${path.sep}`)) return 'palette';
+	if (filePath.includes(`${path.sep}dimensions${path.sep}`)) return 'dimension';
+	return null;
+}
+
+async function loadResourceMatch(
+	category: string,
+	name: string,
+): Promise<ResourceMatch | null> {
+	const loaded = await loadResource(category, name, process.cwd());
+	if ('line' in loaded) return null;
+	return {
+		category,
+		data: { [loaded.namespace]: loaded.data },
+		filePath: loaded.path,
+	};
+}
+
 async function findResource(
 	name: string,
+	category?: string,
 ): Promise<ResourceMatch | null | { ambiguous: string[] }> {
+	if (category) return await loadResourceMatch(category, name);
+
+	const cacheMatch = await loadResourceMatch('palette', name);
+	if (cacheMatch && !inferCategoryFromPath(cacheMatch.filePath))
+		return cacheMatch;
+
 	const palette = await loadBuiltinPalette(name);
 	const dimension = await loadBuiltinDimension(name);
 
@@ -156,6 +183,7 @@ async function findResource(
 async function showResource(
 	name: string,
 	format: string,
+	category?: string,
 ): Promise<{ ok: true } | { ok: false; message: string; exitCode: number }> {
 	if (!['flat-json', 'json', 'yaml'].includes(format)) {
 		return {
@@ -165,12 +193,12 @@ async function showResource(
 		};
 	}
 
-	const result = await findResource(name);
+	const result = await findResource(name, category);
 
 	if (!result) {
 		return {
 			ok: false,
-			message: `Built-in resource not found: ${name}`,
+			message: `Resource not found: ${name}`,
 			exitCode: ExitCode.FILE_NOT_FOUND,
 		};
 	}
@@ -302,7 +330,11 @@ export function createShowCommand(name = 'show'): Command {
 						return;
 					}
 
-					const result = await showResource(name, format);
+					const result = await showResource(
+						name,
+						format,
+						category.toLowerCase(),
+					);
 					if (!result.ok) {
 						logger.error(result.message);
 						process.exitCode = result.exitCode;

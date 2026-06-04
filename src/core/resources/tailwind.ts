@@ -151,33 +151,95 @@ function toTailwindYaml(
 	);
 }
 
-function loadCommonJsColors(source: string): TailwindColorTree {
-	const module = { exports: {} as unknown };
-	const exports = module.exports;
-	const fn = new Function(
-		'module',
-		'exports',
-		`${source}\n;return module.exports;`,
-	);
-	const result = fn(module, exports) as unknown;
-	if (!isPlainObject(result)) {
-		throw new Error('Tailwind v3 colors source did not export an object');
-	}
-	return result;
+function stripLineComments(source: string): string {
+	return source.replace(/\/\/.*$/gm, '');
 }
 
-function loadEsmDefaultColors(source: string): TailwindColorTree {
-	const withoutImports = source
-		.split('\n')
-		.filter((line) => !line.trimStart().startsWith('import '))
-		.join('\n');
-	const transformed = withoutImports.replace('export default', 'return');
-	const fn = new Function('log', transformed);
-	const result = fn({ warn: () => undefined }) as unknown;
-	if (!isPlainObject(result)) {
-		throw new Error('Tailwind v3 ESM colors source did not export an object');
+function findMatchingBrace(source: string, start: number): number {
+	let depth = 0;
+	let quote: '"' | "'" | '`' | null = null;
+	let escaped = false;
+
+	for (let index = start; index < source.length; index++) {
+		const char = source[index];
+		if (quote) {
+			if (escaped) {
+				escaped = false;
+				continue;
+			}
+			if (char === '\\') {
+				escaped = true;
+				continue;
+			}
+			if (char === quote) quote = null;
+			continue;
+		}
+		if (char === '"' || char === "'" || char === '`') {
+			quote = char;
+			continue;
+		}
+		if (char === '{') depth++;
+		if (char === '}') {
+			depth--;
+			if (depth === 0) return index;
+		}
 	}
-	return result;
+
+	return -1;
+}
+
+function quoteObjectKeys(source: string): string {
+	return source.replace(
+		/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$-]*|[0-9]+)(\s*:)/g,
+		'$1"$2"$3',
+	);
+}
+
+function removeWarnCalls(source: string): string {
+	return source.replace(/warn\(\{[\s\S]*?\}\),?/g, '');
+}
+
+function extractGetterAliases(
+	source: string,
+): Array<{ alias: string; target: string }> {
+	return Array.from(
+		source.matchAll(
+			/get\s+([A-Za-z_$][A-Za-z0-9_$]*)\(\)\s*\{[\s\S]*?return\s+this\.([A-Za-z_$][A-Za-z0-9_$]*)[\s\S]*?\},?/g,
+		),
+	).map((match) => ({ alias: match[1]!, target: match[2]! }));
+}
+
+function removeGetterAliases(source: string): string {
+	return source.replace(
+		/get\s+[A-Za-z_$][A-Za-z0-9_$]*\(\)\s*\{[\s\S]*?return\s+this\.[A-Za-z_$][A-Za-z0-9_$]*[\s\S]*?\},?/g,
+		'',
+	);
+}
+
+function parseTailwindV3Colors(source: string): TailwindColorTree | null {
+	const exportIndex = source.indexOf('export default');
+	if (exportIndex === -1) return null;
+	const objectStart = source.indexOf('{', exportIndex);
+	if (objectStart === -1) return null;
+	const objectEnd = findMatchingBrace(source, objectStart);
+	if (objectEnd === -1) return null;
+
+	const objectSource = stripLineComments(
+		source.slice(objectStart, objectEnd + 1),
+	);
+	const aliases = extractGetterAliases(objectSource);
+	const objectLiteral = removeGetterAliases(removeWarnCalls(objectSource))
+		.replace(/'/g, '"')
+		.replace(/,\s*([}\]])/g, '$1');
+	const parsed = JSON.parse(quoteObjectKeys(objectLiteral)) as unknown;
+	if (!isPlainObject(parsed)) {
+		throw new Error('Tailwind v3 colors source did not contain an object');
+	}
+	for (const { alias, target } of aliases) {
+		const targetValue = parsed[target];
+		if (targetValue !== undefined) parsed[alias] = targetValue;
+	}
+	return parsed;
 }
 
 function tokenFromCssValue(value: string): { $value: unknown } {
@@ -245,23 +307,12 @@ export async function buildTailwindResource(
 
 	if (major === 3) {
 		const sources = await fetchPackageFileCandidates(resolvedVersion, [
-			'colors.js',
 			'src/public/colors.js',
-			'lib/public/colors.js',
 		]);
 		let colors: TailwindColorTree | null = null;
 		for (const source of sources) {
-			try {
-				colors = loadCommonJsColors(source);
-				if (Object.keys(colors).length > 0) break;
-			} catch {
-				try {
-					colors = loadEsmDefaultColors(source);
-					if (Object.keys(colors).length > 0) break;
-				} catch {
-					colors = null;
-				}
-			}
+			colors = parseTailwindV3Colors(source);
+			if (colors && Object.keys(colors).length > 0) break;
 		}
 		if (!colors) {
 			throw new Error(`Failed to parse Tailwind CSS ${resolvedVersion} colors`);
