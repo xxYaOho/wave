@@ -384,6 +384,11 @@ describe('wave dt', () => {
 			expect(await Bun.file(path.join(tempDir, 'main.yaml')).exists()).toBe(
 				true,
 			);
+			expect(await Bun.file(path.join(tempDir, 'manual.md')).exists()).toBe(
+				false,
+			);
+			expect(stdout).toContain('See MANUAL.md for detailed usage');
+			expect(stdout).toContain('Run "wave dt" to generate tokens');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}

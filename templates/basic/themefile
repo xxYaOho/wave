@@ -1,7 +1,0 @@
-THEME example
-RESOURCE palette tailwindcss4
-RESOURCE dimension wave
-
-PARAMETER output ./build
-PARAMETER platform json,css
-PARAMETER colorSpace oklch

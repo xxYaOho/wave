@@ -113,7 +113,7 @@ themefile（声明数据源 + 输出参数）
 - `--no-variants`：禁用 variants 生成
 - `--variants [names]`：指定变体（逗号分隔）
 - `--platform <list>`：指定输出平台（逗号分隔）：`json`、`jsonc`、`css`、`sketch`
-- `--init`：创建主题模板（生成 themefile、main.yaml、manual.md）
+- `--init`：创建主题模板（生成 themefile、main.yaml）
 - `-o, --out <path>`：指定输出目录
 - `--output <dir>`：兼容旧参数，等价于 `--out`
 
