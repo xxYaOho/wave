@@ -482,6 +482,10 @@ describe('wave dt', () => {
 			);
 			expect(cache).toContain('colorSpace: oklch');
 			expect(cache).toContain('components:');
+			expect(cache).toContain('- 0.936');
+			expect(cache).toContain('- 0.808');
+			expect(cache).toContain('- 0.704');
+			expect(cache).not.toMatch(/999999|0000001/);
 			expect(cache).toContain('#000');
 		} finally {
 			await fs.rm(tempHome, { recursive: true, force: true });

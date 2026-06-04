@@ -248,9 +248,9 @@ function tokenFromCssValue(value: string): { $value: unknown } {
 		const inner = normalized.slice(6, -1).trim();
 		const parts = inner.split(/\s+/).map((part, index) => {
 			if (index === 0 && part.endsWith('%')) {
-				return Number(part.slice(0, -1)) / 100;
+				return roundOklchComponent(Number(part.slice(0, -1)) / 100);
 			}
-			return Number(part);
+			return roundOklchComponent(Number(part));
 		});
 		if (parts.length === 3 && parts.every((part) => Number.isFinite(part))) {
 			return {
@@ -262,6 +262,10 @@ function tokenFromCssValue(value: string): { $value: unknown } {
 		}
 	}
 	return { $value: normalized };
+}
+
+function roundOklchComponent(value: number): number {
+	return Number(value.toFixed(3));
 }
 
 function parseThemeCss(source: string): TailwindColorTree {
