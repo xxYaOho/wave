@@ -2,6 +2,160 @@
 
 本手册记录 Wave 面向使用者的操作方式。内部行为快照见 `docs/SPEC.md`。
 
+## Design Token Resource
+
+`wave dt update` 用来更新 design-token 引用解析用的本地 resource。它只更新本地 cache，不修改包内 builtin，也不会让常规 `wave dt build` 重新判断 latest。
+
+常规构建仍以 `main.yaml` 为 token 内容来源。Resource 只提供 `{resource.path}` 引用解析数据。
+
+### 更新全部 resource
+
+```bash
+wave dt update
+```
+
+这会更新当前支持的可更新 resource：
+
+- `tailwindcss`
+- `leonardo`
+
+### 更新 Tailwind CSS
+
+```bash
+wave dt update tailwindcss
+```
+
+不传版本时，Wave 解析 `tailwindcss@latest`，生成本地 cache，并记录实际解析到的版本。
+
+指定 major 版本：
+
+```bash
+wave dt update tailwindcss --version 3
+wave dt update tailwindcss --version 4
+```
+
+规则：
+
+- v3 从 Tailwind 的颜色对象生成 DTCG YAML，颜色值保留 hex。
+- v4 从 `theme.css` 读取 `--color-*` CSS variables，OKLCH 值保存为 DTCG object。
+- v4 的 OKLCH component 会保留到 3 位小数。
+- `black`、`white` 等非 OKLCH 值按源值保存。
+- 目前只支持 Tailwind CSS v3 和 v4。如果 latest 指向尚未支持的 v5，Wave 会要求显式使用 `--version 4`。
+
+### 更新 Leonardo
+
+```bash
+wave dt update leonardo
+```
+
+Wave 会生成两个 cache resource：
+
+```text
+leonardo-light.yaml
+leonardo-dark.yaml
+```
+
+默认情况下，Wave 使用内置 Leonardo palette 拆分生成 light / dark cache。若存在用户 recipe，Wave 使用用户 recipe 生成新的 light / dark palette。
+
+用户 recipe 路径：
+
+```text
+~/.config/wave/resources/leonardo.yaml
+```
+
+示例：
+
+```yaml
+colors:
+  gray: "#808080"
+  red: "#f53f3f"
+  orange: "#f77234"
+  green: "#00b42a"
+  blue: "#165dff"
+  purple: "#722ed1"
+ratios:
+  values: [1.05, 1.31, 1.66, 2.14, 2.81, 3.74, 5.1, 7, 9.59, 12.82, 16.29]
+```
+
+也可以用线性区间：
+
+```yaml
+colors:
+  brand: "#165dff"
+ratios:
+  min: 1.05
+  max: 16.29
+  steps: 11
+```
+
+### 查看 resource 状态
+
+```bash
+wave dt status
+```
+
+输出会显示：
+
+- cache 目录
+- state 文件
+- config 目录
+- Tailwind 是否更新过、cache 是否存在、请求版本和解析版本
+- Leonardo 是否更新过、light/dark cache 是否存在、recipe 来源
+
+### 本地路径
+
+默认路径：
+
+```text
+cache:  ~/.cache/wave/resources/
+state:  ~/.local/state/wave/resources/state.json
+config: ~/.config/wave/resources/
+```
+
+对应文件：
+
+```text
+~/.cache/wave/resources/tailwindcss.yaml
+~/.cache/wave/resources/leonardo-light.yaml
+~/.cache/wave/resources/leonardo-dark.yaml
+~/.local/state/wave/resources/state.json
+~/.config/wave/resources/leonardo.yaml
+```
+
+测试或临时隔离时，可以覆盖路径：
+
+```bash
+WAVE_RESOURCE_CACHE_DIR=/tmp/wave-cache \
+WAVE_RESOURCE_STATE_PATH=/tmp/wave-state.json \
+WAVE_RESOURCE_CONFIG_DIR=/tmp/wave-config \
+wave dt status
+```
+
+### 读取优先级与 fallback
+
+构建和 show 读取 resource 时按以下顺序查找：
+
+1. 项目显式路径 resource
+2. 用户本地 cache resource
+3. 包内 builtin resource
+
+从未执行过 `wave dt update` 时，Wave 使用 builtin。
+
+如果 state 记录某个 resource 更新过，但 cache 文件被删除，Wave 会尝试恢复 cache：
+
+- Tailwind CSS 按 state 里的请求版本重新获取。
+- Leonardo 按当前用户 recipe 或 builtin recipe 重新生成。
+- 恢复失败时，Wave 输出 fallback 提示，并继续使用 builtin。
+
+### 常见错误
+
+| 场景 | 说明 |
+| --- | --- |
+| Tailwind latest 指向不支持的 major | 显式运行 `wave dt update tailwindcss --version 4`。 |
+| 网络失败 | `wave dt update tailwindcss` 需要访问 npm registry 和包文件源。若 state 记录 Tailwind 已更新但 cache 被清理，build/show 读取裸资源名时也会尝试联网恢复 cache。 |
+| Leonardo recipe 色值非法 | `colors` 中的颜色必须是 6 位 hex，例如 `#165dff`。 |
+| cache 被清理 | Wave 会按 state 尝试恢复；失败时回退 builtin。 |
+
 ## Workspace
 
 `wave workspace` 用来创建本地设计项目工作区。它按配置生成工作区名称、目录结构和 README，不读取 `themefile` 或 `main.yaml`。

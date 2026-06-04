@@ -499,7 +499,7 @@ wave workspace create
 
 ### Resource Update / Status
 
-`build/create/show` 不联网，也不隐式更新资源。资源更新只发生在显式命令：
+`build/create/show` 不会主动解析 latest，也不隐式刷新资源版本。资源更新只发生在显式命令：
 
 ```bash
 wave dt update
@@ -534,7 +534,7 @@ wave dt status
 
 - 从未更新过：只使用 builtin，不联网。
 - 更新过且 cache 存在：优先使用 cache。
-- 更新过但 cache 丢失：裸资源名读取时按 state 自动恢复 cache；恢复失败时 fallback builtin，并输出明确提示。
+- 更新过但 cache 丢失：裸资源名读取时按 state 自动恢复 cache；Tailwind 恢复会重新获取对应版本，恢复失败时 fallback builtin，并输出明确提示。
 
 **custom 资源限制：**
 
