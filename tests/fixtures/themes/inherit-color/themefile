@@ -1,5 +1,5 @@
 THEME inherit-color
-RESOURCE palette tailwindcss4
+RESOURCE palette tailwindcss
 RESOURCE dimension wave
 
 PARAMETER output ./dist

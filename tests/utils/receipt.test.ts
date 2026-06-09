@@ -13,7 +13,7 @@ describe('renderReceipt', () => {
 		ctx.themeName = 'orca';
 		ctx.version = '0.15.0';
 		ctx.outputDir = 'theme/';
-		ctx.addResource('palette', 'tailwindcss4', 'builtin');
+		ctx.addResource('palette', 'tailwindcss', 'builtin');
 		ctx.addResource('dimension', 'wave', 'builtin');
 		ctx.addOutput('main', ['orca.json', 'orca.css']);
 		ctx.setNight('skipped');
@@ -26,7 +26,7 @@ describe('renderReceipt', () => {
 		expect(out).toContain('0.15.0');
 		expect(out).toContain('RESOURCES');
 		expect(out).toContain('palette');
-		expect(out).toContain('tailwindcss4');
+		expect(out).toContain('tailwindcss');
 		expect(out).toContain('OUTPUTS');
 		expect(out).toContain('orca.json');
 		expect(out).toContain('Night mode');

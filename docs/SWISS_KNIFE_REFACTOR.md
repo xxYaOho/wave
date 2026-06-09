@@ -584,7 +584,7 @@ $config:
   theme: orca
   resource:
     palette:
-      - tailwindcss4
+      - tailwindcss
     dimension:
       - wave
     custom:
@@ -645,7 +645,7 @@ parameterGroup
 ```yaml
 resource:
   palette:
-    - tailwindcss4
+    - tailwindcss
   dimension:
     - wave
   custom:
@@ -1206,7 +1206,7 @@ GREEN: 实现 dt doctor 最小检查和 workspace 错误输出
 - `wave dt wcag` 默认检查 `main.yaml`。
 - variants / night scope 正确。
 - vNext fixture 必须跑通 `wave dt` 主链路，并生成 css 和 sketch 输出；测试重点是关键行为，不做旧输出逐字 diff。
-- vNext fixture 必须覆盖真实用法：`corerain` custom resource、`tailwindcss4` palette、`wave.dimension`、本地 `$ref`、token 引用字符串、`inheritColor`、`smoothShadow` 和 sketch 映射扩展。
+- vNext fixture 必须覆盖真实用法：`corerain` custom resource、`tailwindcss` palette、`wave.dimension`、本地 `$ref`、token 引用字符串、`inheritColor`、`smoothShadow` 和 sketch 映射扩展。
 
 ### Milestone 4：receipt 渲染与 JSON 稳定化
 

@@ -85,7 +85,7 @@ export async function createTempTheme(config: ThemeConfig): Promise<TestTheme> {
 	// 构建 themefile
 	const themefileContent = [
 		`THEME ${config.name}`,
-		`RESOURCE palette ${config.palette ?? 'tailwindcss4'}`,
+		`RESOURCE palette ${config.palette ?? 'tailwindcss'}`,
 		`RESOURCE dimension ${config.dimension ?? 'wave'}`,
 		...(config.platform
 			? [`PARAMETER platform ${config.platform.join(',')}`]

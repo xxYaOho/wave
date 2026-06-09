@@ -1,4 +1,4 @@
-tailwindcss4:
+tailwindcss:
   color:
     $type: color
     red:

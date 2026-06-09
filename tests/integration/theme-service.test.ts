@@ -190,14 +190,14 @@ describe('Theme Service Integration', () => {
 		test('应能从配置创建并生成主题', async () => {
 			theme = await createTempTheme({
 				name: 'temp-test',
-				palette: 'tailwindcss4',
+				palette: 'tailwindcss',
 				dimension: 'wave',
 				platform: ['json'],
 				tokens: {
 					color: {
 						$type: 'color',
 						primary: {
-							$value: '{tailwindcss4.color.indigo.600}',
+							$value: '{tailwindcss.color.indigo.600}',
 						},
 					},
 				},

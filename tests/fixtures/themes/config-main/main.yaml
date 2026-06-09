@@ -4,7 +4,7 @@ $config:
   theme: config-main
   resource:
     palette:
-      - tailwindcss4
+      - tailwindcss
     dimension:
       - wave
   parameter:
@@ -25,7 +25,7 @@ theme:
   color:
     $type: color
     primary:
-      $value: "{tailwindcss4.color.indigo.600}"
+      $value: "{tailwindcss.color.indigo.600}"
   dimension:
     $type: dimension
     alpha:

@@ -2,7 +2,7 @@ theme:
   color:
     $type: color
     primary:
-      $value: "{tailwindcss4.color.slate.100}"
+      $value: "{tailwindcss.color.slate.100}"
   dimension:
     $type: dimension
     alpha:

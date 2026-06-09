@@ -479,7 +479,7 @@ wave workspace create
 
 **内置资源路径：** `src/resources/`
 
-- Palette: `palettes/leonardo.yaml`, `palettes/tailwindcss4.yaml`
+- Palette: `palettes/leonardo.yaml`, `palettes/tailwindcss.yaml`
 - Dimension: `dimensions/wave.yaml`
 
 **解析规则：**
@@ -689,9 +689,9 @@ theme:
         $type: color
         $description: 基础按钮样式
         background:
-          $value: "{tailwindcss4.color.gray.200}"
+          $value: "{tailwindcss.color.gray.200}"
         text:
-          $value: "{tailwindcss4.color.gray.700}"
+          $value: "{tailwindcss.color.gray.700}"
         radius:
           $type: dimension
           $value: { value: 4, unit: px }
@@ -700,7 +700,7 @@ theme:
         $extends: "{theme.component.button.base}"
         $description: 主要按钮样式（继承自基础）
         background:
-          $value: "{tailwindcss4.color.indigo.600}"
+          $value: "{tailwindcss.color.indigo.600}"
         # text 和 radius 从 base 继承
 ```
 

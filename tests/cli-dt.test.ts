@@ -402,7 +402,7 @@ describe('wave dt', () => {
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Palettes:');
 		expect(stdout).toContain('Dimensions:');
-		expect(stdout).toContain('tailwindcss4');
+		expect(stdout).toContain('tailwindcss');
 		expect(stdout).toContain('wave');
 	});
 

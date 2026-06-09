@@ -2,16 +2,16 @@ theme:
   color:
     $type: color
     primary:
-      $value: "{tailwindcss4.color.indigo.600}"
+      $value: "{tailwindcss.color.indigo.600}"
       $description: "主品牌色"
     secondary:
-      $value: "{tailwindcss4.color.blue.500}"
+      $value: "{tailwindcss.color.blue.500}"
     text:
       default:
-        $value: "{tailwindcss4.color.gray.900}"
+        $value: "{tailwindcss.color.gray.900}"
       muted:
         $value:
-          color: "{tailwindcss4.color.gray.600}"
+          color: "{tailwindcss.color.gray.600}"
           alpha: 0.6
   style:
     shadow:
@@ -27,7 +27,7 @@ theme:
       md:
         $value:
           - color:
-              $ref: "#/tailwindcss4/color/gray/900/$value"
+              $ref: "#/tailwindcss/color/gray/900/$value"
               alpha: 0.15
             offsetX: 0
             offsetY: 4

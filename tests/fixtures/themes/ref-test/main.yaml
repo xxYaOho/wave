@@ -20,7 +20,7 @@ theme:
       elevated:
         $value:
           - color:
-              $ref: "#/tailwindcss4/color/indigo/600/$value"
+              $ref: "#/tailwindcss/color/indigo/600/$value"
               alpha: 0.2
             offsetX: 0
             offsetY: 8

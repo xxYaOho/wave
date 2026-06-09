@@ -176,7 +176,7 @@ export function checkBuiltinResources(): CheckResult & { name: string } {
 		issues.push('dimensions directory missing');
 	}
 
-	const requiredPalettes = ['tailwindcss4.yaml', 'leonardo.yaml'];
+	const requiredPalettes = ['tailwindcss.yaml', 'leonardo.yaml'];
 	const requiredDimensions = ['wave.yaml'];
 
 	for (const palette of requiredPalettes) {

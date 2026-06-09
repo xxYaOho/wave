@@ -31,7 +31,7 @@ describe('wave show', () => {
 		expect(stdout).toContain('Palettes:');
 		expect(stdout).toContain('Dimensions:');
 		expect(stdout).toContain('leonardo');
-		expect(stdout).toContain('tailwindcss4');
+		expect(stdout).toContain('tailwindcss');
 		expect(stdout).toContain('wave');
 	});
 
@@ -41,19 +41,19 @@ describe('wave show', () => {
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Palettes:');
 		expect(stdout).toContain('leonardo');
-		expect(stdout).toContain('tailwindcss4');
+		expect(stdout).toContain('tailwindcss');
 	});
 
 	test('outputs flat-json for a palette by default', async () => {
-		const { exitCode, stdout } = await runWave(['show', 'tailwindcss4']);
+		const { exitCode, stdout } = await runWave(['show', 'tailwindcss']);
 
 		expect(exitCode).toBe(0);
 		const parsed = JSON.parse(stdout);
 		expect(typeof parsed).toBe('object');
 		expect(Object.keys(parsed).length).toBeGreaterThan(0);
-		// Should contain flat keys like tailwindcss4.color.red.50
+		// Should contain flat keys like tailwindcss.color.red.50
 		const hasFlatKey = Object.keys(parsed).some((k) =>
-			k.startsWith('tailwindcss4.color.'),
+			k.startsWith('tailwindcss.color.'),
 		);
 		expect(hasFlatKey).toBe(true);
 	});
@@ -87,13 +87,13 @@ describe('wave show', () => {
 		const { exitCode, stdout } = await runWave([
 			'show',
 			'palette',
-			'tailwindcss4',
+			'tailwindcss',
 			'--format',
 			'yaml',
 		]);
 
 		expect(exitCode).toBe(0);
-		expect(stdout).toContain('tailwindcss4:');
+		expect(stdout).toContain('tailwindcss:');
 	});
 
 	test('shows updated cache resource without network access', async () => {

@@ -1,5 +1,5 @@
 THEME test-extends
-RESOURCE palette tailwindcss4
+RESOURCE palette tailwindcss
 RESOURCE dimension wave
 
 PARAMETER platform json,css,sketch

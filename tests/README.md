@@ -94,7 +94,7 @@ const theme = await loadTestTheme('standard');
 ```typescript
 const theme = await createTempTheme({
   name: 'my-test',
-  palette: 'tailwindcss4',
+  palette: 'tailwindcss',
   tokens: {
     color: {
       $type: 'color',

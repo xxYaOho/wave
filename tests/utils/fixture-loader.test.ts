@@ -39,7 +39,7 @@ describe('Fixture Loader', () => {
 		test('应创建临时主题', async () => {
 			theme = await createTempTheme({
 				name: 'test-create',
-				palette: 'tailwindcss4',
+				palette: 'tailwindcss',
 				dimension: 'wave',
 				tokens: {
 					color: {
@@ -54,7 +54,7 @@ describe('Fixture Loader', () => {
 			// 验证文件已创建
 			const themefileContent = await fs.readFile(theme.themefile, 'utf-8');
 			expect(themefileContent).toContain('THEME test-create');
-			expect(themefileContent).toContain('tailwindcss4');
+			expect(themefileContent).toContain('tailwindcss');
 
 			const mainYamlContent = await fs.readFile(theme.mainYaml, 'utf-8');
 			expect(mainYamlContent).toContain('color:');

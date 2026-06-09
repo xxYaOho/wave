@@ -5,7 +5,7 @@ import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 
 const TEMPLATE_THEMEFILE = `THEME example
-RESOURCE palette tailwindcss4
+RESOURCE palette tailwindcss
 RESOURCE dimension wave
 
 PARAMETER output ./build
@@ -17,7 +17,7 @@ const TEMPLATE_MAIN_YAML = `theme:
   color:
     $type: color
     primary:
-      $value: "{tailwindcss4.color.indigo.600}"
+      $value: "{tailwindcss.color.indigo.600}"
 `;
 
 export function createInitCommand(name = 'init'): Command {

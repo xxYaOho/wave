@@ -113,12 +113,12 @@ wave show palette
 wave show dimension
 
 # 查看指定资源（category 前缀可选，同名冲突时才需要）
-wave show tailwindcss4
+wave show tailwindcss
 wave show leonardo
 wave show wave
 
 # 指定输出格式
-wave show tailwindcss4 --format yaml
+wave show tailwindcss --format yaml
 wave show wave --format json
 wave show leonardo --format flat-json  # 扁平化的 key-value 格式
 ```
@@ -679,7 +679,7 @@ PARAMETER platform sketch
 $value: "{leonardo.global.color.corerainBlue.light.600}"
 ```
 
-#### tailwindcss4
+#### tailwindcss
 
 Tailwind CSS v4 的默认色板。
 
