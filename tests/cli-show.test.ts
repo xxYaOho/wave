@@ -56,6 +56,7 @@ describe('wave show', () => {
 			k.startsWith('tailwindcss.color.'),
 		);
 		expect(hasFlatKey).toBe(true);
+		expect(parsed['tailwindcss.color.red.50']).toBe('oklch(97.1% 0.013 17.38)');
 	});
 
 	test('outputs yaml for a dimension', async () => {
@@ -81,6 +82,21 @@ describe('wave show', () => {
 		expect(exitCode).toBe(0);
 		const parsed = JSON.parse(stdout);
 		expect(parsed).toHaveProperty('leonardo');
+	});
+
+	test('outputs color-space values as CSS strings in nested json', async () => {
+		const { exitCode, stdout } = await runWave([
+			'show',
+			'tailwindcss',
+			'--format',
+			'json',
+		]);
+
+		expect(exitCode).toBe(0);
+		const parsed = JSON.parse(stdout);
+		expect(parsed.tailwindcss.color.red['50'].$value).toBe(
+			'oklch(97.1% 0.013 17.38)',
+		);
 	});
 
 	test('shows resource detail with category and name', async () => {

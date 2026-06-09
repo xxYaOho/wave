@@ -8,7 +8,11 @@ import {
 	loadBuiltinPalette,
 } from '../../core/resolver/builtin.ts';
 import { loadResource } from '../../core/resolver/resource-loader.ts';
-import { ExitCode } from '../../types/index.ts';
+import {
+	type DtcgColorSpaceValue,
+	ExitCode,
+	isDtcgColorSpaceValue,
+} from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 
 interface ShowCommandOptions {
@@ -46,7 +50,25 @@ function formatValueForDisplay(value: unknown): unknown {
 	if (isValueUnitPair(value)) {
 		return `${value.value}${value.unit}`;
 	}
+	if (isDtcgColorSpaceValue(value)) {
+		return formatColorSpaceValueForDisplay(value);
+	}
 	return value;
+}
+
+function formatColorSpaceValueForDisplay(value: DtcgColorSpaceValue): string {
+	const [first = 0, second = 0, third = 0] = value.components;
+	const firstComponent =
+		value.colorSpace === 'oklch'
+			? `${formatNumber(first * 100)}%`
+			: formatNumber(first);
+	const alpha =
+		value.alpha === undefined ? '' : ` / ${formatNumber(value.alpha)}`;
+	return `${value.colorSpace}(${firstComponent} ${formatNumber(second)} ${formatNumber(third)}${alpha})`;
+}
+
+function formatNumber(value: number): string {
+	return Number(value.toFixed(6)).toString();
 }
 
 function transformDimensionDisplay(data: unknown): unknown {
