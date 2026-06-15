@@ -257,6 +257,9 @@ wave compress ./assets --yes
 # 只处理 PNG
 wave compress ./assets --type png --yes
 
+# 清理 SVG 图标颜色属性，方便 CSS 重新赋色
+wave compress ./assets --type svg --icon --yes
+
 # 递归扫描子目录
 wave compress ./assets --recursive --yes
 
@@ -282,6 +285,8 @@ wave compress ./assets --json
 - 不传 `--recursive` 时，目录输入只扫描当前一级文件。
 - 不传 `--out` 时，目录输入输出到 `<input-dir>/wave-compress/`；文件输入输出到 `<file-parent>/wave-compress/`。
 - 若优化结果比原文件更大，Wave 会把该文件标为 `unchanged`，落盘时复制原文件字节，不使用更大的优化产物。
+- 普通 SVG 压缩会自动读取 `~/.config/wave/svgo.cjs`；存在时使用该 SVGO 配置。
+- `--icon` 使用 Wave 内置图标配置，不读取 `~/.config/wave/svgo.cjs`。它会删除 SVG 中影响 CSS 重新赋色的 `fill`、`fill-rule`、`fill-opacity`，但不主动删除 `stroke`、`id`、`title`。
 
 安全模式与质量模式：
 

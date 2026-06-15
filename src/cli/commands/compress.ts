@@ -34,6 +34,7 @@ interface CompressCommandOptions {
 	dryRun?: boolean;
 	yes?: boolean;
 	force?: boolean;
+	icon?: boolean;
 	json?: boolean;
 }
 
@@ -57,6 +58,7 @@ const COMPRESS_HELP = `Wave Compress
     --dry-run            Preview only, no prompt, no write
     --yes                Write without confirmation
     --force              Allow overwriting existing output files
+    --icon               Clean SVG icon colors for CSS styling
     --json               Output JSON only, no prompt
     -h, --help           Show help
 
@@ -122,7 +124,9 @@ function renderCompressResult(
 			const saved =
 				item.status === 'unchanged'
 					? 'unchanged'
-					: `saved ${formatPercent(item.savedPercent)}`;
+					: item.status === 'cleaned'
+						? 'cleaned'
+						: `saved ${formatPercent(item.savedPercent)}`;
 			lines.push(
 				fileLine(
 					item.relativePath,
@@ -294,6 +298,7 @@ function createCompressRunCommand(name = 'run'): Command {
 		.option('--dry-run', 'Preview compression without writing output')
 		.option('--yes', 'Write previewed output without prompting')
 		.option('--force', 'Allow overwriting existing output files')
+		.option('--icon', 'Clean SVG icon colors for CSS styling')
 		.option('--json', 'Output JSON and do not prompt')
 		.action(async (input: string, options: CompressCommandOptions) => {
 			try {
@@ -328,6 +333,7 @@ function createCompressRunCommand(name = 'run'): Command {
 						dryRun: options.dryRun || (options.json && !options.yes),
 						yes: options.yes || shouldPrompt,
 						force: options.force,
+						icon: options.icon,
 					});
 				} finally {
 					loading?.stop();

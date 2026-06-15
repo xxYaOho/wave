@@ -75,6 +75,7 @@ wave dt doctor
 wave compress ./assets --dry-run
 wave compress ./assets --type png --recursive
 wave compress ./assets --type png --yes
+wave compress ./assets --type svg --icon --yes
 ```
 
 ### 生成动效

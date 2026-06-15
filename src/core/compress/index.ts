@@ -22,6 +22,7 @@ export interface CompressOptions {
 	dryRun?: boolean;
 	yes?: boolean;
 	force?: boolean;
+	icon?: boolean;
 	resolver?: ToolResolver;
 	runner?: CommandRunner;
 	cwd?: string;
@@ -32,7 +33,7 @@ export interface CompressItemResult {
 	output: string;
 	relativePath: string;
 	type: CompressFileType;
-	status: 'optimized' | 'unchanged';
+	status: 'optimized' | 'cleaned' | 'unchanged';
 	beforeBytes: number;
 	afterBytes: number;
 	savedBytes: number;
@@ -155,6 +156,11 @@ export async function runCompress(
 	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
 	const items: CompressItemResult[] = [];
 	try {
+		const hasSvg = candidates.some((candidate) => candidate.type === 'svg');
+		const iconSvgoConfigPath =
+			options.icon && hasSvg ? await writeIconSvgoConfig(tempDir) : undefined;
+		const userSvgoConfigPath =
+			!options.icon && hasSvg ? await findUserSvgoConfigPath() : undefined;
 		for (const candidate of candidates) {
 			const tempOutput = path.join(tempDir, candidate.relativePath);
 			await fs.mkdir(path.dirname(tempOutput), { recursive: true });
@@ -180,18 +186,29 @@ export async function runCompress(
 				mode,
 				quality: options.quality,
 				toolName: resolution.selected.name,
+				svgoConfigPath:
+					candidate.type === 'svg'
+						? (iconSvgoConfigPath ?? userSvgoConfigPath)
+						: undefined,
 				runner,
 			});
 
 			const beforeBytes = (await fs.stat(candidate.absolutePath)).size;
 			const previewBytes = (await fs.stat(tempOutput)).size;
-			const status = previewBytes < beforeBytes ? 'optimized' : 'unchanged';
-			const afterBytes = status === 'optimized' ? previewBytes : beforeBytes;
+			const shouldUseToolOutput =
+				candidate.type === 'svg' && (options.icon || !!userSvgoConfigPath);
+			const status =
+				previewBytes < beforeBytes
+					? 'optimized'
+					: shouldUseToolOutput
+						? 'cleaned'
+						: 'unchanged';
+			const afterBytes = status === 'unchanged' ? beforeBytes : previewBytes;
 			const finalOutput = path.join(outDir, candidate.relativePath);
 			if (shouldWrite) {
 				await fs.mkdir(path.dirname(finalOutput), { recursive: true });
 				await fs.copyFile(
-					status === 'optimized' ? tempOutput : candidate.absolutePath,
+					status === 'unchanged' ? candidate.absolutePath : tempOutput,
 					finalOutput,
 				);
 			}
@@ -407,6 +424,7 @@ async function compressFile(options: {
 	mode: CompressMode;
 	quality?: number;
 	toolName: string;
+	svgoConfigPath?: string;
 	runner: CommandRunner;
 }): Promise<void> {
 	const toolName = ensureKnownToolName(
@@ -427,6 +445,40 @@ async function compressFile(options: {
 	}
 }
 
+function homeDir(): string {
+	return process.env.HOME || os.homedir();
+}
+
+async function findUserSvgoConfigPath(): Promise<string | undefined> {
+	const configPath = path.join(homeDir(), '.config', 'wave', 'svgo.cjs');
+	return (await fileExists(configPath)) ? configPath : undefined;
+}
+
+async function writeIconSvgoConfig(tempDir: string): Promise<string> {
+	const configPath = path.join(tempDir, 'wave-svgo-icon.cjs');
+	await fs.writeFile(
+		configPath,
+		`module.exports = {
+  plugins: [
+    {
+      name: 'preset-default',
+      params: {
+        floatPrecision: 2,
+      },
+    },
+    {
+      name: 'removeAttrs',
+      params: {
+        attrs: '(fill|fill-rule|fill-opacity)',
+      },
+    },
+  ],
+};
+`,
+	);
+	return configPath;
+}
+
 function buildToolArgs(options: {
 	source: string;
 	output: string;
@@ -434,6 +486,7 @@ function buildToolArgs(options: {
 	mode: CompressMode;
 	quality?: number;
 	toolName: CompressCommandToolName;
+	svgoConfigPath?: string;
 }): string[] {
 	switch (options.toolName) {
 		case 'oxipng':
@@ -448,7 +501,13 @@ function buildToolArgs(options: {
 				options.source,
 			];
 		case 'svgo':
-			return ['--input', options.source, '--output', options.output];
+			return [
+				...(options.svgoConfigPath ? ['--config', options.svgoConfigPath] : []),
+				'--input',
+				options.source,
+				'--output',
+				options.output,
+			];
 		case 'gifsicle':
 			return ['--optimize=3', '--output', options.output, options.source];
 		case 'jpegtran':

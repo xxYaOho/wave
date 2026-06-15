@@ -41,12 +41,19 @@ if (args.includes('--version') || args.includes('-version')) {
 }
 let out = '';
 let input = args[args.length - 1];
+let config = '';
 for (let i = 0; i < args.length; i++) {
 	if (['--out', '--output', '-outfile'].includes(args[i])) out = args[i + 1] ?? '';
 	if (args[i] === '--input') input = args[i + 1] ?? input;
+	if (args[i] === '--config') config = args[i + 1] ?? '';
 }
 if (!out) out = input;
 const content = await fs.readFile(input);
+if (process.argv[1].endsWith('/svgo') && config) {
+	const marker = config.includes('wave-svgo-icon.cjs') ? 'icon-config' : 'user-config';
+	await fs.writeFile(out, Buffer.concat([content, Buffer.from(marker)]));
+	process.exit(0);
+}
 await fs.writeFile(out, content.subarray(0, Math.max(1, Math.floor(content.length / 2))));
 `;
 	for (const name of [
@@ -83,12 +90,19 @@ if (args.includes('--version') || args.includes('-version')) {
 }
 let out = '';
 let input = args[args.length - 1];
+let config = '';
 for (let i = 0; i < args.length; i++) {
 	if (['--out', '--output', '-outfile'].includes(args[i])) out = args[i + 1] ?? '';
 	if (args[i] === '--input') input = args[i + 1] ?? input;
+	if (args[i] === '--config') config = args[i + 1] ?? '';
 }
 if (!out) out = input;
 const content = await fs.readFile(input);
+if (process.argv[1].endsWith('/svgo') && config) {
+	const marker = config.includes('wave-svgo-icon.cjs') ? 'icon-config' : 'user-config';
+	await fs.writeFile(out, Buffer.concat([content, Buffer.from(marker)]));
+	process.exit(0);
+}
 await fs.writeFile(out, Buffer.concat([content, content]));
 `;
 	const file = path.join(dir, name);
@@ -115,6 +129,7 @@ describe('wave compress', () => {
 			'install         Show or run compress tool installation',
 		);
 		expect(stdout).toContain('--force');
+		expect(stdout).toContain('--icon');
 		expect(stdout).toContain('For more help on a command:');
 		expect(stdout).not.toContain('Examples:');
 		expect(stdout).not.toContain('Default behavior:');
@@ -332,6 +347,82 @@ describe('wave compress', () => {
 		}
 	});
 
+	test('svg compression uses ~/.config/wave/svgo.cjs by default', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-home-'));
+		const tools = await createFakeToolDir();
+		try {
+			const configDir = path.join(tempHome, '.config', 'wave');
+			await fs.mkdir(configDir, { recursive: true });
+			await fs.writeFile(
+				path.join(configDir, 'svgo.cjs'),
+				'module.exports = {};',
+			);
+			await fs.writeFile(path.join(tempDir, 'sample.svg'), '<svg></svg>');
+
+			const { exitCode, stdout } = await runWave(
+				['compress', tempDir, '--type', 'svg', '--yes'],
+				{
+					env: {
+						HOME: tempHome,
+						PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}`,
+					},
+				},
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('cleaned');
+			expect(
+				await fs.readFile(
+					path.join(tempDir, 'wave-compress/sample.svg'),
+					'utf-8',
+				),
+			).toBe('<svg></svg>user-config');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tempHome, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('--icon uses Wave icon config instead of user svgo config', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-home-'));
+		const tools = await createFakeToolDir();
+		try {
+			const configDir = path.join(tempHome, '.config', 'wave');
+			await fs.mkdir(configDir, { recursive: true });
+			await fs.writeFile(
+				path.join(configDir, 'svgo.cjs'),
+				'module.exports = {};',
+			);
+			await fs.writeFile(path.join(tempDir, 'sample.svg'), '<svg></svg>');
+
+			const { exitCode, stdout } = await runWave(
+				['compress', tempDir, '--type', 'svg', '--icon', '--yes'],
+				{
+					env: {
+						HOME: tempHome,
+						PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}`,
+					},
+				},
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('cleaned');
+			expect(
+				await fs.readFile(
+					path.join(tempDir, 'wave-compress/sample.svg'),
+					'utf-8',
+				),
+			).toBe('<svg></svg>icon-config');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tempHome, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
 	test('checks only tools needed by matched file types', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
 		const tools = await createSingleFakeTool('svgo');
@@ -351,6 +442,38 @@ describe('wave compress', () => {
 			expect(stdout).not.toContain('WCP_TOOL_MISSING');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+
+	test('unconfigured larger svg optimizer output remains unchanged', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
+		const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-home-'));
+		const tools = await createLargerFakeTool('svgo');
+		try {
+			await fs.writeFile(path.join(tempDir, 'sample.svg'), '<svg></svg>');
+
+			const { exitCode, stdout } = await runWave(
+				['compress', tempDir, '--type', 'svg', '--yes'],
+				{
+					env: {
+						HOME: tempHome,
+						PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}`,
+					},
+				},
+			);
+
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('unchanged');
+			expect(
+				await fs.readFile(
+					path.join(tempDir, 'wave-compress/sample.svg'),
+					'utf-8',
+				),
+			).toBe('<svg></svg>');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tempHome, { recursive: true, force: true });
 			await fs.rm(tools, { recursive: true, force: true });
 		}
 	});

@@ -288,6 +288,7 @@ wave compress install
 - `--dry-run`：只预览，不写文件
 - `--yes`：跳过确认并写入预览结果
 - `--force`：允许覆盖已有输出文件；`--yes` 不隐含 `--force`
+- `--icon`：按图标标准清理 SVG 颜色相关属性，方便 CSS 重新赋色
 - `--json`：输出 JSON；不带 `--yes` 时强制 dry-run
 
 ### 扫描与输出
@@ -312,8 +313,16 @@ wave compress install
 - 默认不覆盖已有输出；目标文件已存在且未传 `--force` 时返回 `WCP_OUTPUT_EXISTS`。
 - 若优化产物更小，状态为 `optimized`，写入优化产物。
 - 若优化产物不更小，状态为 `unchanged`，写入原始字节。
-- receipt 中 `optimized` 行显示 `saved, <percent>%`；`unchanged` 行显示 `unchanged`。
+- SVG 使用 `--icon` 或用户 SVGO config 时，写入 SVGO 处理结果；若处理结果不更小，状态为 `cleaned`。
+- receipt 中 `optimized` 行显示 `saved, <percent>%`；`cleaned` 行显示 `cleaned`；`unchanged` 行显示 `unchanged`。
 - 成功写入 receipt 的结尾显示 `Reduce space usage by <percent>%.`，百分比按所有文件合计的压缩前后字节计算，保留两位小数。
+
+### SVG 配置
+
+- 普通 SVG 压缩默认查找 `~/.config/wave/svgo.cjs`；存在时传给 `svgo --config`。
+- `--icon` 使用 Wave 内置 SVGO 配置，不读取 `~/.config/wave/svgo.cjs`。
+- `--icon` 内置配置使用 `preset-default`，`floatPrecision: 2`，并删除 `fill`、`fill-rule`、`fill-opacity`。
+- `--icon` 不主动删除 `stroke`、`id`、`title`。
 
 ### 工具选择
 
