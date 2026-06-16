@@ -301,6 +301,90 @@ function interpolateShadowValue(base: unknown, coeff: number): string | number {
 	return 0;
 }
 
+function parseShadowLength(value: unknown): { value: number; unit: string } {
+	if (typeof value === 'number') {
+		return { value, unit: '' };
+	}
+	if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+		const obj = value as Record<string, unknown>;
+		if (typeof obj.value === 'number') {
+			return {
+				value: obj.value,
+				unit: typeof obj.unit === 'string' ? obj.unit : '',
+			};
+		}
+	}
+	if (typeof value === 'string') {
+		const match = value.trim().match(/^(-?\d+(\.\d+)?)\s*([a-z%]*)$/i);
+		if (match?.[1] !== undefined) {
+			return {
+				value: parseFloat(match[1]),
+				unit: match[3] || '',
+			};
+		}
+	}
+	return { value: 0, unit: '' };
+}
+
+function formatShadowLengthValue(value: number, unit: string): string | number {
+	if (unit === 'rem') {
+		return `${roundTo(value, 3)}rem`;
+	}
+	if (unit !== '') {
+		return `${Math.round(value)}${unit}`;
+	}
+	return Math.round(value);
+}
+
+function interpolateShadowLength(
+	from: unknown,
+	to: unknown,
+	ratio: number,
+): string | number {
+	const start = parseShadowLength(from);
+	const end = parseShadowLength(to);
+	const unit = end.unit || start.unit;
+	const value = start.value + (end.value - start.value) * ratio;
+	return formatShadowLengthValue(value, unit);
+}
+
+function extractTargetAlpha(target: Record<string, unknown>): number | undefined {
+	if (typeof target.alpha === 'number') {
+		return target.alpha;
+	}
+	if (typeof target.alpha === 'string') {
+		const parsed = parseFloat(target.alpha);
+		return isNaN(parsed) ? undefined : parsed;
+	}
+	if (typeof target.color === 'string') {
+		return extractColorAlpha(target.color);
+	}
+	return undefined;
+}
+
+function isZeroLength(value: unknown): boolean {
+	const parsed = parseShadowLength(value);
+	return parsed.value === 0;
+}
+
+function isUsefulShadowLayer(layer: Record<string, unknown>): boolean {
+	const alpha =
+		typeof layer.color === 'string' ? extractColorAlpha(layer.color) : 1;
+	const hasGeometry = !(
+		isZeroLength(layer.offsetX) &&
+		isZeroLength(layer.offsetY) &&
+		isZeroLength(layer.blur) &&
+		isZeroLength(layer.spread)
+	);
+	return alpha > 0 && hasGeometry;
+}
+
+function filterUsefulShadowLayers(
+	layers: Array<Record<string, unknown>>,
+): Array<Record<string, unknown>> {
+	return layers.filter(isUsefulShadowLayer);
+}
+
 function deriveSmoothShadow(
 	processedValue: unknown,
 	extension: unknown,
@@ -328,6 +412,10 @@ function deriveSmoothShadow(
 		);
 	}
 	const cubicBezier = ext.cubicBezier as [number, number, number, number];
+	const hasTarget =
+		typeof (extension as Record<string, unknown>).target === 'object' &&
+		(extension as Record<string, unknown>).target !== null &&
+		!Array.isArray((extension as Record<string, unknown>).target);
 
 	if (!Number.isInteger(ext.step) || (ext.step as number) < 1) {
 		throw new Error(
@@ -340,6 +428,32 @@ function deriveSmoothShadow(
 	const baseColor = typeof layer.color === 'string' ? layer.color : '#000000';
 	const baseAlpha = extractColorAlpha(baseColor);
 	const inset = layer.inset === true;
+
+	if (hasTarget) {
+		if (step < 2) {
+			throw new Error(
+				`smoothShadow.step must be an integer >= 2 when target is provided${tokenPath ? ` at ${tokenPath}` : ''}`,
+			);
+		}
+
+		const target = (extension as { target: Record<string, unknown> }).target;
+		const targetAlpha = extractTargetAlpha(target) ?? baseAlpha;
+		const ratios = sampleCubicBezier(cubicBezier, step);
+		const derived = ratios.map((ratio) => ({
+			color: applyColorAlpha(
+				baseColor,
+				roundTo(baseAlpha + (targetAlpha - baseAlpha) * ratio, 2),
+				targetFormat,
+			),
+			offsetX: interpolateShadowLength(layer.offsetX, target.offsetX, ratio),
+			offsetY: interpolateShadowLength(layer.offsetY, target.offsetY, ratio),
+			blur: interpolateShadowLength(layer.blur, target.blur, ratio),
+			spread: interpolateShadowLength(layer.spread, target.spread, ratio),
+			...(inset && { inset: true }),
+		}));
+
+		return filterUsefulShadowLayers(derived);
+	}
 
 	// Sample step+1 points and drop the last one (zero layer)
 	const ratios = sampleCubicBezier(cubicBezier, step + 1);

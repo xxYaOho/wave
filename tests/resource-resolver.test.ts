@@ -258,6 +258,117 @@ describe('generalized resolver', () => {
 		expect(token.gradient.hero.$extensions.smoothGradient.step).toBe(5);
 	});
 
+	test('resolves references inside smoothShadow target', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					shadow: {
+						$value: '#0f172b',
+					},
+				},
+				style: {
+					shadow: {
+						$type: 'shadow',
+						raised: {
+							$value: {
+								color: {
+									$ref: '#/theme/color/shadow/$value',
+									alpha: 0.02,
+								},
+								offsetX: 0,
+								offsetY: '{wave.dimension.px.1}',
+								blur: '{wave.dimension.px.2}',
+								spread: 1,
+							},
+							$extensions: {
+								smoothShadow: {
+									cubicBezier:
+										'{wave.dimension.cubicBezier.easeOutCubic}',
+									step: 4,
+									target: {
+										alpha: 0.08,
+										offsetX: 0,
+										offsetY: '{wave.dimension.px.4}',
+										blur: '{wave.dimension.px.8}',
+										spread: -2,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+
+		const sources: ReferenceDataSources = {
+			wave: {
+				dimension: {
+					px: {
+						1: { $value: { value: 1, unit: 'px' } },
+						2: { $value: { value: 2, unit: 'px' } },
+						4: { $value: { value: 4, unit: 'px' } },
+						8: { $value: { value: 8, unit: 'px' } },
+					},
+					cubicBezier: {
+						easeOutCubic: { $value: [0.33, 1, 0.68, 1] },
+					},
+				},
+			},
+		};
+
+		const result = resolveReferences(tree, sources);
+		const token = result.theme as unknown as {
+			style: {
+				shadow: {
+					raised: {
+						$value: {
+							color: {
+								color: string;
+								alpha: number;
+								_swatchName: string;
+							};
+							offsetY: { value: number; unit: string };
+							blur: { value: number; unit: string };
+						};
+						$extensions: {
+							smoothShadow: {
+								cubicBezier: unknown;
+								target: {
+									offsetY: { value: number; unit: string };
+									blur: { value: number; unit: string };
+									spread: number;
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+
+		expect(token.style.shadow.raised.$value.color).toEqual({
+			color: '#0f172b',
+			alpha: 0.02,
+			_swatchName: 'color/shadow',
+		});
+		expect(token.style.shadow.raised.$value.offsetY).toEqual({
+			value: 1,
+			unit: 'px',
+		});
+		expect(
+			token.style.shadow.raised.$extensions.smoothShadow.cubicBezier,
+		).toEqual([0.33, 1, 0.68, 1]);
+		expect(
+			token.style.shadow.raised.$extensions.smoothShadow.target.offsetY,
+		).toEqual({ value: 4, unit: 'px' });
+		expect(
+			token.style.shadow.raised.$extensions.smoothShadow.target.blur,
+		).toEqual({ value: 8, unit: 'px' });
+		expect(
+			token.style.shadow.raised.$extensions.smoothShadow.target.spread,
+		).toBe(-2);
+	});
+
 	test('resolves $ref to shadow token containing nested {value, unit} objects', () => {
 		const tree: DtcgTokenGroup = {
 			theme: {

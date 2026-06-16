@@ -214,6 +214,195 @@ describe('smoothShadow transformation', () => {
 		expect(layers[0]!.offsetY).toMatch(/rem$/);
 	});
 
+	test('derives target shadow layers from seed to target', () => {
+		const input: ResolvedTokenGroup = {
+			shadow: {
+				$type: 'shadow',
+				raised: {
+					$value: {
+						color: '#0f172b05',
+						offsetX: 0,
+						offsetY: 1,
+						blur: 2,
+						spread: 1,
+					},
+					$extensions: {
+						smoothShadow: {
+							cubicBezier: [0, 0, 1, 1],
+							step: 4,
+							target: {
+								alpha: 0.08,
+								offsetX: 0,
+								offsetY: 4,
+								blur: 8,
+								spread: -2,
+							},
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
+			color: string;
+			offsetX: number;
+			offsetY: number;
+			blur: number;
+			spread: number;
+		}[];
+
+		expect(layers).toEqual([
+			{ color: '#0f172b05', offsetX: 0, offsetY: 1, blur: 2, spread: 1 },
+			{ color: '#0f172b0a', offsetX: 0, offsetY: 2, blur: 4, spread: 0 },
+			{ color: '#0f172b0f', offsetX: 0, offsetY: 3, blur: 6, spread: -1 },
+			{ color: '#0f172b14', offsetX: 0, offsetY: 4, blur: 8, spread: -2 },
+		]);
+	});
+
+	test('keeps target mode step count after easing and rounding', () => {
+		const input: ResolvedTokenGroup = {
+			shadow: {
+				$type: 'shadow',
+				raised: {
+					$value: {
+						color: '#0f172b05',
+						offsetX: 0,
+						offsetY: 1,
+						blur: 2,
+						spread: 1,
+					},
+					$extensions: {
+						smoothShadow: {
+							cubicBezier: [0.33, 1, 0.68, 1],
+							step: 4,
+							target: {
+								alpha: 0.08,
+								offsetX: 0,
+								offsetY: 4,
+								blur: 8,
+								spread: -2,
+							},
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
+			color: string;
+			offsetY: number;
+			blur: number;
+			spread: number;
+		}[];
+
+		expect(layers).toEqual([
+			expect.objectContaining({
+				color: '#0f172b05',
+				offsetY: 1,
+				blur: 2,
+				spread: 1,
+			}),
+			expect.objectContaining({
+				color: '#0f172b0f',
+				offsetY: 3,
+				blur: 6,
+				spread: -1,
+			}),
+			expect.objectContaining({
+				color: '#0f172b14',
+				offsetY: 4,
+				blur: 8,
+				spread: -2,
+			}),
+			expect.objectContaining({
+				color: '#0f172b14',
+				offsetY: 4,
+				blur: 8,
+				spread: -2,
+			}),
+		]);
+	});
+
+	test('filters invalid zero target layers', () => {
+		const input: ResolvedTokenGroup = {
+			shadow: {
+				$type: 'shadow',
+				raised: {
+					$value: {
+						color: '#0f172b00',
+						offsetX: 0,
+						offsetY: 0,
+						blur: 0,
+						spread: 0,
+					},
+					$extensions: {
+						smoothShadow: {
+							cubicBezier: [0, 0, 1, 1],
+							step: 2,
+							target: {
+								alpha: 0.08,
+								offsetX: 0,
+								offsetY: 4,
+								blur: 8,
+								spread: -2,
+							},
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as unknown[];
+
+		expect(layers).toHaveLength(1);
+	});
+
+	test('interpolates resolved dimension value objects in target mode', () => {
+		const input: ResolvedTokenGroup = {
+			shadow: {
+				$type: 'shadow',
+				raised: {
+					$value: {
+						color: '#0f172b05',
+						offsetX: 0,
+						offsetY: { value: 2, unit: 'px' },
+						blur: { value: 4, unit: 'px' },
+						spread: 1,
+					},
+					$extensions: {
+						smoothShadow: {
+							cubicBezier: [0, 0, 1, 1],
+							step: 4,
+							target: {
+								alpha: 0.08,
+								offsetX: 0,
+								offsetY: { value: 6, unit: 'px' },
+								blur: { value: 8, unit: 'px' },
+								spread: -2,
+							},
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input);
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
+			offsetY: string;
+			blur: string;
+		}[];
+
+		expect(layers).toHaveLength(4);
+		expect(layers[0]!.offsetY).toBe('2px');
+		expect(layers[1]!.offsetY).toBe('3px');
+		expect(layers[2]!.offsetY).toBe('5px');
+		expect(layers[3]!.offsetY).toBe('6px');
+		expect(layers[3]!.blur).toBe('8px');
+	});
+
 	test('throws for invalid cubicBezier', () => {
 		const input: ResolvedTokenGroup = {
 			shadow: {
@@ -270,6 +459,40 @@ describe('smoothShadow transformation', () => {
 
 		expect(() => transformToWaveTokens(input)).toThrow(
 			'smoothShadow.step must be an integer >= 1',
+		);
+	});
+
+	test('throws for target mode step < 2', () => {
+		const input: ResolvedTokenGroup = {
+			shadow: {
+				$type: 'shadow',
+				raised: {
+					$value: {
+						color: '#000000',
+						offsetX: 0,
+						offsetY: 2,
+						blur: 4,
+						spread: 0,
+					},
+					$extensions: {
+						smoothShadow: {
+							cubicBezier: [0, 0, 1, 1],
+							step: 1,
+							target: {
+								alpha: 0.08,
+								offsetX: 0,
+								offsetY: 4,
+								blur: 8,
+								spread: -2,
+							},
+						},
+					},
+				},
+			},
+		};
+
+		expect(() => transformToWaveTokens(input)).toThrow(
+			'smoothShadow.step must be an integer >= 2 when target is provided',
 		);
 	});
 });

@@ -169,6 +169,72 @@ wave dt --no-variants
 
 `wave create` 是旧构建入口，默认读取 `themefile`，仍可用于兼容旧项目。
 
+### Shadow 与 smoothShadow
+
+Shadow token 使用 DTCG 风格的复合值。普通 shadow 可以直接写数组：
+
+```yaml
+theme:
+  color:
+    $type: color
+    shadow:
+      $value: "#0f172b"
+  style:
+    shadow:
+      $type: shadow
+      1:
+        $value:
+          - color:
+              $ref: "#/theme/color/shadow/$value"
+              alpha: 0.08
+            offsetX: 0
+            offsetY: "{wave.dimension.px.4}"
+            blur: "{wave.dimension.px.8}"
+            spread: -2
+```
+
+`smoothShadow` 用来从一层 seed shadow 生成多层 shadow。推荐写法是给 `smoothShadow` 提供 `target`：
+
+```yaml
+theme:
+  color:
+    $type: color
+    shadow:
+      $value: "#0f172b"
+  style:
+    shadow:
+      $type: shadow
+      1:
+        $value:
+          color:
+            $ref: "#/theme/color/shadow/$value"
+            alpha: 0.02
+          offsetX: 0
+          offsetY: "{wave.dimension.px.1}"
+          blur: "{wave.dimension.px.2}"
+          spread: 1
+        $extensions:
+          smoothShadow:
+            cubicBezier: "{wave.dimension.cubicBezier.easeOutCubic}"
+            step: 4
+            target:
+              alpha: 0.08
+              offsetX: 0
+              offsetY: "{wave.dimension.px.4}"
+              blur: "{wave.dimension.px.8}"
+              spread: -2
+```
+
+规则：
+
+- `$value` 是第一层 seed shadow，`target` 是最后一层 shadow。
+- `step` 是输出层数，包含 seed 和 target；使用 `target` 时必须大于等于 2。
+- `cubicBezier` 控制从 seed 到 target 的插值节奏，可以直接写数组，也可以引用 `wave.dimension.cubicBezier.*`。
+- `offsetX`、`offsetY`、`blur`、`spread` 和 `alpha` 都按同一曲线从 seed 插值到 target；长度值可以直接写数字，也可以引用 `wave.dimension.px.*`。
+- `target.alpha` 控制最后一层透明度；颜色继承 seed shadow 的颜色。
+- 生成时会丢弃无效零层，例如 `0 0 0 0` 且 alpha 为 0 的层。
+- 不写 `target` 时，Wave 保留旧版 `smoothShadow` 行为：从一个 base shadow 向零层衰减生成多层。
+
 ### 查看资源
 
 ```bash
