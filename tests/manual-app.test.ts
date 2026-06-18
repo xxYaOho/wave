@@ -3,8 +3,11 @@ import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Window } from 'happy-dom';
 import React from 'react';
+import { buildManualData } from '../src/core/manual/build.ts';
 import type { ManualData } from '../src/core/manual/types.ts';
 import { App } from '../src/manual-app/src/App.tsx';
+
+const realFetch = globalThis.fetch;
 
 const page = {
 	title: 'Design Token',
@@ -97,6 +100,7 @@ async function renderManualApp({
 
 afterEach(() => {
 	cleanup();
+	globalThis.fetch = realFetch;
 });
 
 describe('manual app', () => {
@@ -148,5 +152,49 @@ describe('manual app', () => {
 
 		expect(await view.findByText('无法加载手册')).toBeTruthy();
 		expect(view.getByText(/404/)).toBeTruthy();
+	});
+
+	test('built manual data excludes internal docs and contains core pages', async () => {
+		const data = await buildManualData({
+			rootDir: process.cwd(),
+			outDir: '/tmp/wave-manual-app-test',
+		});
+		const pageHrefs = data.pages.map((page) => page.href);
+		const homeHrefs = data.home.cards.map((card) => card.href);
+		const pageByHref = new Map(data.pages.map((page) => [page.href, page]));
+		const text = JSON.stringify(data);
+
+		for (const href of [
+			'/quickstart',
+			'/toolchain',
+			'/design-token',
+			'/compress',
+			'/motion',
+			'/workspace',
+			'/command-index',
+			'/troubleshooting',
+		]) {
+			expect(pageHrefs).toContain(href);
+		}
+		for (const href of [
+			'/design-token',
+			'/compress',
+			'/motion',
+			'/workspace',
+		]) {
+			expect(homeHrefs).toContain(href);
+		}
+		expect(pageByHref.get('/toolchain')?.commands).toContain('wave doctor');
+		expect(pageByHref.get('/compress')?.searchText).toContain('wave compress');
+		expect(pageByHref.get('/motion')?.searchText).toContain('wave motion');
+		expect(pageByHref.get('/workspace')?.searchText).toContain(
+			'wave workspace',
+		);
+		expect(pageByHref.get('/command-index')?.searchText).toContain(
+			'wave --help',
+		);
+		expect(text).not.toContain('SWISS_KNIFE_REFACTOR');
+		expect(text).not.toContain('graphify');
+		expect(text).not.toContain('agent 必读');
 	});
 });
