@@ -98,7 +98,7 @@ Workspace 默认读取：
 ~/.config/wave/workspace.yaml
 ```
 
-配置不存在时使用内置默认配置。需要调整命名、版本号、目录结构或 Finder 打开行为时，见 [MANUAL.md](./MANUAL.md)。
+配置不存在时使用内置默认配置。需要调整命名、版本号、目录结构或 Finder 打开行为时，运行 `wave manual` 查看完整手册。
 
 ## 命令索引
 
@@ -137,10 +137,11 @@ src/
   resources/           内置 resource
   utils/               receipt、文件扫描等通用工具
 docs/
-  GUIDE.md             功能指南
+  GUIDE.md             用户指南迁移说明
   SPEC.md              当前行为快照和内部心智模型
   SWISS_KNIFE_REFACTOR.md
-MANUAL.md              用户手册
+manual/                用户手册内容源
+MANUAL.md              本地手册入口说明
 tests/                 bun:test 测试
 ```
 
@@ -164,8 +165,8 @@ WAVE_WORKSPACE_CONFIG=/tmp/workspace.yaml pnpm dev -- workspace
 
 ## 文档
 
-- [MANUAL.md](./MANUAL.md)：用户手册，记录日常命令和可编辑配置。
-- [docs/GUIDE.md](./docs/GUIDE.md)：完整功能指南。
+- `wave manual`：本地用户手册页面，聚合日常使用说明。
+- [manual/](./manual)：用户手册内容源。
 - [docs/SPEC.md](./docs/SPEC.md)：系统行为快照，适合实现和 review 前阅读。
 - [docs/CHANGELOG.md](./docs/CHANGELOG.md)：变更记录。
 - [docs/SWISS_KNIFE_REFACTOR.md](./docs/SWISS_KNIFE_REFACTOR.md)：瑞士军刀化重构路线。

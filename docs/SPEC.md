@@ -6,7 +6,7 @@
 
 ## Mental Model（agent 必读）
 
-wave 是面向 UI/UX 设计师的本地 CLI 工具集。当前已包含 design token、素材压缩、PNG 帧动效生成、本地设计项目工作区创建和本地工具链检查。
+wave 是面向 UI/UX 设计师的本地 CLI 工具集。当前已包含 design token、素材压缩、PNG 帧动效生成、本地设计项目工作区创建、本地工具链检查和本地用户手册页面。
 
 **当前 token 生成的数据流：**
 
@@ -32,6 +32,9 @@ themefile（声明数据源 + 输出参数）
 - motion/mg：只从 PNG 帧目录生成 GIF/APNG
 - workspace：按 `~/.config/wave/workspace.yaml` 或内置默认配置创建本地设计项目目录
 - install/doctor：检查和安装本地工具链，不改变 token 数据模型
+- manual：服务 `dist/manual-app/` 构建产物，不在运行时读取 `manual/` 源码
+
+用户向使用说明统一维护在 `manual/`，通过 `wave manual` 查看。`docs/SPEC.md` 只记录内部行为快照和实现/review 心智模型。
 
 **常见误区：**
 
@@ -72,6 +75,7 @@ themefile（声明数据源 + 输出参数）
 - `wave mg`：`wave motion` 的 alias
 - `wave workspace`：进入工作区创建流程，等价于 `wave workspace create`
 - `wave workspace create`：按配置创建本地设计项目工作区
+- `wave manual`：启动本地用户手册页面服务，服务 `dist/manual-app/` 构建产物
 - `wave show`：浏览内置资源
 - `wave init`：初始化主题工作区
 - `wave` / `wave -h` / `wave help`：显示顶层帮助
