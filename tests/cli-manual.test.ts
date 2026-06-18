@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { resolveManualAppDir } from '../src/core/manual/assets.ts';
 import { startManualServer } from '../src/core/manual/server.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
@@ -8,9 +9,10 @@ const cliEntry = path.join(rootDir, 'src/index.ts');
 
 async function runWave(
 	args: string[],
+	cwd = rootDir,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
 	const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
-		cwd: rootDir,
+		cwd,
 		stdout: 'pipe',
 		stderr: 'pipe',
 	});
@@ -136,6 +138,26 @@ describe('wave manual', () => {
 			expect(await traversal.text()).not.toContain('"name": "wave"');
 		} finally {
 			server.stop(true);
+		}
+	});
+
+	test('manual app resolver works outside project cwd', async () => {
+		const build = Bun.spawn(['pnpm', 'manual:build'], {
+			cwd: rootDir,
+			stdout: 'pipe',
+			stderr: 'pipe',
+		});
+		expect(await build.exited).toBe(0);
+
+		const previousCwd = process.cwd();
+
+		try {
+			process.chdir(path.dirname(rootDir));
+			expect(await resolveManualAppDir()).toBe(
+				path.join(rootDir, 'dist/manual-app'),
+			);
+		} finally {
+			process.chdir(previousCwd);
 		}
 	});
 });
