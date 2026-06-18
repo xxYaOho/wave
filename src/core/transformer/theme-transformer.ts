@@ -1,6 +1,7 @@
 import chroma from 'chroma-js';
 import {
 	type ColorSpaceFormat,
+	type DtcgColorSpaceValue,
 	type DtcgValue,
 	isResolvedToken,
 	type ResolvedDtcgToken,
@@ -19,7 +20,7 @@ import { parseSketchExtension } from './sketch-extension.ts';
 
 function isColorAlphaObject(
 	value: unknown,
-): value is { color: string; alpha: number } {
+): value is { color: string | DtcgColorSpaceValue; alpha: number | string } {
 	if (typeof value !== 'object' || value === null) {
 		return false;
 	}
@@ -27,7 +28,7 @@ function isColorAlphaObject(
 	return (
 		'color' in obj &&
 		'alpha' in obj &&
-		typeof obj.color === 'string' &&
+		(typeof obj.color === 'string' || isDtcgColorSpaceValue(obj.color)) &&
 		(typeof obj.alpha === 'number' || typeof obj.alpha === 'string')
 	);
 }
@@ -40,25 +41,44 @@ function alphaToHex(alpha: number): string {
 }
 
 function convertColorWithAlpha(
-	value: { color: string; alpha: number | string },
+	value: { color: string | DtcgColorSpaceValue; alpha: number | string },
 	targetFormat: ColorSpaceFormat = 'hex',
 	tokenPath?: string,
 ): string {
-	const color = value.color;
 	let alpha: number;
 
 	if (typeof value.alpha === 'string') {
 		alpha = parseFloat(value.alpha);
 		if (isNaN(alpha)) {
-			return color;
+			return typeof value.color === 'string'
+				? value.color
+				: (convertColorSpace(value.color, targetFormat, tokenPath).value ??
+						String(value.color));
 		}
 	} else {
 		alpha = value.alpha;
 	}
 
 	if (alpha < 0 || alpha > 1) {
-		return color;
+		return typeof value.color === 'string'
+			? value.color
+			: (convertColorSpace(value.color, targetFormat, tokenPath).value ??
+					String(value.color));
 	}
+
+	if (isDtcgColorSpaceValue(value.color)) {
+		const result = convertColorSpace(
+			{ ...value.color, alpha },
+			targetFormat,
+			tokenPath,
+		);
+		if (!result.success) {
+			throw new Error(result.error || 'Color space conversion failed');
+		}
+		return result.value as string;
+	}
+
+	const color = value.color;
 
 	// 如果目标格式不是 hex，先转换颜色，再应用 alpha
 	if (targetFormat !== 'hex' && color.startsWith('#')) {
@@ -113,7 +133,7 @@ function processValue(
 	}
 	if (isColorAlphaObject(value)) {
 		return convertColorWithAlpha(
-			value as { color: string; alpha: number | string },
+			value,
 			targetFormat,
 			tokenPath,
 		);

@@ -177,6 +177,63 @@ describe('wave dt', () => {
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
 
+	test('dt build accepts DTCG color object with referenced color and alpha', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-dtcg-color-'));
+		const outputDir = path.join(tempDir, 'dist');
+
+		try {
+			await fs.writeFile(
+				path.join(tempDir, 'themefile'),
+				[
+					'THEME dtcg-color-object',
+					'RESOURCE palette tailwindcss',
+					'RESOURCE dimension wave',
+					'PARAMETER platform json',
+					'PARAMETER colorSpace hex',
+					'',
+				].join('\n'),
+			);
+			await fs.writeFile(
+				path.join(tempDir, 'main.yaml'),
+				[
+					'theme:',
+					'  color:',
+					'    inverse:',
+					'      surface:',
+					'        $description: 反色背景(通常是深色), 比如 Snackbar, Toast',
+					'        $value:',
+					'          color: "{tailwindcss.color.slate.900}"',
+					'          alpha: "{wave.dimension.alpha.800}"',
+					'',
+				].join('\n'),
+			);
+
+			const { exitCode, stderr } = await runWave([
+				'dt',
+				'build',
+				'-f',
+				path.join(tempDir, 'themefile'),
+				'-o',
+				outputDir,
+			]);
+
+			expect(stderr).not.toContain('Theme schema validation failed');
+			expect(exitCode).toBe(0);
+
+			const output = JSON.parse(
+				await fs.readFile(
+					path.join(outputDir, 'dtcg-color-object.json'),
+					'utf-8',
+				),
+			);
+			expect(output['theme-color-inverse-surface']).toMatch(
+				/^#[0-9a-f]{8}$/i,
+			);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	test('dt without subcommand defaults to build', async () => {
 		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/standard');
 		const outputDir = path.join(rootDir, '.temp-test-dt-default-build');
