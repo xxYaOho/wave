@@ -53,7 +53,7 @@ function showDesignTokenHelp(): void {
 	console.log(DESIGN_TOKEN_HELP);
 }
 
-function createWcagCommand(): Command {
+export function createWcagCommand(): Command {
 	return new Command('wcag')
 		.description('Run WCAG contrast checks')
 		.argument('[scope]', 'Theme scope: main or variant name')
@@ -136,7 +136,7 @@ function createUpdateCommand(): Command {
 		);
 }
 
-function createStatusCommand(): Command {
+export function createStatusCommand(): Command {
 	return new Command('status')
 		.description('Show local resource cache status')
 		.helpOption('-h, --help', 'Show help')

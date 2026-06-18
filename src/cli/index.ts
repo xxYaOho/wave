@@ -1,6 +1,11 @@
 import { Command, CommanderError } from 'commander';
 import { VERSION } from '../config/index.ts';
 import { ExitCode } from '../types/index.ts';
+import { createBuildCommand } from './commands/create.ts';
+import { createDoctorCommand } from './commands/doctor.ts';
+import { createStatusCommand, createWcagCommand } from './commands/dt.ts';
+import { createInitCommand } from './commands/init.ts';
+import { createShowCommand } from './commands/show.ts';
 import { registerCommands } from './registry.ts';
 
 const TOP_LEVEL_HELP = `Wave CLI
@@ -78,6 +83,64 @@ function isDesignTokenUpdateHelp(argv: string[]): boolean {
 		argv[3] === 'update' &&
 		(argv.includes('--help') || argv.includes('-h'))
 	);
+}
+
+function isDesignTokenSubcommandHelp(argv: string[]): boolean {
+	return (
+		DESIGN_TOKEN_COMMANDS.has(argv[2] ?? '') &&
+		DESIGN_TOKEN_SUBCOMMANDS.has(argv[3] ?? '') &&
+		(argv.includes('--help') || argv.includes('-h'))
+	);
+}
+
+function createDesignTokenBuildHelpCommand(argv: string[]): Command {
+	const command = createBuildCommand('build', {
+		defaultFile: 'main.yaml',
+		fileHelp: 'main.yaml path. Default: ./main.yaml',
+		missingFileHelp: [
+			'Error: No main.yaml found in current directory',
+			'Usage: wave dt [./main.yaml] or wave dt -f ./main.yaml',
+			'Run "wave dt init" to create a design-token workspace',
+		],
+	});
+	command.name(`wave ${argv[2]} build`);
+	return command;
+}
+
+function isDesignTokenDefaultBuildHelp(argv: string[]): boolean {
+	const firstTokenArg = argv[3];
+	return (
+		DESIGN_TOKEN_COMMANDS.has(argv[2] ?? '') &&
+		!DESIGN_TOKEN_MODULE_FLAGS.has(firstTokenArg ?? '') &&
+		!DESIGN_TOKEN_SUBCOMMANDS.has(firstTokenArg ?? '') &&
+		(argv.includes('--help') || argv.includes('-h'))
+	);
+}
+
+function showDesignTokenSubcommandHelp(argv: string[]): void {
+	const commandName = argv[3];
+	const command =
+		commandName === 'build'
+			? createDesignTokenBuildHelpCommand(argv)
+			: commandName === 'doctor'
+				? createDoctorCommand('doctor')
+				: commandName === 'show'
+					? createShowCommand('show')
+					: commandName === 'init'
+						? createInitCommand('init')
+						: commandName === 'wcag'
+							? createWcagCommand()
+							: commandName === 'status'
+								? createStatusCommand()
+								: undefined;
+
+	if (command) {
+		command.name(`wave ${argv[2]} ${commandName}`);
+		command.outputHelp();
+		return;
+	}
+
+	program.parse(argv);
 }
 
 function normalizeArgv(argv: string[]): string[] {
@@ -184,6 +247,12 @@ if (isTopLevelHelp(process.argv)) {
 	process.exitCode = ExitCode.SUCCESS;
 } else if (isDesignTokenUpdateHelp(process.argv)) {
 	console.log(DT_UPDATE_HELP);
+	process.exitCode = ExitCode.SUCCESS;
+} else if (isDesignTokenSubcommandHelp(process.argv)) {
+	showDesignTokenSubcommandHelp(process.argv);
+	process.exitCode = ExitCode.SUCCESS;
+} else if (isDesignTokenDefaultBuildHelp(process.argv)) {
+	createDesignTokenBuildHelpCommand(process.argv).outputHelp();
 	process.exitCode = ExitCode.SUCCESS;
 } else {
 	program.parse(normalizeArgv(process.argv));

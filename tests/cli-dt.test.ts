@@ -65,6 +65,93 @@ describe('wave dt', () => {
 		expect(designToken.stdout).toBe(dt.stdout);
 	});
 
+	test('dt subcommand help renders without running subcommand actions', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-dt-help-'));
+
+		try {
+			const legacyInit = await runWave(['init', '--help'], tempDir);
+			const init = await runWave(['dt', 'init', '--help'], tempDir);
+			const designTokenInit = await runWave(
+				['design-token', 'init', '--help'],
+				tempDir,
+			);
+			const build = await runWave(['dt', 'build', '--help'], tempDir);
+			const status = await runWave(['dt', 'status', '--help'], tempDir);
+			const wcag = await runWave(['dt', 'wcag', '--help'], tempDir);
+
+			expect(legacyInit.exitCode).toBe(0);
+			expect(legacyInit.stdout).toContain('Usage: wave init');
+			expect(legacyInit.stdout).not.toContain('Theme template initialized');
+			expect(init.exitCode).toBe(0);
+			expect(init.stdout).toContain('Usage: wave dt init');
+			expect(init.stdout).not.toContain('Theme template initialized');
+			expect(designTokenInit.exitCode).toBe(0);
+			expect(designTokenInit.stdout).toContain('Usage: wave design-token init');
+			expect(designTokenInit.stdout).not.toContain(
+				'Theme template initialized',
+			);
+			expect(await Bun.file(path.join(tempDir, 'themefile')).exists()).toBe(
+				false,
+			);
+			expect(await Bun.file(path.join(tempDir, 'main.yaml')).exists()).toBe(
+				false,
+			);
+
+			await fs.writeFile(
+				path.join(tempDir, 'themefile'),
+				[
+					'THEME help-side-effect',
+					'',
+					'PARAMETER output ./build',
+					'PARAMETER platform json',
+					'',
+				].join('\n'),
+				'utf-8',
+			);
+			await fs.writeFile(
+				path.join(tempDir, 'main.yaml'),
+				'theme:\n  color:\n    $type: color\n    primary:\n      $value: "#0066cc"\n',
+				'utf-8',
+			);
+			const unknown = await runWave(['dt', 'unknown', '--help'], tempDir);
+			const designTokenUnknown = await runWave(
+				['design-token', 'unknown', '--help'],
+				tempDir,
+			);
+			const defaultBuildHelp = await runWave(
+				['dt', '-f', './themefile', '--help'],
+				tempDir,
+			);
+
+			expect(unknown.exitCode).toBe(0);
+			expect(unknown.stdout).toContain('Usage: wave dt build');
+			expect(unknown.stderr).toBe('');
+			expect(designTokenUnknown.exitCode).toBe(0);
+			expect(designTokenUnknown.stdout).toContain(
+				'Usage: wave design-token build',
+			);
+			expect(designTokenUnknown.stderr).toBe('');
+			expect(defaultBuildHelp.exitCode).toBe(0);
+			expect(defaultBuildHelp.stdout).toContain('Usage: wave dt build');
+			expect(defaultBuildHelp.stderr).toBe('');
+			expect(await Bun.file(path.join(tempDir, 'build')).exists()).toBe(false);
+
+			expect(build.exitCode).toBe(0);
+			expect(build.stdout).toContain('Usage: wave dt build');
+			expect(build.stderr).not.toContain('No main.yaml found');
+
+			expect(status.exitCode).toBe(0);
+			expect(status.stdout).toContain('Usage: wave dt status');
+			expect(status.stdout).not.toContain('Wave Resource Status');
+
+			expect(wcag.exitCode).toBe(0);
+			expect(wcag.stdout).toContain('Usage: wave dt wcag');
+			expect(wcag.stdout).not.toContain('File not found');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	test('dt build generates design token output through the new module entry', async () => {
 		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/standard');
 		const outputDir = path.join(rootDir, '.temp-test-dt-build');
