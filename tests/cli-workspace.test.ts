@@ -6,6 +6,7 @@ import {
 	buildWorkspacePlan,
 	createWorkspace,
 	DEFAULT_WORKSPACE_CONFIG,
+	formatWorkspaceDate,
 	loadWorkspaceConfig,
 	sanitizeCustomType,
 	validateWorkspaceConfig,
@@ -77,7 +78,9 @@ describe('wave workspace', () => {
 			);
 			const result = await createWorkspace(plan);
 
-			expect(result.workspaceName).toBe('FEAT_项目名_20260601_[UI][前端]');
+			expect(result.workspaceName).toBe(
+				'FEAT_项目名_v1.0.0_20260601_[UI][前端]',
+			);
 			for (const folder of [
 				'1.Docs',
 				'2.Public',
@@ -99,7 +102,7 @@ describe('wave workspace', () => {
 				'utf-8',
 			);
 			expect(readme).toContain('# 项目名');
-			expect(readme).not.toContain('Version:');
+			expect(readme).toContain('- Version: v1.0.0');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
@@ -183,7 +186,7 @@ describe('wave workspace', () => {
 			date: new Date(2026, 5, 1),
 		});
 
-		expect(plan.workspaceName).toBe('NEW_类型_项目_20260601');
+		expect(plan.workspaceName).toBe('NEW_类型_项目_v1.0.0_20260601');
 		expect(config.type.content.map((entry) => entry.code)).not.toContain(
 			'NEW_类型',
 		);
@@ -371,11 +374,14 @@ describe('wave workspace', () => {
 			});
 
 			expect(result.exitCode).toBe(0);
-			expect(result.stdout).toContain('FEAT_项目_20260601');
+			const today = formatWorkspaceDate(new Date());
+			const workspaceName = `FEAT_项目_${today}`;
+
+			expect(result.stdout).toContain(workspaceName);
 			expect(result.stdout).not.toContain('Version');
 			expect(result.stdout).not.toContain('v1.0.0');
 			const readme = await fs.readFile(
-				path.join(tempDir, 'work', 'FEAT_项目_20260601', 'README.md'),
+				path.join(tempDir, 'work', workspaceName, 'README.md'),
 				'utf-8',
 			);
 			expect(readme).not.toContain('Version:');

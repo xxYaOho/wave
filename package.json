@@ -13,7 +13,7 @@
 		"dev": "bun run src/index.ts",
 		"manual:dev": "vite --host 127.0.0.1 src/manual-app",
 		"manual:build": "bun run scripts/build-manual.ts",
-		"build:cli": "rm -f .*.bun-build && bun build ./src/index.ts --compile --outfile dist/wave && rm -f .*.bun-build",
+		"build:cli": "bun run scripts/build-cli.ts",
 		"build": "pnpm manual:build && pnpm build:cli",
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.app.json",
 		"format": "biome format --write .",
