@@ -1471,6 +1471,52 @@ function findGroupAtPath(
 	return undefined;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function mergeSketchExtension(
+	parentSketch: unknown,
+	childSketch: unknown,
+): unknown {
+	if (!isPlainObject(parentSketch) || !isPlainObject(childSketch)) {
+		return childSketch;
+	}
+
+	const result: Record<string, unknown> = { ...parentSketch, ...childSketch };
+	if (
+		isPlainObject(parentSketch.property) &&
+		isPlainObject(childSketch.property)
+	) {
+		result.property = {
+			...parentSketch.property,
+			...childSketch.property,
+		};
+	}
+	return result;
+}
+
+function mergeExtensions(
+	parentExtensions: unknown,
+	childExtensions: unknown,
+): unknown {
+	if (!isPlainObject(parentExtensions) || !isPlainObject(childExtensions)) {
+		return childExtensions;
+	}
+
+	const result: Record<string, unknown> = {
+		...parentExtensions,
+		...childExtensions,
+	};
+	if ('sketch' in parentExtensions && 'sketch' in childExtensions) {
+		result.sketch = mergeSketchExtension(
+			parentExtensions.sketch,
+			childExtensions.sketch,
+		);
+	}
+	return result;
+}
+
 // Deep merge 两个 group：parent 被 child 覆盖
 function deepMergeGroups(
 	parent: DtcgTokenGroup,
@@ -1491,24 +1537,10 @@ function deepMergeGroups(
 	for (const [key, childValue] of Object.entries(child)) {
 		if (key.startsWith('$')) {
 			if (key === '$extensions') {
-				// $extensions 深度合并：父的扩展 + 子的覆盖
-				const parentExtensions = result.$extensions;
-				if (
-					typeof parentExtensions === 'object' &&
-					parentExtensions !== null &&
-					!Array.isArray(parentExtensions) &&
-					typeof childValue === 'object' &&
-					childValue !== null &&
-					!Array.isArray(childValue)
-				) {
-					result[key] = { ...parentExtensions, ...childValue };
-				} else if (
-					typeof childValue === 'object' &&
-					childValue !== null &&
-					!Array.isArray(childValue)
-				) {
-					result[key] = childValue as Record<string, unknown>;
-				}
+				result[key] = mergeExtensions(
+					result.$extensions,
+					childValue,
+				) as Record<string, unknown> | undefined;
 			} else {
 				// $type, $description 等：子直接覆盖父
 				result[key] = childValue;

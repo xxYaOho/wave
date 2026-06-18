@@ -78,4 +78,84 @@ describe('group $extends inheritance', () => {
 			ExtendsCycleError,
 		);
 	});
+
+	test('deep merges only sketch extension fields during extends', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				base: {
+					$extensions: {
+						sketch: {
+							path: 'foundation/base',
+							property: { opacity: true },
+						},
+						smoothShadow: {
+							step: 3,
+							target: { alpha: 0.1 },
+						},
+					},
+					value: { $value: 1, $type: 'number' },
+				},
+				derived: {
+					$extends: '{theme.base}',
+					$extensions: {
+						sketch: {
+							property: { cornerRadius: true },
+						},
+						smoothShadow: {
+							step: 4,
+						},
+					},
+				},
+			},
+		};
+
+		const expanded = expandExtends(tree, new Set(['theme']));
+		const derived = (expanded.theme as Record<string, unknown>)
+			.derived as Record<string, unknown>;
+		const extensions = derived.$extensions as Record<string, unknown>;
+
+		expect(extensions.sketch).toEqual({
+			path: 'foundation/base',
+			property: { opacity: true, cornerRadius: true },
+		});
+		expect(extensions.smoothShadow).toEqual({ step: 4 });
+	});
+
+	test('keeps non-sketch extension override semantics during extends', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				base: {
+					$extensions: {
+						smoothGradient: {
+							steps: 5,
+							curve: [0, 0, 1, 1],
+						},
+						inheritColor: {
+							property: { opacity: 0.2 },
+							siblingSlot: 'foreground',
+						},
+						composite: true,
+					},
+					value: { $value: 1, $type: 'number' },
+				},
+				derived: {
+					$extends: '{theme.base}',
+					$extensions: {
+						smoothGradient: { steps: 7 },
+						inheritColor: { property: { alpha: 0.4 } },
+						composite: false,
+					},
+				},
+			},
+		};
+
+		const expanded = expandExtends(tree, new Set(['theme']));
+		const derived = (expanded.theme as Record<string, unknown>)
+			.derived as Record<string, unknown>;
+		const extensions = derived.$extensions as Record<string, unknown>;
+
+		expect(extensions.smoothGradient).toEqual({ steps: 7 });
+		expect(extensions.inheritColor).toEqual({ property: { alpha: 0.4 } });
+		expect(extensions.composite).toBe(false);
+	});
 });

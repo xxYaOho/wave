@@ -1061,9 +1061,17 @@ wave doctor --contrast --variants dark --night
 - `jsonc`：输出 `{theme}.jsonc`，带描述注释的 JSON
 - `css`：输出 `{theme}.css`，CSS 变量，带描述注释
 - `sketch`：输出 Sketch API 兼容格式 `{theme}2sketch.json`
-  - 颜色按路径扁平化为 style 分组
+  - 颜色按路径扁平化为 color 分组
+  - `$extensions.sketch.path` 可覆盖 color / style / dimension 的 Sketch JSON key，使用 Sketch slash 名称路径
+  - `$extensions.sketch.property.opacity: true` 在 dimension 输出中生成 `{ opacity: value }`
+  - `$extensions.sketch.property.cornerRadius: true` 在 dimension 输出中生成 `{ cornerRadius: value }`
+  - `sketch.property` 只允许 `theme.dimension.*` 或等价 dimension root 下的 `number` / `dimension` token
+  - legacy `$extensions.sketchMap` 仍兼容；显式 `sketch.property` 优先
+  - `$extensions.sketch` 在 `$extends` 中按 sketch 字段嵌套合并，非 Sketch extension 保持覆盖语义
   - composite token 映射为组件样式（background、foreground、border、radius、shadow）
+  - component key 暂不受 `$extensions.sketch.path` 影响
   - 支持 swatch 变量关联（通过引用链自动传播 `_swatchName`）
+  - 被引用 color token 定义 `sketch.path` 时，component fill/border、inheritColor、nested shadow swatch 使用该 path
   - inheritColor 通过 siblingSlot 查找兄弟 token 颜色
 - 多平台：`json,jsonc,css,sketch` 可同时输出多种格式
 

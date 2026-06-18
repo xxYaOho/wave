@@ -31,6 +31,7 @@ const KNOWN_EXTENSIONS = new Set([
 	'currentColor', // deprecated: use inheritColor instead
 	'inheritColor',
 	'sketchMap',
+	'sketch',
 ]);
 
 const EXTENSION_TYPE_MAP: Record<string, string> = {
@@ -38,6 +39,9 @@ const EXTENSION_TYPE_MAP: Record<string, string> = {
 	smoothGradient: 'gradient',
 	inheritColor: 'color',
 };
+
+const SKETCH_PROPERTY_KEYS = new Set(['opacity', 'cornerRadius']);
+const SKETCH_KEYS = new Set(['path', 'property']);
 
 function checkDanglingJsonPointer(
 	value: unknown,
@@ -155,10 +159,113 @@ function validateInheritColor(
 	});
 }
 
+function isDimensionPath(tokenPath: string): boolean {
+	const parts = tokenPath.split('.');
+	const rootIndex = parts[0] === 'theme' ? 1 : 0;
+	return parts[rootIndex] === 'dimension';
+}
+
+function validateSketchExtension(
+	extensions: Record<string, unknown>,
+	tokenType: string | undefined,
+	tokenPath: string,
+	issues: ThemeSchemaIssue[],
+): void {
+	if (!('sketch' in extensions)) return;
+
+	const sketch = extensions.sketch;
+	if (
+		typeof sketch !== 'object' ||
+		sketch === null ||
+		Array.isArray(sketch)
+	) {
+		issues.push({
+			path: `${tokenPath}.$extensions.sketch`,
+			level: 'error',
+			message: 'sketch extension must be an object',
+		});
+		return;
+	}
+
+	const sketchObj = sketch as Record<string, unknown>;
+	for (const key of Object.keys(sketchObj)) {
+		if (!SKETCH_KEYS.has(key)) {
+			issues.push({
+				path: `${tokenPath}.$extensions.sketch.${key}`,
+				level: 'error',
+				message: `Unknown sketch field "${key}". Supported fields: path, property`,
+			});
+		}
+	}
+
+	if ('path' in sketchObj) {
+		if (typeof sketchObj.path !== 'string' || sketchObj.path.trim() === '') {
+			issues.push({
+				path: `${tokenPath}.$extensions.sketch.path`,
+				level: 'error',
+				message: 'sketch.path must be a non-empty string',
+			});
+		}
+	}
+
+	if (!('property' in sketchObj)) return;
+	const property = sketchObj.property;
+	if (
+		typeof property !== 'object' ||
+		property === null ||
+		Array.isArray(property)
+	) {
+		issues.push({
+			path: `${tokenPath}.$extensions.sketch.property`,
+			level: 'error',
+			message: 'sketch.property must be an object',
+		});
+		return;
+	}
+
+	const propertyObj = property as Record<string, unknown>;
+	for (const [key, value] of Object.entries(propertyObj)) {
+		if (!SKETCH_PROPERTY_KEYS.has(key)) {
+			issues.push({
+				path: `${tokenPath}.$extensions.sketch.property.${key}`,
+				level: 'error',
+				message: `Unknown sketch property "${key}". Supported properties: opacity, cornerRadius`,
+			});
+			continue;
+		}
+		if (value !== true) {
+			issues.push({
+				path: `${tokenPath}.$extensions.sketch.property.${key}`,
+				level: 'error',
+				message: `sketch.property.${key} must be true`,
+			});
+		}
+		if (
+			tokenType !== undefined &&
+			tokenType !== 'number' &&
+			tokenType !== 'dimension'
+		) {
+			issues.push({
+				path: `${tokenPath}.$extensions.sketch.property.${key}`,
+				level: 'error',
+				message: `${key} requires $type "number" or "dimension", got "${tokenType}"`,
+			});
+		}
+		if (!isDimensionPath(tokenPath)) {
+			issues.push({
+				path: `${tokenPath}.$extensions.sketch.property.${key}`,
+				level: 'error',
+				message: `sketch.property.${key} must be under a dimension root for Sketch dimension output`,
+			});
+		}
+	}
+}
+
 function validateToken(
 	token: Record<string, unknown>,
 	tokenPath: string,
 	issues: ThemeSchemaIssue[],
+	inheritedType?: string,
 ): void {
 	const value = token.$value;
 	if (value !== undefined) {
@@ -186,14 +293,16 @@ function validateToken(
 		}
 	}
 
-	const tokenType = typeof token.$type === 'string' ? token.$type : undefined;
+	const explicitTokenType =
+		typeof token.$type === 'string' ? token.$type : undefined;
+	const tokenType = explicitTokenType ?? inheritedType;
 
 	// Rule 3: unknown $type
-	if (tokenType !== undefined && !KNOWN_TYPES.has(tokenType)) {
+	if (explicitTokenType !== undefined && !KNOWN_TYPES.has(explicitTokenType)) {
 		issues.push({
 			path: tokenPath,
 			level: 'warning',
-			message: `Unknown $type "${tokenType}"`,
+			message: `Unknown $type "${explicitTokenType}"`,
 		});
 	}
 
@@ -239,8 +348,9 @@ function validateToken(
 			}
 		}
 
-		// Validate inheritColor specifics
+		// Validate extension-specific contracts
 		validateInheritColor(extensions, tokenType, tokenPath, issues);
+		validateSketchExtension(extensions, tokenType, tokenPath, issues);
 	}
 }
 
@@ -309,14 +419,16 @@ function walkNode(
 	node: unknown,
 	path: string,
 	issues: ThemeSchemaIssue[],
+	inheritedType?: string,
 ): void {
 	if (node === null || node === undefined) return;
 
 	if (typeof node === 'object' && !Array.isArray(node)) {
 		const obj = node as Record<string, unknown>;
+		const nodeType = typeof obj.$type === 'string' ? obj.$type : inheritedType;
 
 		if ('$value' in obj) {
-			validateToken(obj, path, issues);
+			validateToken(obj, path, issues, inheritedType);
 			return;
 		}
 
@@ -326,7 +438,7 @@ function walkNode(
 
 		for (const [key, child] of Object.entries(obj)) {
 			if (key.startsWith('$')) continue;
-			walkNode(child, path ? `${path}.${key}` : key, issues);
+			walkNode(child, path ? `${path}.${key}` : key, issues, nodeType);
 		}
 	}
 }

@@ -288,6 +288,61 @@ describe('wave dt', () => {
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
 
+	test('dt build emits sketch extension path and property mappings', async () => {
+		const fixtureDir = path.join(
+			rootDir,
+			'tests/fixtures/themes/sketch-extensions',
+		);
+		const outputDir = path.join(fixtureDir, 'theme');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const { exitCode, stdout } = await runWave(['dt', 'build'], fixtureDir);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('sketch-extensions2sketch.json');
+
+		const sketchOutput = JSON.parse(
+			await fs.readFile(
+				path.join(outputDir, 'sketch', 'sketch-extensions2sketch.json'),
+				'utf-8',
+			),
+		);
+
+		expect(sketchOutput.color['foundation/color/primary/main']).toBe(
+			'#1872f0ff',
+		);
+		expect(sketchOutput.dimension['foundation/interaction/hover']).toEqual({
+			opacity: 0.16,
+		});
+		expect(sketchOutput.dimension['foundation/radius/card']).toEqual({
+			cornerRadius: 8,
+		});
+		expect(sketchOutput.component.button.fills[0].swatch).toBe(
+			'foundation/color/primary/main',
+		);
+
+		const jsonOutput = JSON.parse(
+			await fs.readFile(
+				path.join(outputDir, 'json', 'sketch-extensions.json'),
+				'utf-8',
+			),
+		);
+		expect(jsonOutput['color-primary-main']).toBe('#1872f0');
+		expect(jsonOutput['foundation/color/primary/main']).toBeUndefined();
+		expect(JSON.stringify(jsonOutput)).not.toContain('_sketch');
+
+		const cssOutput = await fs.readFile(
+			path.join(outputDir, 'css', 'sketch-extensions.css'),
+			'utf-8',
+		);
+		expect(cssOutput).toContain('--primary-main: #1872f0;');
+		expect(cssOutput).not.toContain('foundation/color/primary/main');
+		expect(cssOutput).not.toContain('_sketch');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+	});
+
 	test('dt supports repeatable --variant alias for selected variants', async () => {
 		const fixtureDir = path.join(
 			rootDir,

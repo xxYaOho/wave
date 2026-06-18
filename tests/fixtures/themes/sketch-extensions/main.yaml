@@ -1,0 +1,65 @@
+$schema: "https://www.designtokens.org/tr/2025.10/format/"
+
+$config:
+  theme: sketch-extensions
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./theme
+    night: false
+    variants: false
+  parameterGroup:
+    json:
+      platform:
+        - json
+      filterLayer: 1
+      outputDir: ./theme/json
+    css:
+      platform:
+        - css
+      filterLayer: 2
+      outputDir: ./theme/css
+    sketch:
+      platform:
+        - sketch
+      filterLayer: 1
+      outputDir: ./theme/sketch
+
+theme:
+  color:
+    $type: color
+    primary:
+      main:
+        $value: "#1872f0"
+        $extensions:
+          sketch:
+            path: "foundation/color/primary/main"
+  dimension:
+    interaction:
+      hover:
+        $type: number
+        $value: 0.16
+        $extensions:
+          sketch:
+            path: "foundation/interaction/hover"
+            property:
+              opacity: true
+    radius:
+      card:
+        $type: dimension
+        $value: 8
+        $extensions:
+          sketch:
+            path: "foundation/radius/card"
+            property:
+              cornerRadius: true
+  component:
+    button:
+      $type: color
+      $extensions:
+        composite: true
+      background:
+        $value: "{theme.color.primary.main}"

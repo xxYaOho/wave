@@ -1,0 +1,218 @@
+import { describe, expect, test } from 'bun:test';
+import { validateThemeSchema } from '../src/core/schema/theme.ts';
+
+describe('sketch extension schema', () => {
+	test('accepts path and supported property on number token under dimension root', () => {
+		const result = validateThemeSchema({
+			theme: {
+				dimension: {
+					interaction: {
+						hover: {
+							$type: 'number',
+							$value: 0.16,
+							$extensions: {
+								sketch: {
+									path: 'foundation/interaction/hover',
+									property: { opacity: true },
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(true);
+	});
+
+	test('rejects unknown sketch property key', () => {
+		const result = validateThemeSchema({
+			theme: {
+				dimension: {
+					interaction: {
+						hover: {
+							$type: 'number',
+							$value: 0.16,
+							$extensions: {
+								sketch: { property: { fillColor: true } },
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some((issue) =>
+				issue.message.includes('Unknown sketch property "fillColor"'),
+			),
+		).toBe(true);
+	});
+
+	test('rejects unknown sketch top-level key', () => {
+		const result = validateThemeSchema({
+			theme: {
+				color: {
+					accent: {
+						$type: 'color',
+						$value: '#000000',
+						$extensions: {
+							sketch: { swatch: true },
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some((issue) =>
+				issue.message.includes('Unknown sketch field "swatch"'),
+			),
+		).toBe(true);
+	});
+
+	test('rejects invalid sketch path values', () => {
+		for (const pathValue of ['', '   ', 1, [], {}]) {
+			const result = validateThemeSchema({
+				theme: {
+					color: {
+						accent: {
+							$type: 'color',
+							$value: '#000000',
+							$extensions: {
+								sketch: { path: pathValue },
+							},
+						},
+					},
+				},
+			});
+
+			expect(result.valid).toBe(false);
+			expect(
+				result.issues.some((issue) =>
+					issue.message.includes('sketch.path must be a non-empty string'),
+				),
+			).toBe(true);
+		}
+	});
+
+	test('rejects misspelled true value', () => {
+		const result = validateThemeSchema({
+			theme: {
+				dimension: {
+					interaction: {
+						hover: {
+							$type: 'number',
+							$value: 0.16,
+							$extensions: {
+								sketch: { property: { opacity: 'ture' } },
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some((issue) =>
+				issue.message.includes('sketch.property.opacity must be true'),
+			),
+		).toBe(true);
+	});
+
+	test('rejects color token using opacity property', () => {
+		const result = validateThemeSchema({
+			theme: {
+				dimension: {
+					interaction: {
+						hover: {
+							$type: 'color',
+							$value: '#000000',
+							$extensions: {
+								sketch: { property: { opacity: true } },
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some((issue) =>
+				issue.message.includes('opacity requires $type "number" or "dimension"'),
+			),
+		).toBe(true);
+	});
+
+	test('rejects inherited color type using opacity property', () => {
+		const result = validateThemeSchema({
+			theme: {
+				dimension: {
+					$type: 'color',
+					interaction: {
+						hover: {
+							$value: '#000000',
+							$extensions: {
+								sketch: { property: { opacity: true } },
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some((issue) =>
+				issue.message.includes('opacity requires $type "number" or "dimension"'),
+			),
+		).toBe(true);
+	});
+
+	test('accepts inherited number type under dimension root', () => {
+		const result = validateThemeSchema({
+			theme: {
+				dimension: {
+					$type: 'number',
+					interaction: {
+						hover: {
+							$value: 0.16,
+							$extensions: {
+								sketch: { property: { opacity: true } },
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(true);
+	});
+
+	test('rejects number property outside dimension root', () => {
+		const result = validateThemeSchema({
+			theme: {
+				color: {
+					accent: {
+						$type: 'number',
+						$value: 0.16,
+						$extensions: {
+							sketch: { property: { opacity: true } },
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some((issue) =>
+				issue.message.includes('must be under a dimension root'),
+			),
+		).toBe(true);
+	});
+});

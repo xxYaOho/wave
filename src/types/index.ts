@@ -301,6 +301,16 @@ export interface ResolvedTokenGroup {
 		| undefined;
 }
 
+export interface SketchPropertyMap {
+	opacity?: true;
+	cornerRadius?: true;
+}
+
+export interface SketchExtension {
+	path?: string;
+	property?: SketchPropertyMap;
+}
+
 /**
  * Wave-native flat token shape produced by the transformer and consumed by formats.
  * The single source of truth for the data model that crosses layer boundaries.
@@ -324,6 +334,8 @@ export interface WaveToken {
 	_composite?: string;
 	/** sketch-side property name remapping hint (token.$extensions.sketchMap) */
 	_sketchMap?: string;
+	/** normalized Sketch-specific output hints */
+	_sketch?: SketchExtension;
 	/** original referenced token path for Sketch variable swatch mapping */
 	_swatchName?: string;
 	/** inheritColor metadata */

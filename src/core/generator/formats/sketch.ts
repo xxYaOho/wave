@@ -1,4 +1,8 @@
-import type { WaveFormatFn, WaveToken } from '../../../types/index.ts';
+import type {
+	SketchPropertyMap,
+	WaveFormatFn,
+	WaveToken,
+} from '../../../types/index.ts';
 
 interface SketchShadowLayer {
 	x: number | string;
@@ -57,6 +61,105 @@ function cleanValue(val: number | string): number | string {
 	return val;
 }
 
+function tokenPathLabel(token: WaveToken): string {
+	return token.path.join('.');
+}
+
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
+function parseFiniteNumber(value: unknown): number | undefined {
+	if (isFiniteNumber(value)) return value;
+	if (typeof value !== 'string') return undefined;
+	const parsed = parseFloat(value);
+	return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseDimensionNumber(value: unknown): number | undefined {
+	if (isFiniteNumber(value)) return value;
+	if (typeof value !== 'string') return undefined;
+	if (!/^-?\d+(?:\.\d+)?px$/.test(value.trim())) return undefined;
+	return parseFiniteNumber(value);
+}
+
+function resolveSketchColorValue(token: WaveToken): string {
+	if (token.type !== undefined && token.type !== 'color') {
+		throw new Error(
+			`Sketch color output requires type "color" at ${tokenPathLabel(token)}, got "${token.type}"`,
+		);
+	}
+
+	const colorValue = extractColorFromValue(token.value);
+	if (colorValue === undefined) {
+		throw new Error(
+			`Sketch color output requires a color value at ${tokenPathLabel(token)}`,
+		);
+	}
+	return colorValue;
+}
+
+function assertSketchStyleType(
+	token: WaveToken,
+	expectedType: string,
+	styleKind: string,
+): void {
+	if (token.type !== undefined && token.type !== expectedType) {
+		throw new Error(
+			`Sketch ${styleKind} output requires type "${expectedType}" at ${tokenPathLabel(token)}, got "${token.type}"`,
+		);
+	}
+}
+
+function toObjectArray(
+	value: unknown,
+	styleKind: string,
+	token: WaveToken,
+): Array<Record<string, unknown>> {
+	if (Array.isArray(value)) {
+		if (
+			value.every(
+				(item) =>
+					typeof item === 'object' &&
+					item !== null &&
+					!Array.isArray(item),
+			)
+		) {
+			return value as Array<Record<string, unknown>>;
+		}
+	} else if (typeof value === 'object' && value !== null) {
+		return [value as Record<string, unknown>];
+	}
+
+	throw new Error(
+		`Sketch ${styleKind} output requires an object or object array at ${tokenPathLabel(token)}`,
+	);
+}
+
+function resolveDimensionValue(token: WaveToken, propertyKey?: string): unknown {
+	const value = token.value;
+	if (propertyKey === 'opacity') {
+		if (!isFiniteNumber(value)) {
+			throw new Error(
+				`Sketch property opacity requires a finite number at ${tokenPathLabel(token)}`,
+			);
+		}
+		return value;
+	}
+
+	if (propertyKey === 'cornerRadius') {
+		const parsed = parseDimensionNumber(value);
+		if (parsed === undefined) {
+			throw new Error(
+				`Sketch property cornerRadius requires a finite number or px dimension at ${tokenPathLabel(token)}`,
+			);
+		}
+		return parsed;
+	}
+
+	return typeof value === 'string' ? parseFloat(value) : value;
+}
+
 function processShadowLayer(layer: Record<string, unknown>): SketchShadowLayer {
 	return {
 		x: cleanValue(layer.offsetX as number | string),
@@ -68,9 +171,59 @@ function processShadowLayer(layer: Record<string, unknown>): SketchShadowLayer {
 }
 
 type ComponentShadowLayer = Record<string, unknown>;
+type SwatchNameResolver = (swatchName: string | undefined) => string | undefined;
+
+function createSwatchNameResolver(tokens: WaveToken[]): SwatchNameResolver {
+	const swatchPathByName = new Map<string, string>();
+
+	for (const token of tokens) {
+		if (!token._sketch?.path) continue;
+
+		if (typeof token._swatchName === 'string') {
+			swatchPathByName.set(token._swatchName, token._sketch.path);
+		}
+
+		const legacyName = legacySwatchName(token);
+		if (legacyName) {
+			swatchPathByName.set(legacyName, token._sketch.path);
+		}
+	}
+
+	return (swatchName) =>
+		swatchName === undefined
+			? undefined
+			: (swatchPathByName.get(swatchName) ?? swatchName);
+}
+
+function legacySwatchName(token: WaveToken): string | undefined {
+	const themePrefix = token.path[0] === 'theme' ? 1 : 0;
+	const rootKey = token.path[themePrefix];
+	if (rootKey !== 'color') return undefined;
+
+	const subPath = token.path.slice(themePrefix + 1);
+	if (subPath.length === 0) return undefined;
+	return `${rootKey}/${subPath.join('-')}`;
+}
+
+function sketchKey(token: WaveToken, fallback: string): string {
+	return token._sketch?.path ?? fallback;
+}
+
+function pickSketchProperty(
+	property: SketchPropertyMap | undefined,
+): keyof SketchPropertyMap | undefined {
+	if (property?.opacity === true) return 'opacity';
+	if (property?.cornerRadius === true) return 'cornerRadius';
+	return undefined;
+}
+
+function dimensionPropertyKey(token: WaveToken): string | undefined {
+	return pickSketchProperty(token._sketch?.property) ?? token._sketchMap;
+}
 
 function processComponentShadowLayer(
 	layer: Record<string, unknown>,
+	resolveSwatchName: SwatchNameResolver,
 ): ComponentShadowLayer {
 	const result: ComponentShadowLayer = {
 		x: cleanValue(layer.offsetX as number | string),
@@ -96,7 +249,7 @@ function processComponentShadowLayer(
 		const hex = hexToSketchColor(innerColor);
 		result.color = hex;
 		if (typeof obj._swatchName === 'string') {
-			result.swatch = obj._swatchName;
+			result.swatch = resolveSwatchName(obj._swatchName);
 		}
 	} else {
 		result.color = hexToSketchColor(String(colorRaw));
@@ -215,6 +368,7 @@ export const sketchFormat: WaveFormatFn = (
 	const sortedTokens = [...tokens].sort(
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);
+	const resolveSwatchName = createSwatchNameResolver(sortedTokens);
 
 	for (const token of sortedTokens) {
 		const tokenValue = token.value;
@@ -275,7 +429,7 @@ export const sketchFormat: WaveFormatFn = (
 								enabled: true,
 								blendingMode: 'Normal',
 							},
-							swatchName,
+							resolveSwatchName(swatchName),
 						),
 					];
 				}
@@ -307,7 +461,7 @@ export const sketchFormat: WaveFormatFn = (
 							hasIndividualSides: false,
 							sides: { left: 1, top: 1, right: 1, bottom: 1 },
 						},
-						swatchName,
+						resolveSwatchName(swatchName),
 					),
 				];
 			} else if (propKey === 'radius' || propKey === 'border-radius') {
@@ -332,7 +486,9 @@ export const sketchFormat: WaveFormatFn = (
 				}
 				componentObj.shadows = [...shadowArray]
 					.reverse()
-					.map(processComponentShadowLayer);
+					.map((layer) =>
+						processComponentShadowLayer(layer, resolveSwatchName),
+					);
 			} else {
 				componentObj[propKey] = tokenValue;
 			}
@@ -347,14 +503,18 @@ export const sketchFormat: WaveFormatFn = (
 		const rootKey = path[themePrefix];
 		const subPath = path.slice(themePrefix + 1);
 		if (subPath.length === 0) continue;
-		const styleKey = subPath.join('-');
+		const styleKey = sketchKey(token, subPath.join('-'));
 
 		if (rootKey === 'color') {
-			colorGroup[styleKey] = hexToSketchColor(String(tokenValue));
+			colorGroup[styleKey] = hexToSketchColor(resolveSketchColorValue(token));
 		} else if (rootKey === 'style') {
 			const styleType = subPath[0];
 
 			if (styleType === 'interaction' && subPath.length >= 2) {
+				assertSketchStyleType(token, 'color', 'interaction');
+				if (token.inheritColor !== true) {
+					resolveSketchColorValue(token);
+				}
 				const { color, opacity, alpha } = resolveSketchColor(
 					token,
 					sortedTokens,
@@ -366,22 +526,14 @@ export const sketchFormat: WaveFormatFn = (
 				if (typeof alpha === 'number') result.alpha = alpha;
 				styleGroup[styleKey] = result;
 			} else if (styleType?.startsWith('shadow')) {
-				let shadowArray: Array<Record<string, unknown>> = [];
-				if (Array.isArray(tokenValue)) {
-					shadowArray = tokenValue as Array<Record<string, unknown>>;
-				} else if (typeof tokenValue === 'object' && tokenValue !== null) {
-					shadowArray = [tokenValue as Record<string, unknown>];
-				}
+				assertSketchStyleType(token, 'shadow', 'shadow');
+				const shadowArray = toObjectArray(tokenValue, 'shadow', token);
 				styleGroup[styleKey] = {
 					shadow: [...shadowArray].reverse().map(processShadowLayer),
 				};
 			} else if (styleType?.startsWith('gradient')) {
-				let gradientArray: Array<Record<string, unknown>> = [];
-				if (Array.isArray(tokenValue)) {
-					gradientArray = tokenValue as Array<Record<string, unknown>>;
-				} else if (typeof tokenValue === 'object' && tokenValue !== null) {
-					gradientArray = [tokenValue as Record<string, unknown>];
-				}
+				assertSketchStyleType(token, 'gradient', 'gradient');
+				const gradientArray = toObjectArray(tokenValue, 'gradient', token);
 				styleGroup[styleKey] = {
 					gradient: gradientArray.map((stop) => ({
 						color: hexToSketchColor(String(stop.color)),
@@ -390,12 +542,11 @@ export const sketchFormat: WaveFormatFn = (
 				};
 			}
 		} else if (rootKey === 'dimension') {
-			const sketchMap = token._sketchMap;
-			const dimValue =
-				typeof tokenValue === 'string' ? parseFloat(tokenValue) : tokenValue;
+			const propertyKey = dimensionPropertyKey(token);
+			const dimValue = resolveDimensionValue(token, propertyKey);
 
-			if (sketchMap) {
-				dimensionGroup[styleKey] = { [sketchMap]: dimValue };
+			if (propertyKey) {
+				dimensionGroup[styleKey] = { [propertyKey]: dimValue };
 			} else {
 				const isShadow =
 					token.type === 'shadow' && Array.isArray(dimValue);

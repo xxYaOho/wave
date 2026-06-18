@@ -15,6 +15,7 @@ import {
 } from './color-space.ts';
 import { sampleCubicBezier } from './cubic-bezier.ts';
 import { roundTo } from './number-format.ts';
+import { parseSketchExtension } from './sketch-extension.ts';
 
 function isColorAlphaObject(
 	value: unknown,
@@ -706,6 +707,8 @@ function transformToken(
 		}
 	}
 
+	const sketchExtension = parseSketchExtension(token.$extensions);
+
 	const sdValue: Omit<WaveToken, 'name' | 'path'> = {
 		value: processedValue,
 		_order: order,
@@ -723,6 +726,7 @@ function transformToken(
 		...(token.$extensions?.sketchMap !== undefined && {
 			_sketchMap: token.$extensions.sketchMap as string,
 		}),
+		...(sketchExtension !== undefined && { _sketch: sketchExtension }),
 	};
 
 	if (typeValue !== undefined) {

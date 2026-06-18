@@ -95,64 +95,17 @@ wave motion install --yes
 
 ## Design Token
 
-`wave dt` 是 design token 主入口。它默认读取当前目录的 `main.yaml`。
+`wave dt` 是 design-token 主入口。它默认读取当前目录的 `main.yaml`，生成 `json`、`jsonc`、`css`、`sketch` 输出。完整使用指南见 [docs/design-token.md](docs/design-token.md)。
 
-### 初始化
+### 常用命令
 
 ```bash
 wave dt init
-```
-
-初始化会创建：
-
-```text
-themefile
-main.yaml
-```
-
-`themefile` 声明数据源和输出参数；`main.yaml` 是 token 内容来源。
-
-### 基础文件
-
-最小 `main.yaml`：
-
-```yaml
-$scheme: ~
-theme:
-  color:
-    $type: color
-    primary:
-      $value: "#0066cc"
-```
-
-典型 `themefile`：
-
-```text
-THEME example
-RESOURCE palette tailwindcss
-RESOURCE dimension wave
-
-PARAMETER output ./build
-PARAMETER platform json,css
-PARAMETER colorSpace oklch
-```
-
-常用参数：
-
-| 参数 | 说明 | 默认值 |
-| --- | --- | --- |
-| `output` | 输出目录 | `./<THEME>` |
-| `platform` | 输出格式，支持 `json`、`jsonc`、`css`、`sketch` | `json` |
-| `colorSpace` | 输出色彩空间，支持 `hex`、`oklch`、`srgb`、`hsl` | `hex` |
-| `filterLayer` | 输出 key 的过滤层级 | `0` |
-
-### 构建输出
-
-```bash
 wave dt
 wave dt build
 wave dt -f ./main.yaml
 wave dt --platform json --platform css
+wave dt --platform sketch
 wave dt --variant dark
 wave dt --no-night
 wave dt --no-variants
@@ -167,251 +120,41 @@ wave dt --no-variants
 | `css` | `{theme}.css` |
 | `sketch` | `{theme}2sketch.json` |
 
-`wave create` 是旧构建入口，默认读取 `themefile`，仍可用于兼容旧项目。
+当前推荐以 `main.yaml` + `$config` 管理 design-token 工作区。`themefile` 和 `wave create` 仍保留兼容旧项目。
 
-### Shadow 与 smoothShadow
+### Sketch extensions
 
-Shadow token 使用 DTCG 风格的复合值。普通 shadow 可以直接写数组：
-
-```yaml
-theme:
-  color:
-    $type: color
-    shadow:
-      $value: "#0f172b"
-  style:
-    shadow:
-      $type: shadow
-      1:
-        $value:
-          - color:
-              $ref: "#/theme/color/shadow/$value"
-              alpha: 0.08
-            offsetX: 0
-            offsetY: "{wave.dimension.px.4}"
-            blur: "{wave.dimension.px.8}"
-            spread: -2
-```
-
-`smoothShadow` 用来从一层 seed shadow 生成多层 shadow。推荐写法是给 `smoothShadow` 提供 `target`：
+Sketch 平台特有规则写在 `$extensions.sketch` 下：
 
 ```yaml
-theme:
-  color:
-    $type: color
-    shadow:
-      $value: "#0f172b"
-  style:
-    shadow:
-      $type: shadow
-      1:
-        $value:
-          color:
-            $ref: "#/theme/color/shadow/$value"
-            alpha: 0.02
-          offsetX: 0
-          offsetY: "{wave.dimension.px.1}"
-          blur: "{wave.dimension.px.2}"
-          spread: 1
-        $extensions:
-          smoothShadow:
-            cubicBezier: "{wave.dimension.cubicBezier.easeOutCubic}"
-            step: 4
-            target:
-              alpha: 0.08
-              offsetX: 0
-              offsetY: "{wave.dimension.px.4}"
-              blur: "{wave.dimension.px.8}"
-              spread: -2
+$extensions:
+  sketch:
+    path: "foundation/interaction/hover"
+    property:
+      opacity: true
 ```
 
-规则：
+- `path` 用于定义 Sketch 的 slash 名称路径。
+- `property.opacity: true` 输出 `{ opacity: value }`。
+- `property.cornerRadius: true` 输出 `{ cornerRadius: value }`。
+- `property` 当前只支持 `theme.dimension.*` 下的 `number` 或 `dimension` token。
+- 旧 `$extensions.sketchMap` 仍可用，但新项目优先使用 `$extensions.sketch.property`。
 
-- `$value` 是第一层 seed shadow，`target` 是最后一层 shadow。
-- `step` 是输出层数，包含 seed 和 target；使用 `target` 时必须大于等于 2。
-- `cubicBezier` 控制从 seed 到 target 的插值节奏，可以直接写数组，也可以引用 `wave.dimension.cubicBezier.*`。
-- `offsetX`、`offsetY`、`blur`、`spread` 和 `alpha` 都按同一曲线从 seed 插值到 target；长度值可以直接写数字，也可以引用 `wave.dimension.px.*`。
-- `target.alpha` 控制最后一层透明度；颜色继承 seed shadow 的颜色。
-- 生成时会丢弃无效零层，例如 `0 0 0 0` 且 alpha 为 0 的层。
-- 不写 `target` 时，Wave 保留旧版 `smoothShadow` 行为：从一个 base shadow 向零层衰减生成多层。
+详细规则和错误示例见 [docs/design-token.md](docs/design-token.md)。
 
-### 查看资源
+### Resource
+
+`wave dt update` 用来更新 design-token 引用解析用的本地 resource cache。常规构建仍以 `main.yaml` 为 token 内容来源，resource 只提供 `{resource.path}` 引用解析数据。
 
 ```bash
 wave dt show
-wave dt show palette
-wave dt show dimension
-wave dt show tailwindcss
-wave dt show leonardo --format yaml
-wave dt show wave --format json
-wave dt show tailwindcss --format flat-json
-```
-
-`show` 用于浏览内置或可解析 resource，不会更新本地 cache。
-
-### 检查
-
-```bash
-wave dt doctor
-wave dt wcag
-wave dt wcag dark --night
-```
-
-`doctor` 检查 design-token 工作区健康状态。`wcag` 用于检查主题中的颜色对比度配置。
-
-## Design Token Resource
-
-`wave dt update` 用来更新 design-token 引用解析用的本地 resource。它只更新本地 cache，不修改包内 builtin，也不会让常规 `wave dt build` 重新判断 latest。
-
-常规构建仍以 `main.yaml` 为 token 内容来源。Resource 只提供 `{resource.path}` 引用解析数据。
-
-### 更新全部 resource
-
-```bash
 wave dt update
-```
-
-这会更新当前支持的可更新 resource：
-
-- `tailwindcss`
-- `leonardo`
-
-### 更新 Tailwind CSS
-
-```bash
-wave dt update tailwindcss
-```
-
-不传版本时，Wave 解析 `tailwindcss@latest`，生成本地 cache，并记录实际解析到的版本。
-
-指定 major 版本：
-
-```bash
-wave dt update tailwindcss --version 3
 wave dt update tailwindcss --version 4
-```
-
-规则：
-
-- v3 从 Tailwind 的颜色对象生成 DTCG YAML，颜色值保留 hex。
-- v4 从 `theme.css` 读取 `--color-*` CSS variables，OKLCH 值保存为 DTCG object。
-- v4 的 OKLCH component 会保留到 3 位小数。
-- `black`、`white` 等非 OKLCH 值按源值保存。
-- 目前只支持 Tailwind CSS v3 和 v4。如果 latest 指向尚未支持的 v5，Wave 会要求显式使用 `--version 4`。
-
-### 更新 Leonardo
-
-```bash
 wave dt update leonardo
-```
-
-Wave 会生成两个 cache resource：
-
-```text
-leonardo-light.yaml
-leonardo-dark.yaml
-```
-
-默认情况下，Wave 使用内置 Leonardo palette 拆分生成 light / dark cache。若存在用户 recipe，Wave 使用用户 recipe 生成新的 light / dark palette。
-
-用户 recipe 路径：
-
-```text
-~/.config/wave/resources/leonardo.yaml
-```
-
-示例：
-
-```yaml
-colors:
-  gray: "#808080"
-  red: "#f53f3f"
-  orange: "#f77234"
-  green: "#00b42a"
-  blue: "#165dff"
-  purple: "#722ed1"
-ratios:
-  values: [1.05, 1.31, 1.66, 2.14, 2.81, 3.74, 5.1, 7, 9.59, 12.82, 16.29]
-```
-
-也可以用线性区间：
-
-```yaml
-colors:
-  brand: "#165dff"
-ratios:
-  min: 1.05
-  max: 16.29
-  steps: 11
-```
-
-### 查看 resource 状态
-
-```bash
 wave dt status
 ```
 
-输出会显示：
-
-- cache 目录
-- state 文件
-- config 目录
-- Tailwind 是否更新过、cache 是否存在、请求版本和解析版本
-- Leonardo 是否更新过、light/dark cache 是否存在、recipe 来源
-
-### 本地路径
-
-默认路径：
-
-```text
-cache:  ~/.cache/wave/resources/
-state:  ~/.local/state/wave/resources/state.json
-config: ~/.config/wave/resources/
-```
-
-对应文件：
-
-```text
-~/.cache/wave/resources/tailwindcss.yaml
-~/.cache/wave/resources/leonardo-light.yaml
-~/.cache/wave/resources/leonardo-dark.yaml
-~/.local/state/wave/resources/state.json
-~/.config/wave/resources/leonardo.yaml
-```
-
-测试或临时隔离时，可以覆盖路径：
-
-```bash
-WAVE_RESOURCE_CACHE_DIR=/tmp/wave-cache \
-WAVE_RESOURCE_STATE_PATH=/tmp/wave-state.json \
-WAVE_RESOURCE_CONFIG_DIR=/tmp/wave-config \
-wave dt status
-```
-
-### 读取优先级与 fallback
-
-构建和 show 读取 resource 时按以下顺序查找：
-
-1. 项目显式路径 resource
-2. 用户本地 cache resource
-3. 包内 builtin resource
-
-从未执行过 `wave dt update` 时，Wave 使用 builtin。
-
-如果 state 记录某个 resource 更新过，但 cache 文件被删除，Wave 会尝试恢复 cache：
-
-- Tailwind CSS 按 state 里的请求版本重新获取。
-- Leonardo 按当前用户 recipe 或 builtin recipe 重新生成。
-- 恢复失败时，Wave 输出 fallback 提示，并继续使用 builtin。
-
-### 常见错误
-
-| 场景 | 说明 |
-| --- | --- |
-| Tailwind latest 指向不支持的 major | 显式运行 `wave dt update tailwindcss --version 4`。 |
-| 网络失败 | `wave dt update tailwindcss` 需要访问 npm registry 和包文件源。若 state 记录 Tailwind 已更新但 cache 被清理，build/show 读取裸资源名时也会尝试联网恢复 cache。 |
-| Leonardo recipe 色值非法 | `colors` 中的颜色必须是 6 位 hex，例如 `#165dff`。 |
-| cache 被清理 | Wave 会按 state 尝试恢复；失败时回退 builtin。 |
+读取优先级：项目显式路径 resource > 用户本地 cache resource > 包内 builtin resource。
 
 ## 素材压缩
 
