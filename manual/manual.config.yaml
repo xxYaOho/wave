@@ -8,7 +8,7 @@ home:
     - title: Design Token
       description: 读取 themefile 或带 $config 的 main.yaml，生成 json、jsonc、css 和 sketch 输出。
       href: /design-token
-      command: wave dt doctor
+      command: wave dt wcag
     - title: 素材压缩
       description: 压缩 PNG、JPG、SVG 和 GIF，支持 dry-run、递归扫描和 SVG 图标清洗。
       href: /compress

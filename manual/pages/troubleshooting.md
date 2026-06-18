@@ -5,6 +5,7 @@ category: 参考
 commands:
   - wave doctor
   - wave dt doctor
+  - wave dt wcag
   - wave compress doctor
   - wave motion doctor
 appliesTo:

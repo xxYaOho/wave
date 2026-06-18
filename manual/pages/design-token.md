@@ -197,6 +197,19 @@ secondary:
   $ref: "#/theme/color/primary/$value"
 ```
 
+颜色 token 可以使用 DTCG 颜色对象，把颜色和透明度分开写。`color` 和 `alpha` 都可以使用引用：
+
+```yaml
+inverse:
+  surface:
+    $description: 反色背景，常用于 Snackbar 或 Toast
+    $value:
+      color: "{tailwindcss.color.slate.900}"
+      alpha: "{wave.dimension.alpha.800}"
+```
+
+构建时，Wave 会先解析 `color` 和 `alpha`，再按 `colorSpace` 输出最终颜色。例如 `colorSpace hex` 会输出 8 位 hex。
+
 ## $extensions
 
 `$extensions` 用于表达 Wave 的扩展语义。构建后，扩展字段会被消费，不会原样出现在输出文件中。
@@ -368,6 +381,32 @@ theme:
 | `sketch.path` | Sketch 输出中的嵌套路径，例如 `foundation/color` |
 | `sketch.property.opacity` | 在 Sketch dimension 输出中写 `{ opacity: value }` |
 | `sketch.property.cornerRadius` | 在 Sketch dimension 输出中写 `{ cornerRadius: value }` |
+
+`sketch.path` 使用 slash 分组。Wave 会把它写成嵌套对象，而不是把 slash 当成一个 flat key：
+
+```yaml
+primary:
+  $value: "#1872f0"
+  $extensions:
+    sketch:
+      path: foundation/color/primary-main
+```
+
+Sketch 输出：
+
+```json
+{
+  "color": {
+    "foundation": {
+      "color": {
+        "primary-main": "#1872f0ff"
+      }
+    }
+  }
+}
+```
+
+`filterLayer` 仍影响 `json`、`jsonc` 和 `css` 的 key；显式 `sketch.path` 不受 `filterLayer` 改名影响。
 
 限制：
 

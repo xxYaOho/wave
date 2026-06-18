@@ -41,32 +41,21 @@ pnpm build
 
 ### 生成 design token
 
-在项目目录准备 `main.yaml`：
-
-```yaml
-$scheme: ~
-theme:
-  color:
-    $type: color
-    primary:
-      $value: "#0066cc"
-```
-
-生成输出：
+在项目目录初始化 token 文件，并生成输出：
 
 ```bash
-wave dt
+wave dt init
+wave dt build -f ./themefile
 ```
 
 常用选项：
 
 ```bash
-wave dt -f ./main.yaml
 wave dt --platform json --platform css
 wave dt --variant dark
 wave dt --no-night
 wave dt show
-wave dt doctor
+wave dt wcag
 ```
 
 ### 压缩设计素材

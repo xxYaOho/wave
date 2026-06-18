@@ -4,7 +4,7 @@ description: 从安装依赖到运行第一个 Wave 命令。
 category: 开始
 commands:
   - wave --help
-  - wave dt doctor
+  - wave dt --help
 appliesTo:
   - 本地 CLI
 ---
