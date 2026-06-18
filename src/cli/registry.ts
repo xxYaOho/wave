@@ -5,6 +5,7 @@ import { doctorCommand } from './commands/doctor.ts';
 import { designTokenCommand, dtCommand } from './commands/dt.ts';
 import { initCommand } from './commands/init.ts';
 import { installCommand } from './commands/install.ts';
+import { manualCommand } from './commands/manual.ts';
 import { mgCommand, motionCommand } from './commands/motion.ts';
 import { showCommand } from './commands/show.ts';
 import { workspaceCommand } from './commands/workspace.ts';
@@ -13,6 +14,7 @@ export type CommandCategory =
 	| 'core'
 	| 'design-token'
 	| 'compress'
+	| 'manual'
 	| 'motion'
 	| 'workspace';
 
@@ -48,6 +50,11 @@ export const commandRegistry: CommandDefinition[] = [
 		name: 'workspace',
 		category: 'workspace',
 		command: workspaceCommand,
+	},
+	{
+		name: 'manual',
+		category: 'manual',
+		command: manualCommand,
 	},
 	{
 		name: 'mg',

@@ -18,6 +18,7 @@ const TOP_LEVEL_HELP = `Wave CLI
     compress       Compress PNG, JPG, SVG, and GIF assets
     motion         Build GIF/APNG from PNG frames
     workspace      Create local design project workspaces
+    manual         Open the local Wave manual
     doctor         Check local Wave environment and tools
     install        Show or run recommended tool installation
 
