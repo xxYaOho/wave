@@ -80,8 +80,7 @@ Modify:
 Run:
 
 ```bash
-pnpm add react react-dom @vitejs/plugin-react vite marked gray-matter
-pnpm add -D @types/react @types/react-dom
+pnpm add -D vite@^6.4.3 react react-dom marked gray-matter @types/react @types/react-dom
 ```
 
 Expected: `package.json` and `pnpm-lock.yaml` change.
@@ -93,13 +92,12 @@ Edit `package.json` scripts to include:
 ```json
 {
   "manual:dev": "vite --host 127.0.0.1 src/manual-app",
-  "manual:build": "bun run scripts/build-manual.ts",
-  "build:cli": "rm -f .*.bun-build && bun build ./src/index.ts --compile --outfile dist/wave && rm -f .*.bun-build",
-  "build": "pnpm manual:build && pnpm build:cli"
+  "manual:build": "echo \"manual build script is added in the wave manual build task\" && exit 1",
+  "build": "rm -f .*.bun-build && bun build ./src/index.ts --compile --outfile dist/wave && rm -f .*.bun-build"
 }
 ```
 
-Keep all existing scripts not shown above. Replace the current `build` value rather than creating duplicate keys.
+Keep all existing scripts not shown above. Do not connect `manual:build` to the top-level `build` until Task 4 creates `scripts/build-manual.ts`.
 
 - [ ] **Step 3: Verify scripts parse**
 
@@ -109,7 +107,7 @@ Run:
 pnpm install --lockfile-only
 ```
 
-Expected: `pnpm install --lockfile-only` succeeds and `pnpm-lock.yaml` is current. Full typecheck runs after the referenced files exist.
+Expected: `pnpm install --lockfile-only` succeeds and `pnpm-lock.yaml` is current. `pnpm build` still builds the CLI because `manual:build` is intentionally a placeholder in this task.
 
 - [ ] **Step 4: Commit**
 
@@ -765,7 +763,21 @@ console.log(`Built Wave manual app at ${outDir}`);
 
 Note: This writes `manual-data.json` after Vite build so Vite does not delete it.
 
-- [ ] **Step 5: Run build helper tests**
+- [ ] **Step 5: Wire build scripts**
+
+Update `package.json` scripts:
+
+```json
+{
+  "manual:build": "bun run scripts/build-manual.ts",
+  "build:cli": "rm -f .*.bun-build && bun build ./src/index.ts --compile --outfile dist/wave && rm -f .*.bun-build",
+  "build": "pnpm manual:build && pnpm build:cli"
+}
+```
+
+Keep `manual:dev` from Task 1. This is the first task where the top-level `build` may depend on `manual:build`, because `scripts/build-manual.ts` now exists.
+
+- [ ] **Step 6: Run build helper tests**
 
 Run:
 
@@ -775,10 +787,20 @@ bun test tests/manual-loader.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Run manual build**
+
+Run:
 
 ```bash
-git add src/core/manual/build.ts scripts/build-manual.ts tests/manual-loader.test.ts
+pnpm manual:build
+```
+
+Expected: `dist/manual-app/index.html` and `dist/manual-app/manual-data.json` exist.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add src/core/manual/build.ts scripts/build-manual.ts tests/manual-loader.test.ts package.json pnpm-lock.yaml
 git commit -m "feat(manual): build manual data"
 ```
 
