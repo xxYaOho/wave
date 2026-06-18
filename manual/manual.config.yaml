@@ -1,0 +1,61 @@
+site:
+  title: Wave Manual
+  description: Wave 面向 UI/UX 设计师的本地设计交付手册。
+  basePath: /
+
+home:
+  cards:
+    - title: Design Token
+      description: 读取 themefile 或带 $config 的 main.yaml，生成 json、jsonc、css 和 sketch 输出。
+      href: /design-token
+      command: wave dt doctor
+    - title: 素材压缩
+      description: 压缩 PNG、JPG、SVG 和 GIF，支持 dry-run、递归扫描和 SVG 图标清洗。
+      href: /compress
+      command: wave compress --help
+    - title: 动效生成
+      description: 从 PNG 帧目录生成 GIF 或 APNG。
+      href: /motion
+      command: wave motion --help
+    - title: 工作区创建
+      description: 按本地配置创建设计项目目录。
+      href: /workspace
+      command: wave workspace --help
+
+nav:
+  - title: 开始
+    pages:
+      - title: 快速开始
+        href: /quickstart
+        source: pages/quickstart.md
+      - title: 安装与工具链
+        href: /toolchain
+        source: pages/toolchain.md
+  - title: 能力
+    pages:
+      - title: Design Token
+        href: /design-token
+        source: pages/design-token.md
+      - title: 内置资源
+        href: /resources
+        source: pages/resources.md
+      - title: 素材压缩
+        href: /compress
+        source: pages/compress.md
+      - title: 动效生成
+        href: /motion
+        source: pages/motion.md
+      - title: 工作区创建
+        href: /workspace
+        source: pages/workspace.md
+  - title: 参考
+    pages:
+      - title: 命令索引
+        href: /command-index
+        source: pages/command-index.md
+      - title: 配置路径
+        href: /config-paths
+        source: pages/config-paths.md
+      - title: 故障排除
+        href: /troubleshooting
+        source: pages/troubleshooting.md
