@@ -309,17 +309,25 @@ describe('wave dt', () => {
 			),
 		);
 
-		expect(sketchOutput.color['foundation/color/primary/main']).toBe(
+		expect(
+			sketchOutput.color.foundation.color['primary-main'],
+		).toBe(
 			'#1872f0ff',
 		);
-		expect(sketchOutput.dimension['foundation/interaction/hover']).toEqual({
+		expect(
+			sketchOutput.dimension.foundation.interaction['interaction-hover'],
+		).toEqual({
 			opacity: 0.16,
 		});
-		expect(sketchOutput.dimension['foundation/radius/card']).toEqual({
-			cornerRadius: 8,
-		});
+		expect(sketchOutput.dimension.foundation.radius['radius-card']).toEqual(
+			{
+				cornerRadius: 8,
+			},
+		);
+		expect(sketchOutput.style.aaa.bbb['shadow-1'].shadow).toHaveLength(4);
+		expect(sketchOutput.style['aaa/bbb']).toBeUndefined();
 		expect(sketchOutput.component.button.fills[0].swatch).toBe(
-			'foundation/color/primary/main',
+			'foundation/color',
 		);
 
 		const jsonOutput = JSON.parse(

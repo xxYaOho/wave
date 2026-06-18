@@ -177,15 +177,16 @@ function createSwatchNameResolver(tokens: WaveToken[]): SwatchNameResolver {
 	const swatchPathByName = new Map<string, string>();
 
 	for (const token of tokens) {
-		if (!token._sketch?.path) continue;
+		const sketchSwatchName = token._sketch?.path;
+		if (!sketchSwatchName) continue;
 
 		if (typeof token._swatchName === 'string') {
-			swatchPathByName.set(token._swatchName, token._sketch.path);
+			swatchPathByName.set(token._swatchName, sketchSwatchName);
 		}
 
 		const legacyName = legacySwatchName(token);
 		if (legacyName) {
-			swatchPathByName.set(legacyName, token._sketch.path);
+			swatchPathByName.set(legacyName, sketchSwatchName);
 		}
 	}
 
@@ -205,8 +206,38 @@ function legacySwatchName(token: WaveToken): string | undefined {
 	return `${rootKey}/${subPath.join('-')}`;
 }
 
-function sketchKey(token: WaveToken, fallback: string): string {
-	return token._sketch?.path ?? fallback;
+function assignSketchEntry(
+	group: Record<string, unknown>,
+	token: WaveToken,
+	fallbackKey: string,
+	value: unknown,
+): void {
+	const sketchPath = token._sketch?.path;
+	if (!sketchPath) {
+		group[fallbackKey] = value;
+		return;
+	}
+
+	const parts = sketchPath.split('/').filter(Boolean);
+	if (parts.length === 0) {
+		group[fallbackKey] = value;
+		return;
+	}
+
+	let current = group;
+	for (const part of parts) {
+		const next = current[part];
+		if (
+			next === undefined ||
+			typeof next !== 'object' ||
+			next === null ||
+			Array.isArray(next)
+		) {
+			current[part] = {};
+		}
+		current = current[part] as Record<string, unknown>;
+	}
+	current[fallbackKey] = value;
 }
 
 function pickSketchProperty(
@@ -503,10 +534,15 @@ export const sketchFormat: WaveFormatFn = (
 		const rootKey = path[themePrefix];
 		const subPath = path.slice(themePrefix + 1);
 		if (subPath.length === 0) continue;
-		const styleKey = sketchKey(token, subPath.join('-'));
+		const defaultKey = subPath.join('-');
 
 		if (rootKey === 'color') {
-			colorGroup[styleKey] = hexToSketchColor(resolveSketchColorValue(token));
+			assignSketchEntry(
+				colorGroup,
+				token,
+				defaultKey,
+				hexToSketchColor(resolveSketchColorValue(token)),
+			);
 		} else if (rootKey === 'style') {
 			const styleType = subPath[0];
 
@@ -524,37 +560,39 @@ export const sketchFormat: WaveFormatFn = (
 				};
 				if (typeof opacity === 'number') result.opacity = opacity;
 				if (typeof alpha === 'number') result.alpha = alpha;
-				styleGroup[styleKey] = result;
+				assignSketchEntry(styleGroup, token, defaultKey, result);
 			} else if (styleType?.startsWith('shadow')) {
 				assertSketchStyleType(token, 'shadow', 'shadow');
 				const shadowArray = toObjectArray(tokenValue, 'shadow', token);
-				styleGroup[styleKey] = {
+				assignSketchEntry(styleGroup, token, defaultKey, {
 					shadow: [...shadowArray].reverse().map(processShadowLayer),
-				};
+				});
 			} else if (styleType?.startsWith('gradient')) {
 				assertSketchStyleType(token, 'gradient', 'gradient');
 				const gradientArray = toObjectArray(tokenValue, 'gradient', token);
-				styleGroup[styleKey] = {
+				assignSketchEntry(styleGroup, token, defaultKey, {
 					gradient: gradientArray.map((stop) => ({
 						color: hexToSketchColor(String(stop.color)),
 						position: stop.position,
 					})),
-				};
+				});
 			}
 		} else if (rootKey === 'dimension') {
 			const propertyKey = dimensionPropertyKey(token);
 			const dimValue = resolveDimensionValue(token, propertyKey);
 
 			if (propertyKey) {
-				dimensionGroup[styleKey] = { [propertyKey]: dimValue };
+				assignSketchEntry(dimensionGroup, token, defaultKey, {
+					[propertyKey]: dimValue,
+				});
 			} else {
 				const isShadow =
 					token.type === 'shadow' && Array.isArray(dimValue);
-				dimensionGroup[styleKey] = {
+				assignSketchEntry(dimensionGroup, token, defaultKey, {
 					value: isShadow
 						? [...(dimValue as unknown[])].reverse()
 						: dimValue,
-				};
+				});
 			}
 		}
 	}

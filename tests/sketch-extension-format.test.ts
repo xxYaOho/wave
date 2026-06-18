@@ -19,15 +19,13 @@ describe('sketch extension format', () => {
 				path: ['theme', 'color', 'primary', 'main'],
 				value: '#1872f0',
 				type: 'color',
-				_sketch: { path: 'foundation/color/primary/main' },
+				_sketch: { path: 'foundation/color' },
 			}),
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens));
 
-		expect(parsed.color).toEqual({
-			'foundation/color/primary/main': '#1872f0ff',
-		});
+		expect(parsed.color.foundation.color['primary-main']).toBe('#1872f0ff');
 		expect(parsed.color['primary-main']).toBeUndefined();
 	});
 
@@ -38,13 +36,13 @@ describe('sketch extension format', () => {
 				path: ['theme', 'color', 'primary', 'main'],
 				value: { color: '#1872f0' },
 				type: 'color',
-				_sketch: { path: 'foundation/color/primary/main' },
+				_sketch: { path: 'foundation/color' },
 			}),
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens));
 
-		expect(parsed.color['foundation/color/primary/main']).toBe('#1872f0ff');
+		expect(parsed.color.foundation.color['primary-main']).toBe('#1872f0ff');
 	});
 
 	test('rejects non-color values in color output', () => {
@@ -71,7 +69,7 @@ describe('sketch extension format', () => {
 				value: 0.16,
 				type: 'number',
 				_sketch: {
-					path: 'foundation/interaction/hover',
+					path: 'foundation/interaction',
 					property: { opacity: true },
 				},
 			}),
@@ -79,8 +77,10 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens));
 
-		expect(parsed.dimension).toEqual({
-			'foundation/interaction/hover': { opacity: 0.16 },
+		expect(
+			parsed.dimension.foundation.interaction['interaction-hover'],
+		).toEqual({
+			opacity: 0.16,
 		});
 	});
 
@@ -142,18 +142,20 @@ describe('sketch extension format', () => {
 				value: 0.16,
 				type: 'number',
 				_sketchMap: 'opacity',
-				_sketch: { path: 'foundation/interaction/hover' },
+				_sketch: { path: 'foundation/interaction' },
 			}),
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens));
 
-		expect(parsed.dimension['foundation/interaction/hover']).toEqual({
+		expect(
+			parsed.dimension.foundation.interaction['interaction-hover'],
+		).toEqual({
 			opacity: 0.16,
 		});
 	});
 
-	test('uses sketch.path as style shadow key', () => {
+	test('uses sketch.path as style shadow group path', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-style-shadow-card',
@@ -174,12 +176,74 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens));
 
-		expect(parsed.style['foundation/elevation/card'].shadow[0]).toMatchObject({
+		expect(
+			parsed.style.foundation.elevation.card['shadow-card'].shadow[0],
+		).toMatchObject({
 			color: '#00000040',
 			y: 4,
 			blur: 12,
 		});
+		expect(parsed.style['foundation/elevation/card']).toBeUndefined();
 		expect(parsed.style['shadow-card']).toBeUndefined();
+	});
+
+	test('keeps style shadow token name when sketch.path is a group path', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-style-shadow-1',
+				path: ['theme', 'style', 'shadow', '1'],
+				value: [
+					{
+						color: '#0f172b0f',
+						offsetX: 0,
+						offsetY: 4,
+						blur: 8,
+						spread: -2,
+					},
+					{
+						color: '#0f172b05',
+						offsetX: 0,
+						offsetY: 0,
+						blur: 2,
+						spread: 1,
+					},
+				],
+				type: 'shadow',
+				_sketch: { path: 'aaa/bbb' },
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens));
+
+		expect(parsed.style.aaa.bbb['shadow-1'].shadow).toHaveLength(2);
+		expect(parsed.style['aaa.bbb']).toBeUndefined();
+		expect(parsed.style['shadow-1']).toBeUndefined();
+	});
+
+	test('keeps dimension shadow token name when sketch.path is a group path', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-dimension-shadow-1',
+				path: ['theme', 'dimension', 'shadow', '1'],
+				value: [
+					{
+						color: '#0f172b0f',
+						offsetX: 0,
+						offsetY: 4,
+						blur: 8,
+						spread: -2,
+					},
+				],
+				type: 'shadow',
+				_sketch: { path: 'aaa/bbb' },
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens));
+
+		expect(parsed.dimension.aaa.bbb['shadow-1'].value).toHaveLength(1);
+		expect(parsed.dimension['aaa/bbb']).toBeUndefined();
+		expect(parsed.dimension['shadow-1']).toBeUndefined();
 	});
 
 	test('rejects invalid style interaction type', () => {

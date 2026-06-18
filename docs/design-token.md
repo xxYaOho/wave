@@ -274,7 +274,7 @@ Sketch 输出文件是 `{theme}2sketch.json`。它按当前 formatter 输出四�
 
 ### path
 
-`path` 用于重新定义 Sketch swatch color、shared style 或 dimension token 的名称路径。Sketch 支持 slash 分组，例如 `foundation/color/text/default`。
+`path` 用于为 Sketch 输出添加分组路径。Sketch 支持 slash 分组，例如 `foundation/color/text`。
 
 ```yaml
 theme:
@@ -285,7 +285,7 @@ theme:
         $value: "#0f172a"
         $extensions:
           sketch:
-            path: "foundation/color/text/default"
+            path: "foundation/color/text"
 ```
 
 输出：
@@ -293,7 +293,13 @@ theme:
 ```json
 {
   "color": {
-    "foundation/color/text/default": "#0f172aff"
+    "foundation": {
+      "color": {
+        "text": {
+          "text-default": "#0f172aff"
+        }
+      }
+    }
   }
 }
 ```
@@ -301,8 +307,9 @@ theme:
 规则：
 
 - `path` 必须是非空字符串。
-- `path` 是 Sketch 名称路径，不是文件路径。
-- `path` 作为 Sketch JSON 对象 key 使用，不额外生成 `name` 字段。
+- `path` 是 Sketch 分组路径，不是文件路径，也不是完整 token 名称。
+- 没有 `path` 时保持默认 flat-json key，例如 `shadow-1`。
+- 有 `path` 时按 slash 创建嵌套分组，叶子节点仍使用默认 flat-json key。例如 `theme.dimension.shadow.1` 配置 `path: "aaa/bbb"` 时，输出为 `{ "aaa": { "bbb": { "shadow-1": { ... } } } }`。
 - `path` 支持 `color`、`style`、`dimension` 输出。
 - 当前版本不使用 `path` 重命名 `component` key。
 - 如果被引用的 color token 定义了 `sketch.path`，component fill、border、inheritColor 和 shadow swatch 引用会同步使用这个 path。
@@ -327,7 +334,7 @@ theme:
         $value: 0.16
         $extensions:
           sketch:
-            path: "foundation/interaction/hover"
+            path: "foundation/interaction"
             property:
               opacity: true
 ```
@@ -337,8 +344,12 @@ theme:
 ```json
 {
   "dimension": {
-    "foundation/interaction/hover": {
-      "opacity": 0.16
+    "foundation": {
+      "interaction": {
+        "interaction-hover": {
+          "opacity": 0.16
+        }
+      }
     }
   }
 }
@@ -355,7 +366,7 @@ theme:
         $value: 8
         $extensions:
           sketch:
-            path: "foundation/radius/card"
+            path: "foundation/radius"
             property:
               cornerRadius: true
 ```
@@ -365,8 +376,12 @@ theme:
 ```json
 {
   "dimension": {
-    "foundation/radius/card": {
-      "cornerRadius": 8
+    "foundation": {
+      "radius": {
+        "radius-card": {
+          "cornerRadius": 8
+        }
+      }
     }
   }
 }

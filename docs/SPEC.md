@@ -1062,7 +1062,7 @@ wave doctor --contrast --variants dark --night
 - `css`：输出 `{theme}.css`，CSS 变量，带描述注释
 - `sketch`：输出 Sketch API 兼容格式 `{theme}2sketch.json`
   - 颜色按路径扁平化为 color 分组
-  - `$extensions.sketch.path` 可覆盖 color / style / dimension 的 Sketch JSON key，使用 Sketch slash 名称路径
+  - `$extensions.sketch.path` 为 color / style / dimension 的 Sketch JSON 输出添加嵌套分组；叶子节点仍使用默认 flat-json key，例如 `{ "aaa": { "bbb": { "shadow-1": ... } } }`
   - `$extensions.sketch.property.opacity: true` 在 dimension 输出中生成 `{ opacity: value }`
   - `$extensions.sketch.property.cornerRadius: true` 在 dimension 输出中生成 `{ cornerRadius: value }`
   - `sketch.property` 只允许 `theme.dimension.*` 或等价 dimension root 下的 `number` / `dimension` token
