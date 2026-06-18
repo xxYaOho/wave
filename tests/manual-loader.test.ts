@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { buildManualData } from '../src/core/manual/build.ts';
 import { loadManual } from '../src/core/manual/loader.ts';
 import { ManualLoadError } from '../src/core/manual/types.ts';
 
@@ -206,6 +207,58 @@ describe('manual loader', () => {
 				} catch (error) {
 					expect(error).toBeInstanceOf(ManualLoadError);
 				}
+			},
+		);
+	});
+
+	test('builds manual-data json into output directory', async () => {
+		await withTempManual(
+			{
+				'manual/manual.config.yaml': configYaml(),
+				'manual/pages/start.md': pageMarkdown,
+			},
+			async (tempDir) => {
+				const outDir = path.join(tempDir, 'dist/manual-app');
+				const manual = await buildManualData({ rootDir: tempDir, outDir });
+				const data = JSON.parse(
+					await fs.readFile(path.join(outDir, 'manual-data.json'), 'utf-8'),
+				);
+
+				expect(manual.pages[0]!.title).toBe('Start');
+				expect(data.pages[0].title).toBe('Start');
+				expect(data.pages[0].html).toContain('<h2');
+				expect(data.pages[0].searchText).toContain('wave --help');
+			},
+		);
+	});
+
+	test('escapes raw html in generated manual html', async () => {
+		await withTempManual(
+			{
+				'manual/manual.config.yaml': configYaml(),
+				'manual/pages/start.md': pageMarkdown.replace(
+					'Run Wave locally.',
+					'<script>alert(1)</script>\n\n<span>raw</span>',
+				),
+			},
+			async (tempDir) => {
+				const outDir = path.join(tempDir, 'dist/manual-app');
+				const manual = await buildManualData({ rootDir: tempDir, outDir });
+				const rawJson = await fs.readFile(
+					path.join(outDir, 'manual-data.json'),
+					'utf-8',
+				);
+				const data = JSON.parse(rawJson);
+				const html = manual.pages[0]!.html;
+
+				expect(rawJson).not.toContain('<script>');
+				expect(rawJson).not.toContain('<span>');
+				expect(data.pages[0].body).not.toContain('<script>');
+				expect(data.pages[0].searchText).not.toContain('<script>');
+				expect(html).not.toContain('<script>');
+				expect(html).not.toContain('<span>');
+				expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+				expect(html).toContain('&lt;span&gt;raw&lt;/span&gt;');
 			},
 		);
 	});

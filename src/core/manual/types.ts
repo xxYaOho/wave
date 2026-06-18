@@ -58,6 +58,25 @@ export interface LoadedManual {
 	pages: ManualPage[];
 }
 
+export interface ManualDataPage extends ManualPage {
+	html: string;
+	searchText: string;
+}
+
+export interface ManualDataSection {
+	title: string;
+	pages: ManualDataPage[];
+}
+
+export interface ManualData {
+	site: ManualSiteConfig;
+	home: {
+		cards: ManualHomeCardConfig[];
+	};
+	sections: ManualDataSection[];
+	pages: ManualDataPage[];
+}
+
 export interface LoadManualOptions {
 	rootDir?: string;
 	configPath?: string;

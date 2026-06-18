@@ -12,8 +12,9 @@
 	"scripts": {
 		"dev": "bun run src/index.ts",
 		"manual:dev": "vite --host 127.0.0.1 src/manual-app",
-		"manual:build": "echo \"manual build script is added in the wave manual build task\" && exit 1",
-		"build": "rm -f .*.bun-build && bun build ./src/index.ts --compile --outfile dist/wave && rm -f .*.bun-build",
+		"manual:build": "bun run scripts/build-manual.ts",
+		"build:cli": "rm -f .*.bun-build && bun build ./src/index.ts --compile --outfile dist/wave && rm -f .*.bun-build",
+		"build": "pnpm manual:build && pnpm build:cli",
 		"typecheck": "tsc --noEmit",
 		"format": "biome format --write .",
 		"format:check": "biome format .",
