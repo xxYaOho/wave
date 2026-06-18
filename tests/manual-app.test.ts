@@ -193,8 +193,17 @@ describe('manual app', () => {
 		expect(pageByHref.get('/command-index')?.searchText).toContain(
 			'wave --help',
 		);
+		expect(pageByHref.get('/design-token')?.searchText).toContain(
+			'$extensions',
+		);
+		expect(pageByHref.get('/design-token')?.searchText).toContain(
+			'sketch.property',
+		);
 		expect(text).not.toContain('SWISS_KNIFE_REFACTOR');
 		expect(text).not.toContain('graphify');
 		expect(text).not.toContain('agent 必读');
+		expect(text).not.toContain('Manual Authoring Guide');
+		expect(text).not.toContain('Manual 维护规范');
+		expect(text).not.toContain('AGENTS.md');
 	});
 });
