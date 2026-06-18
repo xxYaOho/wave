@@ -1,0 +1,13 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"noEmit": true
+	},
+	"include": [
+		"src/manual-app/**/*.ts",
+		"src/manual-app/**/*.tsx",
+		"tests/manual-app.test.ts"
+	],
+	"exclude": []
+}

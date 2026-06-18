@@ -23,9 +23,49 @@ function escapeHtml(value: string): string {
 		.replace(/'/g, '&#39;');
 }
 
+function safeMarkdownUrl(value: string): string | null {
+	const trimmed = value.trim();
+	const lower = trimmed.toLowerCase();
+
+	if (
+		lower.startsWith('http://') ||
+		lower.startsWith('https://') ||
+		lower.startsWith('mailto:') ||
+		trimmed.startsWith('#') ||
+		(trimmed.startsWith('/') && !trimmed.startsWith('//')) ||
+		trimmed.startsWith('./') ||
+		trimmed.startsWith('../')
+	) {
+		return escapeHtml(trimmed);
+	}
+
+	return null;
+}
+
+function safeTitleAttribute(value?: string | null): string {
+	return value ? ` title="${escapeHtml(value)}"` : '';
+}
+
 function renderMarkdown(body: string): string {
 	const renderer = new marked.Renderer();
 	renderer.html = ({ text }) => escapeHtml(text);
+	renderer.link = ({ href, title, tokens }) => {
+		const text = renderer.parser.parseInline(tokens);
+		const safeHref = safeMarkdownUrl(href);
+		if (!safeHref) return text;
+
+		return `<a href="${safeHref}"${safeTitleAttribute(title)}>${text}</a>`;
+	};
+	renderer.image = ({ href, title, text, tokens }) => {
+		const alt = tokens
+			? renderer.parser.parseInline(tokens, renderer.parser.textRenderer)
+			: text;
+		const safeHref = safeMarkdownUrl(href);
+		if (!safeHref) return escapeHtml(alt);
+
+		return `<img src="${safeHref}" alt="${escapeHtml(alt)}"${safeTitleAttribute(title)}>`;
+	};
+
 	return marked.parse(body, { async: false, renderer }) as string;
 }
 

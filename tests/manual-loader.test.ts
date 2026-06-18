@@ -262,4 +262,39 @@ describe('manual loader', () => {
 			},
 		);
 	});
+
+	test('drops unsafe markdown link and image urls from generated html', async () => {
+		await withTempManual(
+			{
+				'manual/manual.config.yaml': configYaml(),
+				'manual/pages/start.md': pageMarkdown.replace(
+					'Run Wave locally.',
+					[
+						'[safe](https://example.com)',
+						'[relative](/docs/start)',
+						'[unsafe](javascript:alert(1))',
+						'[protocol relative](//evil.example/path)',
+						'![unsafe image](javascript:alert(2))',
+						'![protocol relative image](//evil.example/x.png)',
+					].join('\n\n'),
+				),
+			},
+			async (tempDir) => {
+				const outDir = path.join(tempDir, 'dist/manual-app');
+				const manual = await buildManualData({ rootDir: tempDir, outDir });
+				const html = manual.pages[0]!.html;
+
+				expect(html).toContain('<a href="https://example.com">safe</a>');
+				expect(html).toContain('<a href="/docs/start">relative</a>');
+				expect(html).toContain('unsafe');
+				expect(html).toContain('unsafe image');
+				expect(html).not.toContain('javascript:');
+				expect(html).not.toContain('//evil.example');
+				expect(html).not.toContain('<a href="javascript:');
+				expect(html).not.toContain('<img src="javascript:');
+				expect(html).not.toContain('<a href="//');
+				expect(html).not.toContain('<img src="//');
+			},
+		);
+	});
 });

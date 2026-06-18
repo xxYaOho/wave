@@ -1,0 +1,401 @@
+:root {
+	color: #171717;
+	background: #f6f5f2;
+	font-family:
+		Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+		"Segoe UI", sans-serif;
+	font-size: 16px;
+	line-height: 1.5;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	min-width: 320px;
+	background: #f6f5f2;
+}
+
+button,
+input {
+	font: inherit;
+}
+
+button {
+	cursor: pointer;
+}
+
+.appShell {
+	display: grid;
+	grid-template-columns: 296px minmax(0, 1fr);
+	min-height: 100vh;
+}
+
+.sidebar {
+	position: sticky;
+	top: 0;
+	height: 100vh;
+	overflow-y: auto;
+	border-right: 1px solid #e3dfd8;
+	background: #11100f;
+	color: #f7f2ea;
+	padding: 22px 16px;
+}
+
+.brand {
+	display: flex;
+	width: 100%;
+	align-items: center;
+	gap: 12px;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	padding: 6px 4px 22px;
+	text-align: left;
+}
+
+.brandMark {
+	display: grid;
+	width: 34px;
+	height: 34px;
+	place-items: center;
+	border-radius: 8px;
+	background: #ff4f45;
+	color: white;
+	font-weight: 700;
+}
+
+.brand strong,
+.brand small {
+	display: block;
+}
+
+.brand small {
+	color: #ada7a0;
+	font-size: 12px;
+}
+
+.navList {
+	display: grid;
+	gap: 22px;
+}
+
+.navSection p {
+	margin: 0 0 8px;
+	color: #8d8881;
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+.navLink {
+	display: block;
+	width: 100%;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: #d6d0c8;
+	padding: 7px 9px;
+	text-align: left;
+}
+
+.navLink:hover,
+.navLink.active {
+	background: #242220;
+	color: #ffffff;
+}
+
+.mainShell {
+	min-width: 0;
+}
+
+.topbar {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	border-bottom: 1px solid #e3dfd8;
+	background: rgba(246, 245, 242, 0.92);
+	backdrop-filter: blur(16px);
+	padding: 16px 32px;
+}
+
+.searchWrap {
+	position: relative;
+	max-width: 720px;
+}
+
+.searchBox {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	border: 1px solid #d8d2c8;
+	border-radius: 8px;
+	background: #ffffff;
+	padding: 9px 12px;
+}
+
+.searchBox span {
+	color: #8b8176;
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+.searchBox input {
+	width: 100%;
+	min-width: 0;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	color: #171717;
+}
+
+.searchResults {
+	position: absolute;
+	top: calc(100% + 8px);
+	left: 0;
+	right: 0;
+	z-index: 5;
+	display: grid;
+	gap: 4px;
+	border: 1px solid #ded8cf;
+	border-radius: 8px;
+	background: #ffffff;
+	box-shadow: 0 18px 50px rgba(35, 31, 27, 0.14);
+	padding: 8px;
+}
+
+.searchResults button {
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	padding: 9px 10px;
+	text-align: left;
+}
+
+.searchResults button:hover {
+	background: #f3f0eb;
+}
+
+.searchResults strong,
+.searchResults span {
+	display: block;
+}
+
+.searchResults span,
+.searchResults p {
+	margin: 0;
+	color: #6f675e;
+	font-size: 13px;
+}
+
+.content {
+	max-width: 920px;
+	padding: 64px 56px 88px;
+}
+
+.content.standalone {
+	margin: 0 auto;
+}
+
+.eyebrow {
+	margin: 0 0 12px;
+	color: #e13d35;
+	font-size: 12px;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+h1 {
+	margin: 0;
+	color: #171717;
+	font-size: 46px;
+	line-height: 1.05;
+}
+
+.lede {
+	max-width: 680px;
+	margin: 16px 0 0;
+	color: #61594f;
+	font-size: 18px;
+}
+
+.homeGrid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+	margin-top: 34px;
+}
+
+.homeCard {
+	display: grid;
+	gap: 10px;
+	min-height: 154px;
+	border: 1px solid #ded8cf;
+	border-radius: 8px;
+	background: #ffffff;
+	padding: 18px;
+	text-align: left;
+	box-shadow: 0 8px 24px rgba(35, 31, 27, 0.06);
+}
+
+.homeCard:hover {
+	border-color: #c8beb2;
+	transform: translateY(-1px);
+}
+
+.homeCardTitle {
+	font-size: 18px;
+	font-weight: 800;
+}
+
+.homeCardDescription {
+	color: #625a51;
+}
+
+.commandRow {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 22px;
+}
+
+.commandCode,
+.article code {
+	border: 1px solid #e2dcd3;
+	border-radius: 6px;
+	background: #fffaf2;
+	color: #5a352d;
+	font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+	font-size: 13px;
+}
+
+.commandCode {
+	padding: 5px 8px;
+}
+
+.article {
+	margin-top: 38px;
+	color: #27231f;
+}
+
+.article h2 {
+	margin: 40px 0 12px;
+	font-size: 26px;
+	line-height: 1.2;
+}
+
+.article h3 {
+	margin: 28px 0 10px;
+	font-size: 20px;
+}
+
+.article p,
+.article li {
+	color: #443d36;
+}
+
+.article pre {
+	overflow-x: auto;
+	border: 1px solid #ded8cf;
+	border-radius: 8px;
+	background: #171514;
+	color: #f7f2ea;
+	padding: 16px;
+}
+
+.article pre code {
+	border: 0;
+	background: transparent;
+	color: inherit;
+	padding: 0;
+}
+
+.article code {
+	padding: 2px 5px;
+}
+
+.article table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 18px 0;
+	font-size: 14px;
+}
+
+.article th,
+.article td {
+	border-bottom: 1px solid #ded8cf;
+	padding: 10px;
+	text-align: left;
+}
+
+.primaryButton {
+	border: 0;
+	border-radius: 8px;
+	background: #171514;
+	color: #ffffff;
+	margin-top: 22px;
+	padding: 10px 14px;
+}
+
+@media (max-width: 860px) {
+	.appShell {
+		grid-template-columns: 1fr;
+	}
+
+	.sidebar {
+		position: static;
+		height: auto;
+		padding: 16px;
+	}
+
+	.brand {
+		padding-bottom: 14px;
+	}
+
+	.navList {
+		display: flex;
+		gap: 16px;
+		overflow-x: auto;
+		padding-bottom: 4px;
+	}
+
+	.navSection {
+		min-width: max-content;
+	}
+
+	.navSection p {
+		margin-bottom: 6px;
+	}
+
+	.navLink {
+		display: inline-block;
+		width: auto;
+		margin-right: 4px;
+		white-space: nowrap;
+	}
+
+	.topbar {
+		padding: 14px 18px;
+	}
+
+	.content {
+		padding: 42px 22px 72px;
+	}
+
+	h1 {
+		font-size: 36px;
+	}
+
+	.homeGrid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 560px) {
+	.commandRow {
+		display: grid;
+	}
+}
