@@ -79,7 +79,7 @@ describe('group $extends inheritance', () => {
 		);
 	});
 
-	test('deep merges only sketch extension fields during extends', () => {
+	test('overwrites sketch extension fields during extends', () => {
 		const tree: DtcgTokenGroup = {
 			theme: {
 				base: {
@@ -115,8 +115,7 @@ describe('group $extends inheritance', () => {
 		const extensions = derived.$extensions as Record<string, unknown>;
 
 		expect(extensions.sketch).toEqual({
-			path: 'foundation/base',
-			property: { opacity: true, cornerRadius: true },
+			property: { cornerRadius: true },
 		});
 		expect(extensions.smoothShadow).toEqual({ step: 4 });
 	});

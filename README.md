@@ -1,169 +1,74 @@
 # Wave
 
-Wave 是面向 UI/UX 设计师的本地设计交付 CLI。它把 design token 生成、素材压缩、PNG 帧动效生成、项目工作区创建和本地工具链诊断放在一个低记忆入口里。
+Wave 是面向 UI/UX 设计师的本地设计交付 CLI。它把 design token 生成、素材压缩、PNG 帧动效生成、项目工作区创建和本地工具链诊断放在一个入口里。
 
 ```bash
 wave <command> [options]
 ```
 
-## 能做什么
+## 使用手册
 
-| 能力 | 命令 | 说明 |
-| --- | --- | --- |
-| Design Token | `wave dt` | 读取 `main.yaml`，生成 `json`、`jsonc`、`css`、`sketch` 等输出。 |
-| 素材压缩 | `wave compress` | 压缩 PNG、JPG、SVG、GIF，支持 dry-run、递归扫描和覆盖保护。 |
-| 动效生成 | `wave motion` / `wave mg` | 从 PNG 帧生成 GIF 或 APNG。 |
-| 工作区创建 | `wave workspace` | 按 `~/.config/wave/workspace.yaml` 创建本地设计项目目录。 |
-| 工具链 | `wave doctor` / `wave install` | 检查和安装本地依赖工具。 |
+日常使用说明统一维护在本地手册中：
 
-## 安装开发环境
+```bash
+wave manual
+```
+
+开发环境中可以运行：
+
+```bash
+pnpm dev -- manual
+```
+
+手册内容源在 [manual/](./manual)。README 只保留项目入口，不重复维护各命令的详细用法。
+
+## 能力
+
+| 能力 | 命令 |
+| --- | --- |
+| Design Token | `wave dt` |
+| 素材压缩 | `wave compress` |
+| 动效生成 | `wave motion` / `wave mg` |
+| 工作区创建 | `wave workspace` |
+| 工具链检查与安装 | `wave doctor` / `wave install` |
+
+Legacy 入口仍可用于旧项目：`wave create`、`wave init`、`wave show`。新脚本优先使用模块化入口。
+
+## 开发
 
 本仓库使用 mise 管理运行环境，使用 pnpm 安装依赖。
 
 ```bash
 mise install
 pnpm install
-```
-
-验证 CLI：
-
-```bash
 pnpm dev -- --help
 ```
 
-构建单文件 CLI：
+常用验证命令：
 
 ```bash
+pnpm typecheck
+bun test
 pnpm build
 ```
-
-## 快速开始
-
-### 生成 design token
-
-在项目目录初始化 token 文件，并生成输出：
-
-```bash
-wave dt init
-wave dt build -f ./themefile
-```
-
-常用选项：
-
-```bash
-wave dt --platform json --platform css
-wave dt --variant dark
-wave dt --no-night
-wave dt show
-wave dt wcag
-```
-
-### 压缩设计素材
-
-```bash
-wave compress ./assets --dry-run
-wave compress ./assets --type png --recursive
-wave compress ./assets --type png --yes
-wave compress ./assets --type svg --icon --yes
-```
-
-### 生成动效
-
-```bash
-wave motion gif ./frames --fps 24 --out loading.gif
-wave motion apng ./frames --fps 24 --out loading.png
-wave mg gif ./frames
-```
-
-### 创建本地项目工作区
-
-```bash
-wave workspace
-```
-
-Workspace 默认读取：
-
-```text
-~/.config/wave/workspace.yaml
-```
-
-配置不存在时使用内置默认配置。需要调整命名、版本号、目录结构或 Finder 打开行为时，运行 `wave manual` 查看完整手册。
-
-## 命令索引
-
-```text
-design-token   Build and inspect design tokens
-compress       Compress PNG, JPG, SVG, and GIF assets
-motion         Build GIF/APNG from PNG frames
-workspace      Create local design project workspaces
-doctor         Check local Wave environment and tools
-install        Show or run recommended tool installation
-```
-
-别名：
-
-```text
-dt             Alias of design-token
-mg             Alias of motion
-```
-
-Legacy 入口仍可使用：
-
-```bash
-wave create
-wave init
-wave show
-```
-
-新脚本和文档优先使用模块化入口：`wave dt`、`wave compress`、`wave motion`、`wave workspace`。
 
 ## 项目结构
 
 ```text
 src/
-  cli/                 CLI 命令入口
-  core/                核心行为：pipeline、resolver、compress、motion、workspace
-  resources/           内置 resource
-  utils/               receipt、文件扫描等通用工具
-docs/
-  GUIDE.md             用户指南迁移说明
-  SPEC.md              当前行为快照和内部心智模型
-  SWISS_KNIFE_REFACTOR.md
-manual/                用户手册内容源
-MANUAL.md              本地手册入口说明
-tests/                 bun:test 测试
-```
-
-## 常用开发命令
-
-```bash
-pnpm dev -- --help
-pnpm dev -- dt --help
-pnpm dev -- compress --help
-pnpm dev -- motion --help
-pnpm dev -- workspace --help
-pnpm typecheck
-bun test
-```
-
-Workspace 相关隔离验证：
-
-```bash
-WAVE_WORKSPACE_CONFIG=/tmp/workspace.yaml pnpm dev -- workspace
+  cli/          CLI 命令入口
+  core/         pipeline、generator、compress、motion、workspace 等核心逻辑
+  resources/    内置 resource
+manual/         wave manual 内容源
+docs/           行为快照、变更记录和重构说明
+tests/          bun:test 测试
 ```
 
 ## 文档
 
-- `wave manual`：本地用户手册页面，聚合日常使用说明。
-- [manual/](./manual)：用户手册内容源。
-- [docs/SPEC.md](./docs/SPEC.md)：系统行为快照，适合实现和 review 前阅读。
+- `wave manual`：用户手册。
+- [docs/SPEC.md](./docs/SPEC.md)：当前行为快照，适合实现和 review 前阅读。
 - [docs/CHANGELOG.md](./docs/CHANGELOG.md)：变更记录。
 - [docs/SWISS_KNIFE_REFACTOR.md](./docs/SWISS_KNIFE_REFACTOR.md)：瑞士军刀化重构路线。
 
-## 版本
-
-版本唯一真源是 [package.json](./package.json)。运行以下命令查看当前 CLI 版本：
-
-```bash
-wave --version
-```
+版本唯一真源是 [package.json](./package.json)。

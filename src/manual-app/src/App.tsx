@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
 	ManualData,
 	ManualDataPage,
@@ -21,6 +21,29 @@ function CommandCode({ value }: { value: string }) {
 	return <code className="commandCode">{value}</code>;
 }
 
+async function copyTextToClipboard(text: string): Promise<void> {
+	if (navigator.clipboard?.writeText) {
+		await navigator.clipboard.writeText(text);
+		return;
+	}
+
+	const textarea = document.createElement('textarea');
+	textarea.value = text;
+	textarea.setAttribute('readonly', '');
+	textarea.style.position = 'fixed';
+	textarea.style.left = '-9999px';
+	document.body.appendChild(textarea);
+	textarea.select();
+
+	try {
+		if (!document.execCommand?.('copy')) {
+			throw new Error('Copy command failed');
+		}
+	} finally {
+		textarea.remove();
+	}
+}
+
 function HomeCard({ card }: { card: ManualHomeCardConfig }) {
 	return (
 		<button
@@ -37,8 +60,58 @@ function HomeCard({ card }: { card: ManualHomeCardConfig }) {
 }
 
 function ManualHtml({ html }: { html: string }) {
+	const articleRef = useRef<HTMLElement | null>(null);
+
+	useEffect(() => {
+		const article = articleRef.current;
+		if (!article) return;
+
+		const cleanupFns: Array<() => void> = [];
+
+		for (const pre of article.querySelectorAll('pre')) {
+			if (pre.querySelector('.copyCodeButton')) continue;
+			const code = pre.querySelector('code');
+			if (!code) continue;
+
+			const button = document.createElement('button');
+			button.type = 'button';
+			button.className = 'copyCodeButton';
+			button.textContent = '复制';
+			button.setAttribute('aria-label', '复制代码');
+
+			let resetTimer: ReturnType<typeof setTimeout> | undefined;
+			const handleClick = async () => {
+				const text = code.textContent ?? '';
+
+				try {
+					await copyTextToClipboard(text);
+					button.textContent = '已复制';
+				} catch {
+					button.textContent = '复制失败';
+				}
+
+				if (resetTimer) clearTimeout(resetTimer);
+				resetTimer = setTimeout(() => {
+					button.textContent = '复制';
+				}, 1600);
+			};
+
+			button.addEventListener('click', handleClick);
+			pre.appendChild(button);
+			cleanupFns.push(() => {
+				if (resetTimer) clearTimeout(resetTimer);
+				button.removeEventListener('click', handleClick);
+			});
+		}
+
+		return () => {
+			for (const cleanup of cleanupFns) cleanup();
+		};
+	}, [html]);
+
 	return (
 		<article
+			ref={articleRef}
 			className="article"
 			// biome-ignore lint/security/noDangerouslySetInnerHtml: manual-data.html is generated locally with raw HTML escaped in src/core/manual/build.ts.
 			dangerouslySetInnerHTML={{ __html: html }}

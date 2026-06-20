@@ -62,7 +62,10 @@ describe('generateTokens (Wave-native)', () => {
 			});
 
 			expect(result.success).toBe(true);
-			const content = await fs.readFile(path.join(outputDir, 'demo.css'), 'utf-8');
+			const content = await fs.readFile(
+				path.join(outputDir, 'demo.css'),
+				'utf-8',
+			);
 			expect(content).toContain(':root {');
 			expect(content).toContain('--theme-color-primary: #ff0000;');
 		});
@@ -93,7 +96,7 @@ describe('generateTokens (Wave-native)', () => {
 				'utf-8',
 			);
 			const parsed = JSON.parse(content);
-			expect(parsed.color.bg).toBe('#abcdefff');
+			expect(parsed['theme-color-bg']).toBe('#abcdefff');
 		});
 	});
 

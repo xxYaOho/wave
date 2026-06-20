@@ -332,8 +332,6 @@ export interface WaveToken {
 	_order: number;
 	/** composite group path; sibling tokens with the same value are grouped on output */
 	_composite?: string;
-	/** sketch-side property name remapping hint (token.$extensions.sketchMap) */
-	_sketchMap?: string;
 	/** normalized Sketch-specific output hints */
 	_sketch?: SketchExtension;
 	/** original referenced token path for Sketch variable swatch mapping */

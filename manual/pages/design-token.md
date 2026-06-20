@@ -12,13 +12,9 @@ appliesTo:
 
 ## 用途
 
-`wave dt` 是 design token 主入口。推荐结构是：
+`wave dt` 用来读取 design token，解析引用，转换扩展字段，并生成 `json`、`jsonc`、`css` 或 `sketch` 输出。
 
-- `themefile` 声明资源和输出参数。
-- `main.yaml` 定义 token 内容。
-- `RESOURCE` 只提供引用解析数据，不直接决定输出。
-
-新项目先运行：
+新项目推荐从模板开始：
 
 ```bash
 wave dt init
@@ -27,9 +23,39 @@ wave dt build -f ./themefile
 
 开发环境中，用 `pnpm dev -- dt ...` 代替已安装的 `wave dt ...`。
 
+## 选择入口
+
+优先使用 `themefile` 作为构建入口：
+
+```bash
+wave dt build -f ./themefile
+```
+
+`themefile` 声明资源和输出参数，`main.yaml` 只保存 token 内容。这是推荐结构。
+
+也可以直接在 token 项目目录运行：
+
+```bash
+wave dt build
+```
+
+直接运行时，当前目录的 `main.yaml` 必须包含 `$config`。不确定用哪种方式时，使用 `themefile`。
+
+## 文件职责
+
+| 文件 | 职责 |
+| --- | --- |
+| `themefile` | 构建入口，声明主题名、资源和输出参数 |
+| `main.yaml` | token 内容来源 |
+| `main@night.yaml` | night 覆盖文件，可选 |
+| `variants/*.yaml` | 变体覆盖文件，可选 |
+| `variants/*@night.yaml` | 变体的 night 覆盖文件，可选 |
+
+`RESOURCE` 只提供引用解析数据，不直接决定输出内容。
+
 ## themefile
 
-`themefile` 是构建入口，负责声明主题名、资源和输出参数。
+最小示例：
 
 ```text
 THEME example
@@ -41,12 +67,12 @@ PARAMETER platform json,css
 PARAMETER colorSpace hex
 ```
 
-### 必填指令
+必填指令：
 
 | 指令 | 说明 |
 | --- | --- |
-| `THEME <name>` | 输出文件名前缀，例如 `example.json` |
-| `RESOURCE <kind> <ref>` | 声明引用解析资源，至少需要一条 |
+| `THEME <name>` | 主题名，也是输出文件名前缀，例如 `example.json` |
+| `RESOURCE <kind> <ref>` | 引用解析资源，至少需要一条 |
 
 `RESOURCE` 支持：
 
@@ -56,7 +82,7 @@ PARAMETER colorSpace hex
 | `dimension` | `wave` | 尺寸、透明度、曲线等资源 |
 | `custom` | `./tokens/brand.yaml` | 自定义资源文件 |
 
-### PARAMETER
+`PARAMETER` 支持：
 
 | 参数 | 示例 | 说明 |
 | --- | --- | --- |
@@ -71,9 +97,9 @@ PARAMETER colorSpace hex
 wave dt build -f ./themefile --platform json,css -o ./dist
 ```
 
-### GROUP
+## GROUP
 
-`GROUP` 用于一次构建输出多组不同参数。全局 `PARAMETER` 是默认值，组内 `PARAMETER` 覆盖同名参数。
+`GROUP` 用来一次构建多组输出。全局 `PARAMETER` 是默认值，组内 `PARAMETER` 覆盖同名参数。
 
 ```text
 THEME example
@@ -100,7 +126,7 @@ GROUP "sketch" {
 
 ## main.yaml
 
-`main.yaml` 保存 token 内容。通过 `themefile` 构建时，`main.yaml` 不需要 `$config`。
+通过 `themefile` 构建时，`main.yaml` 不需要 `$config`：
 
 ```yaml
 theme:
@@ -118,7 +144,7 @@ theme:
         $value: "12px"
 ```
 
-直接运行 `wave dt build` 时，当前目录的 `main.yaml` 需要包含 `$config`：
+直接运行 `wave dt build` 时，`main.yaml` 需要包含 `$config`：
 
 ```yaml
 $schema: "https://www.designtokens.org/tr/2025.10/format/"
@@ -145,21 +171,19 @@ theme:
 
 `$config` 支持：
 
-| 字段 | 位置 | 说明 |
-| --- | --- | --- |
-| `theme` | `$config.theme` | 主题名，也是输出文件名前缀 |
-| `resource.palette` | `$config.resource.palette[]` | 色板资源，例如 `tailwindcss` |
-| `resource.dimension` | `$config.resource.dimension[]` | 尺寸资源，例如 `wave` |
-| `resource.custom` | `$config.resource.custom[]` | 自定义资源文件 |
-| `parameter.outputDir` | `$config.parameter.outputDir` | 输出目录；等价于 `themefile` 的 `PARAMETER output` |
-| `parameter.platform` | `$config.parameter.platform[]` | 输出格式 |
-| `parameter.filterLayer` | `$config.parameter.filterLayer` | 输出 key 时跳过前 N 层路径 |
-| `parameter.colorSpace` | `$config.parameter.colorSpace` | 颜色输出格式 |
-| `parameterGroup.<name>` | `$config.parameterGroup` | 多组输出参数，字段同 `parameter` |
+| 字段 | 说明 |
+| --- | --- |
+| `theme` | 主题名，也是输出文件名前缀 |
+| `resource.palette[]` | 色板资源，例如 `tailwindcss` |
+| `resource.dimension[]` | 尺寸资源，例如 `wave` |
+| `resource.custom[]` | 自定义资源文件 |
+| `parameter.outputDir` | 输出目录；等价于 `themefile` 的 `PARAMETER output` |
+| `parameter.platform[]` | 输出格式 |
+| `parameter.filterLayer` | 输出 key 时跳过前 N 层路径 |
+| `parameter.colorSpace` | 颜色输出格式 |
+| `parameterGroup.<name>` | 多组输出参数，字段同 `parameter` |
 
-不确定用哪种入口时，优先使用 `wave dt build -f ./themefile`。
-
-## token 基本写法
+## token 写法
 
 Wave 使用 DTCG 风格结构：
 
@@ -197,7 +221,9 @@ secondary:
   $ref: "#/theme/color/primary/$value"
 ```
 
-颜色 token 可以使用 DTCG 颜色对象，把颜色和透明度分开写。`color` 和 `alpha` 都可以使用引用：
+## 颜色和 alpha
+
+颜色 token 可以把颜色和透明度分开写。`color` 和 `alpha` 都可以使用引用：
 
 ```yaml
 inverse:
@@ -209,6 +235,21 @@ inverse:
 ```
 
 构建时，Wave 会先解析 `color` 和 `alpha`，再按 `colorSpace` 输出最终颜色。例如 `colorSpace hex` 会输出 8 位 hex。
+
+## 输出格式
+
+| platform | 输出文件 | 说明 |
+| --- | --- | --- |
+| `json` | `{theme}.json` | 扁平 JSON |
+| `jsonc` | `{theme}.jsonc` | 带注释 JSONC |
+| `css` | `{theme}.css` | CSS 变量 |
+| `sketch` | `{theme}2sketch.json` | Sketch JSON |
+
+多平台用逗号分隔：
+
+```text
+PARAMETER platform json,jsonc,css,sketch
+```
 
 ## $extensions
 
@@ -226,11 +267,10 @@ inverse:
 | `sketch.property.cornerRadius` | token | `theme.dimension.*` 下的 `number` 或 `dimension` | 输出 Sketch cornerRadius 字段 |
 | `composite` | group | 直接子节点必须是 token | 把一组 token 合并为组件对象 |
 | `currentColor` | token | legacy | 旧项目兼容字段，新内容使用 `inheritColor` |
-| `sketchMap` | token | legacy | 旧项目兼容字段，新内容使用 `sketch.property` |
 
-### smoothShadow
+## smoothShadow
 
-用于 `shadow` token，把单层阴影派生为多层平滑阴影。
+`smoothShadow` 用于 `shadow` token，把单层阴影派生为多层平滑阴影。
 
 ```yaml
 theme:
@@ -274,9 +314,9 @@ $extensions:
       spread: -4
 ```
 
-### smoothGradient
+## smoothGradient
 
-用于 `gradient` token，把 2 个端点扩展为多个渐变 stop。
+`smoothGradient` 用于 `gradient` token，把 2 个端点扩展为多个渐变 stop。
 
 ```yaml
 theme:
@@ -303,9 +343,9 @@ theme:
 
 输入 gradient 必须恰好有 2 个 stop。
 
-### inheritColor
+## inheritColor
 
-用于 `color` token，表示输出时继承上下文颜色。
+`inheritColor` 用于 `color` token，表示输出时继承上下文颜色。
 
 ```yaml
 theme:
@@ -341,9 +381,9 @@ theme:
 | `json` / `jsonc` | `$COLOR_FOREGROUND` 或 `{ color: "$COLOR_FOREGROUND", opacity: X }` |
 | `sketch` | 写入 Sketch 颜色、`opacity` 或 `alpha` 字段 |
 
-### sketch
+## sketch
 
-用于控制 Sketch JSON 输出。它不影响 `json`、`jsonc`、`css` 的 key。
+`$extensions.sketch` 只控制 Sketch JSON 输出，不影响 `json`、`jsonc`、`css` 的 key。
 
 ```yaml
 theme:
@@ -389,36 +429,39 @@ primary:
   $value: "#1872f0"
   $extensions:
     sketch:
-      path: foundation/color/primary-main
+      path: foundation/color
 ```
 
 Sketch 输出：
 
 ```json
 {
-  "color": {
-    "foundation": {
-      "color": {
-        "primary-main": "#1872f0ff"
-      }
+  "foundation": {
+    "color": {
+      "primary-main": "#1872f0ff"
     }
   }
 }
 ```
 
-`filterLayer` 仍影响 `json`、`jsonc` 和 `css` 的 key；显式 `sketch.path` 不受 `filterLayer` 改名影响。
+`sketch.path` 只定义分组路径，叶子名仍使用 `filterLayer` 处理后的 flat-json key。没有 `sketch.path` 时，Sketch 输出保持根级 flat-json。
+
+Sketch 输出不再固定包裹 `color`、`style`、`dimension` 或 `component` 顶层对象。位置由 `sketch.path` 控制，值形态由 `$type` 和 `sketch.property` 控制。
 
 限制：
 
-- `sketch.path` 必须是非空字符串。
+- `sketch.path` 必须是普通 slash 分组路径，例如 `foundation/color`。
+- `sketch.path` 不能包含首尾 slash、空分段或 `.`。
 - `sketch.property` 只支持 `opacity` 和 `cornerRadius`。
 - `sketch.property.*` 的值必须是 `true`。
 - `sketch.property.*` 只能用于 `theme.dimension.*` 下的 `number` 或 `dimension` token。
-- legacy `$extensions.sketchMap: opacity` / `cornerRadius` 仍兼容；新内容使用 `$extensions.sketch.property`。
+- 两个 token 经过 `sketch.path` 和 `filterLayer` 后不能输出到同一路径；冲突会报错。
+- 例如 `$type: number` 搭配 `sketch.property.fillColor: true` 会报错，因为 `fillColor` 不是支持的 Sketch property。
+- 例如 `$type: color` 搭配 `sketch.property.opacity: true` 会报错，因为 `opacity` 只允许 dimension root 下的 `number` 或 `dimension` token。
 
-### composite
+## composite
 
-用于把一个 group 的直接子 token 合并成组件对象。适合 button、card 等组件变体。
+`composite` 用于把一个 group 的直接子 token 合并成组件对象。适合 button、card 等组件变体。
 
 ```yaml
 component:
@@ -439,18 +482,17 @@ component:
 - `composite` 写在 group 的 `$extensions` 上。
 - composite group 的直接子节点必须都是 token，不能再嵌套 group。
 - JSON/JSONC 输出会合并为对象。
-- Sketch 输出会把 composite 映射为组件样式字段。
+- Sketch 输出不再把 composite 映射为组件样式字段；component 逻辑后续单独设计。
 
-### 兼容字段
+## 兼容字段
 
 | 字段 | 状态 | 替代写法 |
 | --- | --- | --- |
 | `currentColor` | deprecated | `inheritColor` |
-| `sketchMap` | 兼容旧项目 | `sketch.property` |
 
 新文档和新项目不要继续使用兼容字段。
 
-## doctor.wcagPairs
+## WCAG
 
 `doctor` 是独立 root key，用于 WCAG 对比度检查，不参与 token 输出。
 
@@ -475,21 +517,6 @@ doctor:
 wave dt wcag
 wave dt wcag dark
 wave dt wcag dark --night
-```
-
-## 输出格式
-
-| platform | 输出文件 | 说明 |
-| --- | --- | --- |
-| `json` | `{theme}.json` | 扁平 JSON |
-| `jsonc` | `{theme}.jsonc` | 带注释 JSONC |
-| `css` | `{theme}.css` | CSS 变量 |
-| `sketch` | `{theme}2sketch.json` | Sketch JSON |
-
-多平台用逗号分隔：
-
-```text
-PARAMETER platform json,jsonc,css,sketch
 ```
 
 ## 变体和 night

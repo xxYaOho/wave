@@ -31,10 +31,10 @@ describe('inheritColor Sketch Format', () => {
 			}),
 		];
 
-		const result = sketchFormat(tokens);
+		const result = sketchFormat(tokens, { filterLayer: 2 });
 		const parsed = JSON.parse(result);
 
-		expect(parsed.style['interaction-danger-border'].color).toBe('#cc0000ff');
+		expect(parsed['interaction-danger-border']).toBe('#cc0000ff');
 	});
 
 	test('should fallback to diagnostic pink when sibling not found', () => {
@@ -49,10 +49,10 @@ describe('inheritColor Sketch Format', () => {
 			}),
 		];
 
-		const result = sketchFormat(tokens);
+		const result = sketchFormat(tokens, { filterLayer: 2 });
 		const parsed = JSON.parse(result);
 
-		expect(parsed.style['interaction-danger-border'].color).toBe('#ff00ffff');
+		expect(parsed['interaction-danger-border']).toBe('#ff00ffff');
 	});
 
 	test('should include opacity when inheritColor has opacity', () => {
@@ -75,11 +75,11 @@ describe('inheritColor Sketch Format', () => {
 			}),
 		];
 
-		const result = sketchFormat(tokens);
+		const result = sketchFormat(tokens, { filterLayer: 2 });
 		const parsed = JSON.parse(result);
 
-		expect(parsed.style['interaction-danger-border'].color).toBe('#cc0000ff');
-		expect(parsed.style['interaction-danger-border'].opacity).toBe(0.3);
+		expect(parsed['interaction-danger-border'].color).toBe('#cc0000ff');
+		expect(parsed['interaction-danger-border'].opacity).toBe(0.3);
 	});
 
 	test('should not leak inheritColor metadata into output', () => {

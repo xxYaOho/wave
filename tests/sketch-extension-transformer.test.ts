@@ -41,7 +41,7 @@ describe('sketch extension transformer', () => {
 		});
 	});
 
-	test('normalizes legacy sketchMap opacity', () => {
+	test('ignores legacy sketchMap', () => {
 		const resolved: ResolvedTokenGroup = {
 			theme: {
 				dimension: {
@@ -59,11 +59,10 @@ describe('sketch extension transformer', () => {
 		const result = transformToWaveTokens(resolved);
 		const token = tokenByName(result, 'theme-dimension-interaction-hover');
 
-		expect(token._sketch).toEqual({ property: { opacity: true } });
-		expect(token._sketchMap).toBe('opacity');
+		expect(token._sketch).toBeUndefined();
 	});
 
-	test('explicit sketch.property wins over legacy sketchMap', () => {
+	test('normalizes sketch.property when sketchMap is also present', () => {
 		const resolved: ResolvedTokenGroup = {
 			theme: {
 				dimension: {
@@ -85,6 +84,5 @@ describe('sketch extension transformer', () => {
 		const token = tokenByName(result, 'theme-dimension-radius-card');
 
 		expect(token._sketch).toEqual({ property: { cornerRadius: true } });
-		expect(token._sketchMap).toBe('opacity');
 	});
 });

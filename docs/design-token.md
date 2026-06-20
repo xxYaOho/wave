@@ -1,6 +1,6 @@
 # Design Token 使用指南
 
-本文档是 Wave design-token 的用户指南。顶层命令和其他能力见 `MANUAL.md`，内部行为快照见 `docs/SPEC.md`。
+本文档是 Wave design-token 的专题说明。用户入口见 `wave manual`，内部行为快照见 `docs/SPEC.md`。
 
 ## 核心模型
 
@@ -235,9 +235,9 @@ theme:
 - `cubicBezier` 控制插值节奏，可以直接写数组，也可以引用 `wave.dimension.cubicBezier.*`。
 - 不写 `target` 时，Wave 保留旧版从 base shadow 向零层衰减的行为。
 
-## composite 组件输出
+## composite
 
-`composite` 用来把同一组 token 聚合为组件对象。当前 Sketch 输出会把 `background`、`foreground`、`border`、`radius`、`shadow` 映射为 Sketch style 字段。
+`composite` 用来把同一组 token 聚合为组件对象。当前版本不再把 component token 映射为 Sketch component style 字段；component 逻辑后续会单独迭代。
 
 ```yaml
 theme:
@@ -253,20 +253,15 @@ theme:
         $value: 8
 ```
 
-当前版本不使用 `$extensions.sketch.path` 重命名 component key。component 逻辑后续会单独迭代。
+`composite` 仍可作为 token 组织语义存在，但 Sketch formatter 不再包含 component 特例。
 
 ## Sketch 输出
 
-Sketch 输出文件是 `{theme}2sketch.json`。它按当前 formatter 输出四类顶层对象：
+Sketch 输出文件是 `{theme}2sketch.json`。默认情况下，Sketch 输出是根级 flat-json：key 由 token 路径经过 `filterLayer` 后用 `-` 拼接。
 
-| 顶层对象 | 来源 |
-| --- | --- |
-| `color` | `theme.color.*` |
-| `style` | `theme.style.interaction.*`、`theme.style.shadow*`、`theme.style.gradient*` |
-| `dimension` | `theme.dimension.*` |
-| `component` | 标记 `$extensions.composite: true` 的组件组 |
+例如 `theme.color.primary.main` 在 `filterLayer: 2` 下输出为 `primary-main`。
 
-默认情况下，Sketch key 由 token 子路径用 `-` 拼接。例如 `theme.color.primary.main` 输出为 `primary-main`。
+Sketch 输出不固定包裹 `color`、`style`、`dimension` 或 `component` 顶层对象。输出位置由 `$extensions.sketch.path` 控制，值形态由 `$type` 和 `$extensions.sketch.property` 控制。
 
 ## `$extensions.sketch`
 
@@ -292,12 +287,10 @@ theme:
 
 ```json
 {
-  "color": {
-    "foundation": {
-      "color": {
-        "text": {
-          "text-default": "#0f172aff"
-        }
+  "foundation": {
+    "color": {
+      "text": {
+        "text-default": "#0f172aff"
       }
     }
   }
@@ -306,13 +299,12 @@ theme:
 
 规则：
 
-- `path` 必须是非空字符串。
+- `path` 必须是普通 slash 分组路径，例如 `foundation/color`。
 - `path` 是 Sketch 分组路径，不是文件路径，也不是完整 token 名称。
+- `path` 不能包含首尾 slash、空分段或 `.`。
 - 没有 `path` 时保持默认 flat-json key，例如 `shadow-1`。
 - 有 `path` 时按 slash 创建嵌套分组，叶子节点仍使用默认 flat-json key。例如 `theme.dimension.shadow.1` 配置 `path: "aaa/bbb"` 时，输出为 `{ "aaa": { "bbb": { "shadow-1": { ... } } } }`。
-- `path` 支持 `color`、`style`、`dimension` 输出。
-- 当前版本不使用 `path` 重命名 `component` key。
-- 如果被引用的 color token 定义了 `sketch.path`，component fill、border、inheritColor 和 shadow swatch 引用会同步使用这个 path。
+- 两个 token 经过 `path` 和 `filterLayer` 后不能输出到同一路径；冲突会报错。
 
 ### property
 
@@ -343,12 +335,10 @@ theme:
 
 ```json
 {
-  "dimension": {
-    "foundation": {
-      "interaction": {
-        "interaction-hover": {
-          "opacity": 0.16
-        }
+  "foundation": {
+    "interaction": {
+      "interaction-hover": {
+        "opacity": 0.16
       }
     }
   }
@@ -375,12 +365,10 @@ theme:
 
 ```json
 {
-  "dimension": {
-    "foundation": {
-      "radius": {
-        "radius-card": {
-          "cornerRadius": 8
-        }
+  "foundation": {
+    "radius": {
+      "radius-card": {
+        "cornerRadius": 8
       }
     }
   }
@@ -430,29 +418,9 @@ theme:
 
 这里会失败，因为 `opacity` 只接受 `number` 或 `dimension` token。
 
-### legacy sketchMap
-
-旧写法仍可使用：
-
-```yaml
-$extensions:
-  sketchMap: opacity
-```
-
-等价于：
-
-```yaml
-$extensions:
-  sketch:
-    property:
-      opacity: true
-```
-
-如果同时写了 `sketch.property` 和 `sketchMap`，以 `sketch.property` 为准。
-
 ## `$extends` 与 Sketch extensions
 
-`$extends` 继承时，`$extensions.sketch` 会按字段合并，方便在 base 里定义默认 Sketch path 或 property，再由 child 覆盖局部字段。
+`$extends` 继承时，`$extensions.sketch` 遵循普通 extension 覆盖语义，不做 Sketch 专属深层合并。
 
 ```yaml
 base:
@@ -475,13 +443,9 @@ child:
 ```yaml
 $extensions:
   sketch:
-    path: "foundation/base"
     property:
-      opacity: true
       cornerRadius: true
 ```
-
-只有 `sketch` extension 做这种嵌套合并；其他同名 extension 保持覆盖语义。
 
 ## Resource 管理
 
@@ -533,6 +497,6 @@ config: ~/.config/wave/resources/
 
 - 新项目优先使用 `main.yaml` + `$config`。
 - `themefile` 和 `wave create` 仍可用于旧项目兼容。
-- 新的 Sketch 映射优先写 `$extensions.sketch.property`，旧 `sketchMap` 可继续工作。
-- Sketch 命名路径优先写 `$extensions.sketch.path`，不要依赖 `filterLayer` 管理 Sketch 分组。
-- component key 暂不受 `sketch.path` 影响。
+- Sketch 属性映射写 `$extensions.sketch.property`，旧 `sketchMap` 不再作为映射来源。
+- Sketch 分组路径写 `$extensions.sketch.path`；叶子名仍由 `filterLayer` 后的 flat-json key 决定。
+- component token 不再映射为 Sketch component style 字段。

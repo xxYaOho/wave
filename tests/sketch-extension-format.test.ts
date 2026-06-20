@@ -12,7 +12,7 @@ function token(partial: Partial<WaveToken> & { name: string }): WaveToken {
 }
 
 describe('sketch extension format', () => {
-	test('uses sketch.path as color key', () => {
+	test('uses sketch.path as group path and filterLayer key as leaf name', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-primary-main',
@@ -23,13 +23,38 @@ describe('sketch extension format', () => {
 			}),
 		];
 
-		const parsed = JSON.parse(sketchFormat(tokens));
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.color.foundation.color['primary-main']).toBe('#1872f0ff');
-		expect(parsed.color['primary-main']).toBeUndefined();
+		expect(parsed.foundation.color['primary-main']).toBe('#1872f0ff');
+		expect(parsed.color).toBeUndefined();
 	});
 
-	test('uses extracted color from object color values', () => {
+	test('uses root flat-json output when sketch.path is absent', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-color-primary-main',
+				path: ['theme', 'color', 'primary', 'main'],
+				value: '#1872f0',
+				type: 'color',
+			}),
+			token({
+				name: 'theme-dimension-radius-card',
+				path: ['theme', 'dimension', 'radius', 'card'],
+				value: 8,
+				type: 'dimension',
+				_order: 1,
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+
+		expect(parsed['primary-main']).toBe('#1872f0ff');
+		expect(parsed['radius-card']).toEqual({ value: 8 });
+		expect(parsed.color).toBeUndefined();
+		expect(parsed.dimension).toBeUndefined();
+	});
+
+	test('converts object color values to sketch hex8', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-primary-main',
@@ -40,9 +65,9 @@ describe('sketch extension format', () => {
 			}),
 		];
 
-		const parsed = JSON.parse(sketchFormat(tokens));
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.color.foundation.color['primary-main']).toBe('#1872f0ff');
+		expect(parsed.foundation.color['primary-main']).toBe('#1872f0ff');
 	});
 
 	test('rejects non-color values in color output', () => {
@@ -51,17 +76,16 @@ describe('sketch extension format', () => {
 				name: 'theme-color-alpha',
 				path: ['theme', 'color', 'alpha'],
 				value: 0.16,
-				type: 'number',
-				_sketch: { path: 'foundation/color/alpha' },
+				type: 'color',
 			}),
 		];
 
 		expect(() => sketchFormat(tokens)).toThrow(
-			'Sketch color output requires type "color"',
+			'Sketch color output requires a color value',
 		);
 	});
 
-	test('uses sketch.path and sketch.property.opacity for dimension output', () => {
+	test('uses sketch.property.opacity for number output', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-dimension-interaction-hover',
@@ -75,31 +99,11 @@ describe('sketch extension format', () => {
 			}),
 		];
 
-		const parsed = JSON.parse(sketchFormat(tokens));
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(
-			parsed.dimension.foundation.interaction['interaction-hover'],
-		).toEqual({
+		expect(parsed.foundation.interaction['interaction-hover']).toEqual({
 			opacity: 0.16,
 		});
-	});
-
-	test('rejects non-numeric opacity values', () => {
-		const tokens: WaveToken[] = [
-			token({
-				name: 'theme-dimension-interaction-hover',
-				path: ['theme', 'dimension', 'interaction', 'hover'],
-				value: '8px',
-				type: 'dimension',
-				_sketch: {
-					property: { opacity: true },
-				},
-			}),
-		];
-
-		expect(() => sketchFormat(tokens)).toThrow(
-			'Sketch property opacity requires a finite number',
-		);
 	});
 
 	test('uses sketch.property.cornerRadius for dimension output', () => {
@@ -113,9 +117,25 @@ describe('sketch extension format', () => {
 			}),
 		];
 
-		const parsed = JSON.parse(sketchFormat(tokens));
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.dimension['radius-card']).toEqual({ cornerRadius: 8 });
+		expect(parsed['radius-card']).toEqual({ cornerRadius: 8 });
+	});
+
+	test('rejects non-numeric opacity values', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-dimension-interaction-hover',
+				path: ['theme', 'dimension', 'interaction', 'hover'],
+				value: '8px',
+				type: 'dimension',
+				_sketch: { property: { opacity: true } },
+			}),
+		];
+
+		expect(() => sketchFormat(tokens)).toThrow(
+			'Sketch property opacity requires a finite number',
+		);
 	});
 
 	test('rejects invalid cornerRadius values', () => {
@@ -134,64 +154,11 @@ describe('sketch extension format', () => {
 		);
 	});
 
-	test('falls back to legacy sketchMap when sketch.property is absent', () => {
+	test('converts shadow tokens to sketch shadow object', () => {
 		const tokens: WaveToken[] = [
 			token({
-				name: 'theme-dimension-interaction-hover',
-				path: ['theme', 'dimension', 'interaction', 'hover'],
-				value: 0.16,
-				type: 'number',
-				_sketchMap: 'opacity',
-				_sketch: { path: 'foundation/interaction' },
-			}),
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens));
-
-		expect(
-			parsed.dimension.foundation.interaction['interaction-hover'],
-		).toEqual({
-			opacity: 0.16,
-		});
-	});
-
-	test('uses sketch.path as style shadow group path', () => {
-		const tokens: WaveToken[] = [
-			token({
-				name: 'theme-style-shadow-card',
-				path: ['theme', 'style', 'shadow', 'card'],
-				value: [
-					{
-						color: '#00000040',
-						offsetX: 0,
-						offsetY: 4,
-						blur: 12,
-						spread: 0,
-					},
-				],
-				type: 'shadow',
-				_sketch: { path: 'foundation/elevation/card' },
-			}),
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens));
-
-		expect(
-			parsed.style.foundation.elevation.card['shadow-card'].shadow[0],
-		).toMatchObject({
-			color: '#00000040',
-			y: 4,
-			blur: 12,
-		});
-		expect(parsed.style['foundation/elevation/card']).toBeUndefined();
-		expect(parsed.style['shadow-card']).toBeUndefined();
-	});
-
-	test('keeps style shadow token name when sketch.path is a group path', () => {
-		const tokens: WaveToken[] = [
-			token({
-				name: 'theme-style-shadow-1',
-				path: ['theme', 'style', 'shadow', '1'],
+				name: 'theme-shadow-1',
+				path: ['theme', 'shadow', '1'],
 				value: [
 					{
 						color: '#0f172b0f',
@@ -213,227 +180,85 @@ describe('sketch extension format', () => {
 			}),
 		];
 
-		const parsed = JSON.parse(sketchFormat(tokens));
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 
-		expect(parsed.style.aaa.bbb['shadow-1'].shadow).toHaveLength(2);
-		expect(parsed.style['aaa.bbb']).toBeUndefined();
-		expect(parsed.style['shadow-1']).toBeUndefined();
+		expect(parsed.aaa.bbb['shadow-1'].shadow).toHaveLength(2);
+		expect(parsed.aaa.bbb['shadow-1'].shadow[0]).toMatchObject({
+			color: '#0f172b05',
+			y: 0,
+			blur: 2,
+		});
 	});
 
-	test('keeps dimension shadow token name when sketch.path is a group path', () => {
+	test('converts gradient tokens to sketch gradient object', () => {
 		const tokens: WaveToken[] = [
 			token({
-				name: 'theme-dimension-shadow-1',
-				path: ['theme', 'dimension', 'shadow', '1'],
+				name: 'theme-gradient-brand',
+				path: ['theme', 'gradient', 'brand'],
 				value: [
-					{
-						color: '#0f172b0f',
-						offsetX: 0,
-						offsetY: 4,
-						blur: 8,
-						spread: -2,
-					},
+					{ color: '#00000000', position: 0 },
+					{ color: '#000000cc', position: 1 },
 				],
-				type: 'shadow',
-				_sketch: { path: 'aaa/bbb' },
-			}),
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens));
-
-		expect(parsed.dimension.aaa.bbb['shadow-1'].value).toHaveLength(1);
-		expect(parsed.dimension['aaa/bbb']).toBeUndefined();
-		expect(parsed.dimension['shadow-1']).toBeUndefined();
-	});
-
-	test('rejects invalid style interaction type', () => {
-		const tokens: WaveToken[] = [
-			token({
-				name: 'theme-style-interaction-hover',
-				path: ['theme', 'style', 'interaction', 'hover'],
-				value: 0.16,
-				type: 'number',
-				_sketch: { path: 'foundation/interaction/hover' },
-			}),
-		];
-
-		expect(() => sketchFormat(tokens)).toThrow(
-			'Sketch interaction output requires type "color"',
-		);
-	});
-
-	test('rejects invalid style interaction color value', () => {
-		const numberValue: WaveToken[] = [
-			token({
-				name: 'theme-style-interaction-hover',
-				path: ['theme', 'style', 'interaction', 'hover'],
-				value: 0.16,
-				type: 'color',
-			}),
-		];
-		const objectWithoutColor: WaveToken[] = [
-			token({
-				name: 'theme-style-interaction-hover',
-				path: ['theme', 'style', 'interaction', 'hover'],
-				value: { opacity: 0.16 },
-				type: 'color',
-			}),
-		];
-
-		expect(() => sketchFormat(numberValue)).toThrow(
-			'Sketch color output requires a color value',
-		);
-		expect(() => sketchFormat(objectWithoutColor)).toThrow(
-			'Sketch color output requires a color value',
-		);
-	});
-
-	test('rejects invalid style shadow type and value shape', () => {
-		const wrongType: WaveToken[] = [
-			token({
-				name: 'theme-style-shadow-card',
-				path: ['theme', 'style', 'shadow', 'card'],
-				value: '#000000',
-				type: 'color',
-			}),
-		];
-		const wrongValue: WaveToken[] = [
-			token({
-				name: 'theme-style-shadow-card',
-				path: ['theme', 'style', 'shadow', 'card'],
-				value: '#000000',
-				type: 'shadow',
-			}),
-		];
-
-		expect(() => sketchFormat(wrongType)).toThrow(
-			'Sketch shadow output requires type "shadow"',
-		);
-		expect(() => sketchFormat(wrongValue)).toThrow(
-			'Sketch shadow output requires an object or object array',
-		);
-	});
-
-	test('rejects invalid style gradient type and value shape', () => {
-		const wrongType: WaveToken[] = [
-			token({
-				name: 'theme-style-gradient-brand',
-				path: ['theme', 'style', 'gradient', 'brand'],
-				value: 1,
-				type: 'number',
-			}),
-		];
-		const wrongValue: WaveToken[] = [
-			token({
-				name: 'theme-style-gradient-brand',
-				path: ['theme', 'style', 'gradient', 'brand'],
-				value: 1,
 				type: 'gradient',
+				_sketch: { path: 'foundation/gradient' },
 			}),
 		];
 
-		expect(() => sketchFormat(wrongType)).toThrow(
-			'Sketch gradient output requires type "gradient"',
-		);
-		expect(() => sketchFormat(wrongValue)).toThrow(
-			'Sketch gradient output requires an object or object array',
-		);
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
+
+		expect(parsed.foundation.gradient['gradient-brand'].gradient).toEqual([
+			{ color: '#00000000', position: 0 },
+			{ color: '#000000cc', position: 1 },
+		]);
 	});
 
-	test('syncs component fill swatch to referenced token sketch.path', () => {
+	test('detects duplicate sketch output paths', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-primary-main',
 				path: ['theme', 'color', 'primary', 'main'],
 				value: '#1872f0',
 				type: 'color',
-				_swatchName: 'color/primary-main',
-				_sketch: { path: 'foundation/color/primary/main' },
+				_sketch: { path: 'foundation/color' },
 			}),
+			token({
+				name: 'theme-color-primary-main-copy',
+				path: ['theme', 'color', 'primary', 'main'],
+				value: '#0f172b',
+				type: 'color',
+				_sketch: { path: 'foundation/color' },
+				_order: 1,
+			}),
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
+			'Duplicate Sketch output path "foundation/color/primary-main"',
+		);
+	});
+
+	test('does not map composite tokens through component special cases', () => {
+		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-component-button-background',
 				path: ['theme', 'component', 'button', 'background'],
 				value: '#1872f0',
 				type: 'color',
 				_composite: 'theme.component.button',
-				_swatchName: 'color/primary-main',
-				_order: 1,
-			}),
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens));
-
-		expect(parsed.component.button.fills[0].swatch).toBe(
-			'foundation/color/primary/main',
-		);
-	});
-
-	test('syncs inheritColor component swatch to sibling token sketch.path', () => {
-		const tokens: WaveToken[] = [
-			token({
-				name: 'theme-component-button-foreground',
-				path: ['theme', 'component', 'button', 'foreground'],
-				value: '#0f172b',
-				type: 'color',
-				_composite: 'theme.component.button',
-				_swatchName: 'color/text-default',
-				_sketch: { path: 'foundation/color/text/default' },
 			}),
 			token({
-				name: 'theme-component-button-border',
-				path: ['theme', 'component', 'button', 'border'],
-				value: { _color: '#ff00ff' },
-				type: 'color',
-				_composite: 'theme.component.button',
-				inheritColor: true,
-				inheritColorSiblingSlot: 'foreground',
-				inheritColorOpacity: 0.36,
-				_order: 1,
-			}),
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens));
-
-		expect(parsed.component.button.borders[0].swatch).toBe(
-			'foundation/color/text/default',
-		);
-	});
-
-	test('syncs nested component shadow swatch to referenced token sketch.path', () => {
-		const tokens: WaveToken[] = [
-			token({
-				name: 'theme-color-shadow-default',
-				path: ['theme', 'color', 'shadow', 'default'],
-				value: '#0f172b',
-				type: 'color',
-				_swatchName: 'color/shadow-default',
-				_sketch: { path: 'foundation/color/shadow/default' },
-			}),
-			token({
-				name: 'theme-component-button-shadow',
-				path: ['theme', 'component', 'button', 'shadow'],
-				value: [
-					{
-						color: {
-							color: '#0f172b',
-							_swatchName: 'color/shadow-default',
-						},
-						offsetX: '0px',
-						offsetY: '4px',
-						blur: '12px',
-						spread: '0px',
-					},
-				],
-				type: 'shadow',
+				name: 'theme-component-button-radius',
+				path: ['theme', 'component', 'button', 'radius'],
+				value: 8,
+				type: 'dimension',
 				_composite: 'theme.component.button',
 				_order: 1,
 			}),
 		];
 
-		const parsed = JSON.parse(sketchFormat(tokens));
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.component.button.shadows[0].swatch).toBe(
-			'foundation/color/shadow/default',
-		);
+		expect(parsed.component).toBeUndefined();
+		expect(parsed['button-background']).toBe('#1872f0ff');
+		expect(parsed['button-radius']).toEqual({ value: 8 });
 	});
 });

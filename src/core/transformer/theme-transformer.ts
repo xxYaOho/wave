@@ -132,11 +132,7 @@ function processValue(
 		return result.value as DtcgValue;
 	}
 	if (isColorAlphaObject(value)) {
-		return convertColorWithAlpha(
-			value,
-			targetFormat,
-			tokenPath,
-		);
+		return convertColorWithAlpha(value, targetFormat, tokenPath);
 	}
 	// 处理 hex 颜色字符串的颜色空间转换
 	if (
@@ -369,7 +365,9 @@ function interpolateShadowLength(
 	return formatShadowLengthValue(value, unit);
 }
 
-function extractTargetAlpha(target: Record<string, unknown>): number | undefined {
+function extractTargetAlpha(
+	target: Record<string, unknown>,
+): number | undefined {
 	if (typeof target.alpha === 'number') {
 		return target.alpha;
 	}
@@ -742,10 +740,6 @@ function transformToken(
 		...(currentColorShadowAlpha !== undefined && { currentColorShadowAlpha }),
 		// Original referenced token path for sketch variable mapping
 		...(token._swatchName !== undefined && { _swatchName: token._swatchName }),
-		// Sketch property name mapping
-		...(token.$extensions?.sketchMap !== undefined && {
-			_sketchMap: token.$extensions.sketchMap as string,
-		}),
 		...(sketchExtension !== undefined && { _sketch: sketchExtension }),
 	};
 

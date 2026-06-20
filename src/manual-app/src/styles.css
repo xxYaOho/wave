@@ -298,12 +298,13 @@ h1 {
 }
 
 .article pre {
+	position: relative;
 	overflow-x: auto;
 	border: 1px solid #ded8cf;
 	border-radius: 8px;
 	background: #171514;
 	color: #f7f2ea;
-	padding: 16px;
+	padding: 42px 16px 16px;
 }
 
 .article pre code {
@@ -315,6 +316,23 @@ h1 {
 
 .article code {
 	padding: 2px 5px;
+}
+
+.copyCodeButton {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	border: 1px solid rgba(247, 242, 234, 0.24);
+	border-radius: 6px;
+	background: rgba(247, 242, 234, 0.08);
+	color: #f7f2ea;
+	padding: 4px 9px;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.copyCodeButton:hover {
+	background: rgba(247, 242, 234, 0.15);
 }
 
 .article table {

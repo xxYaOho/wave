@@ -18,7 +18,7 @@ const page = {
 	href: '/design-token',
 	source: 'pages/design-token.md',
 	body: '## Usage',
-	html: '<h2>Usage</h2><p>Build token output.</p>',
+	html: '<h2>Usage</h2><p>Build token output.</p><pre><code>wave dt build -f ./themefile</code></pre>',
 	searchText: 'Design Token Build token output wave dt doctor',
 };
 
@@ -119,6 +119,27 @@ describe('manual app', () => {
 			'Design Token',
 		);
 		expect(view.getByText('Build token output.')).toBeTruthy();
+	});
+
+	test('copies code blocks from manual pages', async () => {
+		const copied: string[] = [];
+		const view = await renderManualApp({ path: '/design-token' });
+		const user = userEvent.setup({ document: window.document });
+
+		Object.defineProperty(navigator, 'clipboard', {
+			configurable: true,
+			value: {
+				writeText: async (text: string) => {
+					copied.push(text);
+				},
+			},
+		});
+
+		const copyButton = await view.findByRole('button', { name: '复制代码' });
+		await user.click(copyButton);
+
+		expect(copied).toEqual(['wave dt build -f ./themefile']);
+		expect(copyButton.textContent).toBe('已复制');
 	});
 
 	test('search result navigates to a manual page', async () => {

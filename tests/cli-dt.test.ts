@@ -178,7 +178,9 @@ describe('wave dt', () => {
 	});
 
 	test('dt build accepts DTCG color object with referenced color and alpha', async () => {
-		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-dtcg-color-'));
+		const tempDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-dtcg-color-'),
+		);
 		const outputDir = path.join(tempDir, 'dist');
 
 		try {
@@ -226,9 +228,7 @@ describe('wave dt', () => {
 					'utf-8',
 				),
 			);
-			expect(output['theme-color-inverse-surface']).toMatch(
-				/^#[0-9a-f]{8}$/i,
-			);
+			expect(output['theme-color-inverse-surface']).toMatch(/^#[0-9a-f]{8}$/i);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
@@ -366,26 +366,20 @@ describe('wave dt', () => {
 			),
 		);
 
-		expect(
-			sketchOutput.color.foundation.color['primary-main'],
-		).toBe(
+		expect(sketchOutput.foundation.color['color-primary-main']).toBe(
 			'#1872f0ff',
 		);
 		expect(
-			sketchOutput.dimension.foundation.interaction['interaction-hover'],
+			sketchOutput.foundation.interaction['dimension-interaction-hover'],
 		).toEqual({
 			opacity: 0.16,
 		});
-		expect(sketchOutput.dimension.foundation.radius['radius-card']).toEqual(
-			{
-				cornerRadius: 8,
-			},
-		);
-		expect(sketchOutput.style.aaa.bbb['shadow-1'].shadow).toHaveLength(4);
-		expect(sketchOutput.style['aaa/bbb']).toBeUndefined();
-		expect(sketchOutput.component.button.fills[0].swatch).toBe(
-			'foundation/color',
-		);
+		expect(sketchOutput.foundation.radius['dimension-radius-card']).toEqual({
+			cornerRadius: 8,
+		});
+		expect(sketchOutput.aaa.bbb['style-shadow-1'].shadow).toHaveLength(4);
+		expect(sketchOutput['aaa/bbb']).toBeUndefined();
+		expect(sketchOutput.component).toBeUndefined();
 
 		const jsonOutput = JSON.parse(
 			await fs.readFile(

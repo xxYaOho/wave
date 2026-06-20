@@ -30,7 +30,6 @@ const KNOWN_EXTENSIONS = new Set([
 	'smoothGradient',
 	'currentColor', // deprecated: use inheritColor instead
 	'inheritColor',
-	'sketchMap',
 	'sketch',
 ]);
 
@@ -42,6 +41,7 @@ const EXTENSION_TYPE_MAP: Record<string, string> = {
 
 const SKETCH_PROPERTY_KEYS = new Set(['opacity', 'cornerRadius']);
 const SKETCH_KEYS = new Set(['path', 'property']);
+const SKETCH_PATH_PATTERN = /^[^/.\s][^/.]*(?:\/[^/.\s][^/.]*)*$/;
 
 function checkDanglingJsonPointer(
 	value: unknown,
@@ -174,11 +174,7 @@ function validateSketchExtension(
 	if (!('sketch' in extensions)) return;
 
 	const sketch = extensions.sketch;
-	if (
-		typeof sketch !== 'object' ||
-		sketch === null ||
-		Array.isArray(sketch)
-	) {
+	if (typeof sketch !== 'object' || sketch === null || Array.isArray(sketch)) {
 		issues.push({
 			path: `${tokenPath}.$extensions.sketch`,
 			level: 'error',
@@ -199,11 +195,16 @@ function validateSketchExtension(
 	}
 
 	if ('path' in sketchObj) {
-		if (typeof sketchObj.path !== 'string' || sketchObj.path.trim() === '') {
+		if (
+			typeof sketchObj.path !== 'string' ||
+			sketchObj.path.trim() === '' ||
+			!SKETCH_PATH_PATTERN.test(sketchObj.path)
+		) {
 			issues.push({
 				path: `${tokenPath}.$extensions.sketch.path`,
 				level: 'error',
-				message: 'sketch.path must be a non-empty string',
+				message:
+					'sketch.path must be a slash-delimited group path without empty segments or dots',
 			});
 		}
 	}

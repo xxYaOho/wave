@@ -1,10 +1,5 @@
 import type { SketchExtension, SketchPropertyMap } from '../../types/index.ts';
 
-const LEGACY_SKETCH_MAP: Record<string, keyof SketchPropertyMap> = {
-	opacity: 'opacity',
-	cornerRadius: 'cornerRadius',
-};
-
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -33,11 +28,6 @@ export function parseSketchExtension(
 	const explicitProperty = sketch ? parseProperty(sketch.property) : undefined;
 	if (explicitProperty) {
 		normalized.property = explicitProperty;
-	} else if (typeof extensions.sketchMap === 'string') {
-		const mapped = LEGACY_SKETCH_MAP[extensions.sketchMap];
-		if (mapped) {
-			normalized.property = { [mapped]: true } as SketchPropertyMap;
-		}
 	}
 
 	return normalized.path || normalized.property ? normalized : undefined;

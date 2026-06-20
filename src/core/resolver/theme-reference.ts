@@ -1475,27 +1475,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function mergeSketchExtension(
-	parentSketch: unknown,
-	childSketch: unknown,
-): unknown {
-	if (!isPlainObject(parentSketch) || !isPlainObject(childSketch)) {
-		return childSketch;
-	}
-
-	const result: Record<string, unknown> = { ...parentSketch, ...childSketch };
-	if (
-		isPlainObject(parentSketch.property) &&
-		isPlainObject(childSketch.property)
-	) {
-		result.property = {
-			...parentSketch.property,
-			...childSketch.property,
-		};
-	}
-	return result;
-}
-
 function mergeExtensions(
 	parentExtensions: unknown,
 	childExtensions: unknown,
@@ -1508,12 +1487,6 @@ function mergeExtensions(
 		...parentExtensions,
 		...childExtensions,
 	};
-	if ('sketch' in parentExtensions && 'sketch' in childExtensions) {
-		result.sketch = mergeSketchExtension(
-			parentExtensions.sketch,
-			childExtensions.sketch,
-		);
-	}
 	return result;
 }
 
@@ -1537,10 +1510,9 @@ function deepMergeGroups(
 	for (const [key, childValue] of Object.entries(child)) {
 		if (key.startsWith('$')) {
 			if (key === '$extensions') {
-				result[key] = mergeExtensions(
-					result.$extensions,
-					childValue,
-				) as Record<string, unknown> | undefined;
+				result[key] = mergeExtensions(result.$extensions, childValue) as
+					| Record<string, unknown>
+					| undefined;
 			} else {
 				// $type, $description 等：子直接覆盖父
 				result[key] = childValue;

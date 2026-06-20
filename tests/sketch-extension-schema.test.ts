@@ -74,7 +74,17 @@ describe('sketch extension schema', () => {
 	});
 
 	test('rejects invalid sketch path values', () => {
-		for (const pathValue of ['', '   ', 1, [], {}]) {
+		for (const pathValue of [
+			'',
+			'   ',
+			1,
+			[],
+			{},
+			'/foundation',
+			'foundation/',
+			'foundation//color',
+			'foundation.color',
+		]) {
 			const result = validateThemeSchema({
 				theme: {
 					color: {
@@ -92,7 +102,9 @@ describe('sketch extension schema', () => {
 			expect(result.valid).toBe(false);
 			expect(
 				result.issues.some((issue) =>
-					issue.message.includes('sketch.path must be a non-empty string'),
+					issue.message.includes(
+						'sketch.path must be a slash-delimited group path',
+					),
 				),
 			).toBe(true);
 		}
@@ -143,7 +155,9 @@ describe('sketch extension schema', () => {
 		expect(result.valid).toBe(false);
 		expect(
 			result.issues.some((issue) =>
-				issue.message.includes('opacity requires $type "number" or "dimension"'),
+				issue.message.includes(
+					'opacity requires $type "number" or "dimension"',
+				),
 			),
 		).toBe(true);
 	});
@@ -168,7 +182,9 @@ describe('sketch extension schema', () => {
 		expect(result.valid).toBe(false);
 		expect(
 			result.issues.some((issue) =>
-				issue.message.includes('opacity requires $type "number" or "dimension"'),
+				issue.message.includes(
+					'opacity requires $type "number" or "dimension"',
+				),
 			),
 		).toBe(true);
 	});

@@ -35,24 +35,6 @@ function hexToSketchColor(hex: string): string {
 	return hex;
 }
 
-function applyOpacityToHex(hex: string, opacity: number): string {
-	if (opacity < 0 || opacity > 1) return hexToSketchColor(hex);
-	if (hex.length === 9) {
-		const base = hex.slice(0, 7);
-		const alphaHex = Math.round(opacity * 255)
-			.toString(16)
-			.padStart(2, '0');
-		return `${base}${alphaHex}`;
-	}
-	if (hex.length === 7) {
-		const alphaHex = Math.round(opacity * 255)
-			.toString(16)
-			.padStart(2, '0');
-		return `${hex}${alphaHex}`;
-	}
-	return hex;
-}
-
 function cleanValue(val: number | string): number | string {
 	if (typeof val === 'string' && val.endsWith('px')) {
 		const num = parseFloat(val);
@@ -99,18 +81,6 @@ function resolveSketchColorValue(token: WaveToken): string {
 	return colorValue;
 }
 
-function assertSketchStyleType(
-	token: WaveToken,
-	expectedType: string,
-	styleKind: string,
-): void {
-	if (token.type !== undefined && token.type !== expectedType) {
-		throw new Error(
-			`Sketch ${styleKind} output requires type "${expectedType}" at ${tokenPathLabel(token)}, got "${token.type}"`,
-		);
-	}
-}
-
 function toObjectArray(
 	value: unknown,
 	styleKind: string,
@@ -120,9 +90,7 @@ function toObjectArray(
 		if (
 			value.every(
 				(item) =>
-					typeof item === 'object' &&
-					item !== null &&
-					!Array.isArray(item),
+					typeof item === 'object' && item !== null && !Array.isArray(item),
 			)
 		) {
 			return value as Array<Record<string, unknown>>;
@@ -136,7 +104,10 @@ function toObjectArray(
 	);
 }
 
-function resolveDimensionValue(token: WaveToken, propertyKey?: string): unknown {
+function resolveDimensionValue(
+	token: WaveToken,
+	propertyKey?: string,
+): unknown {
 	const value = token.value;
 	if (propertyKey === 'opacity') {
 		if (!isFiniteNumber(value)) {
@@ -170,76 +141,6 @@ function processShadowLayer(layer: Record<string, unknown>): SketchShadowLayer {
 	};
 }
 
-type ComponentShadowLayer = Record<string, unknown>;
-type SwatchNameResolver = (swatchName: string | undefined) => string | undefined;
-
-function createSwatchNameResolver(tokens: WaveToken[]): SwatchNameResolver {
-	const swatchPathByName = new Map<string, string>();
-
-	for (const token of tokens) {
-		const sketchSwatchName = token._sketch?.path;
-		if (!sketchSwatchName) continue;
-
-		if (typeof token._swatchName === 'string') {
-			swatchPathByName.set(token._swatchName, sketchSwatchName);
-		}
-
-		const legacyName = legacySwatchName(token);
-		if (legacyName) {
-			swatchPathByName.set(legacyName, sketchSwatchName);
-		}
-	}
-
-	return (swatchName) =>
-		swatchName === undefined
-			? undefined
-			: (swatchPathByName.get(swatchName) ?? swatchName);
-}
-
-function legacySwatchName(token: WaveToken): string | undefined {
-	const themePrefix = token.path[0] === 'theme' ? 1 : 0;
-	const rootKey = token.path[themePrefix];
-	if (rootKey !== 'color') return undefined;
-
-	const subPath = token.path.slice(themePrefix + 1);
-	if (subPath.length === 0) return undefined;
-	return `${rootKey}/${subPath.join('-')}`;
-}
-
-function assignSketchEntry(
-	group: Record<string, unknown>,
-	token: WaveToken,
-	fallbackKey: string,
-	value: unknown,
-): void {
-	const sketchPath = token._sketch?.path;
-	if (!sketchPath) {
-		group[fallbackKey] = value;
-		return;
-	}
-
-	const parts = sketchPath.split('/').filter(Boolean);
-	if (parts.length === 0) {
-		group[fallbackKey] = value;
-		return;
-	}
-
-	let current = group;
-	for (const part of parts) {
-		const next = current[part];
-		if (
-			next === undefined ||
-			typeof next !== 'object' ||
-			next === null ||
-			Array.isArray(next)
-		) {
-			current[part] = {};
-		}
-		current = current[part] as Record<string, unknown>;
-	}
-	current[fallbackKey] = value;
-}
-
 function pickSketchProperty(
 	property: SketchPropertyMap | undefined,
 ): keyof SketchPropertyMap | undefined {
@@ -249,44 +150,7 @@ function pickSketchProperty(
 }
 
 function dimensionPropertyKey(token: WaveToken): string | undefined {
-	return pickSketchProperty(token._sketch?.property) ?? token._sketchMap;
-}
-
-function processComponentShadowLayer(
-	layer: Record<string, unknown>,
-	resolveSwatchName: SwatchNameResolver,
-): ComponentShadowLayer {
-	const result: ComponentShadowLayer = {
-		x: cleanValue(layer.offsetX as number | string),
-		y: cleanValue(layer.offsetY as number | string),
-		blur: cleanValue(layer.blur as number | string),
-		spread: cleanValue(layer.spread as number | string),
-		enabled: true,
-		isInnerShadow: false,
-		blendingMode: 'Normal',
-	};
-
-	const colorRaw = layer.color;
-	if (typeof colorRaw === 'string') {
-		result.color = hexToSketchColor(colorRaw);
-	} else if (
-		typeof colorRaw === 'object' &&
-		colorRaw !== null &&
-		!Array.isArray(colorRaw)
-	) {
-		const obj = colorRaw as Record<string, unknown>;
-		const innerColor =
-			typeof obj.color === 'string' ? obj.color : String(colorRaw);
-		const hex = hexToSketchColor(innerColor);
-		result.color = hex;
-		if (typeof obj._swatchName === 'string') {
-			result.swatch = resolveSwatchName(obj._swatchName);
-		}
-	} else {
-		result.color = hexToSketchColor(String(colorRaw));
-	}
-
-	return result;
+	return pickSketchProperty(token._sketch?.property);
 }
 
 function extractColorFromValue(value: unknown): string | undefined {
@@ -367,241 +231,108 @@ function resolveSketchColor(
 	};
 }
 
-function mapGradientStops(
-	gradientArray: Array<Record<string, unknown>>,
-): Array<{ color: string; position: unknown }> {
-	return gradientArray.map((stop) => ({
-		color: hexToSketchColor(String(stop.color)),
-		position: stop.position,
-	}));
+function getFilteredName(token: WaveToken, filterLayer: number): string {
+	const path = token.path;
+	if (filterLayer <= 0 || path.length <= filterLayer) {
+		return token.name;
+	}
+	return path.slice(filterLayer).join('-');
 }
 
-function addSketchSwatch<T extends Record<string, unknown>>(
-	base: T,
-	swatchName?: string,
-): T & { swatch?: string } {
-	if (!swatchName) return base as T & { swatch?: string };
-	return {
-		...base,
-		swatch: swatchName,
-	};
+function buildOutputPath(token: WaveToken, filterLayer: number): string[] {
+	const leafKey = getFilteredName(token, filterLayer);
+	const sketchPath = token._sketch?.path;
+	if (!sketchPath) return [leafKey];
+	return [...sketchPath.split('/').filter(Boolean), leafKey];
+}
+
+function setNestedValue(
+	root: Record<string, unknown>,
+	parts: string[],
+	value: unknown,
+	token: WaveToken,
+): void {
+	let current = root;
+	for (let i = 0; i < parts.length - 1; i++) {
+		const part = parts[i]!;
+		const next = current[part];
+		if (next === undefined) {
+			current[part] = {};
+			current = current[part] as Record<string, unknown>;
+			continue;
+		}
+		if (typeof next !== 'object' || next === null || Array.isArray(next)) {
+			throw new Error(
+				`Duplicate Sketch output path "${parts.slice(0, i + 1).join('/')}" at ${tokenPathLabel(token)}`,
+			);
+		}
+		current = next as Record<string, unknown>;
+	}
+
+	const leaf = parts[parts.length - 1]!;
+	if (current[leaf] !== undefined) {
+		throw new Error(
+			`Duplicate Sketch output path "${parts.join('/')}" at ${tokenPathLabel(token)}`,
+		);
+	}
+	current[leaf] = value;
+}
+
+function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
+	const propertyKey = dimensionPropertyKey(token);
+	if (propertyKey) {
+		return { [propertyKey]: resolveDimensionValue(token, propertyKey) };
+	}
+
+	if (token.type === 'color' || token.inheritColor === true) {
+		const { color, opacity, alpha } = resolveSketchColor(token, allTokens);
+		if (typeof opacity === 'number' || typeof alpha === 'number') {
+			return {
+				color: hexToSketchColor(color),
+				...(typeof opacity === 'number' && { opacity }),
+				...(typeof alpha === 'number' && { alpha }),
+			};
+		}
+		if (token.inheritColor === true) {
+			return hexToSketchColor(color);
+		}
+		return hexToSketchColor(resolveSketchColorValue(token));
+	}
+
+	if (token.type === 'shadow') {
+		const shadowArray = toObjectArray(token.value, 'shadow', token);
+		return { shadow: [...shadowArray].reverse().map(processShadowLayer) };
+	}
+
+	if (token.type === 'gradient') {
+		const gradientArray = toObjectArray(token.value, 'gradient', token);
+		return {
+			gradient: gradientArray.map((stop) => ({
+				color: hexToSketchColor(String(stop.color)),
+				position: stop.position,
+			})),
+		};
+	}
+
+	return { value: resolveDimensionValue(token) };
 }
 
 export const sketchFormat: WaveFormatFn = (
 	tokens: WaveToken[],
-	_options?: Record<string, unknown>,
+	options?: Record<string, unknown>,
 ): string => {
-	const colorGroup: Record<string, string> = {};
-	const styleGroup: Record<string, Record<string, unknown>> = {};
-	const componentGroup: Record<string, Record<string, unknown>> = {};
-	const dimensionGroup: Record<string, Record<string, unknown>> = {};
-
+	const filterLayer = (options?.filterLayer as number) ?? 0;
+	const result: Record<string, unknown> = {};
 	const sortedTokens = [...tokens].sort(
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);
-	const resolveSwatchName = createSwatchNameResolver(sortedTokens);
 
 	for (const token of sortedTokens) {
-		const tokenValue = token.value;
-		if (tokenValue === undefined) continue;
-
-		const path = token.path;
-		if (path.length < 3) continue;
-
-		const compositePath = token._composite;
-		if (compositePath && compositePath.includes('component.')) {
-			const componentKey = compositePath
-				.slice(compositePath.indexOf('component.') + 'component.'.length)
-				.replace(/\./g, '-');
-			if (!componentGroup[componentKey]) {
-				componentGroup[componentKey] = {};
-			}
-			const componentObj = componentGroup[componentKey];
-			const propKey = path[path.length - 1]!;
-			const tokenType = token.type;
-
-			if (propKey === 'background' || propKey === 'background-color') {
-				if (tokenType === 'gradient') {
-					let gradientArray: Array<Record<string, unknown>> = [];
-					if (Array.isArray(tokenValue)) {
-						gradientArray = tokenValue as Array<Record<string, unknown>>;
-					} else if (typeof tokenValue === 'object' && tokenValue !== null) {
-						gradientArray = [tokenValue as Record<string, unknown>];
-					}
-					componentObj.fills = [
-						{
-							fillType: 'Gradient',
-							color: '#ffffffff',
-							enabled: true,
-							blendingMode: 'Normal',
-							gradient: {
-								gradientType: 'Linear',
-								from: { x: 0.5, y: 0 },
-								to: { x: 0.5, y: 1 },
-								aspectRatio: 0,
-								stops: mapGradientStops(gradientArray),
-							},
-						},
-					];
-				} else {
-					const { color, opacity, swatchName } = resolveSketchColor(
-						token,
-						sortedTokens,
-					);
-					const finalColor =
-						opacity !== undefined
-							? applyOpacityToHex(color, opacity)
-							: hexToSketchColor(color);
-					componentObj.fills = [
-						addSketchSwatch(
-							{
-								fillType: 'Color',
-								color: finalColor,
-								enabled: true,
-								blendingMode: 'Normal',
-							},
-							resolveSwatchName(swatchName),
-						),
-					];
-				}
-			} else if (propKey === 'foreground' || propKey === 'color') {
-				const { color, opacity } = resolveSketchColor(token, sortedTokens);
-				const finalColor =
-					opacity !== undefined
-						? applyOpacityToHex(color, opacity)
-						: hexToSketchColor(color);
-				componentObj.textColor = finalColor;
-			} else if (propKey === 'border') {
-				const { color, opacity, swatchName } = resolveSketchColor(
-					token,
-					sortedTokens,
-				);
-				const finalColor =
-					opacity !== undefined
-						? applyOpacityToHex(color, opacity)
-						: hexToSketchColor(color);
-				componentObj.borders = [
-					addSketchSwatch(
-						{
-							fillType: 'Color',
-							color: finalColor,
-							position: 'Inside',
-							thickness: 1,
-							enabled: true,
-							blendingMode: 'Normal',
-							hasIndividualSides: false,
-							sides: { left: 1, top: 1, right: 1, bottom: 1 },
-						},
-						resolveSwatchName(swatchName),
-					),
-				];
-			} else if (propKey === 'radius' || propKey === 'border-radius') {
-				const radiusValue =
-					typeof tokenValue === 'string'
-						? parseFloat(tokenValue)
-						: typeof tokenValue === 'number'
-							? tokenValue
-							: NaN;
-				const radiusNum = isNaN(radiusValue) ? 0 : radiusValue;
-				componentObj.corners = {
-					style: 0,
-					radii: [radiusNum, radiusNum, radiusNum, radiusNum],
-					hasRadii: radiusNum > 0,
-				};
-			} else if (propKey === 'shadow') {
-				let shadowArray: Array<Record<string, unknown>> = [];
-				if (Array.isArray(tokenValue)) {
-					shadowArray = tokenValue as Array<Record<string, unknown>>;
-				} else if (typeof tokenValue === 'object' && tokenValue !== null) {
-					shadowArray = [tokenValue as Record<string, unknown>];
-				}
-				componentObj.shadows = [...shadowArray]
-					.reverse()
-					.map((layer) =>
-						processComponentShadowLayer(layer, resolveSwatchName),
-					);
-			} else {
-				componentObj[propKey] = tokenValue;
-			}
-
-			continue;
-		}
-
-		// Locate the namespace root for path-based grouping. Token paths may include
-		// a leading `theme` segment (path[0]==='theme'); when present, the grouping
-		// keys live one level deeper.
-		const themePrefix = path[0] === 'theme' ? 1 : 0;
-		const rootKey = path[themePrefix];
-		const subPath = path.slice(themePrefix + 1);
-		if (subPath.length === 0) continue;
-		const defaultKey = subPath.join('-');
-
-		if (rootKey === 'color') {
-			assignSketchEntry(
-				colorGroup,
-				token,
-				defaultKey,
-				hexToSketchColor(resolveSketchColorValue(token)),
-			);
-		} else if (rootKey === 'style') {
-			const styleType = subPath[0];
-
-			if (styleType === 'interaction' && subPath.length >= 2) {
-				assertSketchStyleType(token, 'color', 'interaction');
-				if (token.inheritColor !== true) {
-					resolveSketchColorValue(token);
-				}
-				const { color, opacity, alpha } = resolveSketchColor(
-					token,
-					sortedTokens,
-				);
-				const result: Record<string, unknown> = {
-					color: hexToSketchColor(color),
-				};
-				if (typeof opacity === 'number') result.opacity = opacity;
-				if (typeof alpha === 'number') result.alpha = alpha;
-				assignSketchEntry(styleGroup, token, defaultKey, result);
-			} else if (styleType?.startsWith('shadow')) {
-				assertSketchStyleType(token, 'shadow', 'shadow');
-				const shadowArray = toObjectArray(tokenValue, 'shadow', token);
-				assignSketchEntry(styleGroup, token, defaultKey, {
-					shadow: [...shadowArray].reverse().map(processShadowLayer),
-				});
-			} else if (styleType?.startsWith('gradient')) {
-				assertSketchStyleType(token, 'gradient', 'gradient');
-				const gradientArray = toObjectArray(tokenValue, 'gradient', token);
-				assignSketchEntry(styleGroup, token, defaultKey, {
-					gradient: gradientArray.map((stop) => ({
-						color: hexToSketchColor(String(stop.color)),
-						position: stop.position,
-					})),
-				});
-			}
-		} else if (rootKey === 'dimension') {
-			const propertyKey = dimensionPropertyKey(token);
-			const dimValue = resolveDimensionValue(token, propertyKey);
-
-			if (propertyKey) {
-				assignSketchEntry(dimensionGroup, token, defaultKey, {
-					[propertyKey]: dimValue,
-				});
-			} else {
-				const isShadow =
-					token.type === 'shadow' && Array.isArray(dimValue);
-				assignSketchEntry(dimensionGroup, token, defaultKey, {
-					value: isShadow
-						? [...(dimValue as unknown[])].reverse()
-						: dimValue,
-				});
-			}
-		}
+		if (token.value === undefined) continue;
+		const outputPath = buildOutputPath(token, filterLayer);
+		const value = formatSketchValue(token, sortedTokens);
+		setNestedValue(result, outputPath, value, token);
 	}
-
-	const result: Record<string, unknown> = {};
-	if (Object.keys(colorGroup).length > 0) result.color = colorGroup;
-	if (Object.keys(styleGroup).length > 0) result.style = styleGroup;
-	if (Object.keys(componentGroup).length > 0) result.component = componentGroup;
-	if (Object.keys(dimensionGroup).length > 0) result.dimension = dimensionGroup;
 
 	return JSON.stringify(result, null, 2);
 };
