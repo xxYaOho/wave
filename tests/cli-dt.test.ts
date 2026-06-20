@@ -357,7 +357,14 @@ describe('wave dt', () => {
 		const { exitCode, stdout } = await runWave(['dt', 'build'], fixtureDir);
 
 		expect(exitCode).toBe(0);
+		expect(stdout).toContain('THEME');
+		expect(stdout).toContain('RESOURCES');
+		expect(stdout).toContain('tailwindcss');
+		expect(stdout).toContain('dimension');
 		expect(stdout).toContain('sketch-extensions2sketch.json');
+		expect(stdout).toContain('Night mode');
+		expect(stdout).toContain('skipped');
+		expect(stdout).toContain('Variants');
 
 		const sketchOutput = JSON.parse(
 			await fs.readFile(
@@ -378,6 +385,12 @@ describe('wave dt', () => {
 			cornerRadius: 8,
 		});
 		expect(sketchOutput.aaa.bbb['style-shadow-1'].shadow).toHaveLength(4);
+		expect(sketchOutput.aaa.bbb['style-shadow-1'].shadow[0]).toMatchObject({
+			color: '#0f172b0f',
+			y: 4,
+			blur: 8,
+			spread: -2,
+		});
 		expect(sketchOutput['aaa/bbb']).toBeUndefined();
 		expect(sketchOutput.component).toBeUndefined();
 
@@ -487,6 +500,70 @@ describe('wave dt', () => {
 				),
 			).exists(),
 		).toBe(true);
+
+		const mainCss = await fs.readFile(
+			path.join(outputDir, 'css', 'config-group-variants.css'),
+			'utf-8',
+		);
+		const nightCss = await fs.readFile(
+			path.join(outputDir, 'css', 'config-group-variants-night.css'),
+			'utf-8',
+		);
+		const darkCss = await fs.readFile(
+			path.join(outputDir, 'css', 'config-group-variants-dark.css'),
+			'utf-8',
+		);
+		const mainSketch = JSON.parse(
+			await fs.readFile(
+				path.join(outputDir, 'sketch', 'config-group-variants2sketch.json'),
+				'utf-8',
+			),
+		);
+		const nightSketch = JSON.parse(
+			await fs.readFile(
+				path.join(
+					outputDir,
+					'sketch',
+					'config-group-variants-night2sketch.json',
+				),
+				'utf-8',
+			),
+		);
+		const darkSketch = JSON.parse(
+			await fs.readFile(
+				path.join(
+					outputDir,
+					'sketch',
+					'config-group-variants-dark2sketch.json',
+				),
+				'utf-8',
+			),
+		);
+
+		expect(mainCss).toMatch(/--primary: #[0-9a-f]{6};/i);
+		expect(nightCss).toMatch(/--primary: #[0-9a-f]{6};/i);
+		expect(darkCss).toMatch(/--primary: #[0-9a-f]{6};/i);
+		expect(new Set([mainCss, nightCss, darkCss]).size).toBe(3);
+		expect(mainCss).not.toContain('--alpha-sm');
+		expect(mainSketch['color-primary']).toMatch(/^#[0-9a-f]{8}$/i);
+		expect(nightSketch['color-primary']).toMatch(/^#[0-9a-f]{8}$/i);
+		expect(darkSketch['color-primary']).toMatch(/^#[0-9a-f]{8}$/i);
+		expect(
+			new Set([
+				mainSketch['color-primary'],
+				nightSketch['color-primary'],
+				darkSketch['color-primary'],
+			]).size,
+		).toBe(3);
+		expect(mainSketch['dimension-alpha-sm'].value).toBeLessThan(
+			nightSketch['dimension-alpha-sm'].value,
+		);
+		expect(darkSketch['dimension-alpha-sm'].value).toBeGreaterThan(
+			mainSketch['dimension-alpha-sm'].value,
+		);
+		expect(darkSketch['dimension-alpha-sm'].value).toBeLessThan(
+			nightSketch['dimension-alpha-sm'].value,
+		);
 
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});

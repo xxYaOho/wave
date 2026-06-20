@@ -2,10 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
 import type { ResolvedTokenGroup, WaveToken } from '../src/types/index.ts';
 
-function findToken(
-	tokens: WaveToken[],
-	name: string,
-): WaveToken | undefined {
+function findToken(tokens: WaveToken[], name: string): WaveToken | undefined {
 	return tokens.find((t) => t.name === name);
 }
 
@@ -85,6 +82,33 @@ describe('inheritColor Transformer', () => {
 			const token = findToken(result.tokens, 'theme-color-primary')!;
 
 			expect(token.inheritColorOpacity).toBe(0.75);
+		});
+
+		test('should extract alpha number', () => {
+			const resolved: ResolvedTokenGroup = {
+				theme: {
+					color: {
+						primary: {
+							$value: '#0066cc',
+							$type: 'color',
+							$extensions: {
+								inheritColor: {
+									property: {
+										alpha: 0.25,
+									},
+								},
+							},
+						},
+					},
+				},
+			};
+
+			const result = transformToWaveTokens(resolved);
+			const token = findToken(result.tokens, 'theme-color-primary')!;
+
+			expect(token.inheritColor).toBe(true);
+			expect(token.inheritColorAlpha).toBe(0.25);
+			expect(token.value).toEqual({ alpha: 0.25, _color: '#0066cc' });
 		});
 	});
 

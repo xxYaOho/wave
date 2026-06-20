@@ -51,6 +51,7 @@
 temp-reference/
 .claude/
 .agents/
+.mcp.json
 skills-lock.json
 .sc
 

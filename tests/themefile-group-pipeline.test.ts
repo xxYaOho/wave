@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import {
+	buildGroupPasses,
 	mergeParameters,
 	resolveParameters,
-	buildGroupPasses,
 } from '../src/core/pipeline/theme-pipeline.ts';
 import type { ParsedThemefile } from '../src/types/index.ts';
 

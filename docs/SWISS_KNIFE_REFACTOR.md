@@ -1092,7 +1092,7 @@ DETAIL
 - 引入 pnpm workspace。
 - 引入 Turborepo。
 - 建立最终目录结构：`apps/cli`、`packages/core`、`packages/design-token`、`packages/compress`、`packages/motion`、`packages/receipt`。
-- 建立统一脚本：`dev`、`build`、`test`、`typecheck`、`check`。
+- 建立统一脚本：`dev`、`build`、`test`、`typecheck`、`check:style`、`check:ci`。
 - 确认 Vitest 运行稳定。
 - 建立 CLI e2e test helper。
 - 建立 fixture workspace helper。
@@ -1112,7 +1112,7 @@ GREEN: 建立最小 monorepo、Vitest 和 CLI e2e helper
 pnpm build
 pnpm test
 pnpm typecheck
-pnpm check
+pnpm check:ci
 ```
 
 ### Milestone 1：command registry 与全局输出协议
@@ -1371,7 +1371,8 @@ Wave 的 profile 应代表设计项目、品牌或交付规范，不照搬 Herme
 - `wave mg gif ./frames` 遇到已存在输出文件时默认报错。
 - `wave motion doctor ./frames` 能报告帧数量、尺寸一致性和工具链状态。
 - `mise install` 能安装项目所需工具链。
-- `pnpm build`、`pnpm test`、`pnpm typecheck`、`pnpm check` 可从 repo root 调度。
+- `pnpm build`、`pnpm test`、`pnpm typecheck`、`pnpm check:style`、`pnpm check:ci` 可从 repo root 调度。
+- `pnpm check:style` 只运行 Biome；`pnpm check:ci` 聚合类型检查、测试、构建和 Biome 检查，作为交付前质量闸门。
 - Bun 作为 Wave CLI runtime 由 mise 管理，不要求用户手动安装或理解 Bun。
 - 业务包不直接散落 Bun 专属 API，文件访问通过 `WorkspaceIO`，外部工具执行通过 `ToolResolver` / `CommandRunner`。
 - compress / motion 主测试使用 fake backend 或 mock `CommandRunner`；真实 codec 测试在工具缺失时 skip。

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { shadowToCss } from '../src/core/generator/formats/utils.ts';
 import { cleanShadowZeroPx } from '../src/core/generator/formats/flat.ts';
+import { shadowToCss } from '../src/core/generator/formats/utils.ts';
 
 describe('css-var transform', () => {
 	describe('shadowToCss', () => {

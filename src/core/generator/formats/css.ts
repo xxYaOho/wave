@@ -73,10 +73,7 @@ function getGroupCommentPaths(tokenPath: string[]): string[] {
 	return paths;
 }
 
-function shouldInclude(
-	token: WaveToken,
-	includeRootKeys?: string[],
-): boolean {
+function shouldInclude(token: WaveToken, includeRootKeys?: string[]): boolean {
 	if (!includeRootKeys || includeRootKeys.length === 0) return true;
 	const rootKey = token.path[1];
 	return typeof rootKey === 'string' && includeRootKeys.includes(rootKey);

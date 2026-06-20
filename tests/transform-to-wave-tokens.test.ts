@@ -119,9 +119,7 @@ describe('transformToWaveTokens', () => {
 		};
 
 		const result = transformToWaveTokens(input);
-		const fill = result.tokens.find(
-			(t) => t.name === 'component-button-fill',
-		)!;
+		const fill = result.tokens.find((t) => t.name === 'component-button-fill')!;
 		const radius = result.tokens.find(
 			(t) => t.name === 'component-button-radius',
 		)!;

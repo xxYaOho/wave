@@ -283,8 +283,7 @@ describe('generalized resolver', () => {
 							},
 							$extensions: {
 								smoothShadow: {
-									cubicBezier:
-										'{wave.dimension.cubicBezier.easeOutCubic}',
+									cubicBezier: '{wave.dimension.cubicBezier.easeOutCubic}',
 									step: 4,
 									target: {
 										alpha: 0.08,

@@ -47,10 +47,14 @@ pnpm dev -- --help
 常用验证命令：
 
 ```bash
+pnpm check:ci
 pnpm typecheck
-bun test
+pnpm test
 pnpm build
+pnpm check:style
 ```
+
+`pnpm check:ci` 是完整交付检查，聚合类型检查、测试、构建和 Biome 检查。`pnpm check:style` 只检查 Biome 格式、导入顺序和 lint 规则。
 
 ## 项目结构
 

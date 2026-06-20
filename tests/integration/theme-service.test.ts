@@ -29,7 +29,10 @@ function createTempOutputDir(): string {
 }
 
 function makeInput(
-	overrides: Partial<ThemeGenerationInput> & { themeName: string; themePath: string },
+	overrides: Partial<ThemeGenerationInput> & {
+		themeName: string;
+		themePath: string;
+	},
 ): ThemeGenerationInput {
 	return {
 		cliOutput: tempDir,
@@ -74,14 +77,46 @@ describe('Theme Service Integration', () => {
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				const hasJson = result.generatedFiles.some((f) =>
-					f.endsWith('.json'),
-				);
-				const hasCss = result.generatedFiles.some((f) =>
-					f.endsWith('.css'),
-				);
+				const hasJson = result.generatedFiles.some((f) => f.endsWith('.json'));
+				const hasCss = result.generatedFiles.some((f) => f.endsWith('.css'));
 				expect(hasJson).toBe(true);
 				expect(hasCss).toBe(true);
+			}
+		});
+
+		test('锁定标准 DTCG 输出内容', async () => {
+			const result = await generateTheme(
+				makeInput({ themeName: 'test-standard', themePath: theme.themefile }),
+			);
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				const json = JSON.parse(
+					await fs.readFile(path.join(tempDir, 'test-standard.json'), 'utf-8'),
+				);
+				const css = await fs.readFile(
+					path.join(tempDir, 'test-standard.css'),
+					'utf-8',
+				);
+
+				expect(json['theme-color-primary']).toMatch(/^#[0-9a-f]{6}$/i);
+				expect(json['theme-color-text-muted']).toMatch(/^#[0-9a-f]{8}$/i);
+				expect(json['theme-style-shadow-sm']).toEqual([
+					{
+						color: '#000000',
+						alpha: 0.1,
+						offsetX: 0,
+						offsetY: 1,
+						blur: 2,
+						spread: 0,
+					},
+				]);
+				expect(typeof json['theme-dimension-alpha-sm']).toBe('number');
+				expect(css).toMatch(/--theme-color-primary: #[0-9a-f]{6};/i);
+				expect(css).toContain(
+					'--theme-style-shadow-sm: 0 1 2 0 rgb(0 0 0 / 1);',
+				);
+				expect(css).not.toContain('--theme-dimension-alpha-sm');
 			}
 		});
 	});
@@ -127,14 +162,10 @@ describe('Theme Service Integration', () => {
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				const hasJson = result.generatedFiles.some((f) =>
-					f.endsWith('.json'),
-				);
-				const hasCss = result.generatedFiles.some((f) =>
-					f.endsWith('.css'),
-				);
-				const hasSketch = result.generatedFiles.some((f) =>
-					f.endsWith('.json') && f.includes('sketch'),
+				const hasJson = result.generatedFiles.some((f) => f.endsWith('.json'));
+				const hasCss = result.generatedFiles.some((f) => f.endsWith('.css'));
+				const hasSketch = result.generatedFiles.some(
+					(f) => f.endsWith('.json') && f.includes('sketch'),
 				);
 				expect(hasJson).toBe(true);
 				expect(hasCss).toBe(true);
@@ -248,12 +279,10 @@ describe('Theme Service Integration', () => {
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
-				const hasJson = result.generatedFiles.some((f) =>
-					f.endsWith('.json') && !f.includes('sketch'),
+				const hasJson = result.generatedFiles.some(
+					(f) => f.endsWith('.json') && !f.includes('sketch'),
 				);
-				const hasCss = result.generatedFiles.some((f) =>
-					f.endsWith('.css'),
-				);
+				const hasCss = result.generatedFiles.some((f) => f.endsWith('.css'));
 				const hasSketch = result.generatedFiles.some((f) =>
 					f.includes('sketch'),
 				);
@@ -277,6 +306,73 @@ describe('Theme Service Integration', () => {
 					(f) => f.endsWith('.json') && !f.includes('sketch'),
 				);
 				expect(jsonFile).toBeDefined();
+			}
+		});
+	});
+
+	describe('Sketch extensions 集成输出', () => {
+		const themeDir = path.join(
+			import.meta.dir,
+			'..',
+			'fixtures',
+			'themes',
+			'sketch-extensions',
+		);
+
+		afterAll(async () => {
+			await fs.rm(path.join(themeDir, 'theme'), {
+				recursive: true,
+				force: true,
+			});
+		});
+
+		test('应在真实生成链路中锁定 sketch.path、property 和 filterLayer 合同', async () => {
+			const outputDir = path.join(themeDir, 'theme');
+			await fs.rm(outputDir, { recursive: true, force: true });
+
+			const result = await generateTheme({
+				themeName: 'sketch-extensions',
+				themePath: path.join(themeDir, 'main.yaml'),
+				generateOptions: { night: true },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('sketch-extensions.json');
+				expect(result.generatedFiles).toContain('sketch-extensions.css');
+				expect(result.generatedFiles).toContain(
+					'sketch-extensions2sketch.json',
+				);
+
+				const sketch = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'sketch', 'sketch-extensions2sketch.json'),
+						'utf-8',
+					),
+				);
+				const json = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'json', 'sketch-extensions.json'),
+						'utf-8',
+					),
+				);
+
+				expect(sketch.foundation.color['color-primary-main']).toBe('#1872f0ff');
+				expect(
+					sketch.foundation.interaction['dimension-interaction-hover'],
+				).toEqual({
+					opacity: 0.16,
+				});
+				expect(sketch.foundation.radius['dimension-radius-card']).toEqual({
+					cornerRadius: 8,
+				});
+				expect(sketch.aaa.bbb['style-shadow-1'].shadow).toHaveLength(4);
+				expect(sketch['aaa/bbb']).toBeUndefined();
+				expect(sketch.color).toBeUndefined();
+				expect(sketch.dimension).toBeUndefined();
+				expect(sketch.component).toBeUndefined();
+				expect(json['color-primary-main']).toBe('#1872f0');
+				expect(JSON.stringify(json)).not.toContain('_sketch');
 			}
 		});
 	});

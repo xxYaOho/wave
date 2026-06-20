@@ -15,6 +15,7 @@ import {
 	isDtcgColorSpaceValue,
 } from './color-space.ts';
 import { sampleCubicBezier } from './cubic-bezier.ts';
+import { applyInheritColorExtension } from './inherit-color-extension.ts';
 import { roundTo } from './number-format.ts';
 import { parseSketchExtension } from './sketch-extension.ts';
 
@@ -503,70 +504,6 @@ function deriveSmoothShadow(
 
 let orderCounter = 0;
 
-/**
- * Extract normalized numeric value from inheritColor.property (opacity / alpha)
- * Handles: number, alias, $ref object
- */
-function extractInheritColorPropertyValue(
-	data: unknown,
-	_tokenPath?: string,
-): number | undefined {
-	if (data === undefined) {
-		return undefined;
-	}
-
-	// Direct number
-	if (typeof data === 'number') {
-		return data >= 0 && data <= 1 ? data : undefined;
-	}
-
-	// Resolved alias or $ref - should have $value after resolution
-	if (typeof data === 'object' && data !== null) {
-		const obj = data as Record<string, unknown>;
-		if ('$value' in obj) {
-			const resolvedValue = obj.$value;
-			if (typeof resolvedValue === 'number') {
-				return resolvedValue >= 0 && resolvedValue <= 1
-					? resolvedValue
-					: undefined;
-			}
-			if (typeof resolvedValue === 'string') {
-				const parsed = parseFloat(resolvedValue);
-				return !isNaN(parsed) && parsed >= 0 && parsed <= 1
-					? parsed
-					: undefined;
-			}
-		}
-	}
-
-	return undefined;
-}
-
-/**
- * Extract normalized opacity value from inheritColor.opacity
- * Handles: number, alias, $ref object
- * @deprecated Use extractInheritColorPropertyValue instead
- */
-function extractInheritColorOpacity(
-	opacityData: unknown,
-	tokenPath?: string,
-): number | undefined {
-	return extractInheritColorPropertyValue(opacityData, tokenPath);
-}
-
-/**
- * Extract siblingSlot from inheritColor object
- */
-function extractSiblingSlot(inheritColor: unknown): string | undefined {
-	if (typeof inheritColor === 'object' && inheritColor !== null) {
-		const obj = inheritColor as Record<string, unknown>;
-		if (typeof obj.siblingSlot === 'string') {
-			return obj.siblingSlot;
-		}
-	}
-	return undefined;
-}
-
 function transformToken(
 	token: ResolvedDtcgToken,
 	parentType: string | undefined,
@@ -611,52 +548,12 @@ function transformToken(
 	let inheritColorSiblingSlot: string | undefined;
 	const inheritColorExt = token.$extensions?.inheritColor;
 	if (inheritColorExt !== undefined && typeValue === 'color') {
-		// Boolean form: inheritColor: true
-		if (typeof inheritColorExt === 'boolean') {
-			inheritColor = inheritColorExt;
-		}
-		// Object form: inheritColor: { property?: { opacity?, alpha? }, siblingSlot? }
-		else if (typeof inheritColorExt === 'object' && inheritColorExt !== null) {
-			inheritColor = true;
-			const extObj = inheritColorExt as Record<string, unknown>;
-
-			// Extract opacity/alpha from property (handles number, alias, $ref)
-			const propertyObj = extObj.property as
-				| Record<string, unknown>
-				| undefined;
-			if (propertyObj && typeof propertyObj === 'object') {
-				if ('alpha' in propertyObj) {
-					inheritColorAlpha = extractInheritColorPropertyValue(
-						propertyObj.alpha,
-						tokenPath,
-					);
-				}
-				if ('opacity' in propertyObj) {
-					inheritColorOpacity = extractInheritColorPropertyValue(
-						propertyObj.opacity,
-						tokenPath,
-					);
-				}
-			}
-
-			// Extract siblingSlot for Sketch
-			inheritColorSiblingSlot = extractSiblingSlot(inheritColorExt);
-		}
-
-		// Store original color for potential fallback use
-		const originalColor =
-			typeof processedValue === 'string' ? processedValue : undefined;
-
-		// Build processed value with alpha/opacity metadata
-		if (inheritColorAlpha !== undefined || inheritColorOpacity !== undefined) {
-			processedValue = {
-				...(inheritColorAlpha !== undefined && { alpha: inheritColorAlpha }),
-				...(inheritColorOpacity !== undefined && {
-					opacity: inheritColorOpacity,
-				}),
-				...(originalColor !== undefined && { _color: originalColor }),
-			};
-		}
+		const result = applyInheritColorExtension(inheritColorExt, processedValue);
+		processedValue = result.value;
+		inheritColor = result.metadata.inheritColor;
+		inheritColorOpacity = result.metadata.inheritColorOpacity;
+		inheritColorAlpha = result.metadata.inheritColorAlpha;
+		inheritColorSiblingSlot = result.metadata.inheritColorSiblingSlot;
 	}
 
 	// currentColor extension (deprecated, use inheritColor instead)

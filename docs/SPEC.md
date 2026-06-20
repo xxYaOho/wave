@@ -1129,6 +1129,17 @@ wave doctor --contrast --variants dark --night
 
 ## 测试固件系统
 
+### Transformer 模块边界
+
+design-token 的 DTCG 解析、引用解析和输出格式化分层保持分离。`src/core/transformer/theme-transformer.ts` 负责遍历已解析 token 树、维持输出顺序，并编排扩展转换；具体扩展归一化应放在同目录下的专属模块中。
+
+当前专属模块：
+
+- `sketch-extension.ts`：归一化 `$extensions.sketch.path` 与 `$extensions.sketch.property`，只输出 `_sketch` 元数据
+- `inherit-color-extension.ts`：归一化 `$extensions.inheritColor`，只输出 inheritColor 相关元数据和必要的 value 替换
+
+新增 Sketch 或设计工具特例时，不要把平台命名规则写进 parser 或 resource resolver；优先在 transformer 生成平台元数据，再由对应 generator 消费。
+
 ### 目录结构
 
 ```

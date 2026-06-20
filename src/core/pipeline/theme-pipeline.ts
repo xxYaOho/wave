@@ -5,12 +5,12 @@ import {
 	type DimensionResult,
 	ExitCode,
 	type PaletteResult,
+	type ParameterSet,
 	type ParsedThemefile,
 	type ParseError,
 	type ReferenceDataSources,
 	type ResolvedGroupParameters,
 	type ThemeDocumentResult,
-	type ParameterSet,
 } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 import {

@@ -7,7 +7,9 @@ tests/
 ├── fixtures/           # 测试固件
 │   ├── themes/         # 标准主题模板
 │   │   ├── standard/   # 标准主题（颜色、阴影、dimension）
-│   │   └── ref-test/   # $ref 引用测试主题
+│   │   ├── ref-test/   # $ref 引用测试主题
+│   │   ├── inherit-color/       # inheritColor 扩展测试主题
+│   │   └── sketch-extensions/   # Sketch 扩展测试主题
 │   └── expectations/   # 预期输出快照
 ├── integration/        # 集成测试
 │   └── theme-service.test.ts
@@ -21,13 +23,13 @@ tests/
 
 ```bash
 # 运行所有测试
-bun test
+pnpm test
 
 # 运行特定测试文件
-bun test tests/integration/theme-service.test.ts
+pnpm test -- tests/integration/theme-service.test.ts
 
 # 运行工具自测
-bun test tests/utils/fixture-loader.test.ts
+pnpm test -- tests/utils/fixture-loader.test.ts
 ```
 
 ## 测试固件
@@ -67,14 +69,14 @@ bun test tests/utils/fixture-loader.test.ts
 - `tests/pair-extractor.test.ts` — wcagPairs pair 提取与校验
 - `tests/cli-doctor.test.ts` — CLI 输出与退出码
 
-### Sketch Component 格式测试 (tests/sketch-component-format.test.ts)
+### Sketch 扩展格式测试
 
-测试 `sketchFormat` 对 composite token 的 Sketch Style 输出：
+测试 `$extensions.sketch` 在 transformer、schema、format 和 CLI 集成链路中的输出：
 
-- composite 组件属性映射（background、foreground、border、radius）
-- swatch 变量关联（`_swatchName` 传播）
-- inheritColor + siblingSlot 颜色继承
-- shadow 和 gradient 组件属性输出
+- `tests/sketch-extension-schema.test.ts`：Sketch 扩展 schema 校验
+- `tests/sketch-extension-transformer.test.ts`：Sketch 扩展 transformer 元数据
+- `tests/sketch-extension-format.test.ts`：Sketch format 对 path / property 的消费
+- `tests/integration/theme-service.test.ts`：真实生成链路中的 Sketch 扩展合同
 
 ## 测试工具 API
 

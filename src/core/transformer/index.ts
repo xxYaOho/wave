@@ -1,4 +1,4 @@
 export {
-	type WaveTokenResult,
 	transformToWaveTokens,
+	type WaveTokenResult,
 } from './theme-transformer.ts';

@@ -62,6 +62,7 @@ function HomeCard({ card }: { card: ManualHomeCardConfig }) {
 function ManualHtml({ html }: { html: string }) {
 	const articleRef = useRef<HTMLElement | null>(null);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: html changes remount rendered manual content via dangerouslySetInnerHTML, so copy buttons must be rebound after route changes.
 	useEffect(() => {
 		const article = articleRef.current;
 		if (!article) return;
