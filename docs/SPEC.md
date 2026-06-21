@@ -33,6 +33,7 @@ themefile（声明数据源 + 输出参数）
 - workspace：按 `~/.config/wave/workspace.yaml` 或内置默认配置创建本地设计项目目录
 - install/doctor：检查和安装本地工具链，不改变 token 数据模型
 - manual：服务 `dist/manual-app/` 构建产物，不在运行时读取 `manual/` 源码
+- Quality Harness：维护者使用的质量指标基座，当前第一批 consumer 是 design-token benchmark suite；它用于判断何时需要优化，不是用户向功能
 
 用户向使用说明统一维护在 `manual/`，通过 `wave manual` 查看。`docs/SPEC.md` 只记录内部行为快照和实现/review 心智模型。
 
@@ -43,6 +44,7 @@ themefile（声明数据源 + 输出参数）
 - ❌ 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
 - ❌ 不要把 compress 和 motion 的外部工具判断各写一套；应复用 `ToolResolver` / `CommandRunner`
 - ❌ 不要把 `create` 误写成已完成 `main.yaml::$config` 的 vNext 模型；`create` 仍以 `themefile` 为默认入口
+- ❌ 不要把 Quality Harness 当作单次跑分结论；它提供趋势和阶段定位参考
 
 ---
 

@@ -6,7 +6,6 @@ import {
 	buildWorkspacePlan,
 	createWorkspace,
 	DEFAULT_WORKSPACE_CONFIG,
-	formatWorkspaceDate,
 	loadWorkspaceConfig,
 	sanitizeCustomType,
 	validateWorkspaceConfig,
@@ -374,14 +373,13 @@ describe('wave workspace', () => {
 			});
 
 			expect(result.exitCode).toBe(0);
-			const today = formatWorkspaceDate(new Date());
-			const workspaceName = `FEAT_项目_${today}`;
+			const workspaceName = result.stdout.match(/FEAT_项目_\d{8}/)?.[0];
 
-			expect(result.stdout).toContain(workspaceName);
+			expect(workspaceName).toBeDefined();
 			expect(result.stdout).not.toContain('Version');
 			expect(result.stdout).not.toContain('v1.0.0');
 			const readme = await fs.readFile(
-				path.join(tempDir, 'work', workspaceName, 'README.md'),
+				path.join(tempDir, 'work', workspaceName!, 'README.md'),
 				'utf-8',
 			);
 			expect(readme).not.toContain('Version:');

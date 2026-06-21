@@ -50,11 +50,13 @@ pnpm dev -- --help
 pnpm check:ci
 pnpm typecheck
 pnpm test
+pnpm bench:smoke
 pnpm build
 pnpm check:style
 ```
 
 `pnpm check:ci` 是完整交付检查，聚合类型检查、测试、构建和 Biome 检查。`pnpm check:style` 只检查 Biome 格式、导入顺序和 lint 规则。
+`pnpm bench:smoke` 是维护者使用的 Quality Harness 快速检查，用于确认 design-token benchmark 编排和真实输出仍保持等价。详细说明见 [benchmarks/README.md](./benchmarks/README.md)。
 
 ## 项目结构
 
@@ -65,6 +67,7 @@ src/
   resources/    内置 resource
 manual/         wave manual 内容源
 docs/           行为快照、变更记录和重构说明
+benchmarks/     Quality Harness 维护者指标工具
 tests/          bun:test 测试
 ```
 
@@ -72,6 +75,7 @@ tests/          bun:test 测试
 
 - `wave manual`：用户手册。
 - [docs/SPEC.md](./docs/SPEC.md)：当前行为快照，适合实现和 review 前阅读。
+- [benchmarks/README.md](./benchmarks/README.md)：Quality Harness 说明，适合质量优化前阅读。
 - [docs/CHANGELOG.md](./docs/CHANGELOG.md)：变更记录。
 - [docs/SWISS_KNIFE_REFACTOR.md](./docs/SWISS_KNIFE_REFACTOR.md)：瑞士军刀化重构路线。
 

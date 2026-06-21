@@ -59,6 +59,10 @@ skills-lock.json
 .graphify_*
 graphify-out/cache/
 
+# Quality Harness
+benchmarks/.tmp/
+benchmarks/.results/
+
 # Bun build artifacts
 *.bun-build
 dist/
