@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { sketchFormat } from '../src/core/generator/formats/sketch.ts';
-import type { WaveToken } from '../src/types/index.ts';
+import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
+import type { ResolvedTokenGroup, WaveToken } from '../src/types/index.ts';
 
 function token(partial: Partial<WaveToken> & { name: string }): WaveToken {
 	return {
@@ -182,8 +183,8 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 
-		expect(parsed.aaa.bbb['shadow-1'].shadow).toHaveLength(2);
-		expect(parsed.aaa.bbb['shadow-1'].shadow[0]).toMatchObject({
+		expect(parsed.aaa.bbb['shadow-1']).toHaveLength(2);
+		expect(parsed.aaa.bbb['shadow-1'][0]).toMatchObject({
 			color: '#0f172b05',
 			y: 0,
 			blur: 2,
@@ -206,7 +207,7 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 
-		expect(parsed.foundation.gradient['gradient-brand'].gradient).toEqual([
+		expect(parsed.foundation.gradient['gradient-brand']).toEqual([
 			{ color: '#00000000', position: 0 },
 			{ color: '#000000cc', position: 1 },
 		]);
@@ -260,5 +261,23 @@ describe('sketch extension format', () => {
 		expect(parsed.component).toBeUndefined();
 		expect(parsed['button-background']).toBe('#1872f0ff');
 		expect(parsed['button-radius']).toEqual({ value: 8 });
+	});
+
+	test('formats inherited group sketch.path after transformer normalization', () => {
+		const resolved: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					$extensions: { sketch: { path: 'foundation/color' } },
+					primary: { $value: '#1872f0' },
+				},
+			},
+		};
+		const { tokens } = transformToWaveTokens(resolved);
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+
+		expect(parsed.foundation.color.primary).toBe('#1872f0ff');
+		expect(parsed.primary).toBeUndefined();
 	});
 });

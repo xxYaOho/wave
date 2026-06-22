@@ -2,6 +2,18 @@ import type { QualityHarnessMode } from '../shared/types.ts';
 
 export type DesignTokenEntryKind = 'main-config' | 'themefile-legacy';
 
+export type DesignTokenCaseOrigin =
+	| 'synthetic'
+	| 'internal-fixture'
+	| 'example-derived';
+
+export interface ExampleTrace {
+	sourceName: string;
+	capturedFrom?: string;
+	reason: string;
+	risks: string[];
+}
+
 export interface SyntheticDesignTokenOptions {
 	seed: number;
 	tokenCount: number;
@@ -30,6 +42,8 @@ export interface DesignTokenCase {
 	caseVersion: number;
 	suites: QualityHarnessMode[];
 	entryKind: DesignTokenEntryKind;
+	origin: DesignTokenCaseOrigin;
+	example?: ExampleTrace;
 	source:
 		| {
 				kind: 'fixture';

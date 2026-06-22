@@ -37,6 +37,7 @@ Wave 是面向 UI/UX 设计师的本地设计交付 CLI。当前能力包含 des
 
 - `graphify-out/`：知识图谱产物，快速理解项目结构时先看这里。
 - `docs/SPEC.md`：当前行为快照和 agent 必读心智模型。
+- `benchmarks/`：Quality Harness；真实实例暴露的缺口要提炼为 `example-derived` case 内化到这里。
 - `src/cli/commands/`：CLI 命令入口，包含 `create`、`doctor`、`init`、`show`。
 - `src/core/pipeline/`：themefile 加载、依赖字典、构建 pass 和生成编排。
 - `src/core/transformer/`：Wave 扩展与 token 转换。

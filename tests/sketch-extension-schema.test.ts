@@ -231,4 +231,70 @@ describe('sketch extension schema', () => {
 			),
 		).toBe(true);
 	});
+
+	test('accepts group-level sketch path', () => {
+		const result = validateThemeSchema({
+			theme: {
+				color: {
+					$type: 'color',
+					$extensions: {
+						sketch: { path: 'foundation/color' },
+					},
+					primary: { $value: '#1872f0' },
+				},
+			},
+		});
+
+		expect(result.valid).toBe(true);
+	});
+
+	test('rejects invalid group-level sketch path values', () => {
+		const result = validateThemeSchema({
+			theme: {
+				color: {
+					$type: 'color',
+					$extensions: {
+						sketch: { path: 'foundation.color' },
+					},
+					primary: { $value: '#1872f0' },
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some(
+				(issue) =>
+					issue.path === 'theme.color.$extensions.sketch.path' &&
+					issue.message.includes(
+						'sketch.path must be a slash-delimited group path',
+					),
+			),
+		).toBe(true);
+	});
+
+	test('rejects group-level sketch property', () => {
+		const result = validateThemeSchema({
+			theme: {
+				color: {
+					$type: 'color',
+					$extensions: {
+						sketch: { property: { opacity: true } },
+					},
+					primary: { $value: '#1872f0' },
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some(
+				(issue) =>
+					issue.path === 'theme.color.$extensions.sketch.property' &&
+					issue.message.includes(
+						'sketch.property is only supported on token extensions',
+					),
+			),
+		).toBe(true);
+	});
 });

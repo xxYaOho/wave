@@ -1,0 +1,12 @@
+orca-brand:
+  color:
+    $type: color
+    main:
+      50:
+        $value: "#eff8ff"
+      500:
+        $value: "#3695fb"
+      600:
+        $value: "#1872f0"
+      700:
+        $value: "#1860dd"

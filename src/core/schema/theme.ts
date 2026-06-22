@@ -170,6 +170,7 @@ function validateSketchExtension(
 	tokenType: string | undefined,
 	tokenPath: string,
 	issues: ThemeSchemaIssue[],
+	context: 'token' | 'group' = 'token',
 ): void {
 	if (!('sketch' in extensions)) return;
 
@@ -194,6 +195,14 @@ function validateSketchExtension(
 		}
 	}
 
+	if (context === 'group' && 'property' in sketchObj) {
+		issues.push({
+			path: `${tokenPath}.$extensions.sketch.property`,
+			level: 'error',
+			message: 'sketch.property is only supported on token extensions',
+		});
+	}
+
 	if ('path' in sketchObj) {
 		if (
 			typeof sketchObj.path !== 'string' ||
@@ -209,7 +218,7 @@ function validateSketchExtension(
 		}
 	}
 
-	if (!('property' in sketchObj)) return;
+	if (context === 'group' || !('property' in sketchObj)) return;
 	const property = sketchObj.property;
 	if (
 		typeof property !== 'object' ||
@@ -435,6 +444,22 @@ function walkNode(
 
 		// Group node — validate $extends and recurse into non-meta children
 		validateExtends(obj, path, issues);
+		if ('$extensions' in obj) {
+			const extensions = obj.$extensions;
+			if (
+				typeof extensions === 'object' &&
+				extensions !== null &&
+				!Array.isArray(extensions)
+			) {
+				validateSketchExtension(
+					extensions as Record<string, unknown>,
+					nodeType,
+					path,
+					issues,
+					'group',
+				);
+			}
+		}
 		validateComposite(obj, path, issues);
 
 		for (const [key, child] of Object.entries(obj)) {

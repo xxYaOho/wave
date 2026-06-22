@@ -384,8 +384,8 @@ describe('wave dt', () => {
 		expect(sketchOutput.foundation.radius['dimension-radius-card']).toEqual({
 			cornerRadius: 8,
 		});
-		expect(sketchOutput.aaa.bbb['style-shadow-1'].shadow).toHaveLength(4);
-		expect(sketchOutput.aaa.bbb['style-shadow-1'].shadow[0]).toMatchObject({
+		expect(sketchOutput.aaa.bbb['style-shadow-1']).toHaveLength(4);
+		expect(sketchOutput.aaa.bbb['style-shadow-1'][0]).toMatchObject({
 			color: '#0f172b0f',
 			y: 4,
 			blur: 8,

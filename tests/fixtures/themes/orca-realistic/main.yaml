@@ -1,0 +1,145 @@
+$schema: "https://www.designtokens.org/tr/2025.10/format/"
+
+$config:
+  theme: orca-realistic
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+    custom:
+      - ./custom/orca-brand.yaml
+  parameter:
+    outputDir: ./theme
+    filterLayer: 1
+  parameterGroup:
+    css:
+      platform:
+        - css
+      outputDir: ./theme/css
+      filterLayer: 2
+    sketch:
+      platform:
+        - sketch
+      outputDir: ./theme/sketch
+      filterLayer: 2
+
+theme:
+  color:
+    $type: color
+    $extensions:
+      sketch:
+        path: "foundation/color"
+    transparent:
+      $value: "#00000000"
+    primary:
+      main:
+        $value: "{orca-brand.color.main.600}"
+      on-main:
+        $value: "{tailwindcss.color.white}"
+      container:
+        $value: "{orca-brand.color.main.50}"
+      on-container:
+        $value: "{orca-brand.color.main.700}"
+    text:
+      default:
+        $value: "{tailwindcss.color.slate.900}"
+      disabled:
+        $value:
+          $ref: "#/theme/color/text/default/$value"
+          alpha: "{wave.dimension.alpha.400}"
+    outline:
+      default:
+        $value: "#ff00ff"
+        $extensions:
+          inheritColor:
+            property:
+              opacity: "{wave.dimension.alpha.400}"
+    surface:
+      default:
+        $value:
+          colorSpace: hsl
+          components: [210, 10, 96]
+    scrim:
+      $value:
+        $ref: "#/theme/color/transparent/$value"
+        alpha: "{wave.dimension.alpha.700}"
+    inverse:
+      surface:
+        $value:
+          color: "{tailwindcss.color.slate.900}"
+          alpha: "{wave.dimension.alpha.800}"
+  dimension:
+    interaction:
+      $extensions:
+        sketch:
+          path: "foundation/interaction"
+      hover:
+        $type: number
+        $value: "{wave.dimension.alpha.100}"
+        $extensions:
+          sketch:
+            property:
+              opacity: true
+      press:
+        $type: number
+        $value: "{wave.dimension.alpha.200}"
+        $extensions:
+          sketch:
+            property:
+              opacity: true
+    radius:
+      $extensions:
+        sketch:
+          path: "foundation/radius"
+      card:
+        $type: dimension
+        $value: 8
+        $extensions:
+          sketch:
+            property:
+              cornerRadius: true
+  style:
+    shadow:
+      $extensions:
+        sketch:
+          path: "foundation/shadow"
+      raised:
+        $type: shadow
+        $value:
+          color:
+            $ref: "#/theme/color/inverse/surface/$value"
+            alpha: 0.02
+          offsetX: 0
+          offsetY: 0
+          blur: 2
+          spread: 1
+        $extensions:
+          smoothShadow:
+            cubicBezier: "{wave.dimension.cubicBezier.easeInQuad}"
+            step: 4
+            target:
+              alpha: 0.06
+              offsetX: 0
+              offsetY: 4
+              blur: 8
+              spread: -2
+  gradient:
+    $type: gradient
+    $extensions:
+      sketch:
+        path: "foundation/gradient"
+    mask:
+      $value:
+        - color:
+            $ref: "#/theme/color/transparent/$value"
+            alpha: 0
+          position: 0
+        - color:
+            $ref: "#/theme/color/transparent/$value"
+            alpha: 1
+          position: 1
+      $extensions:
+        smoothGradient:
+          cubicBezier: "{wave.dimension.cubicBezier.easeInOutCubic}"
+          step: 4

@@ -1,0 +1,33 @@
+theme:
+  color:
+    $type: color
+    primary:
+      main:
+        $value: "{tailwindcss.color.sky.600}"
+        $extensions:
+          sketch:
+            path: "foundation/color"
+      on-main:
+        $value: "{tailwindcss.color.white}"
+        $extensions:
+          sketch:
+            path: "foundation/color"
+      container:
+        $value: "{tailwindcss.color.sky.50}"
+      on-container:
+        $value: "{tailwindcss.color.sky.700}"
+    text:
+      default:
+        $value: "{tailwindcss.color.gray.900}"
+      disabled:
+        $value:
+          $ref: "#/theme/color/text/default/$value"
+          alpha: "{wave.dimension.alpha.400}"
+    surface:
+      default:
+        $value: "#EEEFF1"
+    inverse:
+      surface:
+        $value:
+          color: "{tailwindcss.color.gray.900}"
+          alpha: "{wave.dimension.alpha.800}"

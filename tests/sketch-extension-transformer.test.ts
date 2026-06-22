@@ -85,4 +85,126 @@ describe('sketch extension transformer', () => {
 
 		expect(token._sketch).toEqual({ property: { cornerRadius: true } });
 	});
+
+	test('inherits group sketch.path for descendant tokens', () => {
+		const resolved: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					$extensions: { sketch: { path: 'foundation/color' } },
+					primary: { $value: '#1872f0' },
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(resolved);
+		const token = tokenByName(result, 'theme-color-primary');
+
+		expect(token._sketch).toEqual({ path: 'foundation/color' });
+	});
+
+	test('uses nearest group sketch.path over ancestor path', () => {
+		const resolved: ResolvedTokenGroup = {
+			theme: {
+				$extensions: { sketch: { path: 'foundation/theme' } },
+				color: {
+					$type: 'color',
+					$extensions: { sketch: { path: 'foundation/color' } },
+					primary: { $value: '#1872f0' },
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(resolved);
+		const token = tokenByName(result, 'theme-color-primary');
+
+		expect(token._sketch).toEqual({ path: 'foundation/color' });
+	});
+
+	test('uses token sketch.path over inherited group path', () => {
+		const resolved: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					$extensions: { sketch: { path: 'foundation/color' } },
+					primary: {
+						$value: '#1872f0',
+						$extensions: { sketch: { path: 'foundation/brand' } },
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(resolved);
+		const token = tokenByName(result, 'theme-color-primary');
+
+		expect(token._sketch).toEqual({ path: 'foundation/brand' });
+	});
+
+	test('does not inherit group sketch.property', () => {
+		const resolved: ResolvedTokenGroup = {
+			theme: {
+				dimension: {
+					$type: 'number',
+					$extensions: {
+						sketch: {
+							path: 'foundation/interaction',
+							property: { opacity: true },
+						},
+					},
+					hover: { $value: 0.16 },
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(resolved);
+		const token = tokenByName(result, 'theme-dimension-hover');
+
+		expect(token._sketch).toEqual({ path: 'foundation/interaction' });
+	});
+
+	test('combines inherited sketch.path with token sketch.property', () => {
+		const resolved: ResolvedTokenGroup = {
+			theme: {
+				dimension: {
+					$type: 'number',
+					$extensions: { sketch: { path: 'foundation/interaction' } },
+					hover: {
+						$value: 0.16,
+						$extensions: { sketch: { property: { opacity: true } } },
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(resolved);
+		const token = tokenByName(result, 'theme-dimension-hover');
+
+		expect(token._sketch).toEqual({
+			path: 'foundation/interaction',
+			property: { opacity: true },
+		});
+	});
+
+	test('applies inherited sketch.path to composite group child tokens', () => {
+		const resolved: ResolvedTokenGroup = {
+			component: {
+				button: {
+					$extensions: {
+						composite: true,
+						sketch: { path: 'component/button' },
+					},
+					fill: { $type: 'color', $value: '#1872f0' },
+					radius: { $type: 'dimension', $value: 8 },
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(resolved);
+		const fill = tokenByName(result, 'component-button-fill');
+		const radius = tokenByName(result, 'component-button-radius');
+
+		expect(fill._sketch).toEqual({ path: 'component/button' });
+		expect(radius._sketch).toEqual({ path: 'component/button' });
+	});
 });

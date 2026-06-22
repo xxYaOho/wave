@@ -38,7 +38,7 @@ function hexToSketchColor(hex: string): string {
 function cleanValue(val: number | string): number | string {
 	if (typeof val === 'string' && val.endsWith('px')) {
 		const num = parseFloat(val);
-		return isNaN(num) ? val : num;
+		return Number.isNaN(num) ? val : num;
 	}
 	return val;
 }
@@ -301,17 +301,15 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 
 	if (token.type === 'shadow') {
 		const shadowArray = toObjectArray(token.value, 'shadow', token);
-		return { shadow: [...shadowArray].reverse().map(processShadowLayer) };
+		return [...shadowArray].reverse().map(processShadowLayer);
 	}
 
 	if (token.type === 'gradient') {
 		const gradientArray = toObjectArray(token.value, 'gradient', token);
-		return {
-			gradient: gradientArray.map((stop) => ({
-				color: hexToSketchColor(String(stop.color)),
-				position: stop.position,
-			})),
-		};
+		return gradientArray.map((stop) => ({
+			color: hexToSketchColor(String(stop.color)),
+			position: stop.position,
+		}));
 	}
 
 	return { value: resolveDimensionValue(token) };

@@ -52,6 +52,29 @@ describe('Quality Harness design-token case registry', () => {
 			),
 		).toEqual([]);
 	});
+
+	test('registers example-derived cases with traceable source and risks', () => {
+		const exampleCases = DESIGN_TOKEN_CASES.filter(
+			(testCase) => testCase.origin === 'example-derived',
+		);
+
+		expect(exampleCases.length).toBeGreaterThan(0);
+		expect(
+			exampleCases.every((testCase) => testCase.entryKind === 'main-config'),
+		).toBe(true);
+		for (const testCase of exampleCases) {
+			expect(testCase.example?.sourceName).toBeTruthy();
+			expect(testCase.example?.reason).toContain('real');
+			expect(testCase.example?.risks.length).toBeGreaterThan(0);
+		}
+
+		const orca = getDesignTokenCases('default').find(
+			(testCase) => testCase.id === 'orca-realistic',
+		);
+		expect(orca?.origin).toBe('example-derived');
+		expect(orca?.example?.risks).toContain('variants');
+		expect(orca?.example?.risks).toContain('css and sketch outputs');
+	});
 });
 
 describe('Quality Harness synthetic design-token source', () => {
@@ -280,6 +303,64 @@ describe('Quality Harness workspace and runner', () => {
 			expect(result.phases.pipelineDurationMs).toBeGreaterThanOrEqual(
 				result.phases.loadMs,
 			);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('runs an example-derived design-token case with variant artifacts', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-qh-'));
+		try {
+			const testCase = getDesignTokenCases('default').find(
+				(candidate) => candidate.id === 'orca-realistic',
+			);
+			expect(testCase).toBeDefined();
+			const result = await runDesignTokenBenchmarkCase(testCase!, {
+				mode: 'default',
+				runId: 'test-orca-realistic',
+				iteration: 0,
+				tmpRoot: tempDir,
+			});
+
+			expect(result.status).toBe('success');
+			expect(result.outputFileNames).toEqual([
+				path.join('css', 'orca-realistic-assistant-app.css'),
+				path.join('css', 'orca-realistic-viz-fos.css'),
+				path.join('css', 'orca-realistic.css'),
+				path.join('sketch', 'orca-realistic-assistant-app2sketch.json'),
+				path.join('sketch', 'orca-realistic-viz-fos2sketch.json'),
+				path.join('sketch', 'orca-realistic2sketch.json'),
+			]);
+			expect(
+				result.resources.some((resource) => resource.kind === 'custom'),
+			).toBe(true);
+			const mainSketch = result.files.find(
+				(file) =>
+					file.relativePath ===
+					path.join('sketch', 'orca-realistic2sketch.json'),
+			);
+			expect(mainSketch).toBeDefined();
+			const sketchOutput = JSON.parse(
+				await fs.readFile(mainSketch!.path, 'utf-8'),
+			);
+			expect(sketchOutput.foundation.color['primary-main']).toBe('#1872f0ff');
+			expect(sketchOutput['primary-main']).toBeUndefined();
+			expect(sketchOutput.foundation.interaction['interaction-hover']).toEqual({
+				opacity: 0.08,
+			});
+			expect(sketchOutput.foundation.shadow['shadow-raised']).toBeArray();
+			expect(
+				sketchOutput.foundation.shadow['shadow-raised'].some(
+					(layer: Record<string, unknown>) => layer.shadow !== undefined,
+				),
+			).toBe(false);
+			expect(sketchOutput.foundation.gradient.mask).toBeArray();
+			expect(
+				sketchOutput.foundation.gradient.mask.some(
+					(stop: Record<string, unknown>) => stop.gradient !== undefined,
+				),
+			).toBe(false);
+			expect(result.tokensCount).toBeGreaterThan(0);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}

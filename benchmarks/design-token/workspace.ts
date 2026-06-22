@@ -67,6 +67,13 @@ function rewriteThemefileResources(themefile: string): string {
 	);
 }
 
+function toRefList(value: unknown): string[] {
+	if (Array.isArray(value)) {
+		return value.filter((item): item is string => typeof item === 'string');
+	}
+	return typeof value === 'string' ? [value] : [];
+}
+
 async function copyBenchmarkResources(
 	repoRoot: string,
 	workspaceDir: string,
@@ -84,6 +91,43 @@ async function copyBenchmarkResources(
 			kind: name === 'tailwindcss' ? 'palette' : 'dimension',
 			ref: `./resources/${source.workspaceName}`,
 			repoSourcePath,
+			workspacePath,
+			sha256: await sha256File(workspacePath),
+			bytes: stat.size,
+		});
+	}
+
+	return traces;
+}
+
+async function traceCustomResources(
+	workspaceDir: string,
+): Promise<ResourceTrace[]> {
+	const mainYamlPath = path.join(workspaceDir, 'main.yaml');
+	const mainYaml = await fs.readFile(mainYamlPath, 'utf-8');
+	const loaded = yaml.load(mainYaml);
+	if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded)) {
+		return [];
+	}
+
+	const root = loaded as Record<string, unknown>;
+	const config = clonePlainObject(root.$config);
+	const resource = clonePlainObject(config.resource);
+	const refs = toRefList(resource.custom);
+	const traces: ResourceTrace[] = [];
+
+	for (const ref of refs) {
+		if (path.isAbsolute(ref)) continue;
+		const workspacePath = path.resolve(workspaceDir, ref);
+		const relativePath = path.relative(workspaceDir, workspacePath);
+		if (relativePath.startsWith('..') || path.isAbsolute(relativePath))
+			continue;
+		const stat = await fs.stat(workspacePath);
+		if (!stat.isFile()) continue;
+		traces.push({
+			kind: 'custom',
+			ref,
+			repoSourcePath: workspacePath,
 			workspacePath,
 			sha256: await sha256File(workspacePath),
 			bytes: stat.size,
@@ -121,7 +165,10 @@ export async function prepareDesignTokenWorkspace(
 			}
 		}
 
-		const resources = await copyBenchmarkResources(repoRoot, workspaceDir);
+		const resources = [
+			...(await copyBenchmarkResources(repoRoot, workspaceDir)),
+			...(await traceCustomResources(workspaceDir)),
+		];
 		return {
 			workspaceDir,
 			mainYamlPath,

@@ -56,7 +56,7 @@ describe('sketchFormat (Wave-native)', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 
-		expect(parsed['shadow-1'].shadow[0]).toMatchObject({
+		expect(parsed['shadow-1'][0]).toMatchObject({
 			x: 0,
 			y: 4,
 			blur: 8,
@@ -82,7 +82,7 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
-		const shadow = parsed['shadow-multi'].shadow;
+		const shadow = parsed['shadow-multi'];
 
 		expect(shadow[0]).toMatchObject({ blur: 16, y: 8 });
 		expect(shadow[1]).toMatchObject({ blur: 8, y: 4 });

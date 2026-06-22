@@ -19,6 +19,10 @@ import { applyInheritColorExtension } from './inherit-color-extension.ts';
 import { roundTo } from './number-format.ts';
 import { parseSketchExtension } from './sketch-extension.ts';
 
+interface InheritedExtensions {
+	sketchPath?: string;
+}
+
 function isColorAlphaObject(
 	value: unknown,
 ): value is { color: string | DtcgColorSpaceValue; alpha: number | string } {
@@ -50,7 +54,7 @@ function convertColorWithAlpha(
 
 	if (typeof value.alpha === 'string') {
 		alpha = parseFloat(value.alpha);
-		if (isNaN(alpha)) {
+		if (Number.isNaN(alpha)) {
 			return typeof value.color === 'string'
 				? value.color
 				: (convertColorSpace(value.color, targetFormat, tokenPath).value ??
@@ -374,7 +378,7 @@ function extractTargetAlpha(
 	}
 	if (typeof target.alpha === 'string') {
 		const parsed = parseFloat(target.alpha);
-		return isNaN(parsed) ? undefined : parsed;
+		return Number.isNaN(parsed) ? undefined : parsed;
 	}
 	if (typeof target.color === 'string') {
 		return extractColorAlpha(target.color);
@@ -510,6 +514,7 @@ function transformToken(
 	order: number,
 	targetColorSpace: ColorSpaceFormat = 'hex',
 	tokenPath?: string,
+	inheritedExtensions: InheritedExtensions = {},
 ): Omit<WaveToken, 'name' | 'path'> {
 	let processedValue = processValue(token.$value, targetColorSpace, tokenPath);
 	const typeValue = token.$type ?? parentType;
@@ -623,6 +628,13 @@ function transformToken(
 	}
 
 	const sketchExtension = parseSketchExtension(token.$extensions);
+	const mergedSketchExtension =
+		inheritedExtensions.sketchPath !== undefined
+			? {
+					path: inheritedExtensions.sketchPath,
+					...sketchExtension,
+				}
+			: sketchExtension;
 
 	const sdValue: Omit<WaveToken, 'name' | 'path'> = {
 		value: processedValue,
@@ -637,7 +649,9 @@ function transformToken(
 		...(currentColorShadowAlpha !== undefined && { currentColorShadowAlpha }),
 		// Original referenced token path for sketch variable mapping
 		...(token._swatchName !== undefined && { _swatchName: token._swatchName }),
-		...(sketchExtension !== undefined && { _sketch: sketchExtension }),
+		...(mergedSketchExtension !== undefined && {
+			_sketch: mergedSketchExtension,
+		}),
 	};
 
 	if (typeValue !== undefined) {
@@ -688,8 +702,16 @@ export function transformToWaveTokens(
 		group: ResolvedTokenGroup,
 		inheritedType: string | undefined,
 		path: string[],
+		inheritedExtensions: InheritedExtensions = {},
 	): void {
 		const groupType = group.$type ?? inheritedType;
+		const groupSketchExtension = parseSketchExtension(group.$extensions);
+		const childInheritedExtensions: InheritedExtensions = {
+			...inheritedExtensions,
+			...(groupSketchExtension?.path !== undefined && {
+				sketchPath: groupSketchExtension.path,
+			}),
+		};
 
 		if (group.$description !== undefined && path.length > 0) {
 			groupComments[path.join('.')] = group.$description;
@@ -711,6 +733,7 @@ export function transformToWaveTokens(
 					orderCounter++,
 					targetColorSpace,
 					childPathStr,
+					childInheritedExtensions,
 				);
 				tokens.push(buildWaveToken(childPath, partial));
 				continue;
@@ -718,6 +741,15 @@ export function transformToWaveTokens(
 
 			const child = value as ResolvedTokenGroup;
 			if (child.$extensions?.composite === true) {
+				const compositeSketchExtension = parseSketchExtension(
+					child.$extensions,
+				);
+				const compositeInheritedExtensions: InheritedExtensions = {
+					...childInheritedExtensions,
+					...(compositeSketchExtension?.path !== undefined && {
+						sketchPath: compositeSketchExtension.path,
+					}),
+				};
 				for (const propKey of Object.keys(child)) {
 					if (propKey.startsWith('$')) continue;
 					const propValue = child[propKey];
@@ -735,6 +767,7 @@ export function transformToWaveTokens(
 						orderCounter++,
 						targetColorSpace,
 						`${childPathStr}.${propKey}`,
+						compositeInheritedExtensions,
 					);
 					partial._composite = childPathStr;
 					tokens.push(buildWaveToken([...childPath, propKey], partial));
@@ -742,7 +775,7 @@ export function transformToWaveTokens(
 				continue;
 			}
 
-			walk(child, groupType, childPath);
+			walk(child, groupType, childPath, childInheritedExtensions);
 		}
 	}
 

@@ -366,7 +366,7 @@ describe('Theme Service Integration', () => {
 				expect(sketch.foundation.radius['dimension-radius-card']).toEqual({
 					cornerRadius: 8,
 				});
-				expect(sketch.aaa.bbb['style-shadow-1'].shadow).toHaveLength(4);
+				expect(sketch.aaa.bbb['style-shadow-1']).toHaveLength(4);
 				expect(sketch['aaa/bbb']).toBeUndefined();
 				expect(sketch.color).toBeUndefined();
 				expect(sketch.dimension).toBeUndefined();

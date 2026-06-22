@@ -262,7 +262,7 @@ PARAMETER platform json,jsonc,css,sketch
 | `smoothShadow` | token | `shadow` | 从单层阴影派生多层平滑阴影 |
 | `smoothGradient` | token | `gradient` | 从 2 个 stop 派生平滑渐变 |
 | `inheritColor` | token | `color` | 输出继承上下文颜色 |
-| `sketch.path` | token | 任意 token | 调整 Sketch 输出路径 |
+| `sketch.path` | group 或 token | 任意 token | 调整 Sketch 输出路径 |
 | `sketch.property.opacity` | token | `theme.dimension.*` 下的 `number` 或 `dimension` | 输出 Sketch opacity 字段 |
 | `sketch.property.cornerRadius` | token | `theme.dimension.*` 下的 `number` 或 `dimension` | 输出 Sketch cornerRadius 字段 |
 | `composite` | group | 直接子节点必须是 token | 把一组 token 合并为组件对象 |
@@ -383,25 +383,27 @@ theme:
 
 ## sketch
 
-`$extensions.sketch` 只控制 Sketch JSON 输出，不影响 `json`、`jsonc`、`css` 的 key。
+`$extensions.sketch` 只控制 Sketch JSON 输出，不影响 `json`、`jsonc`、`css` 的 key。`sketch.path` 可以写在 group 或 token 上；写在 group 上时，会应用到后代 token。
 
 ```yaml
 theme:
   color:
     $type: color
+    $extensions:
+      sketch:
+        path: foundation/color
     primary:
       $value: "#1872f0"
-      $extensions:
-        sketch:
-          path: foundation/color
   dimension:
     interaction:
+      $extensions:
+        sketch:
+          path: foundation/interaction
       hover:
         $type: number
         $value: 0.16
         $extensions:
           sketch:
-            path: foundation/interaction
             property:
               opacity: true
     radius:
@@ -418,18 +420,20 @@ theme:
 
 | 字段 | 说明 |
 | --- | --- |
-| `sketch.path` | Sketch 输出中的嵌套路径，例如 `foundation/color` |
+| `sketch.path` | Sketch 输出中的嵌套路径，例如 `foundation/color`；可写在 group 或 token 上 |
 | `sketch.property.opacity` | 在 Sketch dimension 输出中写 `{ opacity: value }` |
 | `sketch.property.cornerRadius` | 在 Sketch dimension 输出中写 `{ cornerRadius: value }` |
 
 `sketch.path` 使用 slash 分组。Wave 会把它写成嵌套对象，而不是把 slash 当成一个 flat key：
 
 ```yaml
-primary:
-  $value: "#1872f0"
+color:
+  $type: color
   $extensions:
     sketch:
       path: foundation/color
+  primary:
+    $value: "#1872f0"
 ```
 
 Sketch 输出：
@@ -446,6 +450,14 @@ Sketch 输出：
 
 `sketch.path` 只定义分组路径，叶子名仍使用 `filterLayer` 处理后的 flat-json key。没有 `sketch.path` 时，Sketch 输出保持根级 flat-json。
 
+优先级：
+
+1. token 自己的 `sketch.path`
+2. 最近父级 group 的 `sketch.path`
+3. 更上层祖先 group 的 `sketch.path`
+
+`sketch.property` 不继承。需要输出 `{ opacity: value }` 或 `{ cornerRadius: value }` 时，仍要写在对应 token 上。
+
 Sketch 输出不再固定包裹 `color`、`style`、`dimension` 或 `component` 顶层对象。位置由 `sketch.path` 控制，值形态由 `$type` 和 `sketch.property` 控制。
 
 限制：
@@ -455,6 +467,7 @@ Sketch 输出不再固定包裹 `color`、`style`、`dimension` 或 `component` 
 - `sketch.property` 只支持 `opacity` 和 `cornerRadius`。
 - `sketch.property.*` 的值必须是 `true`。
 - `sketch.property.*` 只能用于 `theme.dimension.*` 下的 `number` 或 `dimension` token。
+- `sketch.property` 只能写在 token 上，不能写在 group 上。
 - 两个 token 经过 `sketch.path` 和 `filterLayer` 后不能输出到同一路径；冲突会报错。
 - 例如 `$type: number` 搭配 `sketch.property.fillColor: true` 会报错，因为 `fillColor` 不是支持的 Sketch property。
 - 例如 `$type: color` 搭配 `sketch.property.opacity: true` 会报错，因为 `opacity` 只允许 dimension root 下的 `number` 或 `dimension` token。

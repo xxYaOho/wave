@@ -1,0 +1,34 @@
+theme:
+  color:
+    $type: color
+    primary:
+      main:
+        $value:
+          colorSpace: hsl
+          components: [220, 85, 52]
+        $extensions:
+          sketch:
+            path: "foundation/color"
+      on-main:
+        $value: "{tailwindcss.color.white}"
+        $extensions:
+          sketch:
+            path: "foundation/color"
+      container:
+        $value:
+          colorSpace: hsl
+          components: [220, 100, 96]
+      on-container:
+        $value: "{tailwindcss.color.blue.700}"
+    text:
+      default:
+        $value: "{tailwindcss.color.slate.950}"
+      disabled:
+        $value:
+          $ref: "#/theme/color/text/default/$value"
+          alpha: "{wave.dimension.alpha.400}"
+    surface:
+      default:
+        $value:
+          colorSpace: hsl
+          components: [215, 12, 95]
