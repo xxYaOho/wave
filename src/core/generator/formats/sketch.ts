@@ -30,8 +30,17 @@ function findSiblingToken(
 }
 
 function hexToSketchColor(hex: string): string {
-	if (hex.length === 9) return hex;
-	if (hex.length === 7) return `${hex}ff`;
+	const value = hex.trim().toLowerCase();
+	if (/^#[0-9a-f]{3}$/.test(value)) {
+		const [, r, g, b] = value;
+		return `#${r}${r}${g}${g}${b}${b}ff`;
+	}
+	if (/^#[0-9a-f]{4}$/.test(value)) {
+		const [, r, g, b, a] = value;
+		return `#${r}${r}${g}${g}${b}${b}${a}${a}`;
+	}
+	if (/^#[0-9a-f]{6}$/.test(value)) return `${value}ff`;
+	if (/^#[0-9a-f]{8}$/.test(value)) return value;
 	return hex;
 }
 
@@ -60,6 +69,11 @@ function parseFiniteNumber(value: unknown): number | undefined {
 
 function parseDimensionNumber(value: unknown): number | undefined {
 	if (isFiniteNumber(value)) return value;
+	if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+		const obj = value as Record<string, unknown>;
+		if (obj.unit !== undefined && obj.unit !== 'px') return undefined;
+		return parseDimensionNumber(obj.value);
+	}
 	if (typeof value !== 'string') return undefined;
 	if (!/^-?\d+(?:\.\d+)?px$/.test(value.trim())) return undefined;
 	return parseFiniteNumber(value);
@@ -151,6 +165,13 @@ function pickSketchProperty(
 
 function dimensionPropertyKey(token: WaveToken): string | undefined {
 	return pickSketchProperty(token._sketch?.property);
+}
+
+function isRadiusSketchPath(token: WaveToken): boolean {
+	const sketchPath = token._sketch?.path;
+	if (!sketchPath) return false;
+	const parts = sketchPath.split('/').filter(Boolean);
+	return parts[parts.length - 1] === 'radius';
 }
 
 function extractColorFromValue(value: unknown): string | undefined {
@@ -281,6 +302,9 @@ function setNestedValue(
 function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 	const propertyKey = dimensionPropertyKey(token);
 	if (propertyKey) {
+		if (propertyKey === 'cornerRadius') {
+			return { corners: { radii: resolveDimensionValue(token, propertyKey) } };
+		}
 		return { [propertyKey]: resolveDimensionValue(token, propertyKey) };
 	}
 
@@ -294,22 +318,37 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 			};
 		}
 		if (token.inheritColor === true) {
-			return hexToSketchColor(color);
+			return { color: hexToSketchColor(color) };
 		}
-		return hexToSketchColor(resolveSketchColorValue(token));
+		return { color: hexToSketchColor(resolveSketchColorValue(token)) };
 	}
 
 	if (token.type === 'shadow') {
 		const shadowArray = toObjectArray(token.value, 'shadow', token);
-		return [...shadowArray].reverse().map(processShadowLayer);
+		return { shadow: [...shadowArray].reverse().map(processShadowLayer) };
 	}
 
 	if (token.type === 'gradient') {
 		const gradientArray = toObjectArray(token.value, 'gradient', token);
-		return gradientArray.map((stop) => ({
-			color: hexToSketchColor(String(stop.color)),
-			position: stop.position,
-		}));
+		return {
+			gradient: gradientArray.map((stop) => ({
+				color: hexToSketchColor(String(stop.color)),
+				position: stop.position,
+			})),
+		};
+	}
+
+	if (
+		(token.type === 'number' || token.type === 'dimension') &&
+		isRadiusSketchPath(token)
+	) {
+		const parsed = parseDimensionNumber(token.value);
+		if (parsed === undefined) {
+			throw new Error(
+				`Sketch radius path requires a finite number or px dimension at ${tokenPathLabel(token)}`,
+			);
+		}
+		return { corners: { radii: parsed } };
 	}
 
 	return { value: resolveDimensionValue(token) };

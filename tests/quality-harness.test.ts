@@ -343,23 +343,17 @@ describe('Quality Harness workspace and runner', () => {
 			const sketchOutput = JSON.parse(
 				await fs.readFile(mainSketch!.path, 'utf-8'),
 			);
-			expect(sketchOutput.foundation.color['primary-main']).toBe('#1872f0ff');
+			expect(sketchOutput.foundation.color['primary-main']).toEqual({
+				color: '#1872f0ff',
+			});
 			expect(sketchOutput['primary-main']).toBeUndefined();
 			expect(sketchOutput.foundation.interaction['interaction-hover']).toEqual({
 				opacity: 0.08,
 			});
-			expect(sketchOutput.foundation.shadow['shadow-raised']).toBeArray();
 			expect(
-				sketchOutput.foundation.shadow['shadow-raised'].some(
-					(layer: Record<string, unknown>) => layer.shadow !== undefined,
-				),
-			).toBe(false);
-			expect(sketchOutput.foundation.gradient.mask).toBeArray();
-			expect(
-				sketchOutput.foundation.gradient.mask.some(
-					(stop: Record<string, unknown>) => stop.gradient !== undefined,
-				),
-			).toBe(false);
+				sketchOutput.foundation.shadow['shadow-raised'].shadow,
+			).toBeArray();
+			expect(sketchOutput.foundation.gradient.mask.gradient).toBeArray();
 			expect(result.tokensCount).toBeGreaterThan(0);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });

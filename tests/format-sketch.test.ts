@@ -16,7 +16,7 @@ describe('sketchFormat (Wave-native)', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed).toEqual({ 'primary-main': '#ff0000ff' });
+		expect(parsed).toEqual({ 'primary-main': { color: '#ff0000ff' } });
 	});
 
 	test('emits dimension tokens with default value key', () => {
@@ -56,7 +56,7 @@ describe('sketchFormat (Wave-native)', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 
-		expect(parsed['shadow-1'][0]).toMatchObject({
+		expect(parsed['shadow-1'].shadow[0]).toMatchObject({
 			x: 0,
 			y: 4,
 			blur: 8,
@@ -82,7 +82,7 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
-		const shadow = parsed['shadow-multi'];
+		const shadow = parsed['shadow-multi'].shadow;
 
 		expect(shadow[0]).toMatchObject({ blur: 16, y: 8 });
 		expect(shadow[1]).toMatchObject({ blur: 8, y: 4 });

@@ -34,7 +34,9 @@ describe('inheritColor Sketch Format', () => {
 		const result = sketchFormat(tokens, { filterLayer: 2 });
 		const parsed = JSON.parse(result);
 
-		expect(parsed['interaction-danger-border']).toBe('#cc0000ff');
+		expect(parsed['interaction-danger-border']).toEqual({
+			color: '#cc0000ff',
+		});
 	});
 
 	test('should fallback to diagnostic pink when sibling not found', () => {
@@ -52,7 +54,9 @@ describe('inheritColor Sketch Format', () => {
 		const result = sketchFormat(tokens, { filterLayer: 2 });
 		const parsed = JSON.parse(result);
 
-		expect(parsed['interaction-danger-border']).toBe('#ff00ffff');
+		expect(parsed['interaction-danger-border']).toEqual({
+			color: '#ff00ffff',
+		});
 	});
 
 	test('should include opacity when inheritColor has opacity', () => {

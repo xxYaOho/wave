@@ -313,7 +313,7 @@ theme:
 | 字段 | 输出 | 适用 token |
 | --- | --- | --- |
 | `opacity: true` | `{ opacity: value }` | `theme.dimension.*` 下的 `number` 或 `dimension` |
-| `cornerRadius: true` | `{ cornerRadius: value }` | `theme.dimension.*` 下的 `number` 或 `dimension` |
+| `cornerRadius: true` | `{ corners: { radii: value } }` | `theme.dimension.*` 下的 `number` 或 `dimension` |
 
 opacity 示例：
 
@@ -368,7 +368,9 @@ theme:
   "foundation": {
     "radius": {
       "radius-card": {
-        "cornerRadius": 8
+        "corners": {
+          "radii": 8
+        }
       }
     }
   }

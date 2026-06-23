@@ -373,19 +373,19 @@ describe('wave dt', () => {
 			),
 		);
 
-		expect(sketchOutput.foundation.color['color-primary-main']).toBe(
-			'#1872f0ff',
-		);
+		expect(sketchOutput.foundation.color['color-primary-main']).toEqual({
+			color: '#1872f0ff',
+		});
 		expect(
 			sketchOutput.foundation.interaction['dimension-interaction-hover'],
 		).toEqual({
 			opacity: 0.16,
 		});
 		expect(sketchOutput.foundation.radius['dimension-radius-card']).toEqual({
-			cornerRadius: 8,
+			corners: { radii: 8 },
 		});
-		expect(sketchOutput.aaa.bbb['style-shadow-1']).toHaveLength(4);
-		expect(sketchOutput.aaa.bbb['style-shadow-1'][0]).toMatchObject({
+		expect(sketchOutput.aaa.bbb['style-shadow-1'].shadow).toHaveLength(4);
+		expect(sketchOutput.aaa.bbb['style-shadow-1'].shadow[0]).toMatchObject({
 			color: '#0f172b0f',
 			y: 4,
 			blur: 8,
@@ -545,14 +545,14 @@ describe('wave dt', () => {
 		expect(darkCss).toMatch(/--primary: #[0-9a-f]{6};/i);
 		expect(new Set([mainCss, nightCss, darkCss]).size).toBe(3);
 		expect(mainCss).not.toContain('--alpha-sm');
-		expect(mainSketch['color-primary']).toMatch(/^#[0-9a-f]{8}$/i);
-		expect(nightSketch['color-primary']).toMatch(/^#[0-9a-f]{8}$/i);
-		expect(darkSketch['color-primary']).toMatch(/^#[0-9a-f]{8}$/i);
+		expect(mainSketch['color-primary'].color).toMatch(/^#[0-9a-f]{8}$/i);
+		expect(nightSketch['color-primary'].color).toMatch(/^#[0-9a-f]{8}$/i);
+		expect(darkSketch['color-primary'].color).toMatch(/^#[0-9a-f]{8}$/i);
 		expect(
 			new Set([
-				mainSketch['color-primary'],
-				nightSketch['color-primary'],
-				darkSketch['color-primary'],
+				mainSketch['color-primary'].color,
+				nightSketch['color-primary'].color,
+				darkSketch['color-primary'].color,
 			]).size,
 		).toBe(3);
 		expect(mainSketch['dimension-alpha-sm'].value).toBeLessThan(

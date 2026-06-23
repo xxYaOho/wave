@@ -357,16 +357,18 @@ describe('Theme Service Integration', () => {
 					),
 				);
 
-				expect(sketch.foundation.color['color-primary-main']).toBe('#1872f0ff');
+				expect(sketch.foundation.color['color-primary-main']).toEqual({
+					color: '#1872f0ff',
+				});
 				expect(
 					sketch.foundation.interaction['dimension-interaction-hover'],
 				).toEqual({
 					opacity: 0.16,
 				});
 				expect(sketch.foundation.radius['dimension-radius-card']).toEqual({
-					cornerRadius: 8,
+					corners: { radii: 8 },
 				});
-				expect(sketch.aaa.bbb['style-shadow-1']).toHaveLength(4);
+				expect(sketch.aaa.bbb['style-shadow-1'].shadow).toHaveLength(4);
 				expect(sketch['aaa/bbb']).toBeUndefined();
 				expect(sketch.color).toBeUndefined();
 				expect(sketch.dimension).toBeUndefined();

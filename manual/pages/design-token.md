@@ -264,7 +264,7 @@ PARAMETER platform json,jsonc,css,sketch
 | `inheritColor` | token | `color` | 输出继承上下文颜色 |
 | `sketch.path` | group 或 token | 任意 token | 调整 Sketch 输出路径 |
 | `sketch.property.opacity` | token | `theme.dimension.*` 下的 `number` 或 `dimension` | 输出 Sketch opacity 字段 |
-| `sketch.property.cornerRadius` | token | `theme.dimension.*` 下的 `number` 或 `dimension` | 输出 Sketch cornerRadius 字段 |
+| `sketch.property.cornerRadius` | token | `theme.dimension.*` 下的 `number` 或 `dimension` | 输出 Sketch corners.radii 字段 |
 | `composite` | group | 直接子节点必须是 token | 把一组 token 合并为组件对象 |
 | `currentColor` | token | legacy | 旧项目兼容字段，新内容使用 `inheritColor` |
 
@@ -422,7 +422,7 @@ theme:
 | --- | --- |
 | `sketch.path` | Sketch 输出中的嵌套路径，例如 `foundation/color`；可写在 group 或 token 上 |
 | `sketch.property.opacity` | 在 Sketch dimension 输出中写 `{ opacity: value }` |
-| `sketch.property.cornerRadius` | 在 Sketch dimension 输出中写 `{ cornerRadius: value }` |
+| `sketch.property.cornerRadius` | 在 Sketch dimension 输出中写 `{ corners: { radii: value } }` |
 
 `sketch.path` 使用 slash 分组。Wave 会把它写成嵌套对象，而不是把 slash 当成一个 flat key：
 
@@ -442,7 +442,9 @@ Sketch 输出：
 {
   "foundation": {
     "color": {
-      "primary-main": "#1872f0ff"
+      "primary-main": {
+        "color": "#1872f0ff"
+      }
     }
   }
 }
@@ -456,7 +458,7 @@ Sketch 输出：
 2. 最近父级 group 的 `sketch.path`
 3. 更上层祖先 group 的 `sketch.path`
 
-`sketch.property` 不继承。需要输出 `{ opacity: value }` 或 `{ cornerRadius: value }` 时，仍要写在对应 token 上。
+`sketch.property` 不继承。需要输出 `{ opacity: value }` 或 `{ corners: { radii: value } }` 时，仍要写在对应 token 上。
 
 Sketch 输出不再固定包裹 `color`、`style`、`dimension` 或 `component` 顶层对象。位置由 `sketch.path` 控制，值形态由 `$type` 和 `sketch.property` 控制。
 

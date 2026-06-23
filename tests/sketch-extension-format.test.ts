@@ -26,7 +26,9 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.foundation.color['primary-main']).toBe('#1872f0ff');
+		expect(parsed.foundation.color['primary-main']).toEqual({
+			color: '#1872f0ff',
+		});
 		expect(parsed.color).toBeUndefined();
 	});
 
@@ -49,7 +51,7 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed['primary-main']).toBe('#1872f0ff');
+		expect(parsed['primary-main']).toEqual({ color: '#1872f0ff' });
 		expect(parsed['radius-card']).toEqual({ value: 8 });
 		expect(parsed.color).toBeUndefined();
 		expect(parsed.dimension).toBeUndefined();
@@ -68,7 +70,36 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.foundation.color['primary-main']).toBe('#1872f0ff');
+		expect(parsed.foundation.color['primary-main']).toEqual({
+			color: '#1872f0ff',
+		});
+	});
+
+	test('normalizes shorthand color values to sketch hex8 objects', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-color-primary-on-main',
+				path: ['theme', 'color', 'primary', 'on-main'],
+				value: '#fff',
+				type: 'color',
+				_sketch: { path: 'color-v2' },
+			}),
+			token({
+				name: 'theme-color-overlay',
+				path: ['theme', 'color', 'overlay'],
+				value: '#0000',
+				type: 'color',
+				_sketch: { path: 'color-v2' },
+				_order: 1,
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+
+		expect(parsed['color-v2']['primary-on-main']).toEqual({
+			color: '#ffffffff',
+		});
+		expect(parsed['color-v2'].overlay).toEqual({ color: '#00000000' });
 	});
 
 	test('rejects non-color values in color output', () => {
@@ -120,7 +151,25 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed['radius-card']).toEqual({ cornerRadius: 8 });
+		expect(parsed['radius-card']).toEqual({ corners: { radii: 8 } });
+	});
+
+	test('infers corners output for dimension-v radius path', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-dimension-radius-md',
+				path: ['theme', 'dimension', 'radius', 'md'],
+				value: { value: 8, unit: 'px' },
+				type: 'dimension',
+				_sketch: { path: 'dimension-v2/radius' },
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+
+		expect(parsed['dimension-v2'].radius['radius-md']).toEqual({
+			corners: { radii: 8 },
+		});
 	});
 
 	test('rejects non-numeric opacity values', () => {
@@ -183,8 +232,8 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 
-		expect(parsed.aaa.bbb['shadow-1']).toHaveLength(2);
-		expect(parsed.aaa.bbb['shadow-1'][0]).toMatchObject({
+		expect(parsed.aaa.bbb['shadow-1'].shadow).toHaveLength(2);
+		expect(parsed.aaa.bbb['shadow-1'].shadow[0]).toMatchObject({
 			color: '#0f172b05',
 			y: 0,
 			blur: 2,
@@ -207,10 +256,12 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 
-		expect(parsed.foundation.gradient['gradient-brand']).toEqual([
-			{ color: '#00000000', position: 0 },
-			{ color: '#000000cc', position: 1 },
-		]);
+		expect(parsed.foundation.gradient['gradient-brand']).toEqual({
+			gradient: [
+				{ color: '#00000000', position: 0 },
+				{ color: '#000000cc', position: 1 },
+			],
+		});
 	});
 
 	test('detects duplicate sketch output paths', () => {
@@ -259,7 +310,7 @@ describe('sketch extension format', () => {
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
 		expect(parsed.component).toBeUndefined();
-		expect(parsed['button-background']).toBe('#1872f0ff');
+		expect(parsed['button-background']).toEqual({ color: '#1872f0ff' });
 		expect(parsed['button-radius']).toEqual({ value: 8 });
 	});
 
@@ -277,7 +328,7 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.foundation.color.primary).toBe('#1872f0ff');
+		expect(parsed.foundation.color.primary).toEqual({ color: '#1872f0ff' });
 		expect(parsed.primary).toBeUndefined();
 	});
 });

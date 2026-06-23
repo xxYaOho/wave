@@ -1068,11 +1068,11 @@ wave doctor --contrast --variants dark --night
 - `css`：输出 `{theme}.css`，CSS 变量，带描述注释
 - `sketch`：输出 Sketch API 兼容格式 `{theme}2sketch.json`
   - 默认按 `filterLayer` 后的 flat-json key 输出到根级对象
-  - `$extensions.sketch.path` 作为分组路径；可写在 group 或 token 上，叶子节点仍使用 `filterLayer` 后的 flat-json key，例如 `{ "aaa": { "bbb": { "shadow-1": ... } } }`
+  - `$extensions.sketch.path` 作为分组路径；可写在 group 或 token 上，叶子节点仍使用 `filterLayer` 后的 flat-json key，例如 `{ "aaa": { "bbb": { "shadow-1": { "shadow": [...] } } } }`
   - `sketch.path` 优先级为 token 自身 > 最近父级 group > 更上层祖先 group
   - Sketch 输出不固定包裹 `color`、`style`、`dimension` 或 `component` 顶层对象
   - `$extensions.sketch.property.opacity: true` 生成 `{ opacity: value }`
-  - `$extensions.sketch.property.cornerRadius: true` 生成 `{ cornerRadius: value }`
+  - `$extensions.sketch.property.cornerRadius: true` 生成 `{ corners: { radii: value } }`
   - `sketch.property` 不继承，只允许写在 `theme.dimension.*` 或等价 dimension root 下的 `number` / `dimension` token
   - legacy `$extensions.sketchMap` 不再作为 Sketch property 映射来源，新内容使用 `$extensions.sketch.property`
   - `$extensions.sketch` 在 `$extends` 中按普通 extension 覆盖，不再深层合并
