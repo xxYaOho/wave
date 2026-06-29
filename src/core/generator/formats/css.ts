@@ -30,6 +30,16 @@ function assertNoObjectColorValue(value: unknown, token: WaveToken): void {
 	);
 }
 
+function assertCompositeColorsAreNormalized(token: WaveToken): void {
+	if (!Array.isArray(token.value)) return;
+	for (const item of token.value) {
+		if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+			continue;
+		}
+		assertNoObjectColorValue((item as Record<string, unknown>).color, token);
+	}
+}
+
 function formatTokenValue(token: WaveToken): string {
 	if (token.inheritColor === true) {
 		const numericValue = token.inheritColorAlpha ?? token.inheritColorOpacity;
@@ -62,10 +72,12 @@ function formatTokenValue(token: WaveToken): string {
 	}
 
 	if (isShadow(token) && Array.isArray(tokenValue)) {
+		assertCompositeColorsAreNormalized(token);
 		return shadowToCss(tokenValue);
 	}
 
 	if (isGradient(token) && Array.isArray(tokenValue)) {
+		assertCompositeColorsAreNormalized(token);
 		return gradientToCss(tokenValue);
 	}
 

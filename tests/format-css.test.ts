@@ -209,4 +209,49 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).toContain('rgb(255 0 255 / 0.5)');
 		expect(out).toContain('rgb(255 0 0 / 0.25)');
 	});
+
+	test('throws instead of emitting object color inside shadow', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-shadow-raised',
+				path: ['theme', 'shadow', 'raised'],
+				value: [
+					{
+						color: { colorSpace: 'oklch', components: [0.5, 0.2, 260] },
+						offsetX: 0,
+						offsetY: 4,
+						blur: 8,
+						spread: 0,
+					},
+				],
+				type: 'shadow',
+				_order: 0,
+			},
+		];
+
+		expect(() => cssVariablesFormat(tokens)).toThrow(
+			'CSS output requires transformer-normalized value',
+		);
+	});
+
+	test('throws instead of emitting object color inside gradient', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-gradient-accent',
+				path: ['theme', 'gradient', 'accent'],
+				value: [
+					{
+						color: { colorSpace: 'oklch', components: [0.5, 0.2, 260] },
+						position: 0,
+					},
+				],
+				type: 'gradient',
+				_order: 0,
+			},
+		];
+
+		expect(() => cssVariablesFormat(tokens)).toThrow(
+			'CSS output requires transformer-normalized value',
+		);
+	});
 });
