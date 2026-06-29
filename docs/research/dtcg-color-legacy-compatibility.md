@@ -60,6 +60,26 @@ The compatibility code is concentrated but not fully single-sourced.
 
 This means compatibility removal currently needs edits in both modules. The coupling is acceptable for now because it is limited to transformer-owned code, but it is still a cleanup target.
 
+## Debt Assessment
+
+Current compatibility debt is medium-low.
+
+The debt is not urgent because:
+
+- Compatibility remains concentrated in the transformer layer.
+- Parser, resource loader, resolver, and generators do not need to understand legacy color output semantics.
+- Existing unit, integration, quality harness, and real-source smoke tests cover the known failure mode.
+- Removing compatibility now would not directly improve user-facing behavior.
+
+The debt becomes more serious if new legacy shapes are added directly to `theme-transformer.ts` or generator formats. Future compatibility should first prove that the shape exists in a real source, then route it through `color-value.ts` with focused regression coverage.
+
+Do not schedule an immediate cleanup task only for this debt. Prefer to revisit it when one of these conditions is true:
+
+- A new color compatibility shape is requested.
+- DTCG Color support becomes the only documented color authoring path.
+- Real source files no longer need token `$value` wrappers or color-space wrappers.
+- The transformer color context gate starts blocking unrelated work.
+
 ## Removal Strategy
 
 Remove compatibility gradually. Do not delete all branches at once.
