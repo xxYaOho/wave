@@ -102,3 +102,159 @@ describe('theme-transformer hex to color space conversion', () => {
 		expect(value).toBe('hsl(0 0% 100%)');
 	});
 });
+
+describe('theme-transformer DTCG color fallback', () => {
+	test('does not treat non-color string tokens as colors', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				content: {
+					label: {
+						$type: 'string',
+						$value: 'Submit',
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input, undefined, 'hex');
+		expect(findToken(result.tokens, 'theme-content-label').value).toBe(
+			'Submit',
+		);
+	});
+
+	test('uses DTCG hex fallback when components contain legacy percent string', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					primary: {
+						main: {
+							$value: {
+								colorSpace: 'oklch',
+								components: ['51.8%', 0.251, 262.6],
+								hex: '#0052f5',
+							},
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input, undefined, 'hex');
+		expect(findToken(result.tokens, 'theme-color-primary-main').value).toBe(
+			'#0052f5',
+		);
+	});
+
+	test('keeps legacy color object with alpha compatible', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					overlay: {
+						$value: {
+							color: '#112233',
+							alpha: 0.25,
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input, undefined, 'hex');
+		expect(findToken(result.tokens, 'theme-color-overlay').value).toBe(
+			'#11223340',
+		);
+	});
+
+	test('uses DTCG hex fallback with alpha for shadow and gradient colors', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				style: {
+					shadow: {
+						$type: 'shadow',
+						raised: {
+							$value: [
+								{
+									color: {
+										colorSpace: 'display-p3',
+										components: [1, 0, 1],
+										alpha: 0.5,
+										hex: '#ff00ff',
+									},
+									offsetX: 0,
+									offsetY: 4,
+									blur: 8,
+									spread: 0,
+								},
+							],
+						},
+					},
+					gradient: {
+						$type: 'gradient',
+						accent: {
+							$value: [
+								{
+									color: {
+										colorSpace: 'hsl',
+										components: ['none', 100, 50],
+										alpha: 0.25,
+										hex: '#ff0000',
+									},
+									position: 0,
+								},
+							],
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input, undefined, 'hex');
+		const shadow = findToken(result.tokens, 'theme-style-shadow-raised')
+			.value as Array<Record<string, unknown>>;
+		const gradient = findToken(result.tokens, 'theme-style-gradient-accent')
+			.value as Array<Record<string, unknown>>;
+		expect(shadow[0]!.color).toBe('#ff00ff80');
+		expect(gradient[0]!.color).toBe('#ff000040');
+	});
+
+	test('throws with token path when unsupported color lacks fallback', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					bad: {
+						$value: {
+							colorSpace: 'display-p3',
+							components: [1, 0, 1],
+						},
+					},
+				},
+			},
+		};
+
+		expect(() => transformToWaveTokens(input, undefined, 'hex')).toThrow(
+			'theme.color.bad',
+		);
+	});
+
+	test('throws with token path for standalone hex object under color type', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					bad: {
+						$value: {
+							hex: '#0052f5',
+						},
+					},
+				},
+			},
+		};
+
+		expect(() => transformToWaveTokens(input, undefined, 'hex')).toThrow(
+			'Unsupported color value at theme.color.bad',
+		);
+	});
+});

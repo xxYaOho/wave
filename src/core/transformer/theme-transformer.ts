@@ -1,7 +1,6 @@
 import chroma from 'chroma-js';
 import {
 	type ColorSpaceFormat,
-	type DtcgColorSpaceValue,
 	type DtcgValue,
 	isResolvedToken,
 	type ResolvedDtcgToken,
@@ -9,11 +8,10 @@ import {
 	type WaveToken,
 } from '../../types/index.ts';
 import {
-	convertColorSpace,
 	formatColorOutput,
-	hexToRgbComponents,
 	isDtcgColorSpaceValue,
 } from './color-space.ts';
+import { normalizeColorValue } from './color-value.ts';
 import { sampleCubicBezier } from './cubic-bezier.ts';
 import { applyInheritColorExtension } from './inherit-color-extension.ts';
 import { roundTo } from './number-format.ts';
@@ -23,149 +21,68 @@ interface InheritedExtensions {
 	sketchPath?: string;
 }
 
-function isColorAlphaObject(
-	value: unknown,
-): value is { color: string | DtcgColorSpaceValue; alpha: number | string } {
-	if (typeof value !== 'object' || value === null) {
-		return false;
-	}
-	const obj = value as Record<string, unknown>;
+function isLegacyColorObject(value: unknown): value is Record<string, unknown> {
 	return (
-		'color' in obj &&
-		'alpha' in obj &&
-		(typeof obj.color === 'string' || isDtcgColorSpaceValue(obj.color)) &&
-		(typeof obj.alpha === 'number' || typeof obj.alpha === 'string')
+		typeof value === 'object' &&
+		value !== null &&
+		!Array.isArray(value) &&
+		'color' in value
 	);
 }
 
-function alphaToHex(alpha: number): string {
-	const hex = Math.round(alpha * 255)
-		.toString(16)
-		.padStart(2, '0');
-	return hex;
+function isDtcgColorObjectCandidate(value: unknown): boolean {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		!Array.isArray(value) &&
+		'colorSpace' in value &&
+		'components' in value
+	);
 }
 
-function convertColorWithAlpha(
-	value: { color: string | DtcgColorSpaceValue; alpha: number | string },
-	targetFormat: ColorSpaceFormat = 'hex',
-	tokenPath?: string,
-): string {
-	let alpha: number;
+function isStandaloneHexObject(value: unknown): boolean {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		!Array.isArray(value) &&
+		'hex' in value &&
+		!('colorSpace' in value) &&
+		!('components' in value)
+	);
+}
 
-	if (typeof value.alpha === 'string') {
-		alpha = parseFloat(value.alpha);
-		if (Number.isNaN(alpha)) {
-			return typeof value.color === 'string'
-				? value.color
-				: (convertColorSpace(value.color, targetFormat, tokenPath).value ??
-						String(value.color));
-		}
-	} else {
-		alpha = value.alpha;
-	}
-
-	if (alpha < 0 || alpha > 1) {
-		return typeof value.color === 'string'
-			? value.color
-			: (convertColorSpace(value.color, targetFormat, tokenPath).value ??
-					String(value.color));
-	}
-
-	if (isDtcgColorSpaceValue(value.color)) {
-		const result = convertColorSpace(
-			{ ...value.color, alpha },
-			targetFormat,
-			tokenPath,
-		);
-		if (!result.success) {
-			throw new Error(result.error || 'Color space conversion failed');
-		}
-		return result.value as string;
-	}
-
-	const color = value.color;
-
-	// 如果目标格式不是 hex，先转换颜色，再应用 alpha
-	if (targetFormat !== 'hex' && color.startsWith('#')) {
-		const components = hexToRgbComponents(color);
-		if (components) {
-			const colorSpaceValue = {
-				colorSpace: 'srgb' as const,
-				components: [
-					components.red / 255,
-					components.green / 255,
-					components.blue / 255,
-				],
-				alpha,
-			};
-			const result = convertColorSpace(
-				colorSpaceValue,
-				targetFormat,
-				tokenPath,
-			);
-			if (result.success) {
-				return result.value as string;
-			}
-		}
-	}
-
-	if (color.startsWith('#') && (color.length === 7 || color.length === 4)) {
-		const alphaHex = alphaToHex(alpha);
-		return `${color}${alphaHex}`;
-	}
-
-	return color;
+function shouldNormalizeScalarColor(
+	value: DtcgValue,
+	typeValue: string | undefined,
+): boolean {
+	return (
+		typeValue === 'color' &&
+		(typeof value === 'string' ||
+			isDtcgColorSpaceValue(value) ||
+			isDtcgColorObjectCandidate(value) ||
+			isLegacyColorObject(value) ||
+			isStandaloneHexObject(value))
+	);
 }
 
 function processValue(
 	value: DtcgValue,
 	targetFormat: ColorSpaceFormat = 'hex',
 	tokenPath?: string,
+	typeValue?: string,
 ): DtcgValue {
+	if (shouldNormalizeScalarColor(value, typeValue)) {
+		return normalizeColorValue(value, targetFormat, tokenPath)
+			.value as DtcgValue;
+	}
+
 	// 处理数组类型（shadow 和 gradient）
 	if (Array.isArray(value)) {
 		return value.map((item, index) =>
-			processArrayItem(item, targetFormat, `${tokenPath}[${index}]`),
+			processArrayItem(item, targetFormat, `${tokenPath}[${index}]`, typeValue),
 		) as unknown as DtcgValue;
 	}
 
-	if (isDtcgColorSpaceValue(value)) {
-		const result = convertColorSpace(value, targetFormat, tokenPath);
-		if (!result.success) {
-			throw new Error(result.error || 'Color space conversion failed');
-		}
-		return result.value as DtcgValue;
-	}
-	if (isColorAlphaObject(value)) {
-		return convertColorWithAlpha(value, targetFormat, tokenPath);
-	}
-	// 处理 hex 颜色字符串的颜色空间转换
-	if (
-		typeof value === 'string' &&
-		value.startsWith('#') &&
-		targetFormat !== 'hex'
-	) {
-		const components = hexToRgbComponents(value);
-		if (components) {
-			const colorSpaceValue = {
-				colorSpace: 'srgb' as const,
-				components: [
-					components.red / 255,
-					components.green / 255,
-					components.blue / 255,
-				],
-				alpha: components.alpha,
-			};
-			const result = convertColorSpace(
-				colorSpaceValue,
-				targetFormat,
-				tokenPath,
-			);
-			if (result.success) {
-				return result.value as DtcgValue;
-			}
-		}
-	}
 	// 处理 { value: number, unit?: string } 格式的 dimension 值
 	if (
 		typeof value === 'object' &&
@@ -186,6 +103,7 @@ function processArrayItem(
 	item: unknown,
 	targetFormat: ColorSpaceFormat,
 	itemPath?: string,
+	parentType?: string,
 ): unknown {
 	if (typeof item !== 'object' || item === null) {
 		return item;
@@ -194,13 +112,18 @@ function processArrayItem(
 	const result: Record<string, unknown> = {};
 	for (const [key, val] of Object.entries(item)) {
 		if (
+			(parentType === 'shadow' || parentType === 'gradient') &&
 			key === 'color' &&
 			(typeof val === 'string' ||
 				isDtcgColorSpaceValue(val) ||
-				isColorAlphaObject(val))
+				isDtcgColorObjectCandidate(val) ||
+				isLegacyColorObject(val))
 		) {
-			// 处理颜色值（包括带 alpha 的对象）
-			result[key] = processValue(val as DtcgValue, targetFormat, itemPath);
+			result[key] = normalizeColorValue(
+				val,
+				targetFormat,
+				itemPath ? `${itemPath}.color` : undefined,
+			).value;
 		} else if (typeof val === 'object' && val !== null && 'value' in val) {
 			// 处理 {value: number, unit?: string} 格式的值
 			const obj = val as { value: number; unit?: string };
@@ -516,8 +439,13 @@ function transformToken(
 	tokenPath?: string,
 	inheritedExtensions: InheritedExtensions = {},
 ): Omit<WaveToken, 'name' | 'path'> {
-	let processedValue = processValue(token.$value, targetColorSpace, tokenPath);
 	const typeValue = token.$type ?? parentType;
+	let processedValue = processValue(
+		token.$value,
+		targetColorSpace,
+		tokenPath,
+		typeValue,
+	);
 
 	// smoothShadow derivation
 	const smoothShadow = token.$extensions?.smoothShadow;
@@ -526,7 +454,7 @@ function transformToken(
 			typeof processedValue === 'object' &&
 			processedValue !== null &&
 			!Array.isArray(processedValue)
-				? processArrayItem(processedValue, targetColorSpace, tokenPath)
+				? processArrayItem(processedValue, targetColorSpace, tokenPath, 'shadow')
 				: processedValue;
 		processedValue = deriveSmoothShadow(
 			processedLayer,
@@ -615,6 +543,7 @@ function transformToken(
 					shadowRaw,
 					targetColorSpace,
 					tokenPath,
+					'shadow',
 				) as Record<string, unknown>;
 				const layerColor = processedLayer.color;
 				if (typeof layerColor === 'string') {
