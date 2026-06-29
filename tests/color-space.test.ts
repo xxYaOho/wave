@@ -39,6 +39,38 @@ describe('isDtcgColorSpaceValue', () => {
 		expect(isDtcgColorSpaceValue(value)).toBe(true);
 	});
 
+	test('returns true for DTCG color with hex fallback', () => {
+		const value = {
+			colorSpace: 'oklch',
+			components: [0.518, 0.251, 262.6],
+			alpha: 1,
+			hex: '#0052f5',
+		};
+		expect(isDtcgColorSpaceValue(value)).toBe(true);
+	});
+
+	test('returns true for DTCG color with none component', () => {
+		const value = {
+			colorSpace: 'hsl',
+			components: ['none', 0, 100],
+			hex: '#ffffff',
+		};
+		expect(isDtcgColorSpaceValue(value)).toBe(true);
+	});
+
+	test('returns true for DTCG standard space with fallback even when not computable by Wave v1', () => {
+		const value = {
+			colorSpace: 'display-p3',
+			components: [1, 0, 1],
+			hex: '#ff00ff',
+		};
+		expect(isDtcgColorSpaceValue(value)).toBe(true);
+	});
+
+	test('returns false for object with hex but without colorSpace and components', () => {
+		expect(isDtcgColorSpaceValue({ hex: '#0052f5' })).toBe(false);
+	});
+
 	test('returns false for unsupported color space', () => {
 		const value = {
 			colorSpace: 'unsupported',
@@ -188,6 +220,28 @@ describe('convertColorSpace', () => {
 			const result = convertColorSpace(value, 'hex');
 			expect(result.success).toBe(false);
 			expect(result.error).toContain('components must have 3 elements');
+		});
+
+		test('returns error for non-numeric components', () => {
+			const value: DtcgColorSpaceValue = {
+				colorSpace: 'hsl',
+				components: ['none', 0, 100],
+				hex: '#ffffff',
+			};
+			const result = convertColorSpace(value, 'hex');
+			expect(result.success).toBe(false);
+			expect(result.error).toContain('components must be numeric for conversion');
+		});
+
+		test('returns error for standard color space not computable by Wave v1', () => {
+			const value: DtcgColorSpaceValue = {
+				colorSpace: 'display-p3',
+				components: [1, 0, 1],
+				hex: '#ff00ff',
+			};
+			const result = convertColorSpace(value, 'hex');
+			expect(result.success).toBe(false);
+			expect(result.error).toContain('Unsupported colorSpace: display-p3');
 		});
 
 		test('returns error for alpha out of range', () => {

@@ -165,4 +165,13 @@ describe('contrast evaluator', () => {
 		expect(result.success).toBe(true);
 		expect(result.ratio).toBeCloseTo(21, 1);
 	});
+
+	test('returns invalid color for non-computable DTCG components before fallback normalization', () => {
+		const result = evaluateContrast(
+			{ colorSpace: 'hsl', components: ['none', 0, 100], hex: '#ffffff' },
+			'#000000',
+		);
+		expect(result.success).toBe(false);
+		expect(result.error).toContain('Invalid background color value');
+	});
 });

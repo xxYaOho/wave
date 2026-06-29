@@ -384,12 +384,27 @@ export function isResolvedToken(node: unknown): node is ResolvedDtcgToken {
 	);
 }
 
-export type ColorSpaceType = 'oklch' | 'srgb' | 'hsl';
-export type ColorSpaceFormat = 'hex' | ColorSpaceType;
+export type ComputableColorSpaceType = 'oklch' | 'srgb' | 'hsl';
+export type DtcgColorSpaceType =
+	| ComputableColorSpaceType
+	| 'srgb-linear'
+	| 'hwb'
+	| 'lab'
+	| 'lch'
+	| 'oklab'
+	| 'display-p3'
+	| 'a98-rgb'
+	| 'prophoto-rgb'
+	| 'rec2020'
+	| 'xyz-d65'
+	| 'xyz-d50';
+export type ColorSpaceType = ComputableColorSpaceType;
+export type ColorSpaceFormat = 'hex' | ComputableColorSpaceType;
+export type DtcgColorComponent = number | 'none';
 
 export interface DtcgColorSpaceValue {
-	colorSpace: ColorSpaceType;
-	components: number[];
+	colorSpace: DtcgColorSpaceType;
+	components: DtcgColorComponent[];
 	alpha?: number;
 	hex?: string;
 }
@@ -401,13 +416,29 @@ export function isDtcgColorSpaceValue(
 		return false;
 	}
 	const obj = value as Record<string, unknown>;
+	const supportedSpaces: DtcgColorSpaceType[] = [
+		'oklch',
+		'srgb',
+		'hsl',
+		'srgb-linear',
+		'hwb',
+		'lab',
+		'lch',
+		'oklab',
+		'display-p3',
+		'a98-rgb',
+		'prophoto-rgb',
+		'rec2020',
+		'xyz-d65',
+		'xyz-d50',
+	];
 	return (
 		'colorSpace' in obj &&
 		'components' in obj &&
 		typeof obj.colorSpace === 'string' &&
-		['oklch', 'srgb', 'hsl'].includes(obj.colorSpace) &&
+		supportedSpaces.includes(obj.colorSpace as DtcgColorSpaceType) &&
 		Array.isArray(obj.components) &&
-		obj.components.every((c) => typeof c === 'number')
+		obj.components.every((c) => typeof c === 'number' || c === 'none')
 	);
 }
 

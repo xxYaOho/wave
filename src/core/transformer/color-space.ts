@@ -1,7 +1,7 @@
 import chroma from 'chroma-js';
 import {
+	type ComputableColorSpaceType,
 	type ColorSpaceFormat,
-	type ColorSpaceType,
 	type DtcgColorSpaceValue,
 	isDtcgColorSpaceValue,
 } from '../../types/index.ts';
@@ -10,6 +10,12 @@ export interface ColorConversionResult {
 	success: boolean;
 	value?: string;
 	error?: string;
+}
+
+export function isComputableColorSpace(
+	colorSpace: string,
+): colorSpace is ComputableColorSpaceType {
+	return colorSpace === 'oklch' || colorSpace === 'srgb' || colorSpace === 'hsl';
 }
 
 export function convertColorSpace(
@@ -26,6 +32,20 @@ export function convertColorSpace(
 				`components must have 3 elements, got ${components.length}`,
 				tokenPath,
 			),
+		};
+	}
+
+	if (!isComputableColorSpace(colorSpace)) {
+		return {
+			success: false,
+			error: formatError(`Unsupported colorSpace: ${colorSpace}`, tokenPath),
+		};
+	}
+
+	if (!components.every((component) => typeof component === 'number')) {
+		return {
+			success: false,
+			error: formatError('components must be numeric for conversion', tokenPath),
 		};
 	}
 
@@ -67,7 +87,7 @@ export function convertColorSpace(
 }
 
 function createColorFromSpace(
-	colorSpace: ColorSpaceType,
+	colorSpace: ComputableColorSpaceType,
 	components: number[],
 ): chroma.Color {
 	const [a = 0, b = 0, c = 0] = components;

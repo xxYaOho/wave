@@ -1,9 +1,19 @@
 import chroma from 'chroma-js';
 import {
 	type ContrastEvaluationResult,
+	type DtcgColorComponent,
 	type DoctorScoreLine,
 	isDtcgColorSpaceValue,
 } from '../../types/index.ts';
+
+function isNumericColorComponents(
+	components: DtcgColorComponent[],
+): components is [number, number, number] {
+	return (
+		components.length === 3 &&
+		components.every((component) => typeof component === 'number')
+	);
+}
 
 function resolveColorToChroma(
 	value: unknown,
@@ -35,10 +45,10 @@ function resolveColorToChroma(
 	if (isDtcgColorSpaceValue(value)) {
 		try {
 			let color: chroma.Color;
-			const [a, b, c] = value.components;
-			if (a === undefined || b === undefined || c === undefined) {
+			if (!isNumericColorComponents(value.components)) {
 				return null;
 			}
+			const [a, b, c] = value.components;
 			switch (value.colorSpace) {
 				case 'oklch':
 					color = chroma.oklch(a, b, c);

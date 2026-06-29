@@ -99,6 +99,41 @@ describe('wave show', () => {
 		);
 	});
 
+	test('outputs none color components as CSS strings in nested json', async () => {
+		const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-show-none-'));
+		const resourceDir = path.join(tempHome, '.cache', 'wave', 'resources');
+		const resourcePath = path.join(resourceDir, 'nonepalette.yaml');
+		try {
+			await fs.mkdir(resourceDir, { recursive: true });
+			await fs.writeFile(
+				resourcePath,
+				[
+					'nonepalette:',
+					'  color:',
+					'    $type: color',
+					'    neutral:',
+					'      $value:',
+					'        colorSpace: hsl',
+					'        components: ["none", 0, 100]',
+					'        hex: "#ffffff"',
+					'',
+				].join('\n'),
+				'utf-8',
+			);
+
+			const { exitCode, stdout } = await runWave(
+				['show', 'nonepalette', '--format', 'json'],
+				{ HOME: tempHome },
+			);
+
+			expect(exitCode).toBe(0);
+			const parsed = JSON.parse(stdout);
+			expect(parsed.nonepalette.color.neutral.$value).toBe('hsl(none 0 100)');
+		} finally {
+			await fs.rm(tempHome, { recursive: true, force: true });
+		}
+	});
+
 	test('shows resource detail with category and name', async () => {
 		const { exitCode, stdout } = await runWave([
 			'show',

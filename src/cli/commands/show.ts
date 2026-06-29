@@ -56,15 +56,25 @@ function formatValueForDisplay(value: unknown): unknown {
 	return value;
 }
 
+function formatColorComponentForDisplay(
+	component: DtcgColorSpaceValue['components'][number] | undefined,
+	options: { percent?: boolean } = {},
+): string {
+	if (component === undefined) return '0';
+	if (component === 'none') return 'none';
+	return options.percent
+		? `${formatNumber(component * 100)}%`
+		: formatNumber(component);
+}
+
 function formatColorSpaceValueForDisplay(value: DtcgColorSpaceValue): string {
-	const [first = 0, second = 0, third = 0] = value.components;
-	const firstComponent =
-		value.colorSpace === 'oklch'
-			? `${formatNumber(first * 100)}%`
-			: formatNumber(first);
+	const [first, second, third] = value.components;
+	const firstComponent = formatColorComponentForDisplay(first, {
+		percent: value.colorSpace === 'oklch',
+	});
 	const alpha =
 		value.alpha === undefined ? '' : ` / ${formatNumber(value.alpha)}`;
-	return `${value.colorSpace}(${firstComponent} ${formatNumber(second)} ${formatNumber(third)}${alpha})`;
+	return `${value.colorSpace}(${firstComponent} ${formatColorComponentForDisplay(second)} ${formatColorComponentForDisplay(third)}${alpha})`;
 }
 
 function formatNumber(value: number): string {
