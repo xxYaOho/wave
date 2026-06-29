@@ -200,6 +200,27 @@ describe('resource cache and adapters', () => {
 					await updateTailwind('4');
 				},
 			);
+			const cachePath = path.join(
+				tempHome,
+				'.cache/wave/resources/tailwindcss.yaml',
+			);
+			const cachedResource = yaml.load(
+				await fs.readFile(cachePath, 'utf-8'),
+			) as {
+				tailwindcss: {
+					color: {
+						red: {
+							'500': {
+								$value: unknown;
+							};
+						};
+					};
+				};
+			};
+			expect(cachedResource.tailwindcss.color.red['500'].$value).toEqual({
+				colorSpace: 'oklch',
+				components: [0.637, 0.237, 25.331],
+			});
 			await fs.writeFile(
 				path.join(tempTheme, 'themefile'),
 				'THEME tailwind-v4\nRESOURCE palette tailwindcss\nRESOURCE dimension wave\n',
@@ -249,8 +270,7 @@ describe('resource cache and adapters', () => {
 			const output = JSON.parse(
 				await fs.readFile(path.join(outputDir, 'tailwind-v4.json'), 'utf-8'),
 			);
-			expect(output['theme-color-primary']).toMatch(/^#[0-9a-f]{6}$/i);
-			expect(output['theme-color-primary']).not.toContain('oklch');
+			expect(output['theme-color-primary']).toBe('#fb2c36');
 		} finally {
 			await fs.rm(tempHome, { recursive: true, force: true });
 			await fs.rm(tempTheme, { recursive: true, force: true });
