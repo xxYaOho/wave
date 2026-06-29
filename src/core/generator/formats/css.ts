@@ -23,6 +23,13 @@ function isGradient(token: WaveToken): boolean {
 	return token.type === 'gradient';
 }
 
+function assertNoObjectColorValue(value: unknown, token: WaveToken): void {
+	if (typeof value !== 'object' || value === null) return;
+	throw new Error(
+		`CSS output requires transformer-normalized value at ${token.path.join('.')}`,
+	);
+}
+
 function formatTokenValue(token: WaveToken): string {
 	if (token.inheritColor === true) {
 		const numericValue = token.inheritColorAlpha ?? token.inheritColorOpacity;
@@ -60,6 +67,10 @@ function formatTokenValue(token: WaveToken): string {
 
 	if (isGradient(token) && Array.isArray(tokenValue)) {
 		return gradientToCss(tokenValue);
+	}
+
+	if (token.type === 'color') {
+		assertNoObjectColorValue(tokenValue, token);
 	}
 
 	return String(tokenValue);

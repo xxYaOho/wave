@@ -56,6 +56,14 @@ function tokenPathLabel(token: WaveToken): string {
 	return token.path.join('.');
 }
 
+function assertHexColor(color: string, token: WaveToken): void {
+	if (/^#[0-9a-fA-F]{3,4}$/.test(color)) return;
+	if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(color)) return;
+	throw new Error(
+		`Sketch color output requires hex color at ${tokenPathLabel(token)}`,
+	);
+}
+
 function isFiniteNumber(value: unknown): value is number {
 	return typeof value === 'number' && Number.isFinite(value);
 }
@@ -92,6 +100,7 @@ function resolveSketchColorValue(token: WaveToken): string {
 			`Sketch color output requires a color value at ${tokenPathLabel(token)}`,
 		);
 	}
+	assertHexColor(colorValue, token);
 	return colorValue;
 }
 
@@ -145,13 +154,18 @@ function resolveDimensionValue(
 	return typeof value === 'string' ? parseFloat(value) : value;
 }
 
-function processShadowLayer(layer: Record<string, unknown>): SketchShadowLayer {
+function processShadowLayer(
+	layer: Record<string, unknown>,
+	token: WaveToken,
+): SketchShadowLayer {
+	const color = String(layer.color);
+	assertHexColor(color, token);
 	return {
 		x: cleanValue(layer.offsetX as number | string),
 		y: cleanValue(layer.offsetY as number | string),
 		blur: cleanValue(layer.blur as number | string),
 		spread: cleanValue(layer.spread as number | string),
-		color: hexToSketchColor(String(layer.color)),
+		color: hexToSketchColor(color),
 	};
 }
 
@@ -310,6 +324,7 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 
 	if (token.type === 'color' || token.inheritColor === true) {
 		const { color, opacity, alpha } = resolveSketchColor(token, allTokens);
+		assertHexColor(color, token);
 		if (typeof opacity === 'number' || typeof alpha === 'number') {
 			return {
 				color: hexToSketchColor(color),
@@ -325,16 +340,24 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 
 	if (token.type === 'shadow') {
 		const shadowArray = toObjectArray(token.value, 'shadow', token);
-		return { shadow: [...shadowArray].reverse().map(processShadowLayer) };
+		return {
+			shadow: [...shadowArray]
+				.reverse()
+				.map((layer) => processShadowLayer(layer, token)),
+		};
 	}
 
 	if (token.type === 'gradient') {
 		const gradientArray = toObjectArray(token.value, 'gradient', token);
 		return {
-			gradient: gradientArray.map((stop) => ({
-				color: hexToSketchColor(String(stop.color)),
-				position: stop.position,
-			})),
+			gradient: gradientArray.map((stop) => {
+				const color = String(stop.color);
+				assertHexColor(color, token);
+				return {
+					color: hexToSketchColor(color),
+					position: stop.position,
+				};
+			}),
 		};
 	}
 

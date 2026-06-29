@@ -89,4 +89,51 @@ describe('sketchFormat (Wave-native)', () => {
 		expect(shadow[2]).toMatchObject({ blur: 2, y: 1 });
 		expect((tokens[0]!.value as unknown[])[0]).toMatchObject({ blur: 2 });
 	});
+
+	test('throws when sketch receives non-hex color string', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-primary-main',
+				path: ['theme', 'color', 'primary', 'main'],
+				value: 'oklch(52% 0.25 263)',
+				type: 'color',
+				_order: 0,
+			},
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
+			'Sketch color output requires hex color',
+		);
+	});
+
+	test('formats normalized shadow and gradient colors as hex8', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-shadow-raised',
+				path: ['theme', 'shadow', 'raised'],
+				value: [
+					{
+						color: '#ff00ff80',
+						offsetX: 0,
+						offsetY: 4,
+						blur: 8,
+						spread: 0,
+					},
+				],
+				type: 'shadow',
+				_order: 0,
+			},
+			{
+				name: 'theme-gradient-accent',
+				path: ['theme', 'gradient', 'accent'],
+				value: [{ color: '#ff000040', position: 0 }],
+				type: 'gradient',
+				_order: 1,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
+		expect(parsed['shadow-raised'].shadow[0].color).toBe('#ff00ff80');
+		expect(parsed['gradient-accent'].gradient[0].color).toBe('#ff000040');
+	});
 });

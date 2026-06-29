@@ -161,4 +161,52 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).toContain('--theme-color-primary');
 		expect(out).not.toContain('--theme-dimension-gap');
 	});
+
+	test('throws instead of emitting object color value', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-primary',
+				path: ['theme', 'color', 'primary'],
+				value: { colorSpace: 'oklch', components: [0.5, 0.2, 260] },
+				type: 'color',
+				_order: 0,
+			},
+		];
+
+		expect(() => cssVariablesFormat(tokens)).toThrow(
+			'CSS output requires transformer-normalized value',
+		);
+	});
+
+	test('formats normalized shadow and gradient colors without object leakage', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-shadow-raised',
+				path: ['theme', 'shadow', 'raised'],
+				value: [
+					{
+						color: '#ff00ff80',
+						offsetX: 0,
+						offsetY: 4,
+						blur: 8,
+						spread: 0,
+					},
+				],
+				type: 'shadow',
+				_order: 0,
+			},
+			{
+				name: 'theme-gradient-accent',
+				path: ['theme', 'gradient', 'accent'],
+				value: [{ color: '#ff000040', position: 0 }],
+				type: 'gradient',
+				_order: 1,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens);
+		expect(out).not.toContain('[object Object]');
+		expect(out).toContain('rgb(255 0 255 / 0.5)');
+		expect(out).toContain('rgb(255 0 0 / 0.25)');
+	});
 });
