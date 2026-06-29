@@ -257,4 +257,33 @@ describe('theme-transformer DTCG color fallback', () => {
 			'Unsupported color value at theme.color.bad',
 		);
 	});
+
+	test('throws with token path for standalone hex object in shadow color', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				style: {
+					shadow: {
+						$type: 'shadow',
+						bad: {
+							$value: [
+								{
+									color: {
+										hex: '#0052f5',
+									},
+									offsetX: 0,
+									offsetY: 4,
+									blur: 8,
+									spread: 0,
+								},
+							],
+						},
+					},
+				},
+			},
+		};
+
+		expect(() => transformToWaveTokens(input, undefined, 'hex')).toThrow(
+			'Unsupported color value at theme.style.shadow.bad[0].color',
+		);
+	});
 });

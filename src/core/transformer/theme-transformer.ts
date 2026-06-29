@@ -117,7 +117,8 @@ function processArrayItem(
 			(typeof val === 'string' ||
 				isDtcgColorSpaceValue(val) ||
 				isDtcgColorObjectCandidate(val) ||
-				isLegacyColorObject(val))
+				isLegacyColorObject(val) ||
+				isStandaloneHexObject(val))
 		) {
 			result[key] = normalizeColorValue(
 				val,
