@@ -379,6 +379,160 @@ describe('Theme Service Integration', () => {
 		});
 	});
 
+	describe('DTCG colorSpace mixed platform', () => {
+		test('no-main fallback renders sketch from hex tokens in mixed colorSpace pass', async () => {
+			const tempThemeDir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-no-main-'),
+			);
+			const outputDir = path.join(tempThemeDir, 'out');
+			try {
+				await fs.writeFile(
+					path.join(tempThemeDir, 'palette.yaml'),
+					[
+						'custom:',
+						'  color:',
+						'    $type: color',
+						'    primary:',
+						'      $value:',
+						'        colorSpace: oklch',
+						'        components: [0.637, 0.237, 25.331]',
+						'        hex: "#fb2c36"',
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+				await fs.writeFile(
+					path.join(tempThemeDir, 'dimension.yaml'),
+					[
+						'scale:',
+						'  dimension:',
+						'    spacing:',
+						'      $type: dimension',
+						'      sm:',
+						'        $value: 4',
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+				await fs.writeFile(
+					path.join(tempThemeDir, 'themefile'),
+					[
+						'THEME no-main-mixed',
+						'RESOURCE palette ./palette.yaml',
+						'RESOURCE dimension ./dimension.yaml',
+						'PARAMETER output ./out',
+						'PARAMETER platform css,sketch',
+						'PARAMETER colorSpace oklch',
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+
+				const result = await generateTheme({
+					themeName: 'no-main-mixed',
+					themePath: path.join(tempThemeDir, 'themefile'),
+					generateOptions: { night: true, variants: [] },
+				});
+
+				if (!result.ok) throw new Error(result.message);
+				const css = await fs.readFile(
+					path.join(outputDir, 'no-main-mixed.css'),
+					'utf-8',
+				);
+				const sketch = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'no-main-mixed2sketch.json'),
+						'utf-8',
+					),
+				);
+				expect(css).toContain('oklch(');
+				expect(sketch['color-primary']).toEqual({ color: '#fb2c36ff' });
+			} finally {
+				await fs.rm(tempThemeDir, { recursive: true, force: true });
+			}
+		});
+
+		test('main night and variant mixed passes render sketch from hex tokens', async () => {
+			const tempThemeDir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-mixed-branches-'),
+			);
+			const outputDir = path.join(tempThemeDir, 'out');
+
+			async function writeThemeYaml(
+				filePath: string,
+				hex: string,
+			): Promise<void> {
+				await fs.mkdir(path.dirname(filePath), { recursive: true });
+				await fs.writeFile(
+					filePath,
+					[
+						'theme:',
+						'  color:',
+						'    $type: color',
+						'    primary:',
+						'      $value:',
+						'        colorSpace: oklch',
+						'        components: [0.637, 0.237, 25.331]',
+						`        hex: "${hex}"`,
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+			}
+
+			try {
+				await fs.writeFile(
+					path.join(tempThemeDir, 'themefile'),
+					[
+						'THEME mixed-branches',
+						'RESOURCE palette tailwindcss',
+						'RESOURCE dimension wave',
+						'PARAMETER output ./out',
+						'PARAMETER platform css,sketch',
+						'PARAMETER colorSpace oklch',
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+				await writeThemeYaml(path.join(tempThemeDir, 'main.yaml'), '#fb2c36');
+				await writeThemeYaml(
+					path.join(tempThemeDir, 'main@night.yaml'),
+					'#0052f5',
+				);
+				await writeThemeYaml(
+					path.join(tempThemeDir, 'variants', 'dark.yaml'),
+					'#1860dd',
+				);
+
+				const result = await generateTheme({
+					themeName: 'mixed-branches',
+					themePath: path.join(tempThemeDir, 'themefile'),
+					generateOptions: { night: true, variants: ['dark'] },
+				});
+
+				expect(result.ok).toBe(true);
+				for (const suffix of ['', '-night', '-dark']) {
+					const css = await fs.readFile(
+						path.join(outputDir, `mixed-branches${suffix}.css`),
+						'utf-8',
+					);
+					const sketch = JSON.parse(
+						await fs.readFile(
+							path.join(outputDir, `mixed-branches${suffix}2sketch.json`),
+							'utf-8',
+						),
+					);
+					expect(css).toContain('oklch(');
+					expect(sketch['theme-color-primary']).toEqual({
+						color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
+					});
+				}
+			} finally {
+				await fs.rm(tempThemeDir, { recursive: true, force: true });
+			}
+		});
+	});
+
 	describe('错误处理', () => {
 		test('应在 themefile 不存在时返回错误', async () => {
 			const result = await generateTheme({

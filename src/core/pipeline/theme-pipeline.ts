@@ -429,6 +429,7 @@ export async function processThemeDocument(
 			tree: transformResult.tokens,
 			order: transformResult.tokens.map((t) => t.name),
 			groupComments: transformResult.groupComments,
+			resolved,
 		};
 	} catch (err) {
 		if (err instanceof CircularReferenceError) {

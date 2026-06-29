@@ -91,7 +91,7 @@ async function generatePass(
 		const parseResult = await processThemeDocument(
 			mainYamlPath,
 			dict,
-			colorSpace as import('../../types/index.ts').ColorSpaceFormat | undefined,
+			colorSpace as ColorSpaceFormat | undefined,
 			mainYamlContentOverride,
 		);
 
@@ -115,6 +115,8 @@ async function generatePass(
 			platform: platforms,
 			filterLayer,
 			groupComments: parseResult.groupComments,
+			resolved: parseResult.resolved,
+			colorSpace: colorSpace as ColorSpaceFormat | undefined,
 		});
 
 		if (!mainResult.success) {
@@ -138,6 +140,7 @@ async function generatePass(
 			depResult,
 			platforms,
 			filterLayer,
+			colorSpace as ColorSpaceFormat | undefined,
 		);
 
 		if (!result.success) {
@@ -319,6 +322,8 @@ export async function generateTheme(
 					platform: pass.platforms,
 					filterLayer: pass.filterLayer,
 					groupComments: nightParseResult.groupComments,
+					resolved: nightParseResult.resolved,
+					colorSpace: pass.colorSpace as ColorSpaceFormat | undefined,
 				});
 
 				if (nightGenResult.success) {
@@ -338,6 +343,7 @@ export async function generateTheme(
 					depResult,
 					pass.platforms,
 					pass.filterLayer,
+					pass.colorSpace as ColorSpaceFormat | undefined,
 				);
 				if (nightGenResult.success) {
 					generatedFiles.push(...nightGenResult.files);
@@ -403,6 +409,8 @@ export async function generateTheme(
 					platform: pass.platforms,
 					filterLayer: pass.filterLayer,
 					groupComments: variantTokens.groupComments,
+					resolved: variantTokens.resolved,
+					colorSpace: pass.colorSpace as ColorSpaceFormat | undefined,
 				});
 
 				if (variantResult.success) {
@@ -434,6 +442,7 @@ async function generateThemeTokens(
 	depResult: DependencyDictionary,
 	platforms?: string[],
 	filterLayer?: number,
+	colorSpace?: ColorSpaceFormat,
 ): Promise<GeneratorResult> {
 	const { paletteContent, dimensionContent, palettePath, dimensionPath } =
 		depResult;
@@ -473,7 +482,11 @@ async function generateThemeTokens(
 		dimension: (dimension as { dimension: unknown }).dimension,
 	} as unknown as ResolvedTokenGroup;
 
-	const transformResult = transformToWaveTokens(syntheticTree);
+	const transformResult = transformToWaveTokens(
+		syntheticTree,
+		undefined,
+		colorSpace,
+	);
 
 	await fs.mkdir(outputDir, { recursive: true });
 
@@ -481,6 +494,8 @@ async function generateThemeTokens(
 		themeName,
 		outputDir,
 		tokens: transformResult.tokens,
+		resolved: syntheticTree,
+		colorSpace,
 		platform: platforms,
 		filterLayer,
 	});

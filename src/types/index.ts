@@ -270,6 +270,7 @@ export interface ThemeDocumentSuccess {
 	tree: WaveToken[];
 	order: string[];
 	groupComments: Record<string, string>;
+	resolved: ResolvedTokenGroup;
 }
 
 export type ThemeDocumentResult = ThemeDocumentSuccess | ThemeDocumentFailure;

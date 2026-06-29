@@ -1,7 +1,13 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import type { WaveFormatFn, WaveToken } from '../../types/index.ts';
+import type {
+	ColorSpaceFormat,
+	ResolvedTokenGroup,
+	WaveFormatFn,
+	WaveToken,
+} from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
+import { transformToWaveTokens } from '../transformer/theme-transformer.ts';
 import { cssVariablesFormat } from './formats/css.ts';
 import { flatJsoncFormat, flatJsonFormat } from './formats/flat.ts';
 import { sketchFormat } from './formats/sketch.ts';
@@ -13,6 +19,8 @@ export interface GeneratorOptions {
 	platform?: string[];
 	filterLayer?: number;
 	groupComments?: Record<string, string>;
+	resolved?: ResolvedTokenGroup;
+	colorSpace?: ColorSpaceFormat;
 }
 
 export interface GeneratorResult {
@@ -47,11 +55,30 @@ const PLATFORMS: Record<string, PlatformDefinition> = {
 	},
 };
 
+function tokensForPlatform(
+	platform: string,
+	tokens: WaveToken[],
+	resolved: ResolvedTokenGroup | undefined,
+	colorSpace: ColorSpaceFormat | undefined,
+): WaveToken[] {
+	if (platform !== 'sketch') return tokens;
+	if (!resolved || colorSpace === 'hex') return tokens;
+	return transformToWaveTokens(resolved, undefined, 'hex').tokens;
+}
+
 export async function generateTokens(
 	options: GeneratorOptions,
 ): Promise<GeneratorResult> {
-	const { themeName, outputDir, tokens, platform, filterLayer, groupComments } =
-		options;
+	const {
+		themeName,
+		outputDir,
+		tokens,
+		platform,
+		filterLayer,
+		groupComments,
+		resolved,
+		colorSpace,
+	} = options;
 	const generatedFiles: string[] = [];
 	const targetPlatforms = platform ?? ['json'];
 
@@ -73,7 +100,10 @@ export async function generateTokens(
 			}
 
 			const filename = def.filename(themeName);
-			const out = def.format(tokens, formatOptions);
+			const out = def.format(
+				tokensForPlatform(normalized, tokens, resolved, colorSpace),
+				formatOptions,
+			);
 
 			await fs.mkdir(outputDir, { recursive: true });
 			await Bun.write(path.join(outputDir, filename), out);

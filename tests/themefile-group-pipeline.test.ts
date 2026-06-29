@@ -144,6 +144,17 @@ describe('buildGroupPasses', () => {
 		expect(passes[0]!.platforms).toEqual(['css']);
 	});
 
+	test('mixed sketch and css platform group remains supported', () => {
+		const parsed = makeParsed({
+			PARAMETER: { colorSpace: 'oklch', platform: 'css,sketch' },
+		});
+
+		const passes = buildGroupPasses(parsed, '/theme');
+		expect(passes).toHaveLength(1);
+		expect(passes[0]!.platforms).toEqual(['css', 'sketch']);
+		expect(passes[0]!.colorSpace).toBe('oklch');
+	});
+
 	test('CLI output overrides all groups', () => {
 		const parsed = makeParsed({
 			groups: [
