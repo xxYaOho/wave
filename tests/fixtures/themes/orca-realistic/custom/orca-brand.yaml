@@ -7,11 +7,15 @@ orca-brand:
       500:
         $value: "#3695fb"
       600:
-        $value: "#1872f0"
-      600-fallback:
         $value:
           colorSpace: oklch
           hex: "#0052f5"
           components: ["51.8%", 0.251, 262.6]
+      600-fallback:
+        $value:
+          oklch:
+            colorSpace: oklch
+            hex: "#0052f5"
+            components: ["51.8%", 0.251, 262.6]
       700:
         $value: "#1860dd"

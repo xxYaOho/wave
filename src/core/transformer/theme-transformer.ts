@@ -51,6 +51,34 @@ function isStandaloneHexObject(value: unknown): boolean {
 	);
 }
 
+function isLegacyColorSpaceWrapperObject(value: unknown): boolean {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return false;
+	}
+	const keys = Object.keys(value);
+	const colorKeys = keys.filter((key) => key !== 'alpha' && key !== '_swatchName');
+	if (colorKeys.length !== 1) return false;
+	const space = colorKeys[0]!;
+	const nested = (value as Record<string, unknown>)[space];
+	return (
+		typeof nested === 'object' &&
+		nested !== null &&
+		!Array.isArray(nested) &&
+		'colorSpace' in nested &&
+		'components' in nested &&
+		(nested as { colorSpace?: unknown }).colorSpace === space
+	);
+}
+
+function isDtcgTokenValueObject(value: unknown): boolean {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		!Array.isArray(value) &&
+		'$value' in value
+	);
+}
+
 function shouldNormalizeScalarColor(
 	value: DtcgValue,
 	typeValue: string | undefined,
@@ -60,6 +88,8 @@ function shouldNormalizeScalarColor(
 		(typeof value === 'string' ||
 			isDtcgColorSpaceValue(value) ||
 			isDtcgColorObjectCandidate(value) ||
+			isLegacyColorSpaceWrapperObject(value) ||
+			isDtcgTokenValueObject(value) ||
 			isLegacyColorObject(value) ||
 			isStandaloneHexObject(value))
 	);
@@ -117,6 +147,8 @@ function processArrayItem(
 			(typeof val === 'string' ||
 				isDtcgColorSpaceValue(val) ||
 				isDtcgColorObjectCandidate(val) ||
+				isLegacyColorSpaceWrapperObject(val) ||
+				isDtcgTokenValueObject(val) ||
 				isLegacyColorObject(val) ||
 				isStandaloneHexObject(val))
 		) {

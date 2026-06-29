@@ -344,7 +344,7 @@ describe('Quality Harness workspace and runner', () => {
 				await fs.readFile(mainSketch!.path, 'utf-8'),
 			);
 			expect(sketchOutput.foundation.color['primary-main']).toEqual({
-				color: '#1872f0ff',
+				color: '#0052f5ff',
 			});
 			expect(sketchOutput['primary-main']).toBeUndefined();
 			expect(sketchOutput.foundation.interaction['interaction-hover']).toEqual({

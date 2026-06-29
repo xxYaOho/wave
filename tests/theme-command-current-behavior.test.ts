@@ -114,10 +114,11 @@ describe('theme command current behavior', () => {
 			),
 		);
 
-		// All three documents reference the same palette color from shared sources
-		expect(mainJson['theme-test-shared']).toBe('#FFFFFF');
-		expect(nightJson['theme-test-shared']).toBe('#FFFFFF');
-		expect(darkJson['theme-test-shared']).toBe('#FFFFFF');
+		// All three documents reference the same palette color from shared sources.
+		// Color normalization canonicalizes hex output to lowercase.
+		expect(mainJson['theme-test-shared']).toBe('#ffffff');
+		expect(nightJson['theme-test-shared']).toBe('#ffffff');
+		expect(darkJson['theme-test-shared']).toBe('#ffffff');
 
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});

@@ -146,6 +146,32 @@ describe('theme-transformer DTCG color fallback', () => {
 		);
 	});
 
+	test('uses fallback from legacy color-space wrapper object', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					primary: {
+						main: {
+							$value: {
+								oklch: {
+									colorSpace: 'oklch',
+									components: ['51.8%', 0.251, 262.6],
+									hex: '#0052f5',
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input, undefined, 'hex');
+		expect(findToken(result.tokens, 'theme-color-primary-main').value).toBe(
+			'#0052f5',
+		);
+	});
+
 	test('keeps legacy color object with alpha compatible', () => {
 		const input: ResolvedTokenGroup = {
 			theme: {
@@ -240,6 +266,36 @@ describe('theme-transformer DTCG color fallback', () => {
 			.value as Array<Record<string, unknown>>;
 		expect(shadow[0]!.color).toBe('#ff00ff80');
 		expect(gradient[0]!.color).toBe('#ff000040');
+	});
+
+	test('uses fallback from legacy color-space wrapper inside gradient color', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				gradient: {
+					$type: 'gradient',
+					fallback: {
+						$value: [
+							{
+								color: {
+									oklch: {
+										colorSpace: 'oklch',
+										components: ['51.8%', 0.251, 262.6],
+										hex: '#0052f5',
+									},
+									alpha: 0.25,
+								},
+								position: 0,
+							},
+						],
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input, undefined, 'hex');
+		const gradient = findToken(result.tokens, 'theme-gradient-fallback')
+			.value as Array<Record<string, unknown>>;
+		expect(gradient[0]!.color).toBe('#0052f540');
 	});
 
 	test('throws with token path when unsupported color lacks fallback', () => {

@@ -74,6 +74,25 @@ function isDtcgColorObjectShape(
 	);
 }
 
+function unwrapLegacyColorSpaceObject(value: unknown):
+	| {
+			color: DtcgColorObjectShape;
+			alpha?: unknown;
+	  }
+	| undefined {
+	if (!isObject(value)) return undefined;
+	const keys = Object.keys(value);
+	const colorKeys = keys.filter((key) => key !== 'alpha' && key !== '_swatchName');
+	if (colorKeys.length !== 1) return undefined;
+
+	const space = colorKeys[0]!;
+	if (!supportedDtcgColorSpaces.has(space)) return undefined;
+	const nested = value[space];
+	if (!isDtcgColorObjectShape(nested)) return undefined;
+	if (nested.colorSpace !== space) return undefined;
+	return { color: nested, alpha: value.alpha };
+}
+
 function parseAlpha(value: unknown, tokenPath?: string): number {
 	if (value === undefined) return 1;
 	const alpha = typeof value === 'string' ? parseFloat(value) : value;
@@ -249,8 +268,22 @@ export function normalizeColorValue(
 	if (typeof value === 'string') {
 		return normalizeFromHex(value, targetFormat, tokenPath, 'legacy-string');
 	}
+	if (isObject(value) && '$value' in value) {
+		return normalizeColorValue(value.$value, targetFormat, tokenPath);
+	}
 	if (isDtcgColorObjectShape(value)) {
 		return normalizeDtcgColor(value, targetFormat, tokenPath);
+	}
+	const wrappedColor = unwrapLegacyColorSpaceObject(value);
+	if (wrappedColor) {
+		const alpha = parseAlpha(wrappedColor.alpha, tokenPath);
+		return normalizeDtcgColor(
+			wrappedColor.alpha === undefined
+				? wrappedColor.color
+				: { ...wrappedColor.color, alpha },
+			targetFormat,
+			tokenPath,
+		);
 	}
 	if (isObject(value) && 'color' in value) {
 		const alpha = parseAlpha(value.alpha, tokenPath);
@@ -260,6 +293,14 @@ export function normalizeColorValue(
 		}
 		if (isDtcgColorObjectShape(color)) {
 			return normalizeDtcgColor({ ...color, alpha }, targetFormat, tokenPath);
+		}
+		const wrappedColor = unwrapLegacyColorSpaceObject(color);
+		if (wrappedColor) {
+			return normalizeDtcgColor(
+				{ ...wrappedColor.color, alpha },
+				targetFormat,
+				tokenPath,
+			);
 		}
 	}
 	throw new ColorValueError('Unsupported color value', tokenPath);

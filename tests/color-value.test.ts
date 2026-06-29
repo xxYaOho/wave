@@ -50,6 +50,59 @@ describe('normalizeColorValue', () => {
 		expect(result.source).toBe('dtcg-hex-fallback');
 	});
 
+	test('supports legacy color-space wrapper object with fallback color', () => {
+		const result = normalizeColorValue(
+			{
+				oklch: {
+					colorSpace: 'oklch',
+					components: ['51.8%', 0.251, 262.6],
+					hex: '#0052f5',
+				},
+			},
+			'hex',
+			'theme.color.primary.main',
+		);
+		expect(result.value).toBe('#0052f5');
+		expect(result.hex8).toBe('#0052f5ff');
+		expect(result.source).toBe('dtcg-hex-fallback');
+	});
+
+	test('supports legacy color-space wrapper object with outer alpha', () => {
+		const result = normalizeColorValue(
+			{
+				oklch: {
+					colorSpace: 'oklch',
+					components: ['51.8%', 0.251, 262.6],
+					hex: '#0052f5',
+				},
+				alpha: 0.25,
+			},
+			'hex',
+			'theme.gradient.fallback[0].color',
+		);
+		expect(result.value).toBe('#0052f540');
+		expect(result.hex8).toBe('#0052f540');
+		expect(result.source).toBe('dtcg-hex-fallback');
+	});
+
+	test('supports referenced token object wrapper with DTCG $value', () => {
+		const result = normalizeColorValue(
+			{
+				$value: {
+					colorSpace: 'oklch',
+					components: ['51.8%', 0.251, 262.6],
+					hex: '#0052f5',
+				},
+				_swatchName: 'color/main-600',
+			},
+			'hex',
+			'theme.color.primary.main',
+		);
+		expect(result.value).toBe('#0052f5');
+		expect(result.hex8).toBe('#0052f5ff');
+		expect(result.source).toBe('dtcg-hex-fallback');
+	});
+
 	test('rejects standalone hex object', () => {
 		expect(() =>
 			normalizeColorValue({ hex: '#0052f5' }, 'hex', 'theme.color.bad'),
