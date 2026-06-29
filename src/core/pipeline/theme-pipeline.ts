@@ -30,6 +30,7 @@ import {
 } from '../resolver/index.ts';
 import { loadResource } from '../resolver/resource-loader.ts';
 import { validateThemeSchema } from '../schema/theme.ts';
+import { ColorValueError } from '../transformer/color-value.ts';
 import { transformToWaveTokens } from '../transformer/index.ts';
 
 export interface ThemefileLoadResult {
@@ -454,6 +455,14 @@ export async function processThemeDocument(
 				reason: 'unresolved_reference',
 				message: err.message,
 				exitCode: err.exitCode,
+			};
+		}
+		if (err instanceof ColorValueError) {
+			return {
+				ok: false,
+				reason: 'schema_error',
+				message: err.message,
+				exitCode: ExitCode.FORMAT_ERROR,
 			};
 		}
 		throw err;

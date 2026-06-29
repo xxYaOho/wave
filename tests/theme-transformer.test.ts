@@ -167,6 +167,29 @@ describe('theme-transformer DTCG color fallback', () => {
 		);
 	});
 
+	test('keeps legacy theme.color object compatible without explicit color type', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					overlay: {
+						$value: {
+							color: {
+								colorSpace: 'oklch',
+								components: [0.208, 0.042, 265.755],
+							},
+							alpha: 0.85,
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input, undefined, 'hex');
+		expect(findToken(result.tokens, 'theme-color-overlay').value).toMatch(
+			/^#[0-9a-f]{8}$/i,
+		);
+	});
+
 	test('uses DTCG hex fallback with alpha for shadow and gradient colors', () => {
 		const input: ResolvedTokenGroup = {
 			theme: {

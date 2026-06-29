@@ -634,7 +634,8 @@ export function transformToWaveTokens(
 		path: string[],
 		inheritedExtensions: InheritedExtensions = {},
 	): void {
-		const groupType = group.$type ?? inheritedType;
+		const groupType =
+			group.$type ?? (path[path.length - 1] === 'color' ? 'color' : inheritedType);
 		const groupSketchExtension = parseSketchExtension(group.$extensions);
 		const childInheritedExtensions: InheritedExtensions = {
 			...inheritedExtensions,

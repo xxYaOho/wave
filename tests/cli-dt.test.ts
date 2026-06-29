@@ -585,6 +585,105 @@ describe('wave dt', () => {
 		expect(stdout).not.toContain('themefile load');
 	});
 
+	async function writeInvalidDtcgColorTheme(
+		tempDir: string,
+		valueLines: string[],
+	): Promise<void> {
+		await fs.writeFile(
+			path.join(tempDir, 'themefile'),
+			[
+				'THEME invalid-dtcg-color',
+				'RESOURCE palette tailwindcss',
+				'RESOURCE dimension wave',
+				'PARAMETER platform css',
+				'',
+			].join('\n'),
+			'utf-8',
+		);
+		await fs.writeFile(
+			path.join(tempDir, 'main.yaml'),
+			[
+				'theme:',
+				'  color:',
+				'    $type: color',
+				'    bad:',
+				'      $value:',
+				...valueLines.map((line) => `        ${line}`),
+				'',
+			].join('\n'),
+			'utf-8',
+		);
+	}
+
+	async function expectInvalidDtcgColorBuildFailure(
+		valueLines: string[],
+		expectedMessage: string,
+	): Promise<void> {
+		const tempDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-invalid-dtcg-'),
+		);
+		try {
+			await writeInvalidDtcgColorTheme(tempDir, valueLines);
+			const result = await runWave([
+				'dt',
+				'build',
+				'-f',
+				path.join(tempDir, 'themefile'),
+				'-o',
+				path.join(tempDir, 'dist'),
+			]);
+
+			expect(result.exitCode).not.toBe(0);
+			expect(`${result.stdout}\n${result.stderr}`).toContain(expectedMessage);
+			expect(
+				await Bun.file(
+					path.join(tempDir, 'dist', 'invalid-dtcg-color.css'),
+				).exists(),
+			).toBe(false);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	}
+
+	test('dt build rejects standalone hex object as color syntax', async () => {
+		await expectInvalidDtcgColorBuildFailure(
+			['hex: "#0052f5"'],
+			'Unsupported color value at theme.color.bad',
+		);
+	});
+
+	test('dt build rejects none components without hex fallback', async () => {
+		await expectInvalidDtcgColorBuildFailure(
+			['colorSpace: hsl', 'components: ["none", 0, 0]'],
+			'Unsupported DTCG color "hsl" without a valid hex fallback at theme.color.bad',
+		);
+	});
+
+	test('dt build rejects DTCG hex fallback with alpha channel', async () => {
+		await expectInvalidDtcgColorBuildFailure(
+			['colorSpace: oklch', 'components: ["none", 0, 0]', 'hex: "#0052f5ff"'],
+			'DTCG color hex fallback must be #RRGGBB at theme.color.bad',
+		);
+	});
+
+	test('dt build rejects invalid hex fallback even when components are computable', async () => {
+		await expectInvalidDtcgColorBuildFailure(
+			[
+				'colorSpace: oklch',
+				'components: [0.518, 0.251, 262.6]',
+				'hex: "#0052f5ff"',
+			],
+			'DTCG color hex fallback must be #RRGGBB at theme.color.bad',
+		);
+	});
+
+	test('dt build rejects unsupported colorSpace without hex fallback', async () => {
+		await expectInvalidDtcgColorBuildFailure(
+			['colorSpace: display-p3', 'components: [1, 0, 1]'],
+			'Unsupported DTCG color "display-p3" without a valid hex fallback at theme.color.bad',
+		);
+	});
+
 	test('dt wcag runs contrast checks as a dedicated design-token command', async () => {
 		const { exitCode, stdout } = await runWave([
 			'dt',
