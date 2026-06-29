@@ -166,12 +166,54 @@ describe('contrast evaluator', () => {
 		expect(result.ratio).toBeCloseTo(21, 1);
 	});
 
-	test('returns invalid color for non-computable DTCG components before fallback normalization', () => {
+	test('uses hex fallback for non-computable DTCG components', () => {
 		const result = evaluateContrast(
 			{ colorSpace: 'hsl', components: ['none', 0, 100], hex: '#ffffff' },
 			'#000000',
 		);
+		expect(result.success).toBe(true);
+		expect(result.ratio).toBeCloseTo(21, 1);
+	});
+
+	test('uses DTCG hex fallback for non-computable color', () => {
+		const bg = {
+			colorSpace: 'display-p3',
+			components: [1, 1, 1],
+			hex: '#ffffff',
+		};
+		const fg = {
+			colorSpace: 'oklch',
+			components: ['51.8%', 0.251, 262.6] as never,
+			hex: '#0052f5',
+		};
+		const result = evaluateContrast(bg, fg);
+		expect(result.success).toBe(true);
+		expect(result.ratio).toBeGreaterThan(1);
+	});
+
+	test('returns invalid color error for DTCG color without computable components or fallback', () => {
+		const result = evaluateContrast(
+			{
+				colorSpace: 'display-p3',
+				components: [1, 0, 1],
+			},
+			'#ffffff',
+		);
 		expect(result.success).toBe(false);
 		expect(result.error).toContain('Invalid background color value');
+	});
+
+	test('keeps alpha less than one unsupported after fallback', () => {
+		const result = evaluateContrast(
+			{
+				colorSpace: 'display-p3',
+				components: [1, 0, 1],
+				alpha: 0.5,
+				hex: '#ff00ff',
+			},
+			'#ffffff',
+		);
+		expect(result.success).toBe(false);
+		expect(result.error).toContain('alpha < 1 not supported in v1');
 	});
 });

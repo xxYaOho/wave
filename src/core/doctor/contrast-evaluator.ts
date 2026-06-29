@@ -1,19 +1,9 @@
 import chroma from 'chroma-js';
 import {
 	type ContrastEvaluationResult,
-	type DtcgColorComponent,
 	type DoctorScoreLine,
-	isDtcgColorSpaceValue,
 } from '../../types/index.ts';
-
-function isNumericColorComponents(
-	components: DtcgColorComponent[],
-): components is [number, number, number] {
-	return (
-		components.length === 3 &&
-		components.every((component) => typeof component === 'number')
-	);
-}
+import { normalizeColorValue } from '../transformer/color-value.ts';
 
 function resolveColorToChroma(
 	value: unknown,
@@ -42,27 +32,11 @@ function resolveColorToChroma(
 		}
 	}
 
-	if (isDtcgColorSpaceValue(value)) {
+	if (typeof value === 'object' && value !== null) {
 		try {
-			let color: chroma.Color;
-			if (!isNumericColorComponents(value.components)) {
-				return null;
-			}
-			const [a, b, c] = value.components;
-			switch (value.colorSpace) {
-				case 'oklch':
-					color = chroma.oklch(a, b, c);
-					break;
-				case 'srgb':
-					color = chroma.rgb(a * 255, b * 255, c * 255);
-					break;
-				case 'hsl':
-					color = chroma.hsl(a, b / 100, c / 100);
-					break;
-				default:
-					return null;
-			}
-			return { color, alpha: value.alpha ?? 1 };
+			const normalized = normalizeColorValue(value, 'hex');
+			const color = chroma(normalized.value);
+			return { color, alpha: normalized.alpha };
 		} catch {
 			return null;
 		}
