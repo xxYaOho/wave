@@ -41,6 +41,12 @@ theme:
         $value: "{orca-brand.color.main.50}"
       on-container:
         $value: "{orca-brand.color.main.700}"
+    orcaFallback:
+      main:
+        $value: "{orca-brand.color.main.600-fallback}"
+        $extensions:
+          sketch:
+            path: "foundation/color"
     text:
       default:
         $value: "{tailwindcss.color.slate.900}"
@@ -108,8 +114,8 @@ theme:
         $type: shadow
         $value:
           color:
-            $ref: "#/theme/color/inverse/surface/$value"
-            alpha: 0.02
+            $ref: "#/theme/color/orcaFallback/main/$value"
+            alpha: 0.5
           offsetX: 0
           offsetY: 0
           blur: 2
@@ -143,3 +149,11 @@ theme:
         smoothGradient:
           cubicBezier: "{wave.dimension.cubicBezier.easeInOutCubic}"
           step: 4
+    fallback:
+      $value:
+        - color:
+            $ref: "#/theme/color/orcaFallback/main/$value"
+            alpha: 0.25
+          position: 0
+        - color: "#ffffff"
+          position: 1

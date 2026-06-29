@@ -379,6 +379,54 @@ describe('Theme Service Integration', () => {
 		});
 	});
 
+	test('orca-realistic DTCG fallback color builds css and sketch', async () => {
+		const fixtureDir = path.join(
+			import.meta.dir,
+			'..',
+			'fixtures',
+			'themes',
+			'orca-realistic',
+		);
+		const outputDir = path.join(fixtureDir, 'theme');
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		try {
+			const result = await generateTheme({
+				themeName: 'orca-realistic',
+				themePath: path.join(fixtureDir, 'main.yaml'),
+				generateOptions: { night: false, variants: [] },
+			});
+
+			expect(result.ok).toBe(true);
+			const css = await fs.readFile(
+				path.join(outputDir, 'css', 'orca-realistic.css'),
+				'utf-8',
+			);
+			expect(css).toContain('--orcaFallback-main: #0052f5;');
+			expect(css).toContain('rgb(0 82 245 / 0.5)');
+			expect(css).not.toContain('linear-gradient(to right');
+			expect(css).not.toContain('[object Object]');
+
+			const sketch = JSON.parse(
+				await fs.readFile(
+					path.join(outputDir, 'sketch', 'orca-realistic2sketch.json'),
+					'utf-8',
+				),
+			);
+			expect(sketch.foundation.color['orcaFallback-main']).toEqual({
+				color: '#0052f5ff',
+			});
+			expect(
+				JSON.stringify(sketch.foundation.shadow['shadow-raised'].shadow),
+			).toContain('#0052f5');
+			expect(sketch.foundation.gradient.fallback.gradient[0].color).toBe(
+				'#0052f540',
+			);
+		} finally {
+			await fs.rm(outputDir, { recursive: true, force: true });
+		}
+	});
+
 	describe('DTCG colorSpace mixed platform', () => {
 		test('no-main fallback renders sketch from hex tokens in mixed colorSpace pass', async () => {
 			const tempThemeDir = await fs.mkdtemp(
