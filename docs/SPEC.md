@@ -737,60 +737,37 @@ theme:
 
 ## DTCG 色彩空间支持
 
-### 支持的格式
-
-- OKLCH：`oklch(L% C H)`，示例 `oklch(70% 0.3 328)`
-- sRGB：`rgb(R G B)`，示例 `rgb(255 0 255)`
-- HSL：`hsl(H S% L%)`，示例 `hsl(330 100% 50%)`
-
-### Token 定义格式
+Wave 接受 DTCG Color Module 2025.10 风格颜色对象：
 
 ```yaml
-theme:
-  color:
-    primary:
-      $value:
-        colorSpace: "oklch"
-        components: [0.7, 0.3, 328]
-        alpha: 1
+$value:
+  colorSpace: oklch
+  components: [0.518, 0.251, 262.6]
+  alpha: 1
+  hex: "#0052f5"
 ```
 
-### 色彩空间检测优先级
+- `colorSpace` 和 `components` 必填。
+- `components` 可包含 number 或 `none`。
+- `alpha` 可选，缺省为 1。
+- `hex` 可选，只作为 fallback，且必须是 6 位 `#RRGGBB`。alpha 不写入 `hex`。
+- `{ hex: "#0052f5" }` 不是合法 DTCG Color，也不是 Wave 语法。
 
-1. DTCG colorSpace 对象：`{colorSpace: "oklch", components: [...], alpha?: number}`
-2. color+alpha 复合对象：`{color: "#xxx", alpha: 0.5}`
-3. 纯字符串：hex 字符串、palette 引用等
+当前可计算输出空间为 `hex`、`oklch`、`srgb`、`hsl`。其他 DTCG 标准色彩空间只有在提供合法 `hex` fallback 时才能输出；没有 fallback 时构建失败。
 
-### PARAMETER colorSpace 全局配置
+旧语法继续兼容：
 
+```yaml
+$value: "#000000"
 ```
-PARAMETER colorSpace oklch
+
+```yaml
+$value:
+  color: "#000000"
+  alpha: 0.5
 ```
 
-配置后所有颜色按指定格式输出，无需在每个 token 中单独指定。
-
-### Alpha 通道处理
-
-- alpha = 1：省略 alpha 通道
-- alpha ≠ 1：使用 CSS Color Level 4 语法，如 `oklch(L% C H / alpha)`
-
-### 输出精度
-
-- OKLCH：L 1位小数，C 3位小数，H 2位小数
-- HSL：全部 0 位小数
-- sRGB：整数
-
-### 特殊值处理
-
-- 灰度颜色（黑、白、透明）色相 NaN → 输出 0
-- 0 值优化：`0.0%` → `0%`，`0.200` → `0.2`
-
-### 错误处理
-
-- 不支持的来源格式 → 原样输出
-- 不支持的 colorSpace → 原样输出
-- components 格式错误 → 原样输出
-- alpha 值超出范围（0-1）→ 原样输出
+颜色转换发生在 transformer 输出阶段，不发生在 parser、resource loader 或 resolver。同一个 `platform: css,sketch` pass 仍然合法；CSS/JSON/JSONC 使用 pass 指定的 `colorSpace`，Sketch 平台在生成阶段使用 hex-normalized token set，并输出 `#RRGGBBAA`。
 
 ---
 

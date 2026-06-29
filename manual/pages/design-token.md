@@ -223,7 +223,22 @@ secondary:
 
 ## 颜色和 alpha
 
-颜色 token 可以把颜色和透明度分开写。`color` 和 `alpha` 都可以使用引用：
+推荐用 DTCG 颜色对象描述颜色：
+
+```yaml
+primary:
+  main:
+    $value:
+      colorSpace: oklch
+      components: [0.518, 0.251, 262.6]
+      hex: "#0052f5"
+```
+
+`hex` 是兼容输出用的 6 位 fallback。透明度请写在 `alpha`，不要写进 `hex`。
+
+同一个构建可以同时输出 CSS 和 Sketch。CSS 会按 `colorSpace` 输出；Sketch 会输出 `#RRGGBBAA`。
+
+旧语法继续可用。颜色和透明度可以分开写，`color` 和 `alpha` 都可以使用引用：
 
 ```yaml
 inverse:
@@ -234,7 +249,7 @@ inverse:
       alpha: "{wave.dimension.alpha.800}"
 ```
 
-构建时，Wave 会先解析 `color` 和 `alpha`，再按 `colorSpace` 输出最终颜色。例如 `colorSpace hex` 会输出 8 位 hex。
+构建时，Wave 会先解析引用，再按 `colorSpace` 输出最终颜色。
 
 ## 输出格式
 
