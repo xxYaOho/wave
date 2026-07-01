@@ -26,6 +26,7 @@ themefile（声明数据源 + 输出参数）
 - themefile：声明"用什么数据源、怎么输出"，不定义 token 内容
 - main.yaml：唯一的 token 内容来源
 - RESOURCE：只提供引用解析数据，不直接输出
+- 无 `main.yaml` 时从 RESOURCE 直接生成 token 仅作为 legacy fallback 保留，会在 receipt 中输出弃用 warning；新项目必须迁移到 `main.yaml`
 - colorSpace 转换发生在输出阶段，不影响引用解析过程
 - dt：当前是 design-token 模块入口，默认读取当前目录 `main.yaml`，内部仍复用 token 生成主链路
 - compress：只处理已有 PNG/JPG/SVG/GIF 素材压缩，不从帧生成动效
@@ -37,10 +38,17 @@ themefile（声明数据源 + 输出参数）
 
 用户向使用说明统一维护在 `manual/`，通过 `wave manual` 查看。`docs/SPEC.md` 只记录内部行为快照和实现/review 心智模型。
 
+**design-token resolver 结构：**
+
+- `src/core/resolver/theme-reference.ts` 是兼容导出入口，只 re-export 公开 resolver API 和错误类型。
+- `src/core/resolver/errors.ts` 持有 `CircularReferenceError`、`UnresolvedReferenceError`、`ExtendsCycleError`，保证 `theme-reference.ts` 与 `resolver/index.ts` 的错误类 identity 一致。
+- `$extends` 展开、引用路径工具、外部/内部 value pass、token group pass 和残留引用扫描分别拆在 `src/core/resolver/reference-*` 模块中。
+- 调整 resolver 时先补 `tests/resource-resolver.test.ts` 或 `tests/extends-resolver.test.ts` 的行为刻画，再改实现。
+
 **常见误区：**
 
 - ❌ 不要在资源文件里加输出逻辑
-- ❌ 不要绕过 main.yaml 直接从资源生成 token
+- ❌ 不要新增或扩大绕过 main.yaml 直接从资源生成 token 的路径
 - ❌ 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
 - ❌ 不要把 compress 和 motion 的外部工具判断各写一套；应复用 `ToolResolver` / `CommandRunner`
 - ❌ 不要把 `create` 误写成已完成 `main.yaml::$config` 的 vNext 模型；`create` 仍以 `themefile` 为默认入口

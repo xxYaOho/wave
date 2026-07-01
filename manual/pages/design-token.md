@@ -581,6 +581,7 @@ night 和 variants 的开启、关闭或筛选当前通过命令行参数控制�
 | --- | --- |
 | 找不到 `main.yaml` | 在 token 项目目录执行命令，或用 `-f ./themefile` |
 | `main.yaml` 缺少 `$config` | 改用 `wave dt build -f ./themefile`，或补齐 `$config` |
+| 出现 `Direct RESOURCE token generation is deprecated` | 当前目录缺少 `main.yaml`，Wave 正在使用旧兼容路径；运行 `wave dt init` 后把 token 内容迁移到 `main.yaml` |
 | 引用无法解析 | 检查 `RESOURCE` 是否声明，或 token 路径是否正确 |
 | Sketch opacity 不输出 | 确认 token 在 `theme.dimension.*` 下，且 `$type` 是 `number` 或 `dimension` |
 | WCAG 无检查项 | 确认存在 `doctor.wcagPairs` |
