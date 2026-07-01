@@ -469,62 +469,6 @@ export async function processThemeDocument(
 	}
 }
 
-export function extractPlatform(parsed: ParsedThemefile): string[] {
-	const platformParam = parsed.PARAMETER?.platform;
-	if (!platformParam || platformParam === 'general') {
-		if (platformParam === 'general') {
-			logger.warn(
-				'PARAMETER platform "general" is deprecated, use "json,jsonc" instead',
-			);
-		}
-		return platformParam === 'general' ? ['json', 'jsonc'] : ['json'];
-	}
-	return platformParam
-		.split(',')
-		.map((s) => s.trim())
-		.filter(Boolean);
-}
-
-export function extractFilterLayer(
-	parsed: ParsedThemefile,
-): number | undefined {
-	const filterLayerParam = parsed.PARAMETER?.filterLayer;
-	if (typeof filterLayerParam === 'number') return filterLayerParam;
-	if (typeof filterLayerParam === 'string')
-		return parseInt(filterLayerParam, 10);
-	return undefined;
-}
-
-export function extractColorSpace(
-	parsed: ParsedThemefile,
-): ColorSpaceFormat | undefined {
-	const colorSpaceParam = parsed.PARAMETER?.colorSpace;
-	if (
-		colorSpaceParam &&
-		['hex', 'oklch', 'srgb', 'hsl'].includes(colorSpaceParam)
-	) {
-		return colorSpaceParam as ColorSpaceFormat;
-	}
-	return undefined;
-}
-
-export function resolveOutputDir(
-	parsed: ParsedThemefile,
-	themeDir: string,
-	cliOutput?: string,
-): string {
-	if (cliOutput) {
-		return expandHomePath(cliOutput);
-	}
-	if (parsed.PARAMETER?.output) {
-		const outputPath = parsed.PARAMETER.output;
-		return path.isAbsolute(outputPath)
-			? outputPath
-			: path.join(themeDir, outputPath);
-	}
-	return path.join(themeDir, parsed.THEME);
-}
-
 // ── GROUP pipeline helpers ──────────────────────────────────────────
 
 export function mergeParameters(
