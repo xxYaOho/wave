@@ -29,6 +29,9 @@ import {
 	processThemeDocument,
 } from './theme-pipeline.ts';
 
+const MAIN_FALLBACK_WARNING =
+	'No main.yaml found. Direct RESOURCE token generation is deprecated and will be removed; create main.yaml with wave dt init.';
+
 export interface ThemeGenerationInput {
 	themeName: string;
 	themePath?: string;
@@ -78,6 +81,7 @@ async function generatePass(
 	mainYamlContentOverride?: string,
 	selectedThemes?: ThemeFileEntry[],
 	ctx?: BuildContext,
+	warnLegacyFallback?: () => void,
 ): Promise<{ files: string[] } | ThemeGenerationFailure> {
 	const files: string[] = [];
 
@@ -134,6 +138,7 @@ async function generatePass(
 		if (!ctx) logger.success(`Generated main: ${mainResult.files.join(', ')}`);
 	} else if (isSelected(selectedThemes, 'main')) {
 		// No main.yaml — generate from palette + dimension directly
+		warnLegacyFallback?.();
 		const result = await generateThemeTokens(
 			resolvedThemeName,
 			outputDir,
@@ -175,6 +180,13 @@ export async function generateTheme(
 		generateOptions,
 		selectedThemes,
 	} = input;
+	const legacyFallbackWarnings = new Set<string>();
+	const warnLegacyFallback = (): void => {
+		if (legacyFallbackWarnings.has('main')) return;
+		legacyFallbackWarnings.add('main');
+		logger.warn(MAIN_FALLBACK_WARNING);
+		ctx?.addWarning('main', MAIN_FALLBACK_WARNING);
+	};
 
 	// Step 1: Load themefile
 	const loadResult = await loadThemefile(themePath);
@@ -268,6 +280,7 @@ export async function generateTheme(
 			mainYamlContent,
 			selectedThemes,
 			ctx,
+			warnLegacyFallback,
 		);
 
 		if (!('files' in result)) {

@@ -12,6 +12,7 @@ import {
 	generateTheme,
 	type ThemeGenerationInput,
 } from '../../src/core/pipeline/theme-service.ts';
+import { BuildContext } from '../../src/utils/receipt.ts';
 import {
 	cleanupTempTheme,
 	createTempTheme,
@@ -495,6 +496,139 @@ describe('Theme Service Integration', () => {
 				);
 				expect(css).toContain('oklch(');
 				expect(sketch['color-primary']).toEqual({ color: '#fb2c36ff' });
+			} finally {
+				await fs.rm(tempThemeDir, { recursive: true, force: true });
+			}
+		});
+
+		test('no-main fallback records a deprecation warning in receipt context', async () => {
+			const tempThemeDir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-no-main-warning-'),
+			);
+			try {
+				await fs.writeFile(
+					path.join(tempThemeDir, 'palette.yaml'),
+					[
+						'custom:',
+						'  color:',
+						'    $type: color',
+						'    primary:',
+						'      $value: "#fb2c36"',
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+				await fs.writeFile(
+					path.join(tempThemeDir, 'dimension.yaml'),
+					[
+						'scale:',
+						'  dimension:',
+						'    spacing:',
+						'      $type: dimension',
+						'      sm:',
+						'        $value: 4',
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+				await fs.writeFile(
+					path.join(tempThemeDir, 'themefile'),
+					[
+						'THEME no-main-warning',
+						'RESOURCE palette ./palette.yaml',
+						'RESOURCE dimension ./dimension.yaml',
+						'PARAMETER output ./out',
+						'PARAMETER platform json',
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+
+				const ctx = new BuildContext();
+				const result = await generateTheme(
+					{
+						themeName: 'no-main-warning',
+						themePath: path.join(tempThemeDir, 'themefile'),
+						generateOptions: { night: false, variants: [] },
+					},
+					ctx,
+				);
+
+				expect(result.ok).toBe(true);
+				expect(ctx.warnings).toEqual([
+					{
+						phase: 'main',
+						message:
+							'No main.yaml found. Direct RESOURCE token generation is deprecated and will be removed; create main.yaml with wave dt init.',
+					},
+				]);
+			} finally {
+				await fs.rm(tempThemeDir, { recursive: true, force: true });
+			}
+		});
+
+		test('no-main fallback warns once across multiple group passes', async () => {
+			const tempThemeDir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-no-main-groups-'),
+			);
+			try {
+				await fs.writeFile(
+					path.join(tempThemeDir, 'palette.yaml'),
+					[
+						'custom:',
+						'  color:',
+						'    $type: color',
+						'    primary:',
+						'      $value: "#fb2c36"',
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+				await fs.writeFile(
+					path.join(tempThemeDir, 'dimension.yaml'),
+					[
+						'scale:',
+						'  dimension:',
+						'    spacing:',
+						'      $type: dimension',
+						'      sm:',
+						'        $value: 4',
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+				await fs.writeFile(
+					path.join(tempThemeDir, 'themefile'),
+					[
+						'THEME no-main-groups',
+						'RESOURCE palette ./palette.yaml',
+						'RESOURCE dimension ./dimension.yaml',
+						'GROUP "json" {',
+						'  PARAMETER output ./json',
+						'  PARAMETER platform json',
+						'}',
+						'GROUP "css" {',
+						'  PARAMETER output ./css',
+						'  PARAMETER platform css',
+						'}',
+						'',
+					].join('\n'),
+					'utf-8',
+				);
+
+				const ctx = new BuildContext();
+				const result = await generateTheme(
+					{
+						themeName: 'no-main-groups',
+						themePath: path.join(tempThemeDir, 'themefile'),
+						generateOptions: { night: false, variants: [] },
+					},
+					ctx,
+				);
+
+				expect(result.ok).toBe(true);
+				expect(ctx.warnings).toHaveLength(1);
+				expect(ctx.warnings[0]?.phase).toBe('main');
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });
 			}

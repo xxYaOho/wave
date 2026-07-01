@@ -54,6 +54,45 @@ describe('renderReceipt', () => {
 		expect(out).toContain('Failed at: resource resolve');
 	});
 
+	test('renders success receipt with warnings', () => {
+		const ctx = new BuildContext();
+		ctx.themeName = 'orca';
+		ctx.version = '0.15.0';
+		ctx.outputDir = 'theme/';
+		ctx.addWarning(
+			'main',
+			'No main.yaml found. Direct RESOURCE token generation is deprecated.',
+		);
+
+		const out = renderReceipt(ctx);
+
+		expect(ctx.warnings[0]?.message).toContain(
+			'Direct RESOURCE token generation is deprecated',
+		);
+		expect(out).toContain('WARNINGS');
+		expect(out).toContain('main');
+		expect(out).toContain('No main.yaml found');
+	});
+
+	test('renders failed receipt with warnings before errors', () => {
+		const ctx = new BuildContext();
+		ctx.themeName = 'orca';
+		ctx.version = '0.15.0';
+		ctx.addWarning(
+			'main',
+			'No main.yaml found. Direct RESOURCE token generation is deprecated.',
+		);
+		ctx.markFailed('generate', 'failed to generate', {
+			phase: 'main generate',
+		});
+
+		const out = renderReceipt(ctx);
+
+		expect(out).toContain('WARNINGS');
+		expect(out).toContain('ERRORS');
+		expect(out.indexOf('WARNINGS')).toBeLessThan(out.indexOf('ERRORS'));
+	});
+
 	test('renders receipt with no resources or outputs', () => {
 		const ctx = new BuildContext();
 		ctx.themeName = 'empty';

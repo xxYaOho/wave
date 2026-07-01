@@ -145,6 +145,11 @@ export interface BuildError {
 	line?: number;
 }
 
+export interface BuildWarning {
+	phase: string;
+	message: string;
+}
+
 export class BuildContext {
 	themeName = '';
 	version = '';
@@ -165,6 +170,7 @@ export class BuildContext {
 		names: [],
 	};
 	errors: BuildError[] = [];
+	warnings: BuildWarning[] = [];
 	failedAt?: string;
 
 	addResource(kind: string, ref: string, source: ResourceSource): void {
@@ -189,6 +195,10 @@ export class BuildContext {
 		names: string[],
 	): void {
 		this.variants = { state, count, names };
+	}
+
+	addWarning(phase: string, message: string): void {
+		this.warnings.push({ phase, message });
 	}
 
 	markFailed(
@@ -239,6 +249,15 @@ function renderSuccess(ctx: BuildContext, w: number): string {
 		lines.push(line('', w));
 		for (const r of ctx.resources) {
 			lines.push(kvLine(r.kind, r.ref, `(${r.source})`, w));
+		}
+	}
+
+	if (ctx.warnings.length > 0) {
+		lines.push(dashed);
+		lines.push(line('  WARNINGS', w));
+		lines.push(line('', w));
+		for (const warning of ctx.warnings) {
+			lines.push(kvLine(warning.phase, warning.message, undefined, w));
 		}
 	}
 
@@ -319,6 +338,16 @@ function renderFailed(ctx: BuildContext, w: number): string {
 	lines.push(solid);
 	lines.push(kvLine('Theme', ctx.themeName, undefined, w));
 	lines.push(kvLine('Version', ctx.version, undefined, w));
+	if (ctx.warnings.length > 0) {
+		lines.push(dashed);
+		lines.push(line(pc.yellow('  WARNINGS'), w));
+		lines.push(line('', w));
+		for (const warning of ctx.warnings) {
+			lines.push(
+				kvLine(warning.phase, pc.yellow(warning.message), undefined, w),
+			);
+		}
+	}
 	lines.push(dashed);
 	lines.push(line(pc.red('  ERRORS'), w));
 	lines.push(line('', w));
