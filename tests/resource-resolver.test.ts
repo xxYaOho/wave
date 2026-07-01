@@ -1,10 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import {
+	CircularReferenceError as IndexedCircularReferenceError,
+	UnresolvedReferenceError as IndexedUnresolvedReferenceError,
+	resolveReferences as indexedResolveReferences,
+} from '../src/core/resolver/index.ts';
 import { loadResource } from '../src/core/resolver/resource-loader.ts';
 import {
-	ExtendsCycleError,
-	expandExtends,
+	CircularReferenceError,
 	resolveReferences,
 	UnresolvedReferenceError,
 } from '../src/core/resolver/theme-reference.ts';
@@ -455,6 +459,80 @@ describe('generalized resolver', () => {
 		).style.shadow1.$value;
 
 		expect(shadow.offsetY).toEqual({ value: 12, unit: 'px' });
+	});
+
+	test('resolves external references before multi-pass internal references', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					source: {
+						$value: '{brand.palette.primary}',
+					},
+					alias: {
+						$value: '{theme.color.source}',
+					},
+					nestedAlias: {
+						$value: {
+							color: '{theme.color.alias}',
+							alpha: 0.4,
+						},
+					},
+				},
+			},
+		};
+
+		const sources: ReferenceDataSources = {
+			brand: {
+				palette: {
+					primary: { $value: '#1267ff' },
+				},
+			},
+		};
+
+		const result = resolveReferences(tree, sources);
+		const color = (
+			result.theme as unknown as {
+				color: {
+					source: { $value: string };
+					alias: { $value: string };
+					nestedAlias: { $value: { color: string; alpha: number } };
+				};
+			}
+		).color;
+
+		expect(color.source.$value).toBe('#1267ff');
+		expect(color.alias.$value).toBe('#1267ff');
+		expect(color.nestedAlias.$value).toEqual({
+			color: '#1267ff',
+			alpha: 0.4,
+		});
+	});
+
+	test('keeps public resolver barrel error identity aligned with theme-reference', () => {
+		expect(indexedResolveReferences).toBe(resolveReferences);
+		expect(IndexedCircularReferenceError).toBe(CircularReferenceError);
+		expect(IndexedUnresolvedReferenceError).toBe(UnresolvedReferenceError);
+
+		const tree: DtcgTokenGroup = {
+			theme: {
+				color: {
+					primary: {
+						$value: '{missing.color.primary}',
+					},
+				},
+			},
+		};
+
+		let thrown: unknown;
+		try {
+			indexedResolveReferences(tree, {});
+		} catch (error) {
+			thrown = error;
+		}
+
+		expect(thrown).toBeInstanceOf(UnresolvedReferenceError);
+		expect(thrown).toBeInstanceOf(IndexedUnresolvedReferenceError);
 	});
 });
 

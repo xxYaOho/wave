@@ -157,4 +157,57 @@ describe('group $extends inheritance', () => {
 		expect(extensions.inheritColor).toEqual({ property: { alpha: 0.4 } });
 		expect(extensions.composite).toBe(false);
 	});
+
+	test('deep merges nested groups while child tokens override parent tokens', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				card: {
+					base: {
+						$type: 'dimension',
+						padding: {
+							sm: { $value: 8 },
+							md: { $value: 12 },
+						},
+						radius: {
+							sm: { $value: 4 },
+						},
+						state: {
+							default: { $value: 'base' },
+						},
+					},
+					compact: {
+						$extends: '{theme.card.base}',
+						padding: {
+							sm: { $value: 6 },
+						},
+						state: {
+							hover: { $value: 'compact-hover' },
+						},
+					},
+				},
+			},
+		};
+
+		const expanded = expandExtends(tree, new Set(['theme']));
+		const compact = (
+			expanded.theme as {
+				card: {
+					compact: {
+						padding: { sm: { $value: number }; md: { $value: number } };
+						radius: { sm: { $value: number } };
+						state: {
+							default: { $value: string };
+							hover: { $value: string };
+						};
+					};
+				};
+			}
+		).card.compact;
+
+		expect(compact.padding.sm.$value).toBe(6);
+		expect(compact.padding.md.$value).toBe(12);
+		expect(compact.radius.sm.$value).toBe(4);
+		expect(compact.state.default.$value).toBe('base');
+		expect(compact.state.hover.$value).toBe('compact-hover');
+	});
 });
