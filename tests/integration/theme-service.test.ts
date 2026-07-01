@@ -651,11 +651,27 @@ describe('Theme Service Integration', () => {
 						'theme:',
 						'  color:',
 						'    $type: color',
+						'    $extensions:',
+						'      sketch:',
+						'        path: foundation/color',
 						'    primary:',
 						'      $value:',
 						'        colorSpace: oklch',
 						'        components: [0.637, 0.237, 25.331]',
 						`        hex: "${hex}"`,
+						'    secondary:',
+						'      $value:',
+						'        colorSpace: oklch',
+						'        components: [0.518, 0.251, 262.6]',
+						'        hex: "#0052f5"',
+						'  dimension:',
+						'    $type: dimension',
+						'    $extensions:',
+						'      sketch:',
+						'        path: foundation/space',
+						'    spacing:',
+						'      sm:',
+						'        $value: 4',
 						'',
 					].join('\n'),
 					'utf-8',
@@ -686,16 +702,27 @@ describe('Theme Service Integration', () => {
 					'#1860dd',
 				);
 
-				const result = await generateTheme({
-					themeName: 'mixed-branches',
-					themePath: path.join(tempThemeDir, 'themefile'),
-					generateOptions: { night: true, variants: ['dark'] },
-				});
+				for (const run of [1, 2]) {
+					const result = await generateTheme({
+						themeName: 'mixed-branches',
+						themePath: path.join(tempThemeDir, 'themefile'),
+						generateOptions: { night: true, variants: ['dark'] },
+					});
+					expect(result.ok).toBe(true);
+					if (run === 1) {
+						await fs.cp(outputDir, path.join(tempThemeDir, 'first-run'), {
+							recursive: true,
+						});
+					}
+				}
 
-				expect(result.ok).toBe(true);
 				for (const suffix of ['', '-night', '-dark']) {
 					const css = await fs.readFile(
 						path.join(outputDir, `mixed-branches${suffix}.css`),
+						'utf-8',
+					);
+					const firstCss = await fs.readFile(
+						path.join(tempThemeDir, 'first-run', `mixed-branches${suffix}.css`),
 						'utf-8',
 					);
 					const sketch = JSON.parse(
@@ -704,10 +731,35 @@ describe('Theme Service Integration', () => {
 							'utf-8',
 						),
 					);
+					const firstSketch = await fs.readFile(
+						path.join(
+							tempThemeDir,
+							'first-run',
+							`mixed-branches${suffix}2sketch.json`,
+						),
+						'utf-8',
+					);
+					const currentSketch = await fs.readFile(
+						path.join(outputDir, `mixed-branches${suffix}2sketch.json`),
+						'utf-8',
+					);
 					expect(css).toContain('oklch(');
-					expect(sketch['theme-color-primary']).toEqual({
+					expect(css.indexOf('--theme-color-primary')).toBeLessThan(
+						css.indexOf('--theme-color-secondary'),
+					);
+					expect(css).toBe(firstCss);
+					expect(currentSketch).toBe(firstSketch);
+					expect(sketch.foundation.color['theme-color-primary']).toEqual({
 						color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
 					});
+					expect(sketch.foundation.color['theme-color-secondary']).toEqual({
+						color: '#0052f5ff',
+					});
+					expect(sketch.foundation.space['theme-dimension-spacing-sm']).toEqual(
+						{
+							value: 4,
+						},
+					);
 				}
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });
