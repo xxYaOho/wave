@@ -462,8 +462,6 @@ function deriveSmoothShadow(
 	return derived;
 }
 
-let orderCounter = 0;
-
 function transformToken(
 	token: ResolvedDtcgToken,
 	parentType: string | undefined,
@@ -659,6 +657,7 @@ export function transformToWaveTokens(
 ): WaveTokenResult {
 	const tokens: WaveToken[] = [];
 	const groupComments: Record<string, string> = {};
+	let orderCounter = 0;
 
 	function walk(
 		group: ResolvedTokenGroup,

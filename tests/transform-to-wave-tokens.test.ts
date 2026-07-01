@@ -107,6 +107,28 @@ describe('transformToWaveTokens', () => {
 		expect(orders).toEqual([...orders].sort((x, y) => x - y));
 	});
 
+	test('starts _order from zero for each transform call', () => {
+		const input: ResolvedTokenGroup = {
+			color: {
+				$type: 'color',
+				a: { $value: '#000' },
+			},
+			component: {
+				button: {
+					$extensions: { composite: true },
+					fill: { $value: '#111', $type: 'color' },
+					radius: { $value: 8, $type: 'dimension' },
+				},
+			},
+		};
+
+		const first = transformToWaveTokens(input).tokens.map((t) => t._order);
+		const second = transformToWaveTokens(input).tokens.map((t) => t._order);
+
+		expect(first).toEqual([0, 1, 2]);
+		expect(second).toEqual([0, 1, 2]);
+	});
+
 	test('marks composite group children with _composite path', () => {
 		const input: ResolvedTokenGroup = {
 			component: {
