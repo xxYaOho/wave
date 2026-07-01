@@ -1,10 +1,8 @@
-import type { ResolvedTokenGroup } from '../../types/index.ts';
-import {
-	type DoctorFinding,
-	type DoctorNamedPair,
-	type DoctorRunResult,
-	type DoctorThemeReport,
-	ExitCode,
+import type {
+	DoctorFinding,
+	DoctorRunResult,
+	DoctorThemeReport,
+	ResolvedTokenGroup,
 } from '../../types/index.ts';
 import {
 	checkBuiltinResources,

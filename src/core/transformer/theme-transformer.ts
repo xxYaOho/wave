@@ -7,10 +7,7 @@ import {
 	type ResolvedTokenGroup,
 	type WaveToken,
 } from '../../types/index.ts';
-import {
-	formatColorOutput,
-	isDtcgColorSpaceValue,
-} from './color-space.ts';
+import { formatColorOutput, isDtcgColorSpaceValue } from './color-space.ts';
 import { normalizeColorValue } from './color-value.ts';
 import { sampleCubicBezier } from './cubic-bezier.ts';
 import { applyInheritColorExtension } from './inherit-color-extension.ts';
@@ -56,7 +53,9 @@ function isLegacyColorSpaceWrapperObject(value: unknown): boolean {
 		return false;
 	}
 	const keys = Object.keys(value);
-	const colorKeys = keys.filter((key) => key !== 'alpha' && key !== '_swatchName');
+	const colorKeys = keys.filter(
+		(key) => key !== 'alpha' && key !== '_swatchName',
+	);
 	if (colorKeys.length !== 1) return false;
 	const space = colorKeys[0]!;
 	const nested = (value as Record<string, unknown>)[space];
@@ -485,7 +484,12 @@ function transformToken(
 			typeof processedValue === 'object' &&
 			processedValue !== null &&
 			!Array.isArray(processedValue)
-				? processArrayItem(processedValue, targetColorSpace, tokenPath, 'shadow')
+				? processArrayItem(
+						processedValue,
+						targetColorSpace,
+						tokenPath,
+						'shadow',
+					)
 				: processedValue;
 		processedValue = deriveSmoothShadow(
 			processedLayer,
@@ -666,7 +670,8 @@ export function transformToWaveTokens(
 		inheritedExtensions: InheritedExtensions = {},
 	): void {
 		const groupType =
-			group.$type ?? (path[path.length - 1] === 'color' ? 'color' : inheritedType);
+			group.$type ??
+			(path[path.length - 1] === 'color' ? 'color' : inheritedType);
 		const groupSketchExtension = parseSketchExtension(group.$extensions);
 		const childInheritedExtensions: InheritedExtensions = {
 			...inheritedExtensions,

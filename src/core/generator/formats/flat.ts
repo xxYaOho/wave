@@ -18,7 +18,7 @@ export function cleanShadowZeroPx(value: unknown): unknown {
 				cleaned[key] = val;
 			} else if (typeof val === 'string' && val.endsWith('px')) {
 				const num = parseFloat(val);
-				cleaned[key] = isNaN(num) ? val : num;
+				cleaned[key] = Number.isNaN(num) ? val : num;
 			} else if (typeof val === 'number' && val === 0) {
 				cleaned[key] = 0;
 			} else {

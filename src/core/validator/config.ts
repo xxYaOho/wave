@@ -76,7 +76,6 @@ export async function validateThemefile(
 
 	// Validate RESOURCE mode
 	if (config.resources && config.resources.length > 0) {
-		const seenKinds = new Set<string>();
 		for (const res of config.resources) {
 			if (res.kind === 'custom') {
 				const extError = validateCustomResourceExtension(res.ref);

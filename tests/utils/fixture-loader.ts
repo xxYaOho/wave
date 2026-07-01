@@ -158,7 +158,7 @@ function renderValue(value: unknown, indent: number): string {
 
 	if (Array.isArray(value)) {
 		return value
-			.map((item, i) => {
+			.map((item) => {
 				if (typeof item === 'object' && item !== null) {
 					const entries = Object.entries(item as Record<string, unknown>);
 					const first = entries[0];
@@ -167,7 +167,7 @@ function renderValue(value: unknown, indent: number): string {
 						const restLines = rest
 							.map(([k, v]) => `${spaces}  ${k}: ${renderScalar(v)}`)
 							.join('\n');
-						return `${spaces}- ${first[0]}: ${renderScalar(first[1])}${restLines ? '\n' + restLines : ''}`;
+						return `${spaces}- ${first[0]}: ${renderScalar(first[1])}${restLines ? `\n${restLines}` : ''}`;
 					}
 				}
 				return `${spaces}- ${renderScalar(item)}`;

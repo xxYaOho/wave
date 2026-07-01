@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import { type DoctorCheck, runDoctor } from '../src/core/doctor/runner.ts';
-import type { DoctorRunResult } from '../src/types/index.ts';
 
 describe('doctor runner', () => {
 	test('returns ok=true when all checks pass with no blocking errors', async () => {

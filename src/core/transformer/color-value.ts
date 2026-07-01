@@ -63,9 +63,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isDtcgColorObjectShape(
-	value: unknown,
-): value is DtcgColorObjectShape {
+function isDtcgColorObjectShape(value: unknown): value is DtcgColorObjectShape {
 	return (
 		isObject(value) &&
 		typeof value.colorSpace === 'string' &&
@@ -82,7 +80,9 @@ function unwrapLegacyColorSpaceObject(value: unknown):
 	| undefined {
 	if (!isObject(value)) return undefined;
 	const keys = Object.keys(value);
-	const colorKeys = keys.filter((key) => key !== 'alpha' && key !== '_swatchName');
+	const colorKeys = keys.filter(
+		(key) => key !== 'alpha' && key !== '_swatchName',
+	);
 	if (colorKeys.length !== 1) return undefined;
 
 	const space = colorKeys[0]!;
@@ -204,7 +204,10 @@ function normalizeFromHex(
 		tokenPath,
 	);
 	if (!result.success || result.value === undefined) {
-		throw new ColorValueError(result.error ?? 'Color conversion failed', tokenPath);
+		throw new ColorValueError(
+			result.error ?? 'Color conversion failed',
+			tokenPath,
+		);
 	}
 	return { value: result.value, alpha, hex6, hex8, source };
 }
@@ -216,10 +219,7 @@ function normalizeDtcgColor(
 ): NormalizedColor {
 	const alpha = parseAlpha(value.alpha, tokenPath);
 	if (value.hex !== undefined) {
-		if (
-			typeof value.hex !== 'string' ||
-			!/^#[0-9a-fA-F]{6}$/.test(value.hex)
-		) {
+		if (typeof value.hex !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value.hex)) {
 			throw new ColorValueError(
 				'DTCG color hex fallback must be #RRGGBB',
 				tokenPath,
@@ -227,7 +227,11 @@ function normalizeDtcgColor(
 		}
 	}
 	if (isComputableComponents(value)) {
-		const result = convertColorSpace({ ...value, alpha }, targetFormat, tokenPath);
+		const result = convertColorSpace(
+			{ ...value, alpha },
+			targetFormat,
+			tokenPath,
+		);
 		if (result.success && result.value !== undefined) {
 			const fallbackHex6 =
 				typeof value.hex === 'string' ? value.hex.toLowerCase() : undefined;
@@ -289,7 +293,13 @@ export function normalizeColorValue(
 		const alpha = parseAlpha(value.alpha, tokenPath);
 		const color = value.color;
 		if (typeof color === 'string') {
-			return normalizeFromHex(color, targetFormat, tokenPath, 'legacy-color', alpha);
+			return normalizeFromHex(
+				color,
+				targetFormat,
+				tokenPath,
+				'legacy-color',
+				alpha,
+			);
 		}
 		if (isDtcgColorObjectShape(color)) {
 			return normalizeDtcgColor({ ...color, alpha }, targetFormat, tokenPath);

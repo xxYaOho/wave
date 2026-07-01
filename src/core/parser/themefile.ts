@@ -67,7 +67,7 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
 				};
 			}
 			const paramMatch = value.match(/^(\w+)\s+(.+)$/);
-			if (paramMatch && paramMatch[1] && paramMatch[2]) {
+			if (paramMatch?.[1] && paramMatch[2]) {
 				currentGroup!.PARAMETER[paramMatch[1]] = paramMatch[2];
 			} else {
 				return {
@@ -95,7 +95,7 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
 
 			if (key === 'RESOURCE') {
 				const resourceMatch = value.match(/^(\S+)\s+(.+)$/);
-				if (!resourceMatch || !resourceMatch[1] || !resourceMatch[2]) {
+				if (!resourceMatch?.[1] || !resourceMatch[2]) {
 					return {
 						line: lineNum,
 						message: `Invalid RESOURCE format: ${trimmedLine}. Expected: RESOURCE <kind> <ref>`,
@@ -117,7 +117,7 @@ export function parseThemefile(content: string): ParsedThemefile | ParseError {
 
 			if (key === 'PARAMETER') {
 				const paramMatch = value.match(/^(\w+)\s+(.+)$/);
-				if (paramMatch && paramMatch[1] && paramMatch[2]) {
+				if (paramMatch?.[1] && paramMatch[2]) {
 					result.PARAMETER![paramMatch[1]] = paramMatch[2];
 				} else {
 					return {

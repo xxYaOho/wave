@@ -1,4 +1,3 @@
-import * as fs from 'node:fs/promises';
 import type { ThemeFileEntry } from './theme-context.ts';
 
 export async function selectTheme(

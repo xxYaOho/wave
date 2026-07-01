@@ -230,7 +230,9 @@ describe('convertColorSpace', () => {
 			};
 			const result = convertColorSpace(value, 'hex');
 			expect(result.success).toBe(false);
-			expect(result.error).toContain('components must be numeric for conversion');
+			expect(result.error).toContain(
+				'components must be numeric for conversion',
+			);
 		});
 
 		test('returns error for standard color space not computable by Wave v1', () => {

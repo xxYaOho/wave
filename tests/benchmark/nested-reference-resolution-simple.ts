@@ -1,12 +1,6 @@
 #!/usr/bin/env bun
 
-import { resolveReferences } from '../../src/core/resolver/theme-reference.ts';
-import type {
-	DtcgToken,
-	DtcgTokenGroup,
-	DtcgValue,
-	ReferenceDataSources,
-} from '../../src/types/index.ts';
+import type { DtcgValue, ReferenceDataSources } from '../../src/types/index.ts';
 
 const REFERENCE_PATTERN = /^\{([a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)*)\}$/;
 
@@ -101,7 +95,11 @@ function resolveReference(
 }
 
 function createMockDataSources(): ReferenceDataSources {
-	const deepColorPalette: any = {
+	type MutableResourceNode = {
+		[key: string]: DtcgValue | MutableResourceNode | undefined;
+	};
+
+	const deepColorPalette: MutableResourceNode = {
 		$type: 'color',
 		$description: 'Deep nested color palette for benchmarking',
 	};

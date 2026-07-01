@@ -1,7 +1,7 @@
 import chroma from 'chroma-js';
-import {
-	type ContrastEvaluationResult,
-	type DoctorScoreLine,
+import type {
+	ContrastEvaluationResult,
+	DoctorScoreLine,
 } from '../../types/index.ts';
 import { normalizeColorValue } from '../transformer/color-value.ts';
 

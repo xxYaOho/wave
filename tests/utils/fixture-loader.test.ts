@@ -2,7 +2,7 @@
  * 测试固件加载工具的自测
  */
 
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import {
 	cleanupTempTheme,

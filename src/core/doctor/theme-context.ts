@@ -10,11 +10,7 @@ import {
 	type ResolvedTokenGroup,
 } from '../../types/index.ts';
 import { parseThemeYaml } from '../parser/theme-yaml.ts';
-import {
-	buildDependencyDictionary,
-	type DependencyDict,
-	loadThemefile,
-} from '../pipeline/theme-pipeline.ts';
+import type { DependencyDict } from '../pipeline/theme-pipeline.ts';
 import {
 	expandExtends,
 	resolveReferences,

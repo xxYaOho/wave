@@ -110,7 +110,9 @@ describe('wave show', () => {
 	});
 
 	test('outputs none color components as CSS strings', async () => {
-		const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-show-none-'));
+		const tempHome = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-show-none-'),
+		);
 		const resourceDir = path.join(tempHome, '.cache', 'wave', 'resources');
 		const resourcePath = path.join(resourceDir, 'nonepalette.yaml');
 		try {
@@ -144,7 +146,9 @@ describe('wave show', () => {
 	});
 
 	test('outputs none color components as CSS strings in nested json', async () => {
-		const tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-show-none-'));
+		const tempHome = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-show-none-'),
+		);
 		const resourceDir = path.join(tempHome, '.cache', 'wave', 'resources');
 		const resourcePath = path.join(resourceDir, 'nonepalette.yaml');
 		try {

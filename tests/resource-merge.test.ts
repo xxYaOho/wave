@@ -22,8 +22,8 @@ describe('buildDependencyDictionary', () => {
 		expect('error' in result).toBe(false);
 		if ('error' in result) return;
 
-		expect(result.dict['leonardo']).toBeDefined();
-		expect(result.dict['wave']).toBeDefined();
+		expect(result.dict.leonardo).toBeDefined();
+		expect(result.dict.wave).toBeDefined();
 		expect(result.palette.name).toBe('leonardo');
 		expect(result.dimension.name).toBe('wave');
 	});

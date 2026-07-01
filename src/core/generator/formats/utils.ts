@@ -18,7 +18,7 @@ function formatShadowLength(val: unknown): string {
 	if (typeof val === 'string') {
 		if (val.endsWith('px')) {
 			const num = parseFloat(val);
-			return isNaN(num) ? val : String(num);
+			return Number.isNaN(num) ? val : String(num);
 		}
 		return val;
 	}

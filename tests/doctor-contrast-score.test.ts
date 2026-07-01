@@ -4,7 +4,6 @@ import { evaluateContrast } from '../src/core/doctor/contrast-evaluator.ts';
 describe('contrast evaluator', () => {
 	describe('threshold boundaries', () => {
 		test('Normal Text AA at 4.499 fails, 4.5 passes', () => {
-			const ratio4499 = (4.499 * 1 + 0.05) / (1 + 0.05); // just a helper concept; we pick two colors
 			// Instead craft two colors that are just below/above the threshold
 			// We'll use near-black vs near-gray to approximate thresholds
 			// 4.499 => L1 ~ 0.188, L2 ~ 0.0 => (0.188+0.05)/(0+0.05)=4.76, too high
@@ -13,7 +12,6 @@ describe('contrast evaluator', () => {
 			// For unit-test stability, let's use explicit ratio assertion on known color pairs and then
 			// manually manipulate ratio with a mock ... but evaluator computes from real colors.
 			// We will pick colors that straddle thresholds.
-
 			// We can test threshold logic by computing ratio inversely:
 			// L_target = ratio * L_dark - 0.05*(ratio-1).
 			// Simpler: use black (#000) and grays where luminance is known.
