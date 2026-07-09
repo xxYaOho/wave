@@ -120,6 +120,22 @@ export async function createThemeDoctorContext(
 	dict: DependencyDict,
 ): Promise<ThemeDoctorContextResult> {
 	const content = await Bun.file(yamlPath).text();
+	return createThemeDoctorContextFromParsedContent(yamlPath, content, dict);
+}
+
+export async function createThemeDoctorContextFromContent(
+	yamlPath: string,
+	content: string,
+	dict: DependencyDict,
+): Promise<ThemeDoctorContextResult> {
+	return createThemeDoctorContextFromParsedContent(yamlPath, content, dict);
+}
+
+async function createThemeDoctorContextFromParsedContent(
+	yamlPath: string,
+	content: string,
+	dict: DependencyDict,
+): Promise<ThemeDoctorContextResult> {
 	const yamlParsed = parseThemeYaml(content);
 
 	if (isParseError(yamlParsed)) {

@@ -146,19 +146,25 @@ describe('wave dt', () => {
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
 
-	test('dt wcag forwards profile scope without variant option errors', async () => {
+	test('dt wcag supports profile scope', async () => {
+		const fixture = path.join(
+			rootDir,
+			'tests/fixtures/themes/profile-model/main.yaml',
+		);
 		const { exitCode, stdout, stderr } = await runWave([
 			'dt',
 			'wcag',
 			'--profile',
-			'dark',
+			'mobile',
 			'--file',
-			'tests/fixtures/themes/doctor-contrast-variant-night/themefile',
+			fixture,
 		]);
 
 		expect(`${stdout}\n${stderr}`).not.toContain("unknown option '--profile'");
 		expect(exitCode).toBe(0);
-		expect(stdout).toContain('doctor-contrast-variant-night-dark');
+		expect(stdout).toContain('profile-model-mobile');
+		expect(stdout).toContain('primary');
+		expect(stdout).toMatch(/\d+\.\d{2}:1/);
 	});
 
 	test('dt doctor rejects removed variants option', async () => {
@@ -169,11 +175,28 @@ describe('wave dt', () => {
 			'--variants',
 			'dark',
 			'-f',
-			'tests/fixtures/themes/doctor-contrast-variant-night/themefile',
+			'tests/fixtures/themes/profile-model/main.yaml',
 		]);
 
 		expect(result.exitCode).not.toBe(0);
 		expect(`${result.stdout}\n${result.stderr}`).toContain('unknown option');
+	});
+
+	test('dt doctor reports dimension migration guidance', async () => {
+		const { exitCode, stdout } = await runWave([
+			'dt',
+			'doctor',
+			'-f',
+			'tests/fixtures/themes/standard/themefile',
+		]);
+
+		expect(exitCode).not.toBe(0);
+		expect(stdout).toContain(
+			'theme.dimension is no longer a public output root',
+		);
+		expect(stdout).toContain('theme.dimension.alpha');
+		expect(stdout).not.toContain('theme.dimension.$type');
+		expect(stdout).toContain('theme.dimension.interaction.* -> theme.state.*');
 	});
 
 	test('dt subcommand help renders without running subcommand actions', async () => {
@@ -653,21 +676,27 @@ describe('wave dt', () => {
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Contrast Check');
 		expect(stdout).toContain('doctor-contrast-pass');
+		expect(stdout).toMatch(/\d+\.\d{2}:1/);
 		expect(stdout).toContain('🟢 Normal Text   (AAA)');
 	});
 
-	test('dt wcag supports main night scope', async () => {
+	test('dt wcag supports night scope with partial overlay', async () => {
+		const fixture = path.join(
+			rootDir,
+			'tests/fixtures/themes/profile-model/main.yaml',
+		);
 		const { exitCode, stdout } = await runWave([
 			'dt',
 			'wcag',
-			'main',
 			'--night',
 			'--file',
-			'tests/fixtures/themes/doctor-contrast-multi/themefile',
+			fixture,
 		]);
 
 		expect(exitCode).toBe(0);
-		expect(stdout).toContain('doctor-contrast-multi-night');
+		expect(stdout).toContain('profile-model-night');
+		expect(stdout).toContain('primary');
+		expect(stdout).toMatch(/\d+\.\d{2}:1/);
 	});
 
 	test('dt init creates a design-token workspace template', async () => {

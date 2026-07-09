@@ -18,6 +18,10 @@ import type {
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 import type { BuildContext } from '../../utils/receipt.ts';
+import {
+	DIMENSION_BUILD_WARNING,
+	findPublicDimensionRoots,
+} from '../doctor/dimension-migration.ts';
 import { transformToWaveTokens } from '../transformer/index.ts';
 import {
 	discoverProfiles,
@@ -127,6 +131,17 @@ async function generatePass(
 				exitCode: parseResult.exitCode,
 				message: msg,
 			};
+		}
+
+		if (findPublicDimensionRoots(parseResult.resolved).length > 0) {
+			if (
+				!ctx?.warnings.some(
+					(warning) => warning.message === DIMENSION_BUILD_WARNING,
+				)
+			) {
+				ctx?.addWarning('dimension', DIMENSION_BUILD_WARNING);
+			}
+			if (!ctx) logger.warn(DIMENSION_BUILD_WARNING);
 		}
 
 		await fs.mkdir(outputDir, { recursive: true });

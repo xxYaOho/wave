@@ -1,14 +1,24 @@
-import { isatty } from 'node:tty';
+import * as path from 'node:path';
 import { Command } from 'commander';
+import * as yaml from 'js-yaml';
+import {
+	findPublicDimensionRoots,
+	renderDimensionMigrationAdvice,
+} from '../../core/doctor/dimension-migration.ts';
 import { runThemeContrastCheck } from '../../core/doctor/registry.ts';
 import {
 	createThemeDoctorContext,
-	detectThemeFiles,
-	type ThemeFileEntry,
+	createThemeDoctorContextFromContent,
 } from '../../core/doctor/theme-context.ts';
-import { selectTheme } from '../../core/doctor/theme-select.ts';
 import { runToolchainDoctor } from '../../core/doctor/toolchain.ts';
-import type { DependencyDict } from '../../core/pipeline/theme-pipeline.ts';
+import {
+	discoverProfiles,
+	mergeNightOverlay,
+	NIGHT_SKIP_MESSAGE,
+	type ProfileEntry,
+	parseProfileDocument,
+	resolveProfilesToBuild,
+} from '../../core/pipeline/profile-resolver.ts';
 import {
 	buildDependencyDictionary,
 	loadThemefile,
@@ -72,30 +82,6 @@ function compareVersions(a: string, b: string): number {
 		if (numA < numB) return -1;
 	}
 	return 0;
-}
-
-/**
- * Build the expected ThemeFileEntry suffix/name from explicit flags.
- * Returns null if no explicit scope flags are set (meaning we need auto-detection).
- */
-function resolveExplicitTheme(
-	allFiles: ThemeFileEntry[],
-	night: boolean,
-	profileName: string | undefined,
-): ThemeFileEntry | undefined {
-	if (!night && !profileName) return undefined;
-
-	const baseName = profileName ?? 'main';
-	const targetName = night ? `${baseName}@night` : baseName;
-
-	const match = allFiles.find((f) => f.name === targetName);
-	if (!match) {
-		console.log(`✗ Theme not found: ${targetName}`);
-		console.log(`  Available: ${allFiles.map((f) => f.name).join(', ')}`);
-		process.exitCode = ExitCode.FILE_NOT_FOUND;
-		return undefined;
-	}
-	return match;
 }
 
 interface DoctorCommandOptions {
@@ -176,17 +162,57 @@ export function createDoctorCommand(name = 'doctor'): Command {
 				let allPassed = bunPassed;
 
 				if (options.file) {
-					const { validateThemefile } = await import(
-						'../../core/validator/config.ts'
-					);
-					const result = await validateThemefile({
-						themefilePath: options.file,
-					});
-					const configIcon = result.valid ? '✓' : '✗';
-					console.log(
-						`${configIcon} Config File: ${result.valid ? `Valid (${result.config?.THEME || 'unknown'})` : result.errors[0] || 'Unknown error'}`,
-					);
-					if (!result.valid) allPassed = false;
+					const loadResult = await loadThemefile(options.file);
+					if ('error' in loadResult) {
+						console.log(`✗ Config File: ${loadResult.error.message}`);
+						allPassed = false;
+					} else {
+						console.log(
+							`✓ Config File: Valid (${loadResult.parsed.THEME || 'unknown'})`,
+						);
+						const dictResult = await buildDependencyDictionary(
+							loadResult.parsed,
+							loadResult.themeDir,
+						);
+						if ('error' in dictResult) {
+							console.log(`✗ Resources: ${dictResult.error.message}`);
+							allPassed = false;
+						} else {
+							const adjacentMainPath = path.join(
+								loadResult.themeDir,
+								'main.yaml',
+							);
+							const inspectPath =
+								loadResult.mainYamlPath ??
+								((await Bun.file(adjacentMainPath).exists())
+									? adjacentMainPath
+									: undefined);
+							if (!inspectPath) {
+								console.log(
+									'Theme: dimension migration check skipped; no main.yaml token entry found',
+								);
+							} else {
+								const ctxResult = await createThemeDoctorContext(
+									inspectPath,
+									dictResult.dict,
+								);
+								if (ctxResult.ok) {
+									const dimensionPaths = findPublicDimensionRoots(
+										ctxResult.context.resolvedTree,
+									);
+									if (dimensionPaths.length > 0) {
+										console.log(renderDimensionMigrationAdvice(dimensionPaths));
+										allPassed = false;
+									}
+								} else {
+									console.log(
+										`✗ Theme: ${ctxResult.findings[0]?.message ?? 'Unable to inspect theme'}`,
+									);
+									allPassed = false;
+								}
+							}
+						}
+					}
 				} else {
 					console.log('✓ Config File: No themefile specified');
 				}
@@ -221,65 +247,95 @@ export function createDoctorCommand(name = 'doctor'): Command {
 
 			const { parsed, themeDir } = loadResult;
 			const themeName = parsed.THEME || 'unknown';
-
-			const dictResult = await buildDependencyDictionary(parsed, themeDir);
-			if ('error' in dictResult) {
-				console.log(`✗ ${dictResult.error.message}`);
-				process.exitCode = ExitCode.GENERAL_ERROR;
-				return;
-			}
-
-			const dict: DependencyDict = dictResult.dict;
-
-			// Detect available theme files
-			const allThemeFiles = await detectThemeFiles(themeDir);
-			if (allThemeFiles.length === 0) {
+			const profiles = await discoverProfiles(themeDir);
+			if (profiles.length === 0) {
 				console.log('No theme files found.');
 				process.exitCode = ExitCode.SUCCESS;
 				return;
 			}
 
-			// Selection strategy:
-			// 1. Explicit --night / --profile → non-interactive, resolve directly
-			// 2. No explicit scope + interactive TTY + single theme → auto-select
-			// 3. No explicit scope + interactive TTY + multiple themes → TUI selector
-			// 4. No explicit scope + non-TTY → default to main
-			let selectedTheme: ThemeFileEntry;
-
-			const hasExplicitScope = !!options.night || !!options.profile;
-			const explicit = resolveExplicitTheme(
-				allThemeFiles,
-				!!options.night,
-				options.profile,
-			);
-			if (hasExplicitScope && !explicit) {
+			let selectedEntries: ProfileEntry[];
+			try {
+				selectedEntries = resolveProfilesToBuild(profiles, {
+					night: !!options.night,
+					...(options.profile && { profile: options.profile }),
+				});
+			} catch (error) {
+				console.log(
+					`✗ ${error instanceof Error ? error.message : String(error)}`,
+				);
+				process.exitCode = ExitCode.FILE_NOT_FOUND;
 				return;
 			}
-			if (explicit) {
-				selectedTheme = explicit;
-			} else if (isatty(process.stdout.fd) && isatty(process.stdin.fd)) {
-				// Interactive TTY
-				if (allThemeFiles.length === 1) {
-					selectedTheme = allThemeFiles[0]!;
-				} else {
-					selectedTheme = await selectTheme(allThemeFiles);
-				}
-			} else {
-				// Non-TTY: default to main
-				const mainFile = allThemeFiles.find((f) => f.name === 'main');
-				if (!mainFile) {
-					console.log('✗ No main theme file found');
-					process.exitCode = ExitCode.FILE_NOT_FOUND;
-					return;
-				}
-				selectedTheme = mainFile;
+
+			const baseProfile = profiles.find((profile) => profile.isDefault);
+			if (!baseProfile) {
+				console.log('✗ No main theme file found');
+				process.exitCode = ExitCode.FILE_NOT_FOUND;
+				return;
+			}
+			const baseDocument = await parseProfileDocument(baseProfile, {
+				defaultParsed: parsed,
+				baseDir: themeDir,
+			});
+			const selectedEntry = selectedEntries[0]!;
+			const selectedDocument = selectedEntry.isDefault
+				? baseDocument
+				: await parseProfileDocument(selectedEntry, {
+						baseParsed: baseDocument.parsed,
+						baseDir: themeDir,
+					});
+			const profileDictResult = await buildDependencyDictionary(
+				selectedDocument.parsed,
+				themeDir,
+			);
+			if ('error' in profileDictResult) {
+				console.log(`✗ ${profileDictResult.error.message}`);
+				process.exitCode = ExitCode.GENERAL_ERROR;
+				return;
 			}
 
-			const displayThemeName = `${themeName}${selectedTheme.suffix}`;
+			let contextPath = selectedEntry.path;
+			let contextContent = selectedDocument.tokenContent;
+			let displayThemeName = selectedEntry.isDefault
+				? themeName
+				: `${themeName}-${selectedEntry.name}`;
+			if (options.night) {
+				if (!selectedEntry.nightPath) {
+					console.log(NIGHT_SKIP_MESSAGE);
+					process.exitCode = ExitCode.SUCCESS;
+					return;
+				}
+				const dayRaw = yaml.load(selectedDocument.tokenContent);
+				const nightRaw = yaml.load(
+					await Bun.file(selectedEntry.nightPath).text(),
+				);
+				const merged =
+					typeof dayRaw === 'object' &&
+					dayRaw !== null &&
+					!Array.isArray(dayRaw) &&
+					typeof nightRaw === 'object' &&
+					nightRaw !== null &&
+					!Array.isArray(nightRaw)
+						? mergeNightOverlay(
+								dayRaw as Record<string, unknown>,
+								nightRaw as Record<string, unknown>,
+							)
+						: { ok: false as const, message: NIGHT_SKIP_MESSAGE };
+				if (!merged.ok) {
+					console.log(NIGHT_SKIP_MESSAGE);
+					process.exitCode = ExitCode.SUCCESS;
+					return;
+				}
+				contextContent = yaml.dump(merged.tree, { lineWidth: -1 });
+				contextPath = selectedEntry.nightPath;
+				displayThemeName = `${displayThemeName}-night`;
+			}
 
-			const ctxResult = await createThemeDoctorContext(
-				selectedTheme.path,
-				dict,
+			const ctxResult = await createThemeDoctorContextFromContent(
+				contextPath,
+				contextContent,
+				profileDictResult.dict,
 			);
 			if (!ctxResult.ok) {
 				console.log(`✗ ${ctxResult.findings[0]!.message}`);
