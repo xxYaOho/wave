@@ -12,6 +12,7 @@ export interface LoadedResource {
 	content: string;
 	path: string;
 	kind: string;
+	source: 'builtin' | 'cache' | 'user';
 }
 
 function isBareName(ref: string): boolean {
@@ -60,7 +61,11 @@ export async function loadResource(
 	ref: string,
 	themeDir: string,
 ): Promise<LoadedResource | ParseError> {
-	const { path: filePath } = await resolveResourcePath(kind, ref, themeDir);
+	const { path: filePath, source } = await resolveResourcePath(
+		kind,
+		ref,
+		themeDir,
+	);
 
 	let content: string;
 	try {
@@ -127,6 +132,7 @@ export async function loadResource(
 		content,
 		path: filePath,
 		kind,
+		source,
 	};
 }
 
