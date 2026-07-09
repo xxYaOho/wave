@@ -23,6 +23,10 @@ function isGradient(token: WaveToken): boolean {
 	return token.type === 'gradient';
 }
 
+function isTypography(token: WaveToken): boolean {
+	return token.type === 'typography';
+}
+
 function publicRootKey(token: WaveToken): string | undefined {
 	return token.path[0] === 'theme' ? token.path[1] : token.path[0];
 }
@@ -101,12 +105,86 @@ function formatTokenValue(token: WaveToken): string {
 	return String(tokenValue);
 }
 
+function formatTypographyField(value: unknown): string {
+	if (
+		typeof value === 'object' &&
+		value !== null &&
+		!Array.isArray(value) &&
+		'value' in value
+	) {
+		const obj = value as { value?: unknown; unit?: unknown };
+		if (typeof obj.value === 'number' && typeof obj.unit === 'string') {
+			return `${obj.value}${obj.unit}`;
+		}
+		if (obj.value !== undefined) return String(obj.value);
+	}
+	return String(value);
+}
+
+function typographyLines(key: string, value: unknown): string[] {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return [];
+	}
+	const obj = value as Record<string, unknown>;
+	const family = obj.fontFamily;
+	const size = obj.fontSize;
+	const weight = obj.fontWeight;
+	const lineHeight = obj.lineHeight;
+	const letterSpacing = obj.letterSpacing;
+	const lines: string[] = [];
+
+	if (family !== undefined) {
+		lines.push(`  --${key}-family: ${formatTypographyField(family)};`);
+	}
+	if (size !== undefined) {
+		lines.push(`  --${key}-size: ${formatTypographyField(size)};`);
+	}
+	if (weight !== undefined) {
+		lines.push(`  --${key}-weight: ${formatTypographyField(weight)};`);
+	}
+	if (lineHeight !== undefined) {
+		lines.push(`  --${key}-line-height: ${formatTypographyField(lineHeight)};`);
+	}
+	if (letterSpacing !== undefined) {
+		lines.push(
+			`  --${key}-letter-spacing: ${formatTypographyField(letterSpacing)};`,
+		);
+	}
+	lines.push(
+		`  --${key}: var(--${key}-weight) var(--${key}-size) / var(--${key}-line-height) var(--${key}-family);`,
+	);
+	return lines;
+}
+
 function getGroupCommentPaths(tokenPath: string[]): string[] {
 	const paths: string[] = [];
 	for (let i = 1; i < tokenPath.length; i++) {
 		paths.push(tokenPath.slice(0, i).join('.'));
 	}
 	return paths;
+}
+
+function pushGroupComments(
+	lines: string[],
+	token: WaveToken,
+	groupComments: Record<string, string>,
+	emittedGroups: Set<string>,
+): void {
+	const groupPaths = getGroupCommentPaths(token.path);
+	for (const gp of groupPaths) {
+		if (!emittedGroups.has(gp) && groupComments[gp]) {
+			const comment = groupComments[gp];
+			const isMultiline = comment.includes('\n');
+			if (isMultiline) {
+				for (const line of comment.split('\n')) {
+					lines.push(`  /* ${line} */`);
+				}
+			} else {
+				lines.push(`  /* ${comment} */`);
+			}
+			emittedGroups.add(gp);
+		}
+	}
 }
 
 function shouldInclude(token: WaveToken, includeRootKeys?: string[]): boolean {
@@ -136,23 +214,14 @@ export const cssVariablesFormat: WaveFormatFn = (
 
 	for (const token of sortedTokens) {
 		const key = getFilteredName(token, filterLayer);
-		const cssValue = formatTokenValue(token);
+		pushGroupComments(lines, token, groupComments, emittedGroups);
 
-		const groupPaths = getGroupCommentPaths(token.path);
-		for (const gp of groupPaths) {
-			if (!emittedGroups.has(gp) && groupComments[gp]) {
-				const comment = groupComments[gp];
-				const isMultiline = comment.includes('\n');
-				if (isMultiline) {
-					for (const line of comment.split('\n')) {
-						lines.push(`  /* ${line} */`);
-					}
-				} else {
-					lines.push(`  /* ${comment} */`);
-				}
-				emittedGroups.add(gp);
-			}
+		if (isTypography(token)) {
+			lines.push(...typographyLines(key, token.value));
+			continue;
 		}
+
+		const cssValue = formatTokenValue(token);
 
 		const description = token.comment;
 		if (description && typeof description === 'string' && description !== '~') {

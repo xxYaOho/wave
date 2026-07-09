@@ -223,6 +223,38 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).not.toContain('--shadow-legacy');
 	});
 
+	test('formats typography as field variables and shorthand variable', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-font-body-md',
+				path: ['theme', 'font', 'body', 'md'],
+				type: 'typography',
+				value: {
+					fontFamily: 'Inter, sans-serif',
+					fontSize: '14px',
+					fontWeight: 400,
+					lineHeight: 1.5,
+					letterSpacing: 0,
+				},
+				_order: 0,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens, {
+			includeRootKeys: ['font'],
+			filterLayer: 1,
+		});
+
+		expect(out).toContain('--font-body-md-family: Inter, sans-serif;');
+		expect(out).toContain('--font-body-md-size: 14px;');
+		expect(out).toContain('--font-body-md-weight: 400;');
+		expect(out).toContain('--font-body-md-line-height: 1.5;');
+		expect(out).toContain('--font-body-md-letter-spacing: 0;');
+		expect(out).toContain(
+			'--font-body-md: var(--font-body-md-weight) var(--font-body-md-size) / var(--font-body-md-line-height) var(--font-body-md-family);',
+		);
+	});
+
 	test('throws instead of emitting object color value', () => {
 		const tokens: WaveToken[] = [
 			{

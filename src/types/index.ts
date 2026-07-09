@@ -222,6 +222,14 @@ export type DtcgValue =
 	| DtcgRefValue
 	| DtcgValue[];
 
+export interface WaveTypographyValue {
+	fontFamily?: string;
+	fontSize?: DtcgValue;
+	fontWeight?: DtcgValue;
+	letterSpacing?: DtcgValue;
+	lineHeight?: DtcgValue;
+}
+
 export interface DtcgToken {
 	$value: DtcgValue;
 	$type?: string;

@@ -20,6 +20,7 @@ const KNOWN_TYPES = new Set([
 	'dimension',
 	'number',
 	'cubicBezier',
+	'typography',
 ]);
 
 // $extends 格式验证：必须是 {group.path.to.group} 格式
