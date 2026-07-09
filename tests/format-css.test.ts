@@ -255,6 +255,68 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		);
 	});
 
+	test('formats outline border with offset companion', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: { color: '#000000', width: 1, style: 'solid' },
+				_outline: { offset: 2 },
+				_order: 0,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens, {
+			includeRootKeys: ['border'],
+			filterLayer: 1,
+		});
+
+		expect(out).toContain('--border-outline-focus: 1px solid #000000;');
+		expect(out).toContain('--border-outline-focus-offset: 2px;');
+	});
+
+	test('formats outline border width and offset from px strings', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: { color: '#000000', width: '1px', style: 'solid' },
+				_outline: { offset: 0 },
+				_order: 0,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens, {
+			includeRootKeys: ['border'],
+			filterLayer: 1,
+		});
+
+		expect(out).toContain('--border-outline-focus: 1px solid #000000;');
+		expect(out).toContain('--border-outline-focus-offset: 0;');
+	});
+
+	test('formats outline border with currentColor fallback', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: { width: 1 },
+				_outline: { offset: 2 },
+				_order: 0,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens, {
+			includeRootKeys: ['border'],
+			filterLayer: 1,
+		});
+
+		expect(out).toContain('--border-outline-focus: 1px solid currentColor;');
+	});
+
 	test('throws instead of emitting object color value', () => {
 		const tokens: WaveToken[] = [
 			{

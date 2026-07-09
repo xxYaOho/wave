@@ -599,6 +599,15 @@ function transformToken(
 					...sketchExtension,
 				}
 			: sketchExtension;
+	const outlineData = token.$extensions?.outline;
+	const outline =
+		typeValue === 'border' &&
+		typeof outlineData === 'object' &&
+		outlineData !== null &&
+		!Array.isArray(outlineData) &&
+		typeof (outlineData as Record<string, unknown>).offset === 'number'
+			? { offset: (outlineData as { offset: number }).offset }
+			: undefined;
 
 	const sdValue: Omit<WaveToken, 'name' | 'path'> = {
 		value: processedValue,
@@ -616,6 +625,7 @@ function transformToken(
 		...(mergedSketchExtension !== undefined && {
 			_sketch: mergedSketchExtension,
 		}),
+		...(outline !== undefined && { _outline: outline }),
 	};
 
 	if (typeValue !== undefined) {

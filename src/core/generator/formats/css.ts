@@ -27,6 +27,10 @@ function isTypography(token: WaveToken): boolean {
 	return token.type === 'typography';
 }
 
+function isOutlineBorder(token: WaveToken): boolean {
+	return token.type === 'border' && token._outline !== undefined;
+}
+
 function publicRootKey(token: WaveToken): string | undefined {
 	return token.path[0] === 'theme' ? token.path[1] : token.path[0];
 }
@@ -156,6 +160,20 @@ function typographyLines(key: string, value: unknown): string[] {
 	return lines;
 }
 
+function formatBorderValue(value: unknown): string {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return String(value);
+	}
+	const obj = value as Record<string, unknown>;
+	const width = formatCssLength(obj.width);
+	const style = String(obj.style ?? 'solid');
+	const color =
+		typeof obj.color === 'string' || typeof obj.color === 'number'
+			? String(obj.color)
+			: 'currentColor';
+	return `${width} ${style} ${color}`;
+}
+
 function getGroupCommentPaths(tokenPath: string[]): string[] {
 	const paths: string[] = [];
 	for (let i = 1; i < tokenPath.length; i++) {
@@ -218,6 +236,14 @@ export const cssVariablesFormat: WaveFormatFn = (
 
 		if (isTypography(token)) {
 			lines.push(...typographyLines(key, token.value));
+			continue;
+		}
+
+		if (isOutlineBorder(token)) {
+			lines.push(`  --${key}: ${formatBorderValue(token.value)};`);
+			lines.push(
+				`  --${key}-offset: ${formatCssLength(token._outline!.offset)};`,
+			);
 			continue;
 		}
 

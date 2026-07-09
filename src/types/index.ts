@@ -344,6 +344,8 @@ export interface WaveToken {
 	_composite?: string;
 	/** normalized Sketch-specific output hints */
 	_sketch?: SketchExtension;
+	/** outline metadata for border tokens */
+	_outline?: { offset: number };
 	/** original referenced token path for Sketch variable swatch mapping */
 	_swatchName?: string;
 	/** inheritColor metadata */

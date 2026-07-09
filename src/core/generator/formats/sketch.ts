@@ -169,6 +169,23 @@ function processShadowLayer(
 	};
 }
 
+function parseOutlineWidth(value: unknown): number {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return 0;
+	}
+	const width = (value as Record<string, unknown>).width;
+	const parsed = parseDimensionNumber(width);
+	return parsed ?? 0;
+}
+
+function outlineColor(value: unknown): string {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return '#000000';
+	}
+	const color = (value as Record<string, unknown>).color;
+	return typeof color === 'string' ? color : '#000000';
+}
+
 function pickSketchProperty(
 	property: SketchPropertyMap | undefined,
 ): keyof SketchPropertyMap | undefined {
@@ -345,6 +362,31 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 			return { color: hexToSketchColor(color) };
 		}
 		return { color: hexToSketchColor(resolveSketchColorValue(token)) };
+	}
+
+	if (token.type === 'border' && token._outline) {
+		const width = parseOutlineWidth(token.value);
+		const offset = token._outline.offset;
+		const color = outlineColor(token.value);
+		assertHexColor(color, token);
+		return {
+			shadow: [
+				{
+					x: 0,
+					y: 0,
+					blur: 0,
+					spread: width + offset,
+					color: hexToSketchColor(color),
+				},
+				{
+					x: 0,
+					y: 0,
+					blur: 0,
+					spread: offset,
+					color: '#ffffffff',
+				},
+			],
+		};
 	}
 
 	if (token.type === 'shadow') {

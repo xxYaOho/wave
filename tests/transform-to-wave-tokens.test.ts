@@ -62,6 +62,30 @@ describe('transformToWaveTokens', () => {
 		expect(primary.deprecated).toBe('use accent instead');
 	});
 
+	test('preserves outline metadata on border tokens', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				border: {
+					outline: {
+						focus: {
+							$type: 'border',
+							$value: { color: '#000000', width: 1, style: 'solid' },
+							$extensions: { outline: { offset: 2 } },
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input);
+		const focus = result.tokens.find(
+			(t) => t.name === 'theme-border-outline-focus',
+		)!;
+
+		expect(focus.type).toBe('border');
+		expect(focus._outline).toEqual({ offset: 2 });
+	});
+
 	test('emits group descriptions in groupComments', () => {
 		const input: ResolvedTokenGroup = {
 			theme: {

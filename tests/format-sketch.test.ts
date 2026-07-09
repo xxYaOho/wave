@@ -113,6 +113,26 @@ describe('sketchFormat (Wave-native)', () => {
 		});
 	});
 
+	test('formats outline border as sketch shadow simulation', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: { color: '#000000', width: 1, style: 'solid' },
+				_outline: { offset: 2 },
+				_order: 0,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
+
+		expect(parsed['border-outline-focus'].shadow).toEqual([
+			{ x: 0, y: 0, blur: 0, spread: 3, color: '#000000ff' },
+			{ x: 0, y: 0, blur: 0, spread: 2, color: '#ffffffff' },
+		]);
+	});
+
 	test('reverses multi-layer shadow order for sketch without mutating tokens', () => {
 		const originalValue = [
 			{ color: '#000000', offsetX: 0, offsetY: 1, blur: 2, spread: 0 },

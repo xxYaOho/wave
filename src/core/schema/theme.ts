@@ -32,6 +32,7 @@ const KNOWN_EXTENSIONS = new Set([
 	'currentColor', // deprecated: use inheritColor instead
 	'inheritColor',
 	'sketch',
+	'outline',
 ]);
 
 const EXTENSION_TYPE_MAP: Record<string, string> = {
@@ -272,6 +273,44 @@ function validateSketchExtension(
 	}
 }
 
+function validateOutlineExtension(
+	extensions: Record<string, unknown>,
+	tokenType: string | undefined,
+	tokenPath: string,
+	issues: ThemeSchemaIssue[],
+): void {
+	if (!('outline' in extensions)) return;
+	if (tokenType !== 'border') {
+		issues.push({
+			path: tokenPath,
+			level: 'error',
+			message: `outline can only be used with $type "border", got "${tokenType ?? 'undefined'}"`,
+		});
+		return;
+	}
+	const outline = extensions.outline;
+	if (
+		typeof outline !== 'object' ||
+		outline === null ||
+		Array.isArray(outline)
+	) {
+		issues.push({
+			path: `${tokenPath}.$extensions.outline`,
+			level: 'error',
+			message: 'outline extension must be an object',
+		});
+		return;
+	}
+	const offset = (outline as Record<string, unknown>).offset;
+	if (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0) {
+		issues.push({
+			path: `${tokenPath}.$extensions.outline.offset`,
+			level: 'error',
+			message: 'outline.offset must be a non-negative finite number',
+		});
+	}
+}
+
 function validateToken(
 	token: Record<string, unknown>,
 	tokenPath: string,
@@ -362,6 +401,7 @@ function validateToken(
 		// Validate extension-specific contracts
 		validateInheritColor(extensions, tokenType, tokenPath, issues);
 		validateSketchExtension(extensions, tokenType, tokenPath, issues);
+		validateOutlineExtension(extensions, tokenType, tokenPath, issues);
 	}
 }
 

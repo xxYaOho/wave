@@ -25,4 +25,107 @@ describe('theme schema', () => {
 		expect(result.valid).toBe(true);
 		expect(result.issues).toEqual([]);
 	});
+
+	test('accepts outline extension on border token', () => {
+		const result = validateThemeSchema({
+			theme: {
+				border: {
+					outline: {
+						focus: {
+							$type: 'border',
+							$value: {
+								color: '#000000',
+								width: 1,
+								style: 'solid',
+							},
+							$extensions: {
+								outline: {
+									offset: 2,
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(true);
+		expect(result.issues).toEqual([]);
+	});
+
+	test('rejects outline extension on non-border token', () => {
+		const result = validateThemeSchema({
+			theme: {
+				color: {
+					focus: {
+						$type: 'color',
+						$value: '#000000',
+						$extensions: {
+							outline: {
+								offset: 2,
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some((issue) =>
+				issue.message.includes('outline can only be used with $type "border"'),
+			),
+		).toBe(true);
+	});
+
+	test('rejects outline extension when token type is missing', () => {
+		const result = validateThemeSchema({
+			theme: {
+				misc: {
+					focus: {
+						$value: { color: '#000000', width: 1, style: 'solid' },
+						$extensions: {
+							outline: {
+								offset: 2,
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some((issue) =>
+				issue.message.includes('outline can only be used with $type "border"'),
+			),
+		).toBe(true);
+	});
+
+	test('rejects invalid outline offset', () => {
+		const result = validateThemeSchema({
+			theme: {
+				border: {
+					focus: {
+						$type: 'border',
+						$value: { color: '#000000', width: 1, style: 'solid' },
+						$extensions: {
+							outline: {
+								offset: -1,
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some((issue) =>
+				issue.message.includes(
+					'outline.offset must be a non-negative finite number',
+				),
+			),
+		).toBe(true);
+	});
 });
