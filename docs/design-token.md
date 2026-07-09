@@ -57,6 +57,8 @@ wave dt wcag
 wave dt wcag mobile --night
 ```
 
+当前目录存在 `main.yaml` 时，`wave dt doctor` 会默认检查它；也可以用 `wave dt doctor -f ./main.yaml` 显式指定。
+
 ## main.yaml
 
 最小结构：
@@ -172,7 +174,7 @@ wave dt build --profiles all
 wave dt build --night
 ```
 
-CSS 输出包含 `theme.color`、`theme.state`、`theme.shadow`、`theme.gradient`、`theme.border`、`theme.radius` 和 `theme.font`。`theme.dimension` 不再作为 public output root；运行 `wave dt doctor -f ./main.yaml` 可查看迁移建议。
+CSS 输出包含 `theme.color`、`theme.state`、`theme.shadow`、`theme.gradient`、`theme.border`、`theme.radius` 和 `theme.font`。`theme.dimension` 不再作为 public output root；运行 `wave dt doctor` 可查看迁移建议。
 
 ## Shadow 与 smoothShadow
 
@@ -377,7 +379,7 @@ theme:
 - 只允许 `opacity` 和 `cornerRadius`。
 - 值必须是 `true`；`false`、`"true"`、`"ture"` 都是错误。
 - `property.opacity` 只能用于 `theme.state.*` 下的 `number` token。
-- `property.cornerRadius` 可用于 radius/dimension 类 token。
+- `property.cornerRadius` 可用于 `theme.radius.*` 或 `theme.dimension.*` 下的 radius/dimension 类 token。
 - `color` token 不能使用 `property.opacity` 或 `property.cornerRadius`。
 
 错误示例：
@@ -492,7 +494,7 @@ config: ~/.config/wave/resources/
 - 新项目优先使用 `main.yaml` + `$config`。
 - `themefile` 和 `wave create` 仍可用于旧项目兼容。
 - `variants/`、`--variant`、`--variants` 和 `--no-variants` 不再支持；旧 variant 拆到 `profiles/<name>.yaml`。
-- `theme.dimension` 不再作为 public output root；迁移到 `theme.state`、`theme.shadow`、`theme.gradient` 或 `theme.radius`。
+- `theme.dimension` 不再作为 public output root；迁移到 `theme.state`、`theme.shadow`、`theme.gradient` 或 `theme.radius`，并用 `wave dt doctor` 检查迁移建议。
 - Sketch 属性映射写 `$extensions.sketch.property`，旧 `sketchMap` 不再作为映射来源。
 - Sketch 分组路径写 `$extensions.sketch.path`；叶子名仍由 `filterLayer` 后的 flat-json key 决定。
 - component token 不再映射为 Sketch component style 字段。

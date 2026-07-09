@@ -1,7 +1,7 @@
 # Wave DT Research Handoff
 
 Date: 2026-07-09
-Status: implementation planned
+Status: manual-test fixes implemented and verified in worktree
 
 ## Read First
 
@@ -19,9 +19,10 @@ The implementation worktree is:
 
 Do not treat older research notes as implemented behavior. The approved plan is the execution source for this iteration.
 
-Implementation plan:
+Implementation plans:
 
 - `docs/superpowers/plans/2026-07-09-wave-dt-profile-model.md`
+- `docs/superpowers/plans/2026-07-09-wave-dt-manual-test-fixes.md`
 
 ## Current Decision Summary
 
@@ -96,11 +97,11 @@ Problem:
 - The current doctor default does not inspect `./main.yaml`, while `dt build` does. This means the user can hit a dimension/resource migration failure in build but receive no migration guidance from doctor.
 - The migration guidance exists when doctor is pointed at a file, but the default command shape is not helpful for the current project workflow.
 
-Follow-up direction:
+Implemented in this iteration:
 
-- Consider making `wave dt doctor` default to `./main.yaml` when present, matching `wave dt build`.
-- Consider surfacing dimension migration guidance when resource resolution fails because of legacy dimension resource paths such as `/resources/dimensions/wave.yaml`.
-- Keep this as a follow-up behavior fix; no code change was made when recording this feedback.
+- Packaged `dist/wave` copies built-in resources into `dist/resources` and resolves built-ins from the packaged runtime when needed.
+- `wave dt doctor` inspects `./main.yaml` by default when present, matching the current `dt build` workflow.
+- Dimension migration guidance can still be surfaced when resource resolution fails and `main.yaml` is parseable.
 
 ## Manual Test Feedback: Outline Border Color
 
@@ -165,12 +166,11 @@ Evidence:
 - The output contains `--outline: 1px solid currentColor;`.
 - The same CSS file contains already-resolved outline color tokens such as `--outline-ring: #1a72f0;`, so the color resource itself is available.
 
-Follow-up direction:
+Implemented in this iteration:
 
-- Normalize nested border `$value.color` in the transformer, analogous to shadow/gradient nested color handling.
-- Add regression coverage for both `color: "{theme.color.neutral.main}"` and `$ref: "#/theme/color/neutral/main/$value"` under a `$type: border` token with `$extensions.outline`.
-- Verify both CSS and Sketch output after the fix.
-- Keep this as a follow-up behavior fix; no code change was made when recording this feedback.
+- Nested border `$value.color` is normalized in the transformer, alongside shadow and gradient nested colors.
+- Regression coverage includes direct hex, local token reference, external resource reference, JSON pointer to token object, JSON pointer to `$value`, and aliased `$value`.
+- CSS and Sketch output are verified together in the root matrix integration test.
 
 ## Manual Test Audit: Theme Root Matrix
 
@@ -206,10 +206,11 @@ Fix locus:
 - `src/core/resolver/resource-loader.ts`
 - `scripts/build-cli.ts`
 
-Follow-up:
+Implemented in this iteration:
 
-- Either embed bundled YAML resources into the compiled runtime, or copy resources into `dist` and resolve relative to the executable/package location.
-- Add cache-free dist smoke tests for `dt show palette tailwindcss`, `dt show dimension wave`, and a fixture `dt build`.
+- Built-in resources are copied into `dist/resources` during `pnpm build`.
+- Runtime built-in lookup checks packaged resources when source resources are unavailable.
+- Cache-free dist smoke tests cover `dt show palette tailwindcss`, `dt show dimension wave`, and fixture `dt build`.
 
 ### Doctor/build guidance mismatch
 
@@ -231,12 +232,11 @@ Fix locus:
 - `src/core/doctor/dimension-migration.ts`
 - CLI help text for `dt doctor -f`.
 
-Follow-up:
+Implemented in this iteration:
 
-- Make `wave dt doctor` inspect `./main.yaml` by default when present, matching `dt build`.
-- Add diagnostics for `$config.resource.dimension` and `{wave.dimension.*}` references.
-- If resource resolution fails, still surface migration guidance from parseable `main.yaml` content.
-- Avoid unconditional `Resources: All built-in resources available` wording when a theme file is being checked.
+- `wave dt doctor` inspects `./main.yaml` by default when present.
+- Doctor guidance covers public `theme.dimension`; raw guidance also covers `$config.resource.dimension` and `{wave.dimension.*}` when resource resolution fails.
+- Valid `wave.dimension` references used as source values remain supported when they do not create public `theme.dimension` output.
 
 ### Theme root output matrix
 
@@ -264,18 +264,19 @@ Results:
 - `theme.font`: direct typography and referenced dimension fields output correctly; direct numeric `fontSize: 14` stays unitless in CSS.
 - `theme.dimension`: build emits the expected migration warning and does not output public dimension CSS.
 
-Failures / gaps:
+Previously observed failures / gaps, now covered by regression tests:
 
-- `theme.shadow` with referenced `offsetY` / `blur` dimension values emits CSS `[object Object]` for those length fields, while Sketch keeps the unresolved `{ value, unit }` objects.
-- Non-outline `$type: border` tokens under `theme.border.line.*` emit CSS `[object Object]`; only outline border tokens get special CSS formatting.
-- `theme.border.line.ref-width` also emits `[object Object]` because nested border width is not normalized for CSS.
-- `theme.radius.*` with `sketch.property.cornerRadius` is rejected by schema: `cornerRadius must be under a dimension or state root`. This conflicts with the public-root direction where `theme.radius` is the intended radius output root.
+- `theme.shadow` referenced length fields are normalized before CSS and Sketch output.
+- Non-outline `$type: border` tokens output CSS border shorthand instead of `[object Object]`.
+- Nested border width value objects are normalized before formatting; unnormalized formatter inputs fail loudly.
+- `theme.radius.*` can use `sketch.property.cornerRadius`; `theme.radius.*` still cannot use `sketch.property.opacity`.
 
-Follow-up:
+Implemented in this iteration:
 
-- Normalize nested length fields for shadow CSS/Sketch, not only top-level dimension tokens.
-- Decide whether non-outline border tokens should output CSS border values or remain unsupported; current `[object Object]` output should not ship silently.
-- Update `sketch.property.cornerRadius` schema to allow `theme.radius` if radius is now the public root.
+- Transformer normalizes nested color and length fields for shadow and border composites.
+- CSS formats normal border tokens as shorthand and emits outline offset companion for outline tokens.
+- Sketch outline keeps the two-layer shadow simulation with ring first and fixed white gap second.
+- Schema allows `cornerRadius` under `theme.radius` while keeping `opacity` limited to `theme.state` / `theme.dimension`.
 
 ### Border outline reference matrix
 
@@ -316,8 +317,25 @@ Interpretation:
 - JSON pointer to a token object also fails; pointer to `$value` can work when that value is already scalar after resolution.
 - This is implementation behavior, not user-facing syntax guidance; users should not need to know which reference shape happens to normalize.
 
-Follow-up:
+Implemented in this iteration:
 
-- Normalize border `$value.color` through the same robust color normalization path used by color tokens and gradient/shadow nested colors.
-- Add regression tests for direct hex, local token reference, external resource-backed token reference, `$ref` to token object, and `$ref` to `$value`.
-- Verify CSS and Sketch output together because they currently fail differently.
+- Border `$value.color` now uses the transformer normalization path.
+- Regression tests cover direct hex, local references, external references, `$ref` to token object, `$ref` to `$value`, and alias `$value`.
+- CSS and Sketch are asserted in the same integration matrix.
+
+## Manual Test Fix Status
+
+Recorded at: 2026-07-09T23:37:23+0800
+
+The manual-test regressions recorded above have been fixed in this worktree.
+
+Verified:
+
+- packaged `dist/wave` loads built-in palette and dimension resources without cache;
+- `dt doctor` defaults to `./main.yaml` when present;
+- doctor reports legacy dimension migration guidance when a public `theme.dimension` root or failed raw dimension migration signal is present;
+- valid `wave.dimension` source references remain supported and do not fail doctor by themselves;
+- CSS and Sketch no longer output `[object Object]` for shadow or border cases in the root matrix;
+- border outline color references resolve consistently for CSS and Sketch;
+- `theme.radius.*` can use `sketch.property.cornerRadius`;
+- real `/Users/teatao/Projects/my-color/orca` packaged-binary smoke builds CSS and Sketch output without `[object Object]`, `1px solid currentColor`, or Sketch outline black fallback.

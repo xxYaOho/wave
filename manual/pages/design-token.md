@@ -263,6 +263,8 @@ CSS 输出包含 `color`、`state`、`shadow`、`gradient`、`border`、`radius`
 
 Typography token 会在 CSS 中输出字段变量和 shorthand 变量，在 Sketch 中输出 text shared style payload。带 `outline` extension 的 border token 会在 CSS 中输出 outline value 和 offset companion，在 Sketch 中用两层 shadow 模拟 outline。
 
+当前目录存在 `main.yaml` 时，`wave dt doctor` 会默认检查它；也可以用 `wave dt doctor -f ./main.yaml` 显式指定。
+
 多平台用逗号分隔：
 
 ```text
@@ -485,7 +487,7 @@ Sketch 输出不再固定包裹 `color`、`style`、`dimension` 或 `component` 
 - `sketch.property` 只支持 `opacity` 和 `cornerRadius`。
 - `sketch.property.*` 的值必须是 `true`。
 - `sketch.property.opacity` 可用于 `theme.state.*` 下的 `number` token。
-- `sketch.property.cornerRadius` 可用于 radius/dimension 类 token。
+- `sketch.property.cornerRadius` 可用于 `theme.radius.*` 或 `theme.dimension.*` 下的 radius/dimension 类 token。
 - `sketch.property` 只能写在 token 上，不能写在 group 上。
 - 两个 token 经过 `sketch.path` 和 `filterLayer` 后不能输出到同一路径；冲突会报错。
 - 例如 `$type: number` 搭配 `sketch.property.fillColor: true` 会报错，因为 `fillColor` 不是支持的 Sketch property。
@@ -602,7 +604,7 @@ profiles/mobile@night.yaml
 | 出现 `Direct RESOURCE token generation is deprecated` | 当前目录缺少 `main.yaml`，Wave 正在使用旧兼容路径；运行 `wave dt init` 后把 token 内容迁移到 `main.yaml` |
 | 引用无法解析 | 检查 `RESOURCE` 是否声明，或 token 路径是否正确 |
 | Sketch opacity 不输出 | 确认 token 在 `theme.state.*` 下，且 `$type` 是 `number` |
-| 仍在使用 `theme.dimension` 输出 | 迁移到 `theme.state`、`theme.shadow`、`theme.gradient` 或 `theme.radius`；运行 `wave dt doctor -f ./main.yaml` 查看建议 |
+| 仍在使用 `theme.dimension` 输出 | 迁移到 `theme.state`、`theme.shadow`、`theme.gradient` 或 `theme.radius`；运行 `wave dt doctor` 查看建议 |
 | WCAG 无检查项 | 确认存在 `doctor.wcagPairs` |
 
 ## 旧入口
