@@ -29,6 +29,15 @@ function createTempOutputDir(): string {
 	return dir;
 }
 
+async function exists(filePath: string): Promise<boolean> {
+	try {
+		await fs.access(filePath);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 function makeInput(
 	overrides: Partial<ThemeGenerationInput> & {
 		themeName: string;
@@ -114,11 +123,336 @@ describe('Theme Service Integration', () => {
 				]);
 				expect(typeof json['theme-dimension-alpha-sm']).toBe('number');
 				expect(css).toMatch(/--theme-color-primary: #[0-9a-f]{6};/i);
-				expect(css).toContain(
-					'--theme-style-shadow-sm: 0 1 2 0 rgb(0 0 0 / 1);',
-				);
+				expect(css).not.toContain('--theme-style-shadow-sm');
 				expect(css).not.toContain('--theme-dimension-alpha-sm');
 			}
+		});
+	});
+
+	describe('profile model generation', () => {
+		test('default build generates only main profile', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+
+			const result = await generateTheme({
+				themeName: 'profile-model',
+				themePath,
+				cliOutput: outputDir,
+				generateOptions: { night: false },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model.json');
+				expect(result.generatedFiles).toContain('profile-model.css');
+				expect(result.generatedFiles).toContain('profile-model2sketch.json');
+				expect(result.generatedFiles).not.toContain(
+					'profile-model-mobile.json',
+				);
+
+				const css = await fs.readFile(
+					path.join(outputDir, 'profile-model.css'),
+					'utf-8',
+				);
+				const sketch = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'profile-model2sketch.json'),
+						'utf-8',
+					),
+				);
+
+				expect(css).toContain('--color-primary:');
+				expect(css).toContain('--state-hover:');
+				expect(css).toContain('--shadow-elevation-low: 0 1px 2px 0');
+				expect(css).toContain('--border-outline-focus:');
+				expect(css).toContain('--border-outline-focus-offset: 2px;');
+				expect(css).toContain('--font-heading-h1:');
+				expect(css).not.toContain('--dimension-');
+				expect(JSON.stringify(sketch)).toContain('textStyle');
+				expect(JSON.stringify(sketch)).toContain('"spread":3');
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('profile build generates selected profile only', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+
+			const result = await generateTheme({
+				themeName: 'profile-model',
+				themePath,
+				cliOutput: outputDir,
+				generateOptions: { night: false, profile: 'mobile' },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+				expect(result.generatedFiles).not.toContain('profile-model.json');
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('profiles all generates main and named profiles', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+
+			const result = await generateTheme({
+				themeName: 'profile-model',
+				themePath,
+				cliOutput: outputDir,
+				generateOptions: { night: false, profiles: 'all' },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model.json');
+				expect(result.generatedFiles).toContain('profile-model.css');
+				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('profiles all uses one cli output directory across profile files', async () => {
+			const outputDir = 'temp-output-profile-model-all';
+			const absoluteOutputDir = path.join(process.cwd(), outputDir);
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+
+			await fs.rm(absoluteOutputDir, { recursive: true, force: true });
+			await fs.rm(path.join(path.dirname(themePath), outputDir), {
+				recursive: true,
+				force: true,
+			});
+			await fs.rm(path.join(path.dirname(themePath), 'profiles', outputDir), {
+				recursive: true,
+				force: true,
+			});
+
+			const result = await generateTheme({
+				themeName: 'profile-model',
+				themePath,
+				cliOutput: outputDir,
+				generateOptions: { night: true, profiles: 'all' },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.outputDir).toBe(absoluteOutputDir);
+				expect(result.generatedFiles).toContain('profile-model.json');
+				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+				expect(
+					await exists(path.join(absoluteOutputDir, 'profile-model.json')),
+				).toBe(true);
+				expect(
+					await exists(
+						path.join(absoluteOutputDir, 'profile-model-mobile.json'),
+					),
+				).toBe(true);
+				expect(
+					await exists(
+						path.join(
+							path.dirname(themePath),
+							'profiles',
+							outputDir,
+							'profile-model-mobile.json',
+						),
+					),
+				).toBe(false);
+			}
+
+			await fs.rm(absoluteOutputDir, { recursive: true, force: true });
+		});
+
+		test('legacy themefile without main yaml still uses fallback when no profile is requested', async () => {
+			const outputDir = createTempOutputDir();
+			const legacyThemefile = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/legacy-no-main/themefile',
+			);
+
+			const result = await generateTheme({
+				themeName: 'legacy-fallback',
+				themePath: legacyThemefile,
+				cliOutput: outputDir,
+				generateOptions: { night: false },
+			});
+
+			expect(result.ok).toBe(true);
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('legacy themefile config is kept when main yaml has no config', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/standard/themefile',
+			);
+
+			const result = await generateTheme({
+				themeName: 'test-standard',
+				themePath,
+				cliOutput: outputDir,
+				generateOptions: { night: false },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('test-standard.json');
+				expect(result.generatedFiles).toContain('test-standard.css');
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('invalid night mode is skipped without failing day profile build', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+			const ctx = new BuildContext();
+
+			const result = await generateTheme(
+				{
+					themeName: 'profile-model',
+					themePath,
+					cliOutput: outputDir,
+					generateOptions: { night: true, profile: 'mobile' },
+				},
+				ctx,
+			);
+
+			expect(result.ok).toBe(true);
+			expect(
+				ctx.warnings.some(
+					(warning) =>
+						warning.message === 'Night Mode unavailable/invalid and skipped',
+				),
+			).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+				expect(result.generatedFiles).not.toContain(
+					'profile-model-mobile-night.json',
+				);
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('missing night mode is skipped without failing explicit night build', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model-missing-night/main.yaml',
+			);
+			const ctx = new BuildContext();
+
+			const result = await generateTheme(
+				{
+					themeName: 'profile-model',
+					themePath,
+					cliOutput: outputDir,
+					generateOptions: { night: true, profile: 'missing-night' },
+				},
+				ctx,
+			);
+
+			expect(result.ok).toBe(true);
+			expect(
+				ctx.warnings.some(
+					(warning) =>
+						warning.message === 'Night Mode unavailable/invalid and skipped',
+				),
+			).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain(
+					'profile-model-missing-night.json',
+				);
+				expect(result.generatedFiles).not.toContain(
+					'profile-model-missing-night-night.json',
+				);
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('night overlay generation errors are skipped without failing day profile build', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+			const ctx = new BuildContext();
+
+			const result = await generateTheme(
+				{
+					themeName: 'profile-model',
+					themePath,
+					cliOutput: outputDir,
+					generateOptions: { night: true, profile: 'bad-ref' },
+				},
+				ctx,
+			);
+
+			expect(result.ok).toBe(true);
+			expect(
+				ctx.warnings.some(
+					(warning) =>
+						warning.message === 'Night Mode unavailable/invalid and skipped',
+				),
+			).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model-bad-ref.json');
+				expect(result.generatedFiles).not.toContain(
+					'profile-model-bad-ref-night.json',
+				);
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('profiles all keeps valid night output when another profile night is invalid', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+			const ctx = new BuildContext();
+
+			const result = await generateTheme(
+				{
+					themeName: 'profile-model',
+					themePath,
+					cliOutput: outputDir,
+					generateOptions: { night: true, profiles: 'all' },
+				},
+				ctx,
+			);
+
+			expect(result.ok).toBe(true);
+			expect(ctx.nightMode.state).toBe('enabled');
+			expect(
+				ctx.warnings.some(
+					(warning) =>
+						warning.message === 'Night Mode unavailable/invalid and skipped',
+				),
+			).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model-night.json');
+				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+				expect(result.generatedFiles).not.toContain(
+					'profile-model-mobile-night.json',
+				);
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
 		});
 	});
 
@@ -361,15 +695,9 @@ describe('Theme Service Integration', () => {
 				expect(sketch.foundation.color['color-primary-main']).toEqual({
 					color: '#1872f0ff',
 				});
-				expect(
-					sketch.foundation.interaction['dimension-interaction-hover'],
-				).toEqual({
-					opacity: 0.16,
-				});
-				expect(sketch.foundation.radius['dimension-radius-card']).toEqual({
-					corners: { radii: 8 },
-				});
-				expect(sketch.aaa.bbb['style-shadow-1'].shadow).toHaveLength(4);
+				expect(sketch.foundation.interaction).toBeUndefined();
+				expect(sketch.foundation.radius).toBeUndefined();
+				expect(sketch.aaa.bbb['shadow-1'].shadow).toHaveLength(4);
 				expect(sketch['aaa/bbb']).toBeUndefined();
 				expect(sketch.color).toBeUndefined();
 				expect(sketch.dimension).toBeUndefined();
@@ -395,7 +723,7 @@ describe('Theme Service Integration', () => {
 			const result = await generateTheme({
 				themeName: 'orca-realistic',
 				themePath: path.join(fixtureDir, 'main.yaml'),
-				generateOptions: { night: false, variants: [] },
+				generateOptions: { night: false },
 			});
 
 			expect(result.ok).toBe(true);
@@ -404,8 +732,8 @@ describe('Theme Service Integration', () => {
 				'utf-8',
 			);
 			expect(css).toContain('--orcaFallback-main: #0052f5;');
-			expect(css).toContain('rgb(0 82 245 / 0.5)');
-			expect(css).not.toContain('linear-gradient(to right');
+			expect(css).toContain('rgb(0 82 245 / 0.25)');
+			expect(css).toContain('linear-gradient(to right');
 			expect(css).not.toContain('[object Object]');
 
 			const sketch = JSON.parse(
@@ -417,9 +745,9 @@ describe('Theme Service Integration', () => {
 			expect(sketch.foundation.color['orcaFallback-main']).toEqual({
 				color: '#0052f5ff',
 			});
-			expect(
-				JSON.stringify(sketch.foundation.shadow['shadow-raised'].shadow),
-			).toContain('#0052f5');
+			expect(JSON.stringify(sketch.foundation.shadow.raised.shadow)).toContain(
+				'#0052f5',
+			);
 			expect(sketch.foundation.gradient.fallback.gradient[0].color).toBe(
 				'#0052f540',
 			);
@@ -480,7 +808,7 @@ describe('Theme Service Integration', () => {
 				const result = await generateTheme({
 					themeName: 'no-main-mixed',
 					themePath: path.join(tempThemeDir, 'themefile'),
-					generateOptions: { night: true, variants: [] },
+					generateOptions: { night: true },
 				});
 
 				if (!result.ok) throw new Error(result.message);
@@ -549,7 +877,7 @@ describe('Theme Service Integration', () => {
 					{
 						themeName: 'no-main-warning',
 						themePath: path.join(tempThemeDir, 'themefile'),
-						generateOptions: { night: false, variants: [] },
+						generateOptions: { night: false },
 					},
 					ctx,
 				);
@@ -621,7 +949,7 @@ describe('Theme Service Integration', () => {
 					{
 						themeName: 'no-main-groups',
 						themePath: path.join(tempThemeDir, 'themefile'),
-						generateOptions: { night: false, variants: [] },
+						generateOptions: { night: false },
 					},
 					ctx,
 				);
@@ -634,7 +962,7 @@ describe('Theme Service Integration', () => {
 			}
 		});
 
-		test('main night and variant mixed passes render sketch from hex tokens', async () => {
+		test('main mixed passes render sketch from hex tokens without legacy night output', async () => {
 			const tempThemeDir = await fs.mkdtemp(
 				path.join(os.tmpdir(), 'wave-mixed-branches-'),
 			);
@@ -697,16 +1025,11 @@ describe('Theme Service Integration', () => {
 					path.join(tempThemeDir, 'main@night.yaml'),
 					'#0052f5',
 				);
-				await writeThemeYaml(
-					path.join(tempThemeDir, 'variants', 'dark.yaml'),
-					'#1860dd',
-				);
-
 				for (const run of [1, 2]) {
 					const result = await generateTheme({
 						themeName: 'mixed-branches',
 						themePath: path.join(tempThemeDir, 'themefile'),
-						generateOptions: { night: true, variants: ['dark'] },
+						generateOptions: { night: true },
 					});
 					expect(result.ok).toBe(true);
 					if (run === 1) {
@@ -716,51 +1039,215 @@ describe('Theme Service Integration', () => {
 					}
 				}
 
-				for (const suffix of ['', '-night', '-dark']) {
-					const css = await fs.readFile(
-						path.join(outputDir, `mixed-branches${suffix}.css`),
+				const css = await fs.readFile(
+					path.join(outputDir, 'mixed-branches.css'),
+					'utf-8',
+				);
+				const firstCss = await fs.readFile(
+					path.join(tempThemeDir, 'first-run', 'mixed-branches.css'),
+					'utf-8',
+				);
+				const sketch = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'mixed-branches2sketch.json'),
 						'utf-8',
-					);
-					const firstCss = await fs.readFile(
-						path.join(tempThemeDir, 'first-run', `mixed-branches${suffix}.css`),
+					),
+				);
+				const firstSketch = await fs.readFile(
+					path.join(tempThemeDir, 'first-run', 'mixed-branches2sketch.json'),
+					'utf-8',
+				);
+				const currentSketch = await fs.readFile(
+					path.join(outputDir, 'mixed-branches2sketch.json'),
+					'utf-8',
+				);
+				expect(css).toContain('oklch(');
+				expect(css.indexOf('--theme-color-primary')).toBeLessThan(
+					css.indexOf('--theme-color-secondary'),
+				);
+				expect(css).toBe(firstCss);
+				expect(currentSketch).toBe(firstSketch);
+				expect(sketch.foundation.color['theme-color-primary']).toEqual({
+					color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
+				});
+				expect(sketch.foundation.color['theme-color-secondary']).toEqual({
+					color: '#0052f5ff',
+				});
+				expect(sketch.foundation.space).toBeUndefined();
+				expect(
+					await Bun.file(
+						path.join(outputDir, 'mixed-branches-night.css'),
+					).exists(),
+				).toBe(false);
+			} finally {
+				await fs.rm(tempThemeDir, { recursive: true, force: true });
+			}
+		});
+	});
+
+	describe('theme root output matrix', () => {
+		test('normalizes shadow lengths and outline border color references', async () => {
+			const tempThemeDir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-root-matrix-'),
+			);
+			const outputDir = path.join(tempThemeDir, 'out');
+			const themePath = path.join(tempThemeDir, 'main.yaml');
+			await fs.writeFile(
+				themePath,
+				`$schema: "https://www.designtokens.org/tr/2025.10/format/"
+$config:
+  theme: root-matrix
+  resource:
+    palette: [tailwindcss]
+    dimension: [wave]
+  parameter:
+    outputDir: ./out
+    filterLayer: 1
+theme:
+  color:
+    base:
+      $type: color
+      $value: "#2563eb"
+    alias:
+      $type: color
+      $value: "{theme.color.base}"
+    external:
+      $type: color
+      $value: "{tailwindcss.color.slate.800}"
+  shadow:
+    ref-length:
+      $type: shadow
+      $value:
+        color: "{theme.color.base}"
+        offsetX: 0
+        offsetY: "{wave.dimension.px.2}"
+        blur: "{wave.dimension.px.4}"
+        spread: 0
+  border:
+    outline:
+      direct-hex:
+        $type: border
+        $value: { color: "#2563eb", width: 1, style: solid }
+        $extensions: { outline: { offset: 2 } }
+      token-curly-base:
+        $type: border
+        $value: { color: "{theme.color.base}", width: 1, style: solid }
+        $extensions: { outline: { offset: 2 } }
+      token-curly-alias:
+        $type: border
+        $value: { color: "{theme.color.alias}", width: 1, style: solid }
+        $extensions: { outline: { offset: 2 } }
+      token-curly-external:
+        $type: border
+        $value: { color: "{theme.color.external}", width: 1, style: solid }
+        $extensions: { outline: { offset: 2 } }
+      pointer-token:
+        $type: border
+        $value:
+          color: { $ref: "#/theme/color/base" }
+          width: 1
+          style: solid
+        $extensions: { outline: { offset: 2 } }
+      pointer-value:
+        $type: border
+        $value:
+          color: { $ref: "#/theme/color/base/$value" }
+          width: 1
+          style: solid
+        $extensions: { outline: { offset: 2 } }
+      pointer-alias-value:
+        $type: border
+        $value:
+          color: { $ref: "#/theme/color/alias/$value" }
+          width: 1
+          style: solid
+        $extensions: { outline: { offset: 2 } }
+      ref-width:
+        $type: border
+        $value:
+          color: "{theme.color.base}"
+          width: "{wave.dimension.px.2}"
+          style: solid
+        $extensions: { outline: { offset: 2 } }
+`,
+			);
+
+			try {
+				const result = await generateTheme({
+					themeName: 'root-matrix',
+					themePath,
+					cliOutput: outputDir,
+					cliPlatform: 'css,sketch',
+					generateOptions: { night: false },
+				});
+
+				expect(result.ok).toBe(true);
+				const css = await fs.readFile(
+					path.join(outputDir, 'root-matrix.css'),
+					'utf-8',
+				);
+				const sketch = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'root-matrix2sketch.json'),
 						'utf-8',
-					);
-					const sketch = JSON.parse(
-						await fs.readFile(
-							path.join(outputDir, `mixed-branches${suffix}2sketch.json`),
-							'utf-8',
-						),
-					);
-					const firstSketch = await fs.readFile(
-						path.join(
-							tempThemeDir,
-							'first-run',
-							`mixed-branches${suffix}2sketch.json`,
-						),
-						'utf-8',
-					);
-					const currentSketch = await fs.readFile(
-						path.join(outputDir, `mixed-branches${suffix}2sketch.json`),
-						'utf-8',
-					);
-					expect(css).toContain('oklch(');
-					expect(css.indexOf('--theme-color-primary')).toBeLessThan(
-						css.indexOf('--theme-color-secondary'),
-					);
-					expect(css).toBe(firstCss);
-					expect(currentSketch).toBe(firstSketch);
-					expect(sketch.foundation.color['theme-color-primary']).toEqual({
-						color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
-					});
-					expect(sketch.foundation.color['theme-color-secondary']).toEqual({
-						color: '#0052f5ff',
-					});
-					expect(sketch.foundation.space['theme-dimension-spacing-sm']).toEqual(
-						{
-							value: 4,
-						},
-					);
-				}
+					),
+				);
+
+				expect(css).toContain(
+					'--shadow-ref-length: 0 4px 8px 0 rgb(37 99 235 / 1);',
+				);
+				expect(css).toContain(
+					'--border-outline-direct-hex: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-token-curly-base: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-token-curly-alias: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-token-curly-external: 1px solid #1d293d;',
+				);
+				expect(css).toContain(
+					'--border-outline-pointer-token: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-pointer-value: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-pointer-alias-value: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-ref-width: 4px solid #2563eb;',
+				);
+				expect(css).not.toContain('[object Object]');
+				expect(css).not.toContain('1px solid currentColor');
+
+				expect(
+					sketch['border-outline-direct-hex'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(
+					sketch['border-outline-token-curly-base'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(
+					sketch['border-outline-token-curly-alias'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(
+					sketch['border-outline-token-curly-external'].shadow[0].color,
+				).toBe('#1d293dff');
+				expect(
+					sketch['border-outline-pointer-token'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(
+					sketch['border-outline-pointer-value'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(
+					sketch['border-outline-pointer-alias-value'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(sketch['border-outline-ref-width'].shadow[0]).toMatchObject({
+					spread: 6,
+					color: '#2563ebff',
+				});
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });
 			}

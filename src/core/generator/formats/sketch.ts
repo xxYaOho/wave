@@ -169,6 +169,62 @@ function processShadowLayer(
 	};
 }
 
+function parseOutlineWidth(value: unknown): number {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return 0;
+	}
+	const width = (value as Record<string, unknown>).width;
+	if (typeof width === 'object' && width !== null) {
+		throw new Error(
+			'Sketch outline output requires transformer-normalized width',
+		);
+	}
+	const parsed = parseDimensionNumber(width);
+	return parsed ?? 0;
+}
+
+function outlineColor(value: unknown, token: WaveToken): string {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return '#000000';
+	}
+	const color = (value as Record<string, unknown>).color;
+	if (typeof color === 'object' && color !== null) {
+		throw new Error(
+			`Sketch outline output requires transformer-normalized color at ${tokenPathLabel(token)}`,
+		);
+	}
+	return typeof color === 'string' ? color : '#000000';
+}
+
+function parseTypographyNumber(value: unknown): number | undefined {
+	const parsed = parseDimensionNumber(value);
+	if (parsed !== undefined) return parsed;
+	if (typeof value === 'number' && Number.isFinite(value)) return value;
+	if (typeof value === 'string') {
+		const number = parseFloat(value);
+		return Number.isFinite(number) ? number : undefined;
+	}
+	return undefined;
+}
+
+function formatSketchTypography(value: unknown): unknown {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return value;
+	}
+	const obj = value as Record<string, unknown>;
+	const textStyle: Record<string, unknown> = {};
+	if (typeof obj.fontFamily === 'string') textStyle.fontFamily = obj.fontFamily;
+	const fontSize = parseTypographyNumber(obj.fontSize);
+	if (fontSize !== undefined) textStyle.fontSize = fontSize;
+	const fontWeight = parseTypographyNumber(obj.fontWeight);
+	if (fontWeight !== undefined) textStyle.fontWeight = fontWeight;
+	const lineHeight = parseTypographyNumber(obj.lineHeight);
+	if (lineHeight !== undefined) textStyle.lineHeight = lineHeight;
+	const letterSpacing = parseTypographyNumber(obj.letterSpacing);
+	if (letterSpacing !== undefined) textStyle.kerning = letterSpacing;
+	return { textStyle };
+}
+
 function pickSketchProperty(
 	property: SketchPropertyMap | undefined,
 ): keyof SketchPropertyMap | undefined {
@@ -281,6 +337,15 @@ function buildOutputPath(token: WaveToken, filterLayer: number): string[] {
 	return [...sketchPath.split('/').filter(Boolean), leafKey];
 }
 
+function shouldIncludeSketchToken(
+	token: WaveToken,
+	includeRootKeys?: string[],
+): boolean {
+	if (!includeRootKeys || includeRootKeys.length === 0) return true;
+	const root = token.path[0] === 'theme' ? token.path[1] : token.path[0];
+	return root !== undefined && includeRootKeys.includes(root);
+}
+
 function setNestedValue(
 	root: Record<string, unknown>,
 	parts: string[],
@@ -322,6 +387,10 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 		return { [propertyKey]: resolveDimensionValue(token, propertyKey) };
 	}
 
+	if (token.type === 'typography') {
+		return formatSketchTypography(token.value);
+	}
+
 	if (token.type === 'color' || token.inheritColor === true) {
 		const { color, opacity, alpha } = resolveSketchColor(token, allTokens);
 		assertHexColor(color, token);
@@ -336,6 +405,31 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 			return { color: hexToSketchColor(color) };
 		}
 		return { color: hexToSketchColor(resolveSketchColorValue(token)) };
+	}
+
+	if (token.type === 'border' && token._outline) {
+		const width = parseOutlineWidth(token.value);
+		const offset = token._outline.offset;
+		const color = outlineColor(token.value, token);
+		assertHexColor(color, token);
+		return {
+			shadow: [
+				{
+					x: 0,
+					y: 0,
+					blur: 0,
+					spread: width + offset,
+					color: hexToSketchColor(color),
+				},
+				{
+					x: 0,
+					y: 0,
+					blur: 0,
+					spread: offset,
+					color: '#ffffffff',
+				},
+			],
+		};
 	}
 
 	if (token.type === 'shadow') {
@@ -382,8 +476,12 @@ export const sketchFormat: WaveFormatFn = (
 	options?: Record<string, unknown>,
 ): string => {
 	const filterLayer = (options?.filterLayer as number) ?? 0;
+	const includeRootKeys = options?.includeRootKeys as string[] | undefined;
 	const result: Record<string, unknown> = {};
-	const sortedTokens = [...tokens].sort(
+	const filteredTokens = tokens.filter((token) =>
+		shouldIncludeSketchToken(token, includeRootKeys),
+	);
+	const sortedTokens = [...filteredTokens].sort(
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);
 

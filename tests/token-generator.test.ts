@@ -72,6 +72,61 @@ describe('generateTokens (Wave-native)', () => {
 		});
 	});
 
+	test('css platform emits public roots and excludes legacy dimension root', async () => {
+		await withTempDir(async (outputDir) => {
+			const tokens: WaveToken[] = [
+				{
+					name: 'theme-state-hover',
+					path: ['theme', 'state', 'hover'],
+					value: 0.16,
+					type: 'number',
+					_order: 0,
+				},
+				{
+					name: 'theme-radius-md',
+					path: ['theme', 'radius', 'md'],
+					value: 8,
+					type: 'dimension',
+					_order: 1,
+				},
+				{
+					name: 'theme-dimension-alpha-sm',
+					path: ['theme', 'dimension', 'alpha', 'sm'],
+					value: 0.16,
+					type: 'number',
+					_order: 2,
+				},
+				{
+					name: 'style-shadow-legacy',
+					path: ['style', 'shadow', 'legacy'],
+					value: [
+						{ color: '#000000', offsetX: 0, offsetY: 1, blur: 2, spread: 0 },
+					],
+					type: 'shadow',
+					_order: 3,
+				},
+			];
+
+			const result = await generateTokens({
+				themeName: 'demo',
+				outputDir,
+				tokens,
+				platform: ['css'],
+				filterLayer: 1,
+			});
+
+			expect(result.success).toBe(true);
+			const content = await fs.readFile(
+				path.join(outputDir, 'demo.css'),
+				'utf-8',
+			);
+			expect(content).toContain('--state-hover: 0.16;');
+			expect(content).toContain('--radius-md: 8px;');
+			expect(content).not.toContain('--dimension-alpha-sm');
+			expect(content).not.toContain('--shadow-legacy');
+		});
+	});
+
 	test('writes a Sketch JSON when platform=sketch', async () => {
 		await withTempDir(async (outputDir) => {
 			const tokens: WaveToken[] = [
@@ -98,6 +153,56 @@ describe('generateTokens (Wave-native)', () => {
 			);
 			const parsed = JSON.parse(content);
 			expect(parsed['theme-color-bg']).toEqual({ color: '#abcdefff' });
+		});
+	});
+
+	test('sketch platform excludes legacy dimension root', async () => {
+		await withTempDir(async (outputDir) => {
+			const tokens: WaveToken[] = [
+				{
+					name: 'theme-dimension-radius-md',
+					path: ['theme', 'dimension', 'radius', 'md'],
+					value: 8,
+					type: 'dimension',
+					_order: 0,
+					_sketch: { path: 'dimension/v2/radius' },
+				},
+				{
+					name: 'theme-radius-md',
+					path: ['theme', 'radius', 'md'],
+					value: 8,
+					type: 'dimension',
+					_order: 1,
+					_sketch: { path: 'radius/v2' },
+				},
+				{
+					name: 'style-shadow-legacy',
+					path: ['style', 'shadow', 'legacy'],
+					value: [
+						{ color: '#000000', offsetX: 0, offsetY: 1, blur: 2, spread: 0 },
+					],
+					type: 'shadow',
+					_order: 2,
+					_sketch: { path: 'legacy/shadow' },
+				},
+			];
+
+			const result = await generateTokens({
+				themeName: 'demo',
+				outputDir,
+				tokens,
+				platform: ['sketch'],
+				filterLayer: 1,
+			});
+
+			expect(result.success).toBe(true);
+			const content = await fs.readFile(
+				path.join(outputDir, 'demo2sketch.json'),
+				'utf-8',
+			);
+			expect(content).toContain('radius-md');
+			expect(content).not.toContain('dimension-radius-md');
+			expect(content).not.toContain('shadow-legacy');
 		});
 	});
 

@@ -21,7 +21,7 @@ async function runWaveTheme(
 }
 
 describe('theme command current behavior', () => {
-	test('main, night and variant are parsed as independent documents', async () => {
+	test('default create output no longer auto-discovers night or variants', async () => {
 		const fixtureDir = path.join(
 			rootDir,
 			'tests/fixtures/baseline-independent',
@@ -47,32 +47,21 @@ describe('theme command current behavior', () => {
 				'utf-8',
 			),
 		);
-		const nightJson = JSON.parse(
-			await fs.readFile(
-				path.join(outputDir, 'baseline-independent-night.json'),
-				'utf-8',
-			),
-		);
-		const darkJson = JSON.parse(
-			await fs.readFile(
-				path.join(outputDir, 'baseline-independent-dark.json'),
-				'utf-8',
-			),
-		);
+		const nightExists = await Bun.file(
+			path.join(outputDir, 'baseline-independent-night.json'),
+		).exists();
+		const darkExists = await Bun.file(
+			path.join(outputDir, 'baseline-independent-dark.json'),
+		).exists();
 
-		// Each document should contain its own defined value, proving they are independent
 		expect(mainJson['theme-test-from']).toBe('#111111');
-		expect(nightJson['theme-test-from']).toBe('#222222');
-		expect(darkJson['theme-test-from']).toBe('#333333');
-
-		// None should bleed into each other
-		expect(mainJson['theme-test-from']).not.toBe('#222222');
-		expect(nightJson['theme-test-from']).not.toBe('#111111');
+		expect(nightExists).toBe(false);
+		expect(darkExists).toBe(false);
 
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
 
-	test('palette and dimension are shared as reference sources across main, night and variant', async () => {
+	test('palette and dimension are shared as reference sources for default output', async () => {
 		const fixtureDir = path.join(
 			rootDir,
 			'tests/fixtures/baseline-independent',
@@ -101,24 +90,17 @@ describe('theme command current behavior', () => {
 				'utf-8',
 			),
 		);
-		const nightJson = JSON.parse(
-			await fs.readFile(
-				path.join(outputDir, 'baseline-independent-night.json'),
-				'utf-8',
-			),
-		);
-		const darkJson = JSON.parse(
-			await fs.readFile(
-				path.join(outputDir, 'baseline-independent-dark.json'),
-				'utf-8',
-			),
-		);
+		const nightExists = await Bun.file(
+			path.join(outputDir, 'baseline-independent-night.json'),
+		).exists();
+		const darkExists = await Bun.file(
+			path.join(outputDir, 'baseline-independent-dark.json'),
+		).exists();
 
-		// All three documents reference the same palette color from shared sources.
 		// Color normalization canonicalizes hex output to lowercase.
 		expect(mainJson['theme-test-shared']).toBe('#ffffff');
-		expect(nightJson['theme-test-shared']).toBe('#ffffff');
-		expect(darkJson['theme-test-shared']).toBe('#ffffff');
+		expect(nightExists).toBe(false);
+		expect(darkExists).toBe(false);
 
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});

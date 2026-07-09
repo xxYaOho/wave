@@ -62,7 +62,8 @@ export interface DetectionResult {
 
 export interface GenerateOptions {
 	night: boolean;
-	variants?: string[] | undefined;
+	profile?: string | undefined;
+	profiles?: 'all' | undefined;
 	brand?: string | undefined;
 	platform?: string[];
 	colorSpace?: ColorSpaceFormat;
@@ -72,7 +73,7 @@ export interface ThemeInfo {
 	name: string;
 	path: string;
 	hasNight: boolean;
-	variants: string[];
+	profiles: string[];
 }
 
 export interface DoctorCheck {
@@ -196,7 +197,7 @@ export interface BuiltinDimension {
 				$description?: string;
 				$type?: string;
 				$value?: unknown;
-				[variantName: string]: unknown;
+				[scaleName: string]: unknown;
 			};
 		};
 	};
@@ -220,6 +221,14 @@ export type DtcgValue =
 	| DtcgObjectValue
 	| DtcgRefValue
 	| DtcgValue[];
+
+export interface WaveTypographyValue {
+	fontFamily?: string;
+	fontSize?: DtcgValue;
+	fontWeight?: DtcgValue;
+	letterSpacing?: DtcgValue;
+	lineHeight?: DtcgValue;
+}
 
 export interface DtcgToken {
 	$value: DtcgValue;
@@ -335,6 +344,8 @@ export interface WaveToken {
 	_composite?: string;
 	/** normalized Sketch-specific output hints */
 	_sketch?: SketchExtension;
+	/** outline metadata for border tokens */
+	_outline?: { offset: number };
 	/** original referenced token path for Sketch variable swatch mapping */
 	_swatchName?: string;
 	/** inheritColor metadata */

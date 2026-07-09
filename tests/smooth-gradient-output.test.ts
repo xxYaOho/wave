@@ -63,7 +63,7 @@ describe('smoothGradient CLI output', () => {
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
 
-	test('generates CSS without gradient tokens (filtered by rootKey) and without $extensions', async () => {
+	test('generates CSS gradient tokens without $extensions', async () => {
 		const fixtureDir = path.join(rootDir, 'tests/fixtures/smooth-gradient');
 		const outputDir = path.join(rootDir, '.temp-test-smooth-gradient-css');
 
@@ -85,8 +85,7 @@ describe('smoothGradient CLI output', () => {
 			path.join(outputDir, 'smooth-gradient.css'),
 			'utf-8',
 		);
-		// Gradient rootKey is excluded from CSS (only color/style are included)
-		expect(css).not.toContain('linear-gradient(to right');
+		expect(css).toContain('--theme-gradient-hero: linear-gradient(to right');
 		expect(css).not.toContain('$extensions');
 		expect(css).not.toContain('smoothGradient');
 

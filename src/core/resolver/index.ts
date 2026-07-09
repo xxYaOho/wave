@@ -1,10 +1,12 @@
 import * as path from 'node:path';
 import type { ResolvedResource, ResourceType } from '../../types/index.ts';
 import { resourceCachePath } from '../resources/paths.ts';
+import { getResourcesDir } from './builtin.ts';
 
 export {
 	getBuiltinDimensionPath,
 	getBuiltinPalettePath,
+	getResourcesDir,
 	loadBuiltinDimension,
 	loadBuiltinPalette,
 } from './builtin.ts';
@@ -22,8 +24,6 @@ export {
 	type UserDimension,
 	type UserPalette,
 } from './user.ts';
-
-const RESOURCES_DIR = path.join(import.meta.dir, '..', '..', 'resources');
 
 export function isBareName(reference: string): boolean {
 	return !reference.includes('/') && !reference.startsWith('./');
@@ -52,7 +52,7 @@ export function resolveResource(
 				: type === 'dimension'
 					? 'dimensions'
 					: 'brands';
-		resolvedPath = path.join(RESOURCES_DIR, typeDir, `${reference}.yaml`);
+		resolvedPath = path.join(getResourcesDir(), typeDir, `${reference}.yaml`);
 		isBuiltin = true;
 	} else {
 		resolvedPath = path.resolve(themefileDir, reference);
@@ -73,8 +73,4 @@ function checkExists(filePath: string): boolean {
 	} catch {
 		return false;
 	}
-}
-
-export function getResourcesDir(): string {
-	return RESOURCES_DIR;
 }

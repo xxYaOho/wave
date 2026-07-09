@@ -105,31 +105,30 @@ theme:
           sketch:
             property:
               cornerRadius: true
-  style:
-    shadow:
+  shadow:
+    $extensions:
+      sketch:
+        path: "foundation/shadow"
+    raised:
+      $type: shadow
+      $value:
+        color:
+          $ref: "#/theme/color/orcaFallback/main/$value"
+          alpha: 0.5
+        offsetX: 0
+        offsetY: 0
+        blur: 2
+        spread: 1
       $extensions:
-        sketch:
-          path: "foundation/shadow"
-      raised:
-        $type: shadow
-        $value:
-          color:
-            $ref: "#/theme/color/orcaFallback/main/$value"
-            alpha: 0.5
-          offsetX: 0
-          offsetY: 0
-          blur: 2
-          spread: 1
-        $extensions:
-          smoothShadow:
-            cubicBezier: "{wave.dimension.cubicBezier.easeInQuad}"
-            step: 4
-            target:
-              alpha: 0.06
-              offsetX: 0
-              offsetY: 4
-              blur: 8
-              spread: -2
+        smoothShadow:
+          cubicBezier: "{wave.dimension.cubicBezier.easeInQuad}"
+          step: 4
+          target:
+            alpha: 0.06
+            offsetX: 0
+            offsetY: 4
+            blur: 8
+            spread: -2
   gradient:
     $type: gradient
     $extensions:

@@ -29,10 +29,9 @@ const DESIGN_TOKEN_HELP = `Wave Design Token
     -f, --file <path>    main.yaml path. Default: ./main.yaml
     -o, --out <path>     Override output directory
     --platform <name>    Output platform. Repeatable: json, jsonc, css, sketch
-    --variant <name>     Build selected variant. Repeatable
-    --night              Include night output
-    --no-night           Disable night output
-    --no-variants        Disable variants
+    --profile <name>     Build one named profile from profiles/<name>.yaml
+    --profiles all       Build main and all named profiles
+    --night              Include valid Night Mode overlays when available
     --json               Output JSON only where supported
     -h, --help           Show help
 
@@ -56,14 +55,14 @@ function showDesignTokenHelp(): void {
 export function createWcagCommand(): Command {
 	return new Command('wcag')
 		.description('Run WCAG contrast checks')
-		.argument('[scope]', 'Theme scope: main or variant name')
+		.argument('[scope]', 'Theme scope: main or profile name')
 		.option('-f, --file <path>', 'Themefile or main.yaml path to validate')
-		.option('--night', 'Check night variant')
-		.option('--variants <name>', 'Check specific variant by name')
+		.option('--night', 'Check night profile')
+		.option('--profile <name>', 'Check specific profile by name')
 		.action(
 			async (
 				scope: string | undefined,
-				options: { file?: string; night?: boolean; variants?: string },
+				options: { file?: string; night?: boolean; profile?: string },
 			) => {
 				const args = ['--contrast'];
 				if (options.file) {
@@ -72,10 +71,10 @@ export function createWcagCommand(): Command {
 				if (options.night) {
 					args.push('--night');
 				}
-				const variant =
-					options.variants ?? (scope === 'main' ? undefined : scope);
-				if (variant) {
-					args.push('--variants', variant);
+				const profile =
+					options.profile ?? (scope === 'main' ? undefined : scope);
+				if (profile) {
+					args.push('--profile', profile);
 				}
 				const doctor = createDoctorCommand('doctor');
 				await doctor.parseAsync(['bun', 'wave dt wcag', ...args], {
@@ -178,7 +177,7 @@ export function createDesignTokenCommand(name = 'design-token'): Command {
 		.addHelpCommand(false)
 		.option('-h, --help', 'Show help')
 		.addCommand(createBuildCommand('build', DT_BUILD_CONFIG))
-		.addCommand(createDoctorCommand('doctor'))
+		.addCommand(createDoctorCommand('doctor', { defaultMainYaml: true }))
 		.addCommand(createWcagCommand())
 		.addCommand(createShowCommand('show'))
 		.addCommand(createUpdateCommand())

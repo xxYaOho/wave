@@ -1,5 +1,5 @@
 import type { WaveFormatFn, WaveToken } from '../../../types/index.ts';
-import { gradientToCss, shadowToCss } from './utils.ts';
+import { formatCssLength, gradientToCss, shadowToCss } from './utils.ts';
 
 export interface CssVariablesFormatOptions {
 	filterLayer?: number;
@@ -15,12 +15,29 @@ function getFilteredName(token: WaveToken, filterLayer: number): string {
 	return path.slice(filterLayer).join('-');
 }
 
-function isShadow(token: WaveToken): boolean {
+function isShadowToken(token: WaveToken): boolean {
 	return token.type === 'shadow';
 }
 
 function isGradient(token: WaveToken): boolean {
 	return token.type === 'gradient';
+}
+
+function isTypography(token: WaveToken): boolean {
+	return token.type === 'typography';
+}
+
+function isOutlineBorder(token: WaveToken): boolean {
+	return token.type === 'border' && token._outline !== undefined;
+}
+
+function publicRootKey(token: WaveToken): string | undefined {
+	return token.path[0] === 'theme' ? token.path[1] : token.path[0];
+}
+
+function isCssLengthToken(token: WaveToken): boolean {
+	const root = publicRootKey(token);
+	return token.type === 'dimension' && (root === 'radius' || root === 'border');
 }
 
 function assertNoObjectColorValue(value: unknown, token: WaveToken): void {
@@ -31,8 +48,8 @@ function assertNoObjectColorValue(value: unknown, token: WaveToken): void {
 }
 
 function assertCompositeColorsAreNormalized(token: WaveToken): void {
-	if (!Array.isArray(token.value)) return;
-	for (const item of token.value) {
+	const items = Array.isArray(token.value) ? token.value : [token.value];
+	for (const item of items) {
 		if (typeof item !== 'object' || item === null || Array.isArray(item)) {
 			continue;
 		}
@@ -71,7 +88,7 @@ function formatTokenValue(token: WaveToken): string {
 		return shadowToCss(layers);
 	}
 
-	if (isShadow(token) && Array.isArray(tokenValue)) {
+	if (isShadowToken(token)) {
 		assertCompositeColorsAreNormalized(token);
 		return shadowToCss(tokenValue);
 	}
@@ -85,7 +102,82 @@ function formatTokenValue(token: WaveToken): string {
 		assertNoObjectColorValue(tokenValue, token);
 	}
 
+	if (isCssLengthToken(token)) {
+		return formatCssLength(tokenValue);
+	}
+
 	return String(tokenValue);
+}
+
+function formatTypographyField(value: unknown): string {
+	if (
+		typeof value === 'object' &&
+		value !== null &&
+		!Array.isArray(value) &&
+		'value' in value
+	) {
+		const obj = value as { value?: unknown; unit?: unknown };
+		if (typeof obj.value === 'number' && typeof obj.unit === 'string') {
+			return `${obj.value}${obj.unit}`;
+		}
+		if (obj.value !== undefined) return String(obj.value);
+	}
+	return String(value);
+}
+
+function typographyLines(key: string, value: unknown): string[] {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return [];
+	}
+	const obj = value as Record<string, unknown>;
+	const family = obj.fontFamily;
+	const size = obj.fontSize;
+	const weight = obj.fontWeight;
+	const lineHeight = obj.lineHeight;
+	const letterSpacing = obj.letterSpacing;
+	const lines: string[] = [];
+
+	if (family !== undefined) {
+		lines.push(`  --${key}-family: ${formatTypographyField(family)};`);
+	}
+	if (size !== undefined) {
+		lines.push(`  --${key}-size: ${formatTypographyField(size)};`);
+	}
+	if (weight !== undefined) {
+		lines.push(`  --${key}-weight: ${formatTypographyField(weight)};`);
+	}
+	if (lineHeight !== undefined) {
+		lines.push(`  --${key}-line-height: ${formatTypographyField(lineHeight)};`);
+	}
+	if (letterSpacing !== undefined) {
+		lines.push(
+			`  --${key}-letter-spacing: ${formatTypographyField(letterSpacing)};`,
+		);
+	}
+	lines.push(
+		`  --${key}: var(--${key}-weight) var(--${key}-size) / var(--${key}-line-height) var(--${key}-family);`,
+	);
+	return lines;
+}
+
+function formatBorderValue(value: unknown): string {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return String(value);
+	}
+	const obj = value as Record<string, unknown>;
+	if (typeof obj.width === 'object' && obj.width !== null) {
+		throw new Error('CSS output requires transformer-normalized value');
+	}
+	if (typeof obj.color === 'object' && obj.color !== null) {
+		throw new Error('CSS output requires transformer-normalized value');
+	}
+	const width = formatCssLength(obj.width);
+	const style = String(obj.style ?? 'solid');
+	const color =
+		typeof obj.color === 'string' || typeof obj.color === 'number'
+			? String(obj.color)
+			: 'currentColor';
+	return `${width} ${style} ${color}`;
 }
 
 function getGroupCommentPaths(tokenPath: string[]): string[] {
@@ -96,12 +188,55 @@ function getGroupCommentPaths(tokenPath: string[]): string[] {
 	return paths;
 }
 
+function pushGroupComments(
+	lines: string[],
+	token: WaveToken,
+	groupComments: Record<string, string>,
+	emittedGroups: Set<string>,
+): void {
+	const groupPaths = getGroupCommentPaths(token.path);
+	for (const gp of groupPaths) {
+		if (!emittedGroups.has(gp) && groupComments[gp]) {
+			const comment = groupComments[gp];
+			const isMultiline = comment.includes('\n');
+			if (isMultiline) {
+				for (const line of comment.split('\n')) {
+					lines.push(`  /* ${line} */`);
+				}
+			} else {
+				lines.push(`  /* ${comment} */`);
+			}
+			emittedGroups.add(gp);
+		}
+	}
+}
+
+function pushTokenDeclaration(
+	lines: string[],
+	key: string,
+	token: WaveToken,
+	cssValue: string,
+): void {
+	const description = token.comment;
+	if (description && typeof description === 'string' && description !== '~') {
+		const isMultilineDescription = description.includes('\n');
+		if (isMultilineDescription) {
+			for (const descLine of description.split('\n')) {
+				lines.push(`  /* ${descLine} */`);
+			}
+			lines.push(`  --${key}: ${cssValue};`);
+		} else {
+			lines.push(`  --${key}: ${cssValue}; /* ${description} */`);
+		}
+	} else {
+		lines.push(`  --${key}: ${cssValue};`);
+	}
+}
+
 function shouldInclude(token: WaveToken, includeRootKeys?: string[]): boolean {
 	if (!includeRootKeys || includeRootKeys.length === 0) return true;
-	const rootKeys = [token.path[0], token.path[1]].filter(
-		(key): key is string => typeof key === 'string',
-	);
-	return rootKeys.some((key) => includeRootKeys.includes(key));
+	const root = publicRootKey(token);
+	return root !== undefined && includeRootKeys.includes(root);
 }
 
 export const cssVariablesFormat: WaveFormatFn = (
@@ -125,38 +260,25 @@ export const cssVariablesFormat: WaveFormatFn = (
 
 	for (const token of sortedTokens) {
 		const key = getFilteredName(token, filterLayer);
+		pushGroupComments(lines, token, groupComments, emittedGroups);
+
+		if (isTypography(token)) {
+			lines.push(...typographyLines(key, token.value));
+			continue;
+		}
+
+		if (token.type === 'border') {
+			pushTokenDeclaration(lines, key, token, formatBorderValue(token.value));
+			if (isOutlineBorder(token)) {
+				lines.push(
+					`  --${key}-offset: ${formatCssLength(token._outline!.offset)};`,
+				);
+			}
+			continue;
+		}
+
 		const cssValue = formatTokenValue(token);
-
-		const groupPaths = getGroupCommentPaths(token.path);
-		for (const gp of groupPaths) {
-			if (!emittedGroups.has(gp) && groupComments[gp]) {
-				const comment = groupComments[gp];
-				const isMultiline = comment.includes('\n');
-				if (isMultiline) {
-					for (const line of comment.split('\n')) {
-						lines.push(`  /* ${line} */`);
-					}
-				} else {
-					lines.push(`  /* ${comment} */`);
-				}
-				emittedGroups.add(gp);
-			}
-		}
-
-		const description = token.comment;
-		if (description && typeof description === 'string' && description !== '~') {
-			const isMultilineDescription = description.includes('\n');
-			if (isMultilineDescription) {
-				for (const descLine of description.split('\n')) {
-					lines.push(`  /* ${descLine} */`);
-				}
-				lines.push(`  --${key}: ${cssValue};`);
-			} else {
-				lines.push(`  --${key}: ${cssValue}; /* ${description} */`);
-			}
-		} else {
-			lines.push(`  --${key}: ${cssValue};`);
-		}
+		pushTokenDeclaration(lines, key, token, cssValue);
 	}
 
 	lines.push('}');

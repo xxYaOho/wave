@@ -141,7 +141,9 @@ function processArrayItem(
 	const result: Record<string, unknown> = {};
 	for (const [key, val] of Object.entries(item)) {
 		if (
-			(parentType === 'shadow' || parentType === 'gradient') &&
+			(parentType === 'shadow' ||
+				parentType === 'gradient' ||
+				parentType === 'border') &&
 			key === 'color' &&
 			(typeof val === 'string' ||
 				isDtcgColorSpaceValue(val) ||
@@ -476,23 +478,25 @@ function transformToken(
 		tokenPath,
 		typeValue,
 	);
+	if (
+		(typeValue === 'shadow' || typeValue === 'border') &&
+		typeof processedValue === 'object' &&
+		processedValue !== null &&
+		!Array.isArray(processedValue)
+	) {
+		processedValue = processArrayItem(
+			processedValue,
+			targetColorSpace,
+			tokenPath,
+			typeValue,
+		) as DtcgValue;
+	}
 
 	// smoothShadow derivation
 	const smoothShadow = token.$extensions?.smoothShadow;
 	if (smoothShadow !== undefined && typeValue === 'shadow') {
-		const processedLayer =
-			typeof processedValue === 'object' &&
-			processedValue !== null &&
-			!Array.isArray(processedValue)
-				? processArrayItem(
-						processedValue,
-						targetColorSpace,
-						tokenPath,
-						'shadow',
-					)
-				: processedValue;
 		processedValue = deriveSmoothShadow(
-			processedLayer,
+			processedValue,
 			smoothShadow,
 			targetColorSpace,
 			tokenPath,
@@ -599,6 +603,15 @@ function transformToken(
 					...sketchExtension,
 				}
 			: sketchExtension;
+	const outlineData = token.$extensions?.outline;
+	const outline =
+		typeValue === 'border' &&
+		typeof outlineData === 'object' &&
+		outlineData !== null &&
+		!Array.isArray(outlineData) &&
+		typeof (outlineData as Record<string, unknown>).offset === 'number'
+			? { offset: (outlineData as { offset: number }).offset }
+			: undefined;
 
 	const sdValue: Omit<WaveToken, 'name' | 'path'> = {
 		value: processedValue,
@@ -616,6 +629,7 @@ function transformToken(
 		...(mergedSketchExtension !== undefined && {
 			_sketch: mergedSketchExtension,
 		}),
+		...(outline !== undefined && { _outline: outline }),
 	};
 
 	if (typeValue !== undefined) {

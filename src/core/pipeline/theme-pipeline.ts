@@ -47,6 +47,7 @@ export interface DependencyDict {
 		data: Record<string, unknown>;
 		path: string;
 		kind: string;
+		source: 'builtin' | 'cache' | 'user';
 	};
 }
 
@@ -291,6 +292,7 @@ export async function buildDependencyDictionary(
 			data: loaded.data,
 			path: loaded.path,
 			kind,
+			source: loaded.source,
 		};
 
 		// Backward compatibility: extract first palette and dimension for the old resolver

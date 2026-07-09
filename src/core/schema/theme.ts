@@ -20,6 +20,7 @@ const KNOWN_TYPES = new Set([
 	'dimension',
 	'number',
 	'cubicBezier',
+	'typography',
 ]);
 
 // $extends 格式验证：必须是 {group.path.to.group} 格式
@@ -31,6 +32,7 @@ const KNOWN_EXTENSIONS = new Set([
 	'currentColor', // deprecated: use inheritColor instead
 	'inheritColor',
 	'sketch',
+	'outline',
 ]);
 
 const EXTENSION_TYPE_MAP: Record<string, string> = {
@@ -159,10 +161,21 @@ function validateInheritColor(
 	});
 }
 
-function isDimensionPath(tokenPath: string): boolean {
+function isSketchPropertyPath(propertyKey: string, tokenPath: string): boolean {
 	const parts = tokenPath.split('.');
 	const rootIndex = parts[0] === 'theme' ? 1 : 0;
-	return parts[rootIndex] === 'dimension';
+	const root = parts[rootIndex];
+	if (propertyKey === 'cornerRadius') {
+		return root === 'radius' || root === 'dimension';
+	}
+	return root === 'dimension' || root === 'state';
+}
+
+function sketchPropertyRootMessage(propertyKey: string): string {
+	if (propertyKey === 'cornerRadius') {
+		return 'sketch.property.cornerRadius must be under a radius or dimension root for Sketch property output';
+	}
+	return `sketch.property.${propertyKey} must be under a dimension or state root for Sketch property output`;
 }
 
 function validateSketchExtension(
@@ -261,13 +274,51 @@ function validateSketchExtension(
 				message: `${key} requires $type "number" or "dimension", got "${tokenType}"`,
 			});
 		}
-		if (!isDimensionPath(tokenPath)) {
+		if (!isSketchPropertyPath(key, tokenPath)) {
 			issues.push({
 				path: `${tokenPath}.$extensions.sketch.property.${key}`,
 				level: 'error',
-				message: `sketch.property.${key} must be under a dimension root for Sketch dimension output`,
+				message: sketchPropertyRootMessage(key),
 			});
 		}
+	}
+}
+
+function validateOutlineExtension(
+	extensions: Record<string, unknown>,
+	tokenType: string | undefined,
+	tokenPath: string,
+	issues: ThemeSchemaIssue[],
+): void {
+	if (!('outline' in extensions)) return;
+	if (tokenType !== 'border') {
+		issues.push({
+			path: tokenPath,
+			level: 'error',
+			message: `outline can only be used with $type "border", got "${tokenType ?? 'undefined'}"`,
+		});
+		return;
+	}
+	const outline = extensions.outline;
+	if (
+		typeof outline !== 'object' ||
+		outline === null ||
+		Array.isArray(outline)
+	) {
+		issues.push({
+			path: `${tokenPath}.$extensions.outline`,
+			level: 'error',
+			message: 'outline extension must be an object',
+		});
+		return;
+	}
+	const offset = (outline as Record<string, unknown>).offset;
+	if (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0) {
+		issues.push({
+			path: `${tokenPath}.$extensions.outline.offset`,
+			level: 'error',
+			message: 'outline.offset must be a non-negative finite number',
+		});
 	}
 }
 
@@ -361,6 +412,7 @@ function validateToken(
 		// Validate extension-specific contracts
 		validateInheritColor(extensions, tokenType, tokenPath, issues);
 		validateSketchExtension(extensions, tokenType, tokenPath, issues);
+		validateOutlineExtension(extensions, tokenType, tokenPath, issues);
 	}
 }
 

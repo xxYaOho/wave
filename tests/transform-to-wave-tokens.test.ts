@@ -62,6 +62,96 @@ describe('transformToWaveTokens', () => {
 		expect(primary.deprecated).toBe('use accent instead');
 	});
 
+	test('preserves outline metadata on border tokens', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				border: {
+					outline: {
+						focus: {
+							$type: 'border',
+							$value: { color: '#000000', width: 1, style: 'solid' },
+							$extensions: { outline: { offset: 2 } },
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input);
+		const focus = result.tokens.find(
+			(t) => t.name === 'theme-border-outline-focus',
+		)!;
+
+		expect(focus.type).toBe('border');
+		expect(focus._outline).toEqual({ offset: 2 });
+	});
+
+	test('normalizes border color and width value objects', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				border: {
+					outline: {
+						$type: 'border',
+						$value: {
+							color: {
+								colorSpace: 'srgb',
+								components: [0.145, 0.388, 0.922],
+								hex: '#2563eb',
+							},
+							width: { value: 2, unit: 'px' },
+							style: 'solid',
+						},
+						$extensions: { outline: { offset: 2 } },
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input);
+		const border = result.tokens.find(
+			(token) => token.name === 'theme-border-outline',
+		);
+
+		expect(border?.value).toEqual({
+			color: '#2563eb',
+			width: '2px',
+			style: 'solid',
+		});
+		expect(border?._outline).toEqual({ offset: 2 });
+	});
+
+	test('normalizes shadow length value objects inside layer objects', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				shadow: {
+					card: {
+						$type: 'shadow',
+						$value: {
+							color: '#00000033',
+							offsetX: 0,
+							offsetY: { value: 4, unit: 'px' },
+							blur: { value: 8, unit: 'px' },
+							spread: 0,
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input);
+		const shadow = result.tokens.find(
+			(token) => token.name === 'theme-shadow-card',
+		);
+
+		expect(shadow?.value).toEqual({
+			color: '#00000033',
+			offsetX: 0,
+			offsetY: '4px',
+			blur: '8px',
+			spread: 0,
+		});
+	});
+
 	test('emits group descriptions in groupComments', () => {
 		const input: ResolvedTokenGroup = {
 			theme: {

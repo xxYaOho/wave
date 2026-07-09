@@ -1,0 +1,5 @@
+absolute:
+  color:
+    primary:
+      $type: color
+      $value: "#336699"

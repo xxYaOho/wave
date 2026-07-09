@@ -117,7 +117,7 @@ export function multiValueLines(
 }
 
 export type ResourceSource = 'builtin' | 'cache' | 'user';
-export type OutputScope = 'main' | 'night' | 'variant';
+export type OutputScope = 'main' | 'night' | 'profile';
 export type ErrorCategory =
 	| 'resource'
 	| 'parse'
@@ -160,14 +160,14 @@ export class BuildContext {
 		state: 'disabled',
 		reason: undefined,
 	};
-	variants: {
-		state: 'enabled' | 'disabled' | 'none';
+	profiles: {
+		state: 'default' | 'all' | 'single';
 		count: number;
 		names: string[];
 	} = {
-		state: 'none',
-		count: 0,
-		names: [],
+		state: 'default',
+		count: 1,
+		names: ['main'],
 	};
 	errors: BuildError[] = [];
 	warnings: BuildWarning[] = [];
@@ -189,12 +189,12 @@ export class BuildContext {
 		this.nightMode = { state, reason };
 	}
 
-	setVariants(
-		state: 'enabled' | 'disabled' | 'none',
+	setProfiles(
+		state: 'default' | 'all' | 'single',
 		count: number,
 		names: string[],
 	): void {
-		this.variants = { state, count, names };
+		this.profiles = { state, count, names };
 	}
 
 	addWarning(phase: string, message: string): void {
@@ -266,8 +266,8 @@ function renderSuccess(ctx: BuildContext, w: number): string {
 		lines.push(line('  OUTPUTS', w));
 		lines.push(line('', w));
 
-		const mainNight = ctx.outputs.filter((o) => o.scope !== 'variant');
-		const variants = ctx.outputs.filter((o) => o.scope === 'variant');
+		const mainNight = ctx.outputs.filter((o) => o.scope !== 'profile');
+		const profileOutputs = ctx.outputs.filter((o) => o.scope === 'profile');
 
 		for (const out of mainNight) {
 			const scopeLabel = out.label ? `${out.scope} [${out.label}]` : out.scope;
@@ -275,17 +275,17 @@ function renderSuccess(ctx: BuildContext, w: number): string {
 			lines.push(line('', w));
 		}
 
-		if (variants.length > 0) {
-			lines.push(line('  variant', w));
+		if (profileOutputs.length > 0) {
+			lines.push(line('  profile', w));
 			lines.push(line('', w));
 			const maxLabelLen = Math.max(
-				...variants.map((o) => vlen(`❖ ${o.label ?? 'unknown'}`)),
+				...profileOutputs.map((o) => vlen(`❖ ${o.label ?? 'unknown'}`)),
 			);
-			const variantKeyCol = Math.max(RECEIPT_KEY_COL, maxLabelLen) + 4;
-			for (const out of variants) {
+			const profileKeyCol = Math.max(RECEIPT_KEY_COL, maxLabelLen) + 4;
+			for (const out of profileOutputs) {
 				const label = out.label ?? 'unknown';
 				lines.push(
-					...multiValueLines(`❖ ${label}`, out.files, w, variantKeyCol),
+					...multiValueLines(`❖ ${label}`, out.files, w, profileKeyCol),
 				);
 				lines.push(line('', w));
 			}
@@ -303,13 +303,13 @@ function renderSuccess(ctx: BuildContext, w: number): string {
 		),
 	);
 
-	const variantsText =
-		ctx.variants.state === 'none'
-			? 'none'
-			: ctx.variants.state === 'disabled'
-				? 'disabled'
-				: `${ctx.variants.count} found`;
-	lines.push(kvLine('Variants', variantsText, undefined, w));
+	const profilesText =
+		ctx.profiles.state === 'default'
+			? 'main'
+			: ctx.profiles.state === 'single'
+				? ctx.profiles.names.join(', ')
+				: `${ctx.profiles.count} profiles`;
+	lines.push(kvLine('Profiles', profilesText, undefined, w));
 	lines.push(kvLine('Output dir', ctx.outputDir, undefined, w));
 
 	lines.push(solid);

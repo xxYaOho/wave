@@ -35,6 +35,54 @@ describe('sketchFormat (Wave-native)', () => {
 		expect(parsed['gap-small']).toEqual({ value: 4 });
 	});
 
+	test('sketch output excludes public dimension root', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-dimension-radius-md',
+				path: ['theme', 'dimension', 'radius', 'md'],
+				value: 8,
+				type: 'dimension',
+				_order: 0,
+				_sketch: { path: 'dimension/v2/radius' },
+			},
+			{
+				name: 'theme-radius-md',
+				path: ['theme', 'radius', 'md'],
+				value: 8,
+				type: 'dimension',
+				_order: 1,
+				_sketch: { path: 'radius/v2' },
+			},
+			{
+				name: 'style-shadow-legacy',
+				path: ['style', 'shadow', 'legacy'],
+				value: [
+					{ color: '#000000', offsetX: 0, offsetY: 1, blur: 2, spread: 0 },
+				],
+				type: 'shadow',
+				_order: 2,
+				_sketch: { path: 'legacy/shadow' },
+			},
+		];
+
+		const out = sketchFormat(tokens, {
+			filterLayer: 1,
+			includeRootKeys: [
+				'color',
+				'state',
+				'shadow',
+				'gradient',
+				'border',
+				'radius',
+				'font',
+			],
+		});
+
+		expect(out).toContain('radius-md');
+		expect(out).not.toContain('dimension-radius-md');
+		expect(out).not.toContain('shadow-legacy');
+	});
+
 	test('emits shadow tokens as sketch shadow objects', () => {
 		const tokens: WaveToken[] = [
 			{
@@ -63,6 +111,68 @@ describe('sketchFormat (Wave-native)', () => {
 			spread: 0,
 			color: '#00000080',
 		});
+	});
+
+	test('formats outline border as sketch shadow simulation', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: { color: '#000000', width: 1, style: 'solid' },
+				_outline: { offset: 2 },
+				_order: 0,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
+
+		expect(parsed['border-outline-focus'].shadow).toEqual([
+			{ x: 0, y: 0, blur: 0, spread: 3, color: '#000000ff' },
+			{ x: 0, y: 0, blur: 0, spread: 2, color: '#ffffffff' },
+		]);
+	});
+
+	test('throws instead of falling back for object outline color', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: {
+					color: { colorSpace: 'oklch', components: [0.5, 0.2, 260] },
+					width: 1,
+					style: 'solid',
+				},
+				_outline: { offset: 2 },
+				_order: 0,
+			},
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 1 })).toThrow(
+			'Sketch outline output requires transformer-normalized color',
+		);
+	});
+
+	test('throws instead of falling back for object outline width', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: {
+					color: '#000000',
+					width: { value: 1, unit: 'px' },
+					style: 'solid',
+				},
+				_outline: { offset: 2 },
+				_order: 0,
+			},
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 1 })).toThrow(
+			'Sketch outline output requires transformer-normalized width',
+		);
 	});
 
 	test('reverses multi-layer shadow order for sketch without mutating tokens', () => {
@@ -135,5 +245,59 @@ describe('sketchFormat (Wave-native)', () => {
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 		expect(parsed['shadow-raised'].shadow[0].color).toBe('#ff00ff80');
 		expect(parsed['gradient-accent'].gradient[0].color).toBe('#ff000040');
+	});
+
+	test('formats typography as sketch text style payload', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-font-heading-h1',
+				path: ['theme', 'font', 'heading', 'h1'],
+				type: 'typography',
+				value: {
+					fontFamily: 'Helvetica',
+					fontSize: '32px',
+					fontWeight: 9,
+					lineHeight: '40px',
+					letterSpacing: 0,
+				},
+				_order: 0,
+				_sketch: { path: 'font/v2' },
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
+
+		expect(parsed.font.v2['font-heading-h1']).toEqual({
+			textStyle: {
+				fontFamily: 'Helvetica',
+				fontSize: 32,
+				fontWeight: 9,
+				lineHeight: 40,
+				kerning: 0,
+			},
+		});
+		expect(JSON.stringify(parsed.font.v2['font-heading-h1'])).not.toContain(
+			'color',
+		);
+		expect(JSON.stringify(parsed.font.v2['font-heading-h1'])).not.toContain(
+			'alignment',
+		);
+	});
+
+	test('formats theme radius cornerRadius property as corners radii', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-radius-md',
+				path: ['theme', 'radius', 'md'],
+				type: 'dimension',
+				value: '8px',
+				_order: 0,
+				_sketch: { property: { cornerRadius: true } },
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
+
+		expect(parsed['radius-md']).toEqual({ corners: { radii: 8 } });
 	});
 });

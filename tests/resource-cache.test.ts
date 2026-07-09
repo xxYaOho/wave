@@ -257,7 +257,6 @@ describe('resource cache and adapters', () => {
 					path.join(tempTheme, 'themefile'),
 					'-o',
 					outputDir,
-					'--no-night',
 				],
 				{
 					cwd: rootDir,

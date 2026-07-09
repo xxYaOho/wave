@@ -72,7 +72,7 @@ describe('Quality Harness design-token case registry', () => {
 			(testCase) => testCase.id === 'orca-realistic',
 		);
 		expect(orca?.origin).toBe('example-derived');
-		expect(orca?.example?.risks).toContain('variants');
+		expect(orca?.example?.risks).toContain('profile migration');
 		expect(orca?.example?.risks).toContain('css and sketch outputs');
 	});
 });
@@ -308,7 +308,7 @@ describe('Quality Harness workspace and runner', () => {
 		}
 	});
 
-	test('runs an example-derived design-token case with variant artifacts', async () => {
+	test('runs an example-derived design-token case without legacy variant artifacts', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-qh-'));
 		try {
 			const testCase = getDesignTokenCases('default').find(
@@ -324,11 +324,7 @@ describe('Quality Harness workspace and runner', () => {
 
 			expect(result.status).toBe('success');
 			expect(result.outputFileNames).toEqual([
-				path.join('css', 'orca-realistic-assistant-app.css'),
-				path.join('css', 'orca-realistic-viz-fos.css'),
 				path.join('css', 'orca-realistic.css'),
-				path.join('sketch', 'orca-realistic-assistant-app2sketch.json'),
-				path.join('sketch', 'orca-realistic-viz-fos2sketch.json'),
 				path.join('sketch', 'orca-realistic2sketch.json'),
 			]);
 			expect(
@@ -347,12 +343,9 @@ describe('Quality Harness workspace and runner', () => {
 				color: '#0052f5ff',
 			});
 			expect(sketchOutput['primary-main']).toBeUndefined();
-			expect(sketchOutput.foundation.interaction['interaction-hover']).toEqual({
-				opacity: 0.08,
-			});
-			expect(
-				sketchOutput.foundation.shadow['shadow-raised'].shadow,
-			).toBeArray();
+			expect(sketchOutput.foundation.interaction).toBeUndefined();
+			expect(sketchOutput.foundation.radius).toBeUndefined();
+			expect(sketchOutput.foundation.shadow.raised.shadow).toBeArray();
 			expect(sketchOutput.foundation.gradient.mask.gradient).toBeArray();
 			expect(result.tokensCount).toBeGreaterThan(0);
 		} finally {
@@ -377,7 +370,7 @@ describe('Quality Harness workspace and runner', () => {
 		expect(result.benchmarkFiles).toEqual(result.generateThemeFiles);
 	});
 
-	test('matches generateTheme output hashes for group night and variant outputs', async () => {
+	test('matches generateTheme output hashes without legacy group night outputs', async () => {
 		const testCase = getDesignTokenCases('default').find(
 			(candidate) => candidate.id === 'config-group-variants',
 		);
@@ -392,25 +385,31 @@ describe('Quality Harness workspace and runner', () => {
 			result.benchmarkFiles.some((file) =>
 				file.includes('config-group-variants-night'),
 			),
-		).toBe(true);
-		expect(
-			result.benchmarkFiles.some((file) =>
-				file.includes('config-group-variants-dark'),
-			),
-		).toBe(true);
+		).toBe(false);
+		expect(result.benchmarkFiles.some((file) => file.includes('-dark'))).toBe(
+			false,
+		);
 	});
 
-	test('matches generateTheme output hashes for legacy themefile cases', async () => {
+	test('runs legacy themefile cases through benchmark fallback', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-qh-legacy-'));
 		const testCase = getDesignTokenCases('legacy').find(
 			(candidate) => candidate.id === 'standard',
 		);
 		expect(testCase).toBeDefined();
-		const result = await checkDesignTokenGenerateThemeEquivalence(
-			testCase!,
-			'test-legacy-equivalence',
-		);
+		try {
+			const result = await runDesignTokenBenchmarkCase(testCase!, {
+				mode: 'legacy',
+				runId: 'test-legacy-fallback',
+				iteration: 0,
+				tmpRoot: tempDir,
+			});
 
-		expect(result.ok, JSON.stringify(result.issues, null, 2)).toBe(true);
-		expect(result.benchmarkFiles).toEqual(result.generateThemeFiles);
+			expect(result.status).toBe('success');
+			expect(result.outputFileNames).toContain('test-standard.json');
+			expect(result.outputFileNames).toContain('test-standard.css');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
 	});
 });

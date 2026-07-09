@@ -1,0 +1,17 @@
+$config:
+  theme: absolute-resource
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "{tailwindcss.color.blue.600}"

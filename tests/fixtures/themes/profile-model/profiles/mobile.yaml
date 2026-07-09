@@ -1,0 +1,25 @@
+$config:
+  parameter:
+    outputDir: ./mobile-dist
+    platform:
+      - json
+    filterLayer: 1
+  resource:
+    custom:
+      - ../resources/mobile-resource.yaml
+
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "{tailwindcss.color.green.600}"
+    on-primary:
+      $value: "{tailwindcss.color.white}"
+    mobile-only:
+      $value: "{mobile.color.accent}"
+
+doctor:
+  wcagPairs:
+    primary:
+      foreground: "{theme.color.on-primary}"
+      background: "{theme.color.primary}"

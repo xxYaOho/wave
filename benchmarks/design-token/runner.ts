@@ -1,10 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import {
-	detectNightMode,
-	detectVariants,
-} from '../../src/core/detector/index.ts';
 import { generateTokens } from '../../src/core/generator/index.ts';
 import {
 	buildDependencyDictionary,
@@ -12,7 +8,7 @@ import {
 	loadThemefile,
 	processThemeDocument,
 } from '../../src/core/pipeline/theme-pipeline.ts';
-import { ExitCode, type GenerateOptions } from '../../src/types/index.ts';
+import { ExitCode } from '../../src/types/index.ts';
 import {
 	collectFileArtifacts,
 	commonDirectoryRoot,
@@ -55,14 +51,6 @@ async function timed<T>(fn: () => Promise<T>): Promise<TimedValue<T>> {
 	const start = now();
 	const value = await fn();
 	return { value, ms: now() - start };
-}
-
-function makeGenerateOptions(testCase: DesignTokenCase): GenerateOptions {
-	return {
-		night: testCase.includeNight,
-		variants: testCase.includeVariants ? undefined : [],
-		platform: testCase.platforms,
-	};
 }
 
 function createInitialPhases(): PhaseDurations {
@@ -174,7 +162,6 @@ export async function runDesignTokenBenchmarkCase(
 				);
 				phases.groupPassMs = groupPass.ms;
 
-				const generateOptions = makeGenerateOptions(testCase);
 				const scopes: GenerateScope[] = [];
 				if (mainYamlPath) {
 					scopes.push({
@@ -198,36 +185,6 @@ export async function runDesignTokenBenchmarkCase(
 						if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
 							throw err;
 						}
-					}
-				}
-
-				const night = detectNightMode(themeDir, generateOptions);
-				if (night.available) {
-					for (const file of night.files) {
-						scopes.push({
-							name: 'night',
-							themeName: `${resolvedThemeName}-night`,
-							filePath: file,
-						});
-					}
-				}
-
-				const variants = detectVariants(themeDir, generateOptions);
-				if (variants.available) {
-					for (const file of variants.files) {
-						const variantName = path.basename(file, '.yaml');
-						const isNightVariant = variantName.endsWith('@night');
-						const baseName = isNightVariant
-							? variantName.replace('@night', '')
-							: variantName;
-						const suffix = isNightVariant
-							? `-${baseName}-night`
-							: `-${baseName}`;
-						scopes.push({
-							name: `variant:${variantName}`,
-							themeName: `${resolvedThemeName}${suffix}`,
-							filePath: file,
-						});
 					}
 				}
 

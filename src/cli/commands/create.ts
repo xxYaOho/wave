@@ -1,25 +1,18 @@
 import { Command } from 'commander';
 import { VERSION } from '../../config/index.ts';
 import {
-	detectThemeFiles,
-	type ThemeFileEntry,
-} from '../../core/doctor/theme-context.ts';
-import { loadThemefile } from '../../core/pipeline/theme-pipeline.ts';
-import {
 	generateTheme,
 	type ThemeGenerationInput,
 } from '../../core/pipeline/theme-service.ts';
 import { ExitCode, type GenerateOptions } from '../../types/index.ts';
 import { BuildContext, renderReceipt } from '../../utils/receipt.ts';
 import { WaveSpinner } from '../../utils/spinner.ts';
-import { selectThemesToGenerate } from '../theme-multiselect.ts';
 
 interface CreateCommandOptions {
 	file?: string;
 	night?: boolean;
-	noVariants?: boolean;
-	variant?: string[];
-	variants?: string | boolean;
+	profile?: string;
+	profiles?: string;
 	out?: string;
 	output?: string;
 	platform?: string;
@@ -31,35 +24,26 @@ interface BuildCommandConfig {
 	missingFileHelp?: string[];
 }
 
-function splitList(value: string): string[] {
-	return value
-		.split(',')
-		.map((s) => s.trim())
-		.filter(Boolean);
-}
-
-function collectRepeatable(
-	value: string,
-	previous: string[] | undefined,
-): string[] {
-	return [...(previous ?? []), ...splitList(value)];
-}
-
 function parseCliOptions(options: CreateCommandOptions): GenerateOptions {
 	const result: GenerateOptions = {
-		night: options.night !== false,
+		night: options.night === true,
 	};
 
-	if (options.variant && options.variant.length > 0) {
-		result.variants = options.variant;
-	} else if (options.noVariants === true) {
-		result.variants = [];
-	} else if (options.variants === false) {
-		result.variants = [];
-	} else if (options.variants === undefined || options.variants === true) {
-		result.variants = undefined;
-	} else if (typeof options.variants === 'string') {
-		result.variants = splitList(options.variants);
+	if (options.profile) {
+		result.profile = options.profile.trim();
+	}
+
+	if (options.profiles !== undefined) {
+		const normalized = options.profiles.trim().toLowerCase();
+		if (normalized === 'all') {
+			result.profiles = 'all';
+		} else {
+			throw new Error('--profiles currently supports only "all"');
+		}
+	}
+
+	if (result.profile && result.profiles) {
+		throw new Error('Use either --profile <name> or --profiles all, not both');
 	}
 
 	return result;
@@ -73,10 +57,12 @@ export function createBuildCommand(
 		.description('Generate design token output')
 		.argument('[name]', 'Theme name to generate')
 		.option('-f, --file <path>', config.fileHelp ?? 'Themefile path')
-		.option('--no-night', 'Disable night mode generation')
-		.option('--no-variants', 'Disable variants generation')
-		.option('--variant <name>', 'Build selected variant', collectRepeatable)
-		.option('--variants [names]', 'Specify variants (comma separated)')
+		.option(
+			'--profile <name>',
+			'Build one named profile from profiles/<name>.yaml',
+		)
+		.option('--profiles <mode>', 'Build profile set. Supported: all')
+		.option('--night', 'Include valid Night Mode overlays when available')
 		.option('-o, --out <path>', 'Output directory')
 		.option('--output <dir>', 'Output directory')
 		.option(
@@ -128,32 +114,12 @@ export function createBuildCommand(
 			const output = options.out ?? options.output;
 			ctx.outputDir = output ?? '';
 
-			let selectedThemes: ThemeFileEntry[] | undefined;
-			if (
-				process.stdout.isTTY === true &&
-				options.variants === undefined &&
-				options.noVariants !== true
-			) {
-				try {
-					const loadResult = await loadThemefile(options.file);
-					if ('parsed' in loadResult) {
-						const themeFiles = await detectThemeFiles(loadResult.themeDir);
-						if (themeFiles.length > 1) {
-							selectedThemes = await selectThemesToGenerate(themeFiles);
-						}
-					}
-				} catch {
-					// ignore: error will be handled by generateTheme
-				}
-			}
-
 			const input: ThemeGenerationInput = {
 				themeName,
 				themePath: options.file,
 				cliOutput: output,
 				cliPlatform: options.platform,
 				generateOptions: parseCliOptions(options),
-				selectedThemes,
 			};
 
 			try {
