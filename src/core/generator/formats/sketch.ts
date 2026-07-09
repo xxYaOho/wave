@@ -186,6 +186,35 @@ function outlineColor(value: unknown): string {
 	return typeof color === 'string' ? color : '#000000';
 }
 
+function parseTypographyNumber(value: unknown): number | undefined {
+	const parsed = parseDimensionNumber(value);
+	if (parsed !== undefined) return parsed;
+	if (typeof value === 'number' && Number.isFinite(value)) return value;
+	if (typeof value === 'string') {
+		const number = parseFloat(value);
+		return Number.isFinite(number) ? number : undefined;
+	}
+	return undefined;
+}
+
+function formatSketchTypography(value: unknown): unknown {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return value;
+	}
+	const obj = value as Record<string, unknown>;
+	const textStyle: Record<string, unknown> = {};
+	if (typeof obj.fontFamily === 'string') textStyle.fontFamily = obj.fontFamily;
+	const fontSize = parseTypographyNumber(obj.fontSize);
+	if (fontSize !== undefined) textStyle.fontSize = fontSize;
+	const fontWeight = parseTypographyNumber(obj.fontWeight);
+	if (fontWeight !== undefined) textStyle.fontWeight = fontWeight;
+	const lineHeight = parseTypographyNumber(obj.lineHeight);
+	if (lineHeight !== undefined) textStyle.lineHeight = lineHeight;
+	const letterSpacing = parseTypographyNumber(obj.letterSpacing);
+	if (letterSpacing !== undefined) textStyle.kerning = letterSpacing;
+	return { textStyle };
+}
+
 function pickSketchProperty(
 	property: SketchPropertyMap | undefined,
 ): keyof SketchPropertyMap | undefined {
@@ -346,6 +375,10 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 			return { corners: { radii: resolveDimensionValue(token, propertyKey) } };
 		}
 		return { [propertyKey]: resolveDimensionValue(token, propertyKey) };
+	}
+
+	if (token.type === 'typography') {
+		return formatSketchTypography(token.value);
 	}
 
 	if (token.type === 'color' || token.inheritColor === true) {

@@ -204,4 +204,41 @@ describe('sketchFormat (Wave-native)', () => {
 		expect(parsed['shadow-raised'].shadow[0].color).toBe('#ff00ff80');
 		expect(parsed['gradient-accent'].gradient[0].color).toBe('#ff000040');
 	});
+
+	test('formats typography as sketch text style payload', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-font-heading-h1',
+				path: ['theme', 'font', 'heading', 'h1'],
+				type: 'typography',
+				value: {
+					fontFamily: 'Helvetica',
+					fontSize: '32px',
+					fontWeight: 9,
+					lineHeight: '40px',
+					letterSpacing: 0,
+				},
+				_order: 0,
+				_sketch: { path: 'font/v2' },
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
+
+		expect(parsed.font.v2['font-heading-h1']).toEqual({
+			textStyle: {
+				fontFamily: 'Helvetica',
+				fontSize: 32,
+				fontWeight: 9,
+				lineHeight: 40,
+				kerning: 0,
+			},
+		});
+		expect(JSON.stringify(parsed.font.v2['font-heading-h1'])).not.toContain(
+			'color',
+		);
+		expect(JSON.stringify(parsed.font.v2['font-heading-h1'])).not.toContain(
+			'alignment',
+		);
+	});
 });
