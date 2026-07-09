@@ -1,0 +1,10 @@
+$config:
+  resource:
+    palette:
+      - ../resources/palette.yaml
+
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "{absolute.color.primary}"

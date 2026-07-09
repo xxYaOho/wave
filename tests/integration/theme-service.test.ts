@@ -122,6 +122,118 @@ describe('Theme Service Integration', () => {
 		});
 	});
 
+	describe('profile model generation', () => {
+		test('default build generates only main profile', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+
+			const result = await generateTheme({
+				themeName: 'profile-model',
+				themePath,
+				cliOutput: outputDir,
+				generateOptions: { night: false },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model.json');
+				expect(result.generatedFiles).toContain('profile-model.css');
+				expect(result.generatedFiles).not.toContain(
+					'profile-model-mobile.json',
+				);
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('profile build generates selected profile only', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+
+			const result = await generateTheme({
+				themeName: 'profile-model',
+				themePath,
+				cliOutput: outputDir,
+				generateOptions: { night: false, profile: 'mobile' },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+				expect(result.generatedFiles).not.toContain('profile-model.json');
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('profiles all generates main and named profiles', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+
+			const result = await generateTheme({
+				themeName: 'profile-model',
+				themePath,
+				cliOutput: outputDir,
+				generateOptions: { night: false, profiles: 'all' },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model.json');
+				expect(result.generatedFiles).toContain('profile-model.css');
+				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('legacy themefile without main yaml still uses fallback when no profile is requested', async () => {
+			const outputDir = createTempOutputDir();
+			const legacyThemefile = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/legacy-no-main/themefile',
+			);
+
+			const result = await generateTheme({
+				themeName: 'legacy-fallback',
+				themePath: legacyThemefile,
+				cliOutput: outputDir,
+				generateOptions: { night: false },
+			});
+
+			expect(result.ok).toBe(true);
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('legacy themefile config is kept when main yaml has no config', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/standard/themefile',
+			);
+
+			const result = await generateTheme({
+				themeName: 'test-standard',
+				themePath,
+				cliOutput: outputDir,
+				generateOptions: { night: false },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('test-standard.json');
+				expect(result.generatedFiles).toContain('test-standard.css');
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+	});
+
 	describe('$ref 引用解析', () => {
 		let theme: TestTheme;
 
@@ -634,7 +746,7 @@ describe('Theme Service Integration', () => {
 			}
 		});
 
-		test('main and night mixed passes render sketch from hex tokens', async () => {
+		test('main mixed passes render sketch from hex tokens without legacy night output', async () => {
 			const tempThemeDir = await fs.mkdtemp(
 				path.join(os.tmpdir(), 'wave-mixed-branches-'),
 			);
@@ -711,51 +823,48 @@ describe('Theme Service Integration', () => {
 					}
 				}
 
-				for (const suffix of ['', '-night']) {
-					const css = await fs.readFile(
-						path.join(outputDir, `mixed-branches${suffix}.css`),
+				const css = await fs.readFile(
+					path.join(outputDir, 'mixed-branches.css'),
+					'utf-8',
+				);
+				const firstCss = await fs.readFile(
+					path.join(tempThemeDir, 'first-run', 'mixed-branches.css'),
+					'utf-8',
+				);
+				const sketch = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'mixed-branches2sketch.json'),
 						'utf-8',
-					);
-					const firstCss = await fs.readFile(
-						path.join(tempThemeDir, 'first-run', `mixed-branches${suffix}.css`),
-						'utf-8',
-					);
-					const sketch = JSON.parse(
-						await fs.readFile(
-							path.join(outputDir, `mixed-branches${suffix}2sketch.json`),
-							'utf-8',
-						),
-					);
-					const firstSketch = await fs.readFile(
-						path.join(
-							tempThemeDir,
-							'first-run',
-							`mixed-branches${suffix}2sketch.json`,
-						),
-						'utf-8',
-					);
-					const currentSketch = await fs.readFile(
-						path.join(outputDir, `mixed-branches${suffix}2sketch.json`),
-						'utf-8',
-					);
-					expect(css).toContain('oklch(');
-					expect(css.indexOf('--theme-color-primary')).toBeLessThan(
-						css.indexOf('--theme-color-secondary'),
-					);
-					expect(css).toBe(firstCss);
-					expect(currentSketch).toBe(firstSketch);
-					expect(sketch.foundation.color['theme-color-primary']).toEqual({
-						color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
-					});
-					expect(sketch.foundation.color['theme-color-secondary']).toEqual({
-						color: '#0052f5ff',
-					});
-					expect(sketch.foundation.space['theme-dimension-spacing-sm']).toEqual(
-						{
-							value: 4,
-						},
-					);
-				}
+					),
+				);
+				const firstSketch = await fs.readFile(
+					path.join(tempThemeDir, 'first-run', 'mixed-branches2sketch.json'),
+					'utf-8',
+				);
+				const currentSketch = await fs.readFile(
+					path.join(outputDir, 'mixed-branches2sketch.json'),
+					'utf-8',
+				);
+				expect(css).toContain('oklch(');
+				expect(css.indexOf('--theme-color-primary')).toBeLessThan(
+					css.indexOf('--theme-color-secondary'),
+				);
+				expect(css).toBe(firstCss);
+				expect(currentSketch).toBe(firstSketch);
+				expect(sketch.foundation.color['theme-color-primary']).toEqual({
+					color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
+				});
+				expect(sketch.foundation.color['theme-color-secondary']).toEqual({
+					color: '#0052f5ff',
+				});
+				expect(sketch.foundation.space['theme-dimension-spacing-sm']).toEqual({
+					value: 4,
+				});
+				expect(
+					await Bun.file(
+						path.join(outputDir, 'mixed-branches-night.css'),
+					).exists(),
+				).toBe(false);
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });
 			}

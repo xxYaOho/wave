@@ -59,7 +59,7 @@ pnpm test -- tests/utils/fixture-loader.test.ts
 - `doctor-contrast-invalid/`：非法 wcagPairs（引用未解析 token），返回非零退出码
 - `doctor-contrast-empty/`：无 `doctor` key，提示”无可检查配对”，退出码 0
 - `doctor-contrast-multi/`：多主题（main + main@night），用于测试显式 `--night` 选项
-- `doctor-contrast-variant-night/`：variant + variant@night（dark + dark@night），用于测试 `--variants dark --night` 组合
+- `doctor-contrast-variant-night/`：profile + profile@night（dark + dark@night），用于测试 `--profile dark --night` 组合
 
 对应测试文件：
 - `tests/doctor-pairs-schema.test.ts` — doctor section schema 校验

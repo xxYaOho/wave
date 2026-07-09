@@ -1,7 +1,5 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { detectNightMode, detectVariants } from '../../core/detector/index.ts';
-import type { ThemeFileEntry } from '../../core/doctor/theme-context.ts';
 import type { GeneratorResult } from '../../core/generator/index.ts';
 import { generateTokens } from '../../core/generator/index.ts';
 import {
@@ -21,6 +19,13 @@ import { logger } from '../../utils/logger.ts';
 import type { BuildContext } from '../../utils/receipt.ts';
 import { transformToWaveTokens } from '../transformer/index.ts';
 import {
+	discoverProfiles,
+	type ProfileDocument,
+	type ProfileEntry,
+	parseProfileDocument,
+	resolveProfilesToBuild,
+} from './profile-resolver.ts';
+import {
 	buildDependencyDictionary,
 	buildGroupPasses,
 	type DependencyDict,
@@ -38,7 +43,6 @@ export interface ThemeGenerationInput {
 	cliOutput?: string;
 	cliPlatform?: string;
 	generateOptions: GenerateOptions;
-	selectedThemes?: ThemeFileEntry[];
 }
 
 export interface ThemeGenerationSuccess {
@@ -59,12 +63,13 @@ export type ThemeGenerationResult =
 	| ThemeGenerationSuccess
 	| ThemeGenerationFailure;
 
-function isSelected(
-	selected: ThemeFileEntry[] | undefined,
-	name: string,
-): boolean {
-	if (!selected) return true;
-	return selected.some((s) => s.name === name);
+function profileThemeName(
+	baseThemeName: string,
+	profile: ProfileDocument,
+): string {
+	return profile.entry.isDefault
+		? baseThemeName
+		: `${baseThemeName}-${profile.entry.name}`;
 }
 
 async function generatePass(
@@ -79,9 +84,10 @@ async function generatePass(
 	_generateOptions: GenerateOptions,
 	mainYamlPathOverride?: string,
 	mainYamlContentOverride?: string,
-	selectedThemes?: ThemeFileEntry[],
 	ctx?: BuildContext,
 	warnLegacyFallback?: () => void,
+	outputScope: 'main' | 'profile' | 'night' = 'main',
+	outputLabel?: string,
 ): Promise<{ files: string[] } | ThemeGenerationFailure> {
 	const files: string[] = [];
 
@@ -90,7 +96,7 @@ async function generatePass(
 	const hasMainYaml =
 		mainYamlContentOverride !== undefined || (await mainYamlFile.exists());
 
-	if (hasMainYaml && isSelected(selectedThemes, 'main')) {
+	if (hasMainYaml) {
 		if (!ctx) logger.info('Found main.yaml, parsing theme tokens...');
 		const parseResult = await processThemeDocument(
 			mainYamlPath,
@@ -134,9 +140,9 @@ async function generatePass(
 		}
 
 		files.push(...mainResult.files);
-		ctx?.addOutput('main', mainResult.files);
+		ctx?.addOutput(outputScope, mainResult.files, outputLabel);
 		if (!ctx) logger.success(`Generated main: ${mainResult.files.join(', ')}`);
-	} else if (isSelected(selectedThemes, 'main')) {
+	} else {
 		// No main.yaml — generate from palette + dimension directly
 		warnLegacyFallback?.();
 		const result = await generateThemeTokens(
@@ -161,7 +167,7 @@ async function generatePass(
 		}
 
 		files.push(...result.files);
-		ctx?.addOutput('main', result.files);
+		ctx?.addOutput(outputScope, result.files, outputLabel);
 		if (!ctx) logger.success(`Generated main: ${result.files.join(', ')}`);
 	}
 
@@ -172,14 +178,8 @@ export async function generateTheme(
 	input: ThemeGenerationInput,
 	ctx?: BuildContext,
 ): Promise<ThemeGenerationResult> {
-	const {
-		themeName,
-		themePath,
-		cliOutput,
-		cliPlatform,
-		generateOptions,
-		selectedThemes,
-	} = input;
+	const { themeName, themePath, cliOutput, cliPlatform, generateOptions } =
+		input;
 	const legacyFallbackWarnings = new Set<string>();
 	const warnLegacyFallback = (): void => {
 		if (legacyFallbackWarnings.has('main')) return;
@@ -256,186 +256,130 @@ export async function generateTheme(
 		}
 	}
 
-	// Step 3: Build group passes
-	const passes = buildGroupPasses(parsed, themeDir, cliOutput, cliPlatform);
-
-	// Step 4: Generate main theme for each pass
 	const generatedFiles: string[] = [];
 
-	const firstPass = passes[0]!;
+	const profiles = await discoverProfiles(themeDir);
+	if (profiles.length === 0) {
+		if (generateOptions.profile || generateOptions.profiles) {
+			const message = 'No main.yaml found';
+			ctx?.markFailed('load', message, { phase: 'profile resolve' });
+			return { ok: false, exitCode: ExitCode.FILE_NOT_FOUND, message };
+		}
+
+		ctx?.setProfiles('default', 1, ['main']);
+		const passes = buildGroupPasses(parsed, themeDir, cliOutput, cliPlatform);
+		const firstPass = passes[0]!;
+		if (ctx) ctx.outputDir = firstPass.outputDir;
+		for (const pass of passes) {
+			const result = await generatePass(
+				resolvedThemeName,
+				themeDir,
+				pass.outputDir,
+				dict,
+				depResult,
+				pass.platforms,
+				pass.filterLayer,
+				pass.colorSpace,
+				generateOptions,
+				mainYamlPath,
+				mainYamlContent,
+				ctx,
+				warnLegacyFallback,
+				'main',
+			);
+			if (!('files' in result)) return result;
+			generatedFiles.push(...result.files);
+		}
+		return {
+			ok: true,
+			themeName: resolvedThemeName,
+			outputDir: firstPass.outputDir,
+			generatedFiles,
+		};
+	}
+
+	let selectedProfiles: ProfileEntry[];
+	try {
+		selectedProfiles = resolveProfilesToBuild(profiles, generateOptions);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		ctx?.markFailed('load', message, { phase: 'profile resolve' });
+		return { ok: false, exitCode: ExitCode.FILE_NOT_FOUND, message };
+	}
+
+	ctx?.setProfiles(
+		generateOptions.profiles === 'all'
+			? 'all'
+			: generateOptions.profile
+				? 'single'
+				: 'default',
+		selectedProfiles.length,
+		selectedProfiles.map((profile) => profile.name),
+	);
+
+	const baseProfile = profiles.find((profile) => profile.isDefault);
+	if (!baseProfile) {
+		const message = 'No main.yaml found';
+		ctx?.markFailed('load', message, { phase: 'profile resolve' });
+		return { ok: false, exitCode: ExitCode.FILE_NOT_FOUND, message };
+	}
+
+	const baseDocument = await parseProfileDocument(baseProfile, {
+		defaultParsed: parsed,
+		baseDir: themeDir,
+	});
+	const firstPass = buildGroupPasses(
+		baseDocument.parsed,
+		baseDocument.buildDir,
+		cliOutput,
+		cliPlatform,
+	)[0]!;
 	if (ctx) ctx.outputDir = firstPass.outputDir;
 
-	for (const pass of passes) {
-		const result = await generatePass(
-			resolvedThemeName,
+	for (const entry of selectedProfiles) {
+		const document = entry.isDefault
+			? baseDocument
+			: await parseProfileDocument(entry, {
+					baseParsed: baseDocument.parsed,
+					baseDir: themeDir,
+				});
+		const profileDepResult = await buildDependencyDictionary(
+			document.parsed,
 			themeDir,
-			pass.outputDir,
-			dict,
-			depResult,
-			pass.platforms,
-			pass.filterLayer,
-			pass.colorSpace,
-			generateOptions,
-			mainYamlPath,
-			mainYamlContent,
-			selectedThemes,
-			ctx,
-			warnLegacyFallback,
 		);
-
-		if (!('files' in result)) {
-			return result;
+		if ('error' in profileDepResult) {
+			const message = profileDepResult.error.message;
+			ctx?.markFailed('resource', message, {
+				phase: `${entry.name} resource resolve`,
+			});
+			return { ok: false, exitCode: ExitCode.FILE_NOT_FOUND, message };
 		}
-
-		generatedFiles.push(...result.files);
-	}
-
-	// Step 5: Generate night mode
-	const nightResult = detectNightMode(themeDir, generateOptions);
-	if (nightResult.available) {
-		ctx?.setNight('enabled');
-	} else if (nightResult.message.includes('disabled')) {
-		ctx?.setNight('disabled');
-	} else {
-		ctx?.setNight('skipped');
-	}
-	if (!ctx) logger.info(nightResult.message);
-
-	if (nightResult.available && isSelected(selectedThemes, 'main@night')) {
-		const nightYamlPath = path.join(themeDir, 'main@night.yaml');
-		const nightYamlFile = Bun.file(nightYamlPath);
-		const hasNightYaml = await nightYamlFile.exists();
-
-		if (hasNightYaml) {
-			for (const pass of passes) {
-				if (!ctx)
-					logger.info('Found main@night.yaml, parsing night theme tokens...');
-				const nightParseResult = await processThemeDocument(
-					nightYamlPath,
-					dict,
-					pass.colorSpace as ColorSpaceFormat | undefined,
-				);
-
-				if (!nightParseResult.ok) {
-					const msg = nightParseResult.line
-						? `${nightParseResult.message} at line ${nightParseResult.line}`
-						: nightParseResult.message;
-					ctx?.markFailed('parse', msg, { phase: 'night parse' });
-					return {
-						ok: false,
-						exitCode: nightParseResult.exitCode,
-						message: msg,
-					};
-				}
-
-				const nightGenResult = await generateTokens({
-					themeName: `${resolvedThemeName}-night`,
-					outputDir: pass.outputDir,
-					tokens: nightParseResult.tree,
-					platform: pass.platforms,
-					filterLayer: pass.filterLayer,
-					groupComments: nightParseResult.groupComments,
-					resolved: nightParseResult.resolved,
-					colorSpace: pass.colorSpace as ColorSpaceFormat | undefined,
-				});
-
-				if (nightGenResult.success) {
-					generatedFiles.push(...nightGenResult.files);
-					ctx?.addOutput('night', nightGenResult.files);
-					if (!ctx)
-						logger.success(
-							`Generated night: ${nightGenResult.files.join(', ')}`,
-						);
-				}
-			}
-		} else {
-			for (const pass of passes) {
-				const nightGenResult = await generateThemeTokens(
-					`${resolvedThemeName}-night`,
-					pass.outputDir,
-					depResult,
-					pass.platforms,
-					pass.filterLayer,
-					pass.colorSpace as ColorSpaceFormat | undefined,
-				);
-				if (nightGenResult.success) {
-					generatedFiles.push(...nightGenResult.files);
-					ctx?.addOutput('night', nightGenResult.files);
-					if (!ctx)
-						logger.success(
-							`Generated night: ${nightGenResult.files.join(', ')}`,
-						);
-				}
-			}
-		}
-	}
-
-	// Step 6: Generate variants
-	const variantsDetection = detectVariants(themeDir, generateOptions);
-	const variantNames = variantsDetection.files.map((f) =>
-		path.basename(f, '.yaml'),
-	);
-	if (variantsDetection.available) {
-		ctx?.setVariants('enabled', variantsDetection.files.length, variantNames);
-	} else if (variantsDetection.message.includes('disabled')) {
-		ctx?.setVariants('disabled', 0, []);
-	} else {
-		ctx?.setVariants('none', 0, []);
-	}
-	if (!ctx) logger.info(variantsDetection.message);
-
-	if (variantsDetection.available) {
-		for (const variantFile of variantsDetection.files) {
-			const variantName = path.basename(variantFile, '.yaml');
-			if (!isSelected(selectedThemes, variantName)) {
-				continue;
-			}
-			const isNightVariant = variantName.endsWith('@night');
-			const baseName = isNightVariant
-				? variantName.replace('@night', '')
-				: variantName;
-			const suffix = isNightVariant ? `-${baseName}-night` : `-${baseName}`;
-
-			for (const pass of passes) {
-				const variantTokens = await processThemeDocument(
-					variantFile,
-					dict,
-					pass.colorSpace as ColorSpaceFormat | undefined,
-				);
-
-				if (!variantTokens.ok) {
-					const msg = variantTokens.line
-						? `${variantTokens.message} at line ${variantTokens.line}`
-						: variantTokens.message;
-					ctx?.markFailed('parse', msg, { phase: 'variant parse' });
-					return {
-						ok: false,
-						exitCode: variantTokens.exitCode,
-						message: msg,
-					};
-				}
-
-				const variantResult = await generateTokens({
-					themeName: `${resolvedThemeName}${suffix}`,
-					outputDir: pass.outputDir,
-					tokens: variantTokens.tree,
-					platform: pass.platforms,
-					filterLayer: pass.filterLayer,
-					groupComments: variantTokens.groupComments,
-					resolved: variantTokens.resolved,
-					colorSpace: pass.colorSpace as ColorSpaceFormat | undefined,
-				});
-
-				if (variantResult.success) {
-					generatedFiles.push(...variantResult.files);
-					ctx?.addOutput('variant', variantResult.files, variantName);
-					if (!ctx) {
-						logger.success(
-							`Generated variant ${variantName}: ${variantResult.files.join(', ')}`,
-						);
-					}
-				}
-			}
+		const profilePasses = buildGroupPasses(
+			document.parsed,
+			document.buildDir,
+			cliOutput,
+			cliPlatform,
+		);
+		for (const pass of profilePasses) {
+			const result = await generatePass(
+				profileThemeName(resolvedThemeName, document),
+				path.dirname(entry.path),
+				pass.outputDir,
+				profileDepResult.dict,
+				profileDepResult,
+				pass.platforms,
+				pass.filterLayer,
+				pass.colorSpace,
+				generateOptions,
+				entry.path,
+				document.tokenContent,
+				ctx,
+				warnLegacyFallback,
+				entry.isDefault ? 'main' : 'profile',
+				entry.isDefault ? undefined : entry.name,
+			);
+			if (!('files' in result)) return result;
+			generatedFiles.push(...result.files);
 		}
 	}
 

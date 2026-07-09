@@ -34,7 +34,7 @@ export type ThemeDoctorContextResult =
 export interface ThemeFileEntry {
 	name: string;
 	path: string;
-	/** Suffix appended to THEME for output naming: '' for main, '-night' for night, '-{variant}' for variants */
+	/** Suffix appended to THEME for output naming. */
 	suffix: string;
 }
 
@@ -74,41 +74,38 @@ export async function detectThemeFiles(
 		files.push({ name: 'main@night', path: nightPath, suffix: '-night' });
 	}
 
-	const variantsDir = path.join(themeDir, 'variants');
+	const profilesDir = path.join(themeDir, 'profiles');
 	if (
 		await fs
-			.access(variantsDir)
+			.access(profilesDir)
 			.then(() => true)
 			.catch(() => false)
 	) {
-		const entries = await fs.readdir(variantsDir, { withFileTypes: true });
-		const variantBases = new Set<string>();
+		const entries = await fs.readdir(profilesDir, { withFileTypes: true });
+		const bases = new Set<string>();
 		for (const entry of entries) {
 			if (entry.isFile() && entry.name.endsWith('.yaml')) {
-				const variantName = path.basename(entry.name, '.yaml');
-				// Skip @night variants — handled separately below
-				if (variantName.includes('@night')) continue;
-				variantBases.add(variantName);
+				const stem = path.basename(entry.name, '.yaml');
+				if (stem.endsWith('@night')) continue;
+				bases.add(stem);
 				files.push({
-					name: variantName,
-					path: path.join(variantsDir, entry.name),
-					suffix: `-${variantName}`,
+					name: stem,
+					path: path.join(profilesDir, entry.name),
+					suffix: `-${stem}`,
 				});
 			}
 		}
-		// Detect variant@night.yaml files
-		for (const base of variantBases) {
-			const nightFile = `${base}@night.yaml`;
-			const nightPath = path.join(variantsDir, nightFile);
+		for (const base of bases) {
+			const profileNightPath = path.join(profilesDir, `${base}@night.yaml`);
 			if (
 				await fs
-					.access(nightPath)
+					.access(profileNightPath)
 					.then(() => true)
 					.catch(() => false)
 			) {
 				files.push({
 					name: `${base}@night`,
-					path: nightPath,
+					path: profileNightPath,
 					suffix: `-${base}-night`,
 				});
 			}

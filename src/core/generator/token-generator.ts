@@ -119,19 +119,3 @@ export async function generateTokens(
 		};
 	}
 }
-
-/**
- * @deprecated Variant and night generation are orchestrated by the theme pipeline.
- * Use generateTokens with an explicit themeName instead.
- */
-export async function generateVariant(
-	baseName: string,
-	variantName: string,
-	outputDir: string,
-	tokens: WaveToken[],
-	isNight: boolean = false,
-): Promise<GeneratorResult> {
-	const suffix = isNight ? '-night' : `-${variantName}`;
-	const themeName = `${baseName}${suffix}`;
-	return generateTokens({ themeName, outputDir, tokens });
-}

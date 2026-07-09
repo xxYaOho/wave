@@ -58,6 +58,14 @@ describe('profile resolver', () => {
 		).toBe(true);
 	});
 
+	test('discovers default night path without treating it as a profile', async () => {
+		const profiles = await discoverProfiles(fixtureDir);
+		const main = profiles.find((profile) => profile.name === 'main');
+
+		expect(profiles.map((profile) => profile.name)).toEqual(['main', 'mobile']);
+		expect(main?.nightPath?.endsWith('main@night.yaml')).toBe(true);
+	});
+
 	test('default build selects only main', async () => {
 		const profiles = await discoverProfiles(fixtureDir);
 		const selected = resolveProfilesToBuild(profiles, { night: false });
@@ -109,6 +117,30 @@ describe('profile resolver', () => {
 		]);
 	});
 
+	test('default profile without local config inherits defaultParsed', async () => {
+		const noConfigDir = path.join(fixtureDir, 'no-config-main');
+		const profiles = await discoverProfiles(noConfigDir);
+		const main = profiles.find((profile) => profile.name === 'main')!;
+		const loadedThemefileConfig = {
+			THEME: 'legacy-owner',
+			PARAMETER: { platform: 'json', output: './dist' },
+			resources: [
+				{ kind: 'palette', ref: 'tailwindcss' },
+				{ kind: 'dimension', ref: 'wave' },
+			],
+			groups: [],
+		};
+
+		const document = await parseProfileDocument(main, {
+			defaultParsed: loadedThemefileConfig,
+			baseDir: noConfigDir,
+		});
+
+		expect(document.parsed.THEME).toBe('legacy-owner');
+		expect(document.parsed.PARAMETER.platform).toBe('json');
+		expect(document.parsed.resources).toEqual(loadedThemefileConfig.resources);
+	});
+
 	test('profile-local custom resources are normalized to absolute refs', async () => {
 		const profiles = await discoverProfiles(fixtureDir);
 		const main = profiles.find((profile) => profile.name === 'main')!;
@@ -125,6 +157,29 @@ describe('profile resolver', () => {
 					resource.kind === 'custom' &&
 					path.isAbsolute(resource.ref) &&
 					resource.ref.endsWith('resources/mobile-resource.yaml'),
+			),
+		).toBe(true);
+	});
+
+	test('profile-local non-custom resources are normalized to absolute refs', async () => {
+		const absoluteFixtureDir = path.join(fixtureDir, 'absolute-resource');
+		const profiles = await discoverProfiles(absoluteFixtureDir);
+		const main = profiles.find((profile) => profile.name === 'main')!;
+		const mobile = profiles.find((profile) => profile.name === 'mobile')!;
+		const base = await parseProfileDocument(main, {
+			baseDir: absoluteFixtureDir,
+		});
+		const document = await parseProfileDocument(mobile, {
+			baseParsed: base.parsed,
+			baseDir: absoluteFixtureDir,
+		});
+
+		expect(
+			document.parsed.resources.some(
+				(resource) =>
+					resource.kind === 'palette' &&
+					path.isAbsolute(resource.ref) &&
+					resource.ref.endsWith('resources/palette.yaml'),
 			),
 		).toBe(true);
 	});

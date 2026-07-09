@@ -450,7 +450,7 @@ describe('wave dt', () => {
 		expect(stdout).toContain('sketch-extensions2sketch.json');
 		expect(stdout).toContain('Night mode');
 		expect(stdout).toContain('disabled');
-		expect(stdout).toContain('Variants');
+		expect(stdout).toContain('Profiles');
 
 		const sketchOutput = JSON.parse(
 			await fs.readFile(

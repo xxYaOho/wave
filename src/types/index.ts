@@ -73,7 +73,7 @@ export interface ThemeInfo {
 	name: string;
 	path: string;
 	hasNight: boolean;
-	variants: string[];
+	profiles: string[];
 }
 
 export interface DoctorCheck {
@@ -197,7 +197,7 @@ export interface BuiltinDimension {
 				$description?: string;
 				$type?: string;
 				$value?: unknown;
-				[variantName: string]: unknown;
+				[scaleName: string]: unknown;
 			};
 		};
 	};

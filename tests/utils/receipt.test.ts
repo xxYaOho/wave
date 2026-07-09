@@ -17,7 +17,7 @@ describe('renderReceipt', () => {
 		ctx.addResource('dimension', 'wave', 'builtin');
 		ctx.addOutput('main', ['orca.json', 'orca.css']);
 		ctx.setNight('skipped');
-		ctx.setVariants('enabled', 1, ['assistant-app']);
+		ctx.setProfiles('single', 1, ['assistant-app']);
 
 		const out = renderReceipt(ctx);
 
@@ -30,7 +30,7 @@ describe('renderReceipt', () => {
 		expect(out).toContain('OUTPUTS');
 		expect(out).toContain('orca.json');
 		expect(out).toContain('Night mode');
-		expect(out).toContain('Variants');
+		expect(out).toContain('Profiles');
 		expect(out).toContain('Theme generation complete');
 		expect(out).toContain('Cheers >_<');
 	});
@@ -99,7 +99,7 @@ describe('renderReceipt', () => {
 		ctx.version = '1.0.0';
 		ctx.outputDir = 'out/';
 		ctx.setNight('disabled');
-		ctx.setVariants('none', 0, []);
+		ctx.setProfiles('default', 1, ['main']);
 
 		const out = renderReceipt(ctx);
 

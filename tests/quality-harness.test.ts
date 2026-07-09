@@ -373,7 +373,7 @@ describe('Quality Harness workspace and runner', () => {
 		expect(result.benchmarkFiles).toEqual(result.generateThemeFiles);
 	});
 
-	test('matches generateTheme output hashes for group night outputs', async () => {
+	test('matches generateTheme output hashes without legacy group night outputs', async () => {
 		const testCase = getDesignTokenCases('default').find(
 			(candidate) => candidate.id === 'config-group-variants',
 		);
@@ -388,23 +388,31 @@ describe('Quality Harness workspace and runner', () => {
 			result.benchmarkFiles.some((file) =>
 				file.includes('config-group-variants-night'),
 			),
-		).toBe(true);
+		).toBe(false);
 		expect(result.benchmarkFiles.some((file) => file.includes('-dark'))).toBe(
 			false,
 		);
 	});
 
-	test('matches generateTheme output hashes for legacy themefile cases', async () => {
+	test('runs legacy themefile cases through benchmark fallback', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-qh-legacy-'));
 		const testCase = getDesignTokenCases('legacy').find(
 			(candidate) => candidate.id === 'standard',
 		);
 		expect(testCase).toBeDefined();
-		const result = await checkDesignTokenGenerateThemeEquivalence(
-			testCase!,
-			'test-legacy-equivalence',
-		);
+		try {
+			const result = await runDesignTokenBenchmarkCase(testCase!, {
+				mode: 'legacy',
+				runId: 'test-legacy-fallback',
+				iteration: 0,
+				tmpRoot: tempDir,
+			});
 
-		expect(result.ok, JSON.stringify(result.issues, null, 2)).toBe(true);
-		expect(result.benchmarkFiles).toEqual(result.generateThemeFiles);
+			expect(result.status).toBe('success');
+			expect(result.outputFileNames).toContain('test-standard.json');
+			expect(result.outputFileNames).toContain('test-standard.css');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
 	});
 });
