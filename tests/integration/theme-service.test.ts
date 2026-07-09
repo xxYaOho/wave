@@ -1085,6 +1085,175 @@ describe('Theme Service Integration', () => {
 		});
 	});
 
+	describe('theme root output matrix', () => {
+		test('normalizes shadow lengths and outline border color references', async () => {
+			const tempThemeDir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-root-matrix-'),
+			);
+			const outputDir = path.join(tempThemeDir, 'out');
+			const themePath = path.join(tempThemeDir, 'main.yaml');
+			await fs.writeFile(
+				themePath,
+				`$schema: "https://www.designtokens.org/tr/2025.10/format/"
+$config:
+  theme: root-matrix
+  resource:
+    palette: [tailwindcss]
+    dimension: [wave]
+  parameter:
+    outputDir: ./out
+    filterLayer: 1
+theme:
+  color:
+    base:
+      $type: color
+      $value: "#2563eb"
+    alias:
+      $type: color
+      $value: "{theme.color.base}"
+    external:
+      $type: color
+      $value: "{tailwindcss.color.slate.800}"
+  shadow:
+    ref-length:
+      $type: shadow
+      $value:
+        color: "{theme.color.base}"
+        offsetX: 0
+        offsetY: "{wave.dimension.px.2}"
+        blur: "{wave.dimension.px.4}"
+        spread: 0
+  border:
+    outline:
+      direct-hex:
+        $type: border
+        $value: { color: "#2563eb", width: 1, style: solid }
+        $extensions: { outline: { offset: 2 } }
+      token-curly-base:
+        $type: border
+        $value: { color: "{theme.color.base}", width: 1, style: solid }
+        $extensions: { outline: { offset: 2 } }
+      token-curly-alias:
+        $type: border
+        $value: { color: "{theme.color.alias}", width: 1, style: solid }
+        $extensions: { outline: { offset: 2 } }
+      token-curly-external:
+        $type: border
+        $value: { color: "{theme.color.external}", width: 1, style: solid }
+        $extensions: { outline: { offset: 2 } }
+      pointer-token:
+        $type: border
+        $value:
+          color: { $ref: "#/theme/color/base" }
+          width: 1
+          style: solid
+        $extensions: { outline: { offset: 2 } }
+      pointer-value:
+        $type: border
+        $value:
+          color: { $ref: "#/theme/color/base/$value" }
+          width: 1
+          style: solid
+        $extensions: { outline: { offset: 2 } }
+      pointer-alias-value:
+        $type: border
+        $value:
+          color: { $ref: "#/theme/color/alias/$value" }
+          width: 1
+          style: solid
+        $extensions: { outline: { offset: 2 } }
+      ref-width:
+        $type: border
+        $value:
+          color: "{theme.color.base}"
+          width: "{wave.dimension.px.2}"
+          style: solid
+        $extensions: { outline: { offset: 2 } }
+`,
+			);
+
+			try {
+				const result = await generateTheme({
+					themeName: 'root-matrix',
+					themePath,
+					cliOutput: outputDir,
+					cliPlatform: 'css,sketch',
+					generateOptions: { night: false },
+				});
+
+				expect(result.ok).toBe(true);
+				const css = await fs.readFile(
+					path.join(outputDir, 'root-matrix.css'),
+					'utf-8',
+				);
+				const sketch = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'root-matrix2sketch.json'),
+						'utf-8',
+					),
+				);
+
+				expect(css).toContain(
+					'--shadow-ref-length: 0 4px 8px 0 rgb(37 99 235 / 1);',
+				);
+				expect(css).toContain(
+					'--border-outline-direct-hex: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-token-curly-base: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-token-curly-alias: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-token-curly-external: 1px solid #1d293d;',
+				);
+				expect(css).toContain(
+					'--border-outline-pointer-token: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-pointer-value: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-pointer-alias-value: 1px solid #2563eb;',
+				);
+				expect(css).toContain(
+					'--border-outline-ref-width: 4px solid #2563eb;',
+				);
+				expect(css).not.toContain('[object Object]');
+				expect(css).not.toContain('1px solid currentColor');
+
+				expect(
+					sketch['border-outline-direct-hex'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(
+					sketch['border-outline-token-curly-base'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(
+					sketch['border-outline-token-curly-alias'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(
+					sketch['border-outline-token-curly-external'].shadow[0].color,
+				).toBe('#1d293dff');
+				expect(
+					sketch['border-outline-pointer-token'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(
+					sketch['border-outline-pointer-value'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(
+					sketch['border-outline-pointer-alias-value'].shadow[0].color,
+				).toBe('#2563ebff');
+				expect(sketch['border-outline-ref-width'].shadow[0]).toMatchObject({
+					spread: 6,
+					color: '#2563ebff',
+				});
+			} finally {
+				await fs.rm(tempThemeDir, { recursive: true, force: true });
+			}
+		});
+	});
+
 	describe('错误处理', () => {
 		test('应在 themefile 不存在时返回错误', async () => {
 			const result = await generateTheme({

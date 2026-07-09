@@ -214,6 +214,42 @@ describe('smoothShadow transformation', () => {
 		expect(layers[0]!.offsetY).toMatch(/rem$/);
 	});
 
+	test('does not double-normalize smooth shadow color output', () => {
+		const input: ResolvedTokenGroup = {
+			shadow: {
+				$type: 'shadow',
+				raised: {
+					$value: {
+						color: '#0f172b33',
+						offsetX: 0,
+						offsetY: { value: 4, unit: 'px' },
+						blur: { value: 8, unit: 'px' },
+						spread: 0,
+					},
+					$extensions: {
+						smoothShadow: {
+							cubicBezier: [0, 0, 1, 1],
+							step: 2,
+						},
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input, undefined, 'oklch');
+		const layers = findToken(result.tokens, 'shadow-raised').value as {
+			color: string;
+			offsetY: string;
+			blur: string;
+		}[];
+
+		expect(layers).toHaveLength(2);
+		expect(layers[0]!.color).toMatch(/^oklch\(/);
+		expect(layers[1]!.color).toMatch(/^oklch\(/);
+		expect(layers[1]!.offsetY).toBe('4px');
+		expect(layers[1]!.blur).toBe('8px');
+	});
+
 	test('derives target shadow layers from seed to target', () => {
 		const input: ResolvedTokenGroup = {
 			shadow: {
