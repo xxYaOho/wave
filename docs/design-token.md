@@ -73,8 +73,6 @@ $config:
       - wave
   parameter:
     outputDir: ./theme
-    night: false
-    variants: false
   parameterGroup:
     css:
       platform:
@@ -109,8 +107,6 @@ theme:
 | `platform` | 输出格式，支持 `json`、`jsonc`、`css`、`sketch` | `json` |
 | `colorSpace` | 输出色彩空间，支持 `hex`、`oklch`、`srgb`、`hsl` | `hex` |
 | `filterLayer` | 输出 key 的过滤层级 | `0` |
-| `night` | 是否生成 night 输出 | `auto` |
-| `variants` | 是否生成 variants 输出，或指定 variant 列表 | `auto` |
 
 命令行参数优先级高于 `parameterGroup`，`parameterGroup` 高于全局 `parameter`。
 
@@ -125,11 +121,10 @@ theme:
     text:
       default:
         $value: "#0f172a"
-  dimension:
-    $type: dimension
-    radius:
-      card:
-        $value: 8
+  radius:
+    card:
+      $type: dimension
+      $value: 8
 ```
 
 引用 resource：
@@ -140,11 +135,10 @@ theme:
     $type: color
     primary:
       $value: "{tailwindcss.color.indigo.600}"
-  dimension:
-    $type: dimension
-    space:
-      md:
-        $value: "{wave.dimension.px.16}"
+  radius:
+    md:
+      $type: dimension
+      $value: "{wave.dimension.px.16}"
 ```
 
 引用本地 token：
@@ -171,12 +165,14 @@ theme:
 示例：
 
 ```bash
-wave dt --platform json --platform css
+wave dt --platform json,css
 wave dt --platform sketch
-wave dt --variant dark
-wave dt --no-night
-wave dt --no-variants
+wave dt build --profile mobile
+wave dt build --profiles all
+wave dt build --night
 ```
+
+CSS 输出包含 `theme.color`、`theme.state`、`theme.shadow`、`theme.gradient`、`theme.border`、`theme.radius` 和 `theme.font`。`theme.dimension` 不再作为 public output root；运行 `wave dt doctor -f ./main.yaml` 可查看迁移建议。
 
 ## Shadow 与 smoothShadow
 
@@ -308,27 +304,26 @@ theme:
 
 ### property
 
-`property` 用于把 dimension 或 number token 映射为 Sketch 样式字段。第一版只支持白名单字段：
+`property` 用于把指定 token 映射为 Sketch 样式字段。当前只支持白名单字段：
 
 | 字段 | 输出 | 适用 token |
 | --- | --- | --- |
-| `opacity: true` | `{ opacity: value }` | `theme.dimension.*` 下的 `number` 或 `dimension` |
-| `cornerRadius: true` | `{ corners: { radii: value } }` | `theme.dimension.*` 下的 `number` 或 `dimension` |
+| `opacity: true` | `{ opacity: value }` | `theme.state.*` 下的 `number` |
+| `cornerRadius: true` | `{ corners: { radii: value } }` | radius/dimension 类 token |
 
 opacity 示例：
 
 ```yaml
 theme:
-  dimension:
-    interaction:
-      hover:
-        $type: number
-        $value: 0.16
-        $extensions:
-          sketch:
-            path: "foundation/interaction"
-            property:
-              opacity: true
+  state:
+    hover:
+      $type: number
+      $value: 0.16
+      $extensions:
+        sketch:
+          path: "foundation/interaction"
+          property:
+            opacity: true
 ```
 
 输出：
@@ -337,7 +332,7 @@ theme:
 {
   "foundation": {
     "interaction": {
-      "interaction-hover": {
+      "hover": {
         "opacity": 0.16
       }
     }
@@ -349,16 +344,15 @@ cornerRadius 示例：
 
 ```yaml
 theme:
-  dimension:
-    radius:
-      card:
-        $type: dimension
-        $value: 8
-        $extensions:
-          sketch:
-            path: "foundation/radius"
-            property:
-              cornerRadius: true
+  radius:
+    card:
+      $type: dimension
+      $value: 8
+      $extensions:
+        sketch:
+          path: "foundation/radius"
+          property:
+            cornerRadius: true
 ```
 
 输出：
@@ -382,23 +376,22 @@ theme:
 - `property` 必须是对象。
 - 只允许 `opacity` 和 `cornerRadius`。
 - 值必须是 `true`；`false`、`"true"`、`"ture"` 都是错误。
-- `property` 只能用于 `number` 或 `dimension` token。
-- `property` 必须位于 `theme.dimension.*` 或等价 dimension root 下。
+- `property.opacity` 只能用于 `theme.state.*` 下的 `number` token。
+- `property.cornerRadius` 可用于 radius/dimension 类 token。
 - `color` token 不能使用 `property.opacity` 或 `property.cornerRadius`。
 
 错误示例：
 
 ```yaml
 theme:
-  dimension:
-    interaction:
-      hover:
-        $type: number
-        $value: 0.16
-        $extensions:
-          sketch:
-            property:
-              fillColor: ture
+  state:
+    hover:
+      $type: number
+      $value: 0.16
+      $extensions:
+        sketch:
+          property:
+            fillColor: ture
 ```
 
 这里有两个错误：`fillColor` 不是支持的属性，`ture` 也不是布尔值 `true`。
@@ -407,18 +400,17 @@ theme:
 
 ```yaml
 theme:
-  dimension:
-    interaction:
-      hover:
-        $type: color
-        $value: "#000000"
-        $extensions:
-          sketch:
-            property:
-              opacity: true
+  state:
+    hover:
+      $type: color
+      $value: "#000000"
+      $extensions:
+        sketch:
+          property:
+            opacity: true
 ```
 
-这里会失败，因为 `opacity` 只接受 `number` 或 `dimension` token。
+这里会失败，因为 `opacity` 只接受 `theme.state.*` 下的 `number` token。
 
 ## `$extends` 与 Sketch extensions
 
@@ -499,6 +491,8 @@ config: ~/.config/wave/resources/
 
 - 新项目优先使用 `main.yaml` + `$config`。
 - `themefile` 和 `wave create` 仍可用于旧项目兼容。
+- `variants/`、`--variant`、`--variants` 和 `--no-variants` 不再支持；旧 variant 拆到 `profiles/<name>.yaml`。
+- `theme.dimension` 不再作为 public output root；迁移到 `theme.state`、`theme.shadow`、`theme.gradient` 或 `theme.radius`。
 - Sketch 属性映射写 `$extensions.sketch.property`，旧 `sketchMap` 不再作为映射来源。
 - Sketch 分组路径写 `$extensions.sketch.path`；叶子名仍由 `filterLayer` 后的 flat-json key 决定。
 - component token 不再映射为 Sketch component style 字段。

@@ -46,10 +46,10 @@ wave dt build
 | 文件 | 职责 |
 | --- | --- |
 | `themefile` | 构建入口，声明主题名、资源和输出参数 |
-| `main.yaml` | token 内容来源 |
-| `main@night.yaml` | night 覆盖文件，可选 |
-| `variants/*.yaml` | 变体覆盖文件，可选 |
-| `variants/*@night.yaml` | 变体的 night 覆盖文件，可选 |
+| `main.yaml` | default profile 和 token 内容来源 |
+| `profiles/<name>.yaml` | named profile，可选 |
+| `main@night.yaml` | default profile 的 Night Mode 覆盖文件，可选 |
+| `profiles/<name>@night.yaml` | named profile 的 Night Mode 覆盖文件，可选 |
 
 `RESOURCE` 只提供引用解析数据，不直接决定输出内容。
 
@@ -137,11 +137,10 @@ theme:
       $value: "{tailwindcss.color.indigo.600}"
     onPrimary:
       $value: "#ffffff"
-  dimension:
-    radius:
+  radius:
+    card:
       $type: dimension
-      card:
-        $value: "12px"
+      $value: "12px"
 ```
 
 直接运行 `wave dt build` 时，`main.yaml` 需要包含 `$config`：
@@ -260,6 +259,10 @@ inverse:
 | `css` | `{theme}.css` | CSS 变量 |
 | `sketch` | `{theme}2sketch.json` | Sketch JSON |
 
+CSS 输出包含 `color`、`state`、`shadow`、`gradient`、`border`、`radius` 和 `font` roots。`theme.dimension` 不再作为 public output root；构建时会提示迁移，完整建议由 `wave dt doctor` 输出。
+
+Typography token 会在 CSS 中输出字段变量和 shorthand 变量，在 Sketch 中输出 text shared style payload。带 `outline` extension 的 border token 会在 CSS 中输出 outline value 和 offset companion，在 Sketch 中用两层 shadow 模拟 outline。
+
 多平台用逗号分隔：
 
 ```text
@@ -278,8 +281,9 @@ PARAMETER platform json,jsonc,css,sketch
 | `smoothGradient` | token | `gradient` | 从 2 个 stop 派生平滑渐变 |
 | `inheritColor` | token | `color` | 输出继承上下文颜色 |
 | `sketch.path` | group 或 token | 任意 token | 调整 Sketch 输出路径 |
-| `sketch.property.opacity` | token | `theme.dimension.*` 下的 `number` 或 `dimension` | 输出 Sketch opacity 字段 |
-| `sketch.property.cornerRadius` | token | `theme.dimension.*` 下的 `number` 或 `dimension` | 输出 Sketch corners.radii 字段 |
+| `sketch.property.opacity` | token | `theme.state.*` 下的 `number` | 输出 Sketch opacity 字段 |
+| `sketch.property.cornerRadius` | token | radius/dimension 类 token | 输出 Sketch corners.radii 字段 |
+| `outline` | border token | `border` | 输出 CSS outline 和 Sketch 双层 shadow 模拟 |
 | `composite` | group | 直接子节点必须是 token | 把一组 token 合并为组件对象 |
 | `currentColor` | token | legacy | 旧项目兼容字段，新内容使用 `inheritColor` |
 
@@ -409,26 +413,23 @@ theme:
         path: foundation/color
     primary:
       $value: "#1872f0"
-  dimension:
-    interaction:
+  state:
+    hover:
+      $type: number
+      $value: 0.16
       $extensions:
         sketch:
           path: foundation/interaction
-      hover:
-        $type: number
-        $value: 0.16
-        $extensions:
-          sketch:
-            property:
-              opacity: true
-    radius:
-      card:
-        $type: dimension
-        $value: "12px"
-        $extensions:
-          sketch:
-            property:
-              cornerRadius: true
+          property:
+            opacity: true
+  radius:
+    card:
+      $type: dimension
+      $value: "12px"
+      $extensions:
+        sketch:
+          property:
+            cornerRadius: true
 ```
 
 字段：
@@ -436,8 +437,8 @@ theme:
 | 字段 | 说明 |
 | --- | --- |
 | `sketch.path` | Sketch 输出中的嵌套路径，例如 `foundation/color`；可写在 group 或 token 上 |
-| `sketch.property.opacity` | 在 Sketch dimension 输出中写 `{ opacity: value }` |
-| `sketch.property.cornerRadius` | 在 Sketch dimension 输出中写 `{ corners: { radii: value } }` |
+| `sketch.property.opacity` | 在 Sketch 输出中写 `{ opacity: value }` |
+| `sketch.property.cornerRadius` | 在 Sketch 输出中写 `{ corners: { radii: value } }` |
 
 `sketch.path` 使用 slash 分组。Wave 会把它写成嵌套对象，而不是把 slash 当成一个 flat key：
 
@@ -483,11 +484,12 @@ Sketch 输出不再固定包裹 `color`、`style`、`dimension` 或 `component` 
 - `sketch.path` 不能包含首尾 slash、空分段或 `.`。
 - `sketch.property` 只支持 `opacity` 和 `cornerRadius`。
 - `sketch.property.*` 的值必须是 `true`。
-- `sketch.property.*` 只能用于 `theme.dimension.*` 下的 `number` 或 `dimension` token。
+- `sketch.property.opacity` 可用于 `theme.state.*` 下的 `number` token。
+- `sketch.property.cornerRadius` 可用于 radius/dimension 类 token。
 - `sketch.property` 只能写在 token 上，不能写在 group 上。
 - 两个 token 经过 `sketch.path` 和 `filterLayer` 后不能输出到同一路径；冲突会报错。
 - 例如 `$type: number` 搭配 `sketch.property.fillColor: true` 会报错，因为 `fillColor` 不是支持的 Sketch property。
-- 例如 `$type: color` 搭配 `sketch.property.opacity: true` 会报错，因为 `opacity` 只允许 dimension root 下的 `number` 或 `dimension` token。
+- 例如 `$type: color` 搭配 `sketch.property.opacity: true` 会报错，因为 `opacity` 只接受 state number token。
 
 ## composite
 
@@ -545,35 +547,51 @@ doctor:
 
 ```bash
 wave dt wcag
-wave dt wcag dark
-wave dt wcag dark --night
+wave dt wcag mobile
+wave dt wcag mobile --night
+wave dt wcag --profile mobile
 ```
 
-## 变体和 night
+## Profile 和 Night Mode
 
-默认构建会检查：
+默认构建只构建 `main.yaml`：
+
+```bash
+wave dt build -f ./themefile
+```
+
+构建 named profile：
+
+```bash
+wave dt build -f ./themefile --profile mobile
+wave dt build -f ./themefile --profiles all
+```
+
+Profile 文件放在：
 
 ```text
 main.yaml
-main@night.yaml
-variants/*.yaml
-variants/*@night.yaml
+profiles/mobile.yaml
 ```
 
-常用命令：
+Night Mode 是覆盖文件，不是 profile。需要 night 输出时显式加 `--night`：
 
 ```bash
-wave dt build -f ./themefile --no-night
-wave dt build -f ./themefile --no-variants
-wave dt build -f ./themefile --variant dark
-wave dt build -f ./themefile --variants dark,brand
+wave dt build -f ./themefile --night
+wave dt build -f ./themefile --profile mobile --night
+wave dt build -f ./themefile --profiles all --night
 ```
 
-`--variant <name>` 可重复使用，适合只构建一个或少量变体；`--variants <names>` 使用逗号分隔列表。
+Night Mode 文件放在：
 
-night 和 variants 的开启、关闭或筛选当前通过命令行参数控制，不写入 `themefile` 或 `$config.parameter`。
+```text
+main@night.yaml
+profiles/mobile@night.yaml
+```
 
-只有项目中已经存在对应文件时，才指定对应变体或 night。
+缺失或无效的 Night Mode 不会阻断 day build。Wave 会输出 `Night Mode unavailable/invalid and skipped`，并跳过对应 night 文件。
+
+`variants/`、`--variant`、`--variants` 和 `--no-variants` 不再支持。旧项目需要把 variant 拆成 `profiles/<name>.yaml`。
 
 ## 常见错误
 
@@ -583,7 +601,8 @@ night 和 variants 的开启、关闭或筛选当前通过命令行参数控制�
 | `main.yaml` 缺少 `$config` | 改用 `wave dt build -f ./themefile`，或补齐 `$config` |
 | 出现 `Direct RESOURCE token generation is deprecated` | 当前目录缺少 `main.yaml`，Wave 正在使用旧兼容路径；运行 `wave dt init` 后把 token 内容迁移到 `main.yaml` |
 | 引用无法解析 | 检查 `RESOURCE` 是否声明，或 token 路径是否正确 |
-| Sketch opacity 不输出 | 确认 token 在 `theme.dimension.*` 下，且 `$type` 是 `number` 或 `dimension` |
+| Sketch opacity 不输出 | 确认 token 在 `theme.state.*` 下，且 `$type` 是 `number` |
+| 仍在使用 `theme.dimension` 输出 | 迁移到 `theme.state`、`theme.shadow`、`theme.gradient` 或 `theme.radius`；运行 `wave dt doctor -f ./main.yaml` 查看建议 |
 | WCAG 无检查项 | 确认存在 `doctor.wcagPairs` |
 
 ## 旧入口
