@@ -151,4 +151,56 @@ describe('theme schema', () => {
 		expect(result.valid).toBe(true);
 		expect(result.issues).toEqual([]);
 	});
+
+	test('allows sketch cornerRadius property under theme.radius', () => {
+		const result = validateThemeSchema({
+			theme: {
+				radius: {
+					md: {
+						$type: 'dimension',
+						$value: { value: 8, unit: 'px' },
+						$extensions: {
+							sketch: {
+								property: {
+									cornerRadius: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(true);
+		expect(result.issues).toEqual([]);
+	});
+
+	test('rejects sketch opacity property under theme.radius', () => {
+		const result = validateThemeSchema({
+			theme: {
+				radius: {
+					md: {
+						$type: 'number',
+						$value: 8,
+						$extensions: {
+							sketch: {
+								property: {
+									opacity: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(false);
+		expect(
+			result.issues.some((issue) =>
+				issue.message.includes(
+					'sketch.property.opacity must be under a dimension or state root',
+				),
+			),
+		).toBe(true);
+	});
 });

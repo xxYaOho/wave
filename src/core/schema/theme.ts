@@ -161,10 +161,21 @@ function validateInheritColor(
 	});
 }
 
-function isSketchPropertyPath(tokenPath: string): boolean {
+function isSketchPropertyPath(propertyKey: string, tokenPath: string): boolean {
 	const parts = tokenPath.split('.');
 	const rootIndex = parts[0] === 'theme' ? 1 : 0;
-	return parts[rootIndex] === 'dimension' || parts[rootIndex] === 'state';
+	const root = parts[rootIndex];
+	if (propertyKey === 'cornerRadius') {
+		return root === 'radius' || root === 'dimension';
+	}
+	return root === 'dimension' || root === 'state';
+}
+
+function sketchPropertyRootMessage(propertyKey: string): string {
+	if (propertyKey === 'cornerRadius') {
+		return 'sketch.property.cornerRadius must be under a radius or dimension root for Sketch property output';
+	}
+	return `sketch.property.${propertyKey} must be under a dimension or state root for Sketch property output`;
 }
 
 function validateSketchExtension(
@@ -263,11 +274,11 @@ function validateSketchExtension(
 				message: `${key} requires $type "number" or "dimension", got "${tokenType}"`,
 			});
 		}
-		if (!isSketchPropertyPath(tokenPath)) {
+		if (!isSketchPropertyPath(key, tokenPath)) {
 			issues.push({
 				path: `${tokenPath}.$extensions.sketch.property.${key}`,
 				level: 'error',
-				message: `sketch.property.${key} must be under a dimension or state root for Sketch property output`,
+				message: sketchPropertyRootMessage(key),
 			});
 		}
 	}

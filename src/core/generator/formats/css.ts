@@ -165,6 +165,12 @@ function formatBorderValue(value: unknown): string {
 		return String(value);
 	}
 	const obj = value as Record<string, unknown>;
+	if (typeof obj.width === 'object' && obj.width !== null) {
+		throw new Error('CSS output requires transformer-normalized value');
+	}
+	if (typeof obj.color === 'object' && obj.color !== null) {
+		throw new Error('CSS output requires transformer-normalized value');
+	}
 	const width = formatCssLength(obj.width);
 	const style = String(obj.style ?? 'solid');
 	const color =
@@ -205,6 +211,28 @@ function pushGroupComments(
 	}
 }
 
+function pushTokenDeclaration(
+	lines: string[],
+	key: string,
+	token: WaveToken,
+	cssValue: string,
+): void {
+	const description = token.comment;
+	if (description && typeof description === 'string' && description !== '~') {
+		const isMultilineDescription = description.includes('\n');
+		if (isMultilineDescription) {
+			for (const descLine of description.split('\n')) {
+				lines.push(`  /* ${descLine} */`);
+			}
+			lines.push(`  --${key}: ${cssValue};`);
+		} else {
+			lines.push(`  --${key}: ${cssValue}; /* ${description} */`);
+		}
+	} else {
+		lines.push(`  --${key}: ${cssValue};`);
+	}
+}
+
 function shouldInclude(token: WaveToken, includeRootKeys?: string[]): boolean {
 	if (!includeRootKeys || includeRootKeys.length === 0) return true;
 	const root = publicRootKey(token);
@@ -239,30 +267,18 @@ export const cssVariablesFormat: WaveFormatFn = (
 			continue;
 		}
 
-		if (isOutlineBorder(token)) {
-			lines.push(`  --${key}: ${formatBorderValue(token.value)};`);
-			lines.push(
-				`  --${key}-offset: ${formatCssLength(token._outline!.offset)};`,
-			);
+		if (token.type === 'border') {
+			pushTokenDeclaration(lines, key, token, formatBorderValue(token.value));
+			if (isOutlineBorder(token)) {
+				lines.push(
+					`  --${key}-offset: ${formatCssLength(token._outline!.offset)};`,
+				);
+			}
 			continue;
 		}
 
 		const cssValue = formatTokenValue(token);
-
-		const description = token.comment;
-		if (description && typeof description === 'string' && description !== '~') {
-			const isMultilineDescription = description.includes('\n');
-			if (isMultilineDescription) {
-				for (const descLine of description.split('\n')) {
-					lines.push(`  /* ${descLine} */`);
-				}
-				lines.push(`  --${key}: ${cssValue};`);
-			} else {
-				lines.push(`  --${key}: ${cssValue}; /* ${description} */`);
-			}
-		} else {
-			lines.push(`  --${key}: ${cssValue};`);
-		}
+		pushTokenDeclaration(lines, key, token, cssValue);
 	}
 
 	lines.push('}');

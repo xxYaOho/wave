@@ -174,15 +174,25 @@ function parseOutlineWidth(value: unknown): number {
 		return 0;
 	}
 	const width = (value as Record<string, unknown>).width;
+	if (typeof width === 'object' && width !== null) {
+		throw new Error(
+			'Sketch outline output requires transformer-normalized width',
+		);
+	}
 	const parsed = parseDimensionNumber(width);
 	return parsed ?? 0;
 }
 
-function outlineColor(value: unknown): string {
+function outlineColor(value: unknown, token: WaveToken): string {
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
 		return '#000000';
 	}
 	const color = (value as Record<string, unknown>).color;
+	if (typeof color === 'object' && color !== null) {
+		throw new Error(
+			`Sketch outline output requires transformer-normalized color at ${tokenPathLabel(token)}`,
+		);
+	}
 	return typeof color === 'string' ? color : '#000000';
 }
 
@@ -400,7 +410,7 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 	if (token.type === 'border' && token._outline) {
 		const width = parseOutlineWidth(token.value);
 		const offset = token._outline.offset;
-		const color = outlineColor(token.value);
+		const color = outlineColor(token.value, token);
 		assertHexColor(color, token);
 		return {
 			shadow: [

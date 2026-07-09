@@ -297,14 +297,13 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).toContain('--border-outline-focus-offset: 0;');
 	});
 
-	test('formats outline border with currentColor fallback', () => {
+	test('formats normal border token as css border string', () => {
 		const tokens: WaveToken[] = [
 			{
-				name: 'theme-border-outline-focus',
-				path: ['theme', 'border', 'outline', 'focus'],
+				name: 'theme-border-card',
+				path: ['theme', 'border', 'card'],
 				type: 'border',
-				value: { width: 1 },
-				_outline: { offset: 2 },
+				value: { color: '#2563eb', width: '2px', style: 'solid' },
 				_order: 0,
 			},
 		];
@@ -314,7 +313,73 @@ describe('cssVariablesFormat (Wave-native)', () => {
 			filterLayer: 1,
 		});
 
-		expect(out).toContain('--border-outline-focus: 1px solid currentColor;');
+		expect(out).toContain('--border-card: 2px solid #2563eb;');
+		expect(out).not.toContain('[object Object]');
+	});
+
+	test('preserves comments on border tokens', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-card',
+				path: ['theme', 'border', 'card'],
+				type: 'border',
+				value: { color: '#2563eb', width: 1, style: 'solid' },
+				comment: 'card border',
+				_order: 0,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens, {
+			includeRootKeys: ['border'],
+			filterLayer: 1,
+		});
+
+		expect(out).toContain(
+			'--border-card: 1px solid #2563eb; /* card border */',
+		);
+	});
+
+	test('throws instead of falling back for object border color', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: {
+					color: { colorSpace: 'oklch', components: [0.5, 0.2, 260] },
+					width: 1,
+					style: 'solid',
+				},
+				_outline: { offset: 2 },
+				_order: 0,
+			},
+		];
+
+		expect(() =>
+			cssVariablesFormat(tokens, {
+				includeRootKeys: ['border'],
+				filterLayer: 1,
+			}),
+		).toThrow('CSS output requires transformer-normalized value');
+	});
+
+	test('throws instead of emitting object border width', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-card',
+				path: ['theme', 'border', 'card'],
+				type: 'border',
+				value: { color: '#2563eb', width: { value: 2, unit: 'px' } },
+				_order: 0,
+			},
+		];
+
+		expect(() =>
+			cssVariablesFormat(tokens, {
+				includeRootKeys: ['border'],
+				filterLayer: 1,
+			}),
+		).toThrow('CSS output requires transformer-normalized value');
 	});
 
 	test('throws instead of emitting object color value', () => {

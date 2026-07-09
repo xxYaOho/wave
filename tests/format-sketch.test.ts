@@ -133,6 +133,48 @@ describe('sketchFormat (Wave-native)', () => {
 		]);
 	});
 
+	test('throws instead of falling back for object outline color', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: {
+					color: { colorSpace: 'oklch', components: [0.5, 0.2, 260] },
+					width: 1,
+					style: 'solid',
+				},
+				_outline: { offset: 2 },
+				_order: 0,
+			},
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 1 })).toThrow(
+			'Sketch outline output requires transformer-normalized color',
+		);
+	});
+
+	test('throws instead of falling back for object outline width', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: {
+					color: '#000000',
+					width: { value: 1, unit: 'px' },
+					style: 'solid',
+				},
+				_outline: { offset: 2 },
+				_order: 0,
+			},
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 1 })).toThrow(
+			'Sketch outline output requires transformer-normalized width',
+		);
+	});
+
 	test('reverses multi-layer shadow order for sketch without mutating tokens', () => {
 		const originalValue = [
 			{ color: '#000000', offsetX: 0, offsetY: 1, blur: 2, spread: 0 },
@@ -240,5 +282,22 @@ describe('sketchFormat (Wave-native)', () => {
 		expect(JSON.stringify(parsed.font.v2['font-heading-h1'])).not.toContain(
 			'alignment',
 		);
+	});
+
+	test('formats theme radius cornerRadius property as corners radii', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-radius-md',
+				path: ['theme', 'radius', 'md'],
+				type: 'dimension',
+				value: '8px',
+				_order: 0,
+				_sketch: { property: { cornerRadius: true } },
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
+
+		expect(parsed['radius-md']).toEqual({ corners: { radii: 8 } });
 	});
 });
