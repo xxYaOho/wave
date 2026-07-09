@@ -343,12 +343,9 @@ describe('Quality Harness workspace and runner', () => {
 				color: '#0052f5ff',
 			});
 			expect(sketchOutput['primary-main']).toBeUndefined();
-			expect(sketchOutput.foundation.interaction['interaction-hover']).toEqual({
-				opacity: 0.08,
-			});
-			expect(
-				sketchOutput.foundation.shadow['shadow-raised'].shadow,
-			).toBeArray();
+			expect(sketchOutput.foundation.interaction).toBeUndefined();
+			expect(sketchOutput.foundation.radius).toBeUndefined();
+			expect(sketchOutput.foundation.shadow.raised.shadow).toBeArray();
 			expect(sketchOutput.foundation.gradient.mask.gradient).toBeArray();
 			expect(result.tokensCount).toBeGreaterThan(0);
 		} finally {

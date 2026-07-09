@@ -207,6 +207,10 @@ export async function generateTheme(
 ): Promise<ThemeGenerationResult> {
 	const { themeName, themePath, cliOutput, cliPlatform, generateOptions } =
 		input;
+	const resolvedCliOutput =
+		cliOutput && !path.isAbsolute(cliOutput)
+			? path.resolve(process.cwd(), cliOutput)
+			: cliOutput;
 	const legacyFallbackWarnings = new Set<string>();
 	const nightSkipWarnings = new Set<string>();
 	const warnLegacyFallback = (): void => {
@@ -304,7 +308,12 @@ export async function generateTheme(
 		}
 
 		ctx?.setProfiles('default', 1, ['main']);
-		const passes = buildGroupPasses(parsed, themeDir, cliOutput, cliPlatform);
+		const passes = buildGroupPasses(
+			parsed,
+			themeDir,
+			resolvedCliOutput,
+			cliPlatform,
+		);
 		const firstPass = passes[0]!;
 		if (ctx) ctx.outputDir = firstPass.outputDir;
 		for (const pass of passes) {
@@ -369,7 +378,7 @@ export async function generateTheme(
 	const firstPass = buildGroupPasses(
 		baseDocument.parsed,
 		baseDocument.buildDir,
-		cliOutput,
+		resolvedCliOutput,
 		cliPlatform,
 	)[0]!;
 	if (ctx) ctx.outputDir = firstPass.outputDir;
@@ -398,7 +407,7 @@ export async function generateTheme(
 		const profilePasses = buildGroupPasses(
 			document.parsed,
 			document.buildDir,
-			cliOutput,
+			resolvedCliOutput,
 			cliPlatform,
 		);
 		for (const pass of profilePasses) {

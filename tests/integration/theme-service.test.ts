@@ -29,6 +29,15 @@ function createTempOutputDir(): string {
 	return dir;
 }
 
+async function exists(filePath: string): Promise<boolean> {
+	try {
+		await fs.access(filePath);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 function makeInput(
 	overrides: Partial<ThemeGenerationInput> & {
 		themeName: string;
@@ -211,6 +220,59 @@ describe('Theme Service Integration', () => {
 				expect(result.generatedFiles).toContain('profile-model-mobile.json');
 			}
 			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('profiles all uses one cli output directory across profile files', async () => {
+			const outputDir = 'temp-output-profile-model-all';
+			const absoluteOutputDir = path.join(process.cwd(), outputDir);
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+
+			await fs.rm(absoluteOutputDir, { recursive: true, force: true });
+			await fs.rm(path.join(path.dirname(themePath), outputDir), {
+				recursive: true,
+				force: true,
+			});
+			await fs.rm(path.join(path.dirname(themePath), 'profiles', outputDir), {
+				recursive: true,
+				force: true,
+			});
+
+			const result = await generateTheme({
+				themeName: 'profile-model',
+				themePath,
+				cliOutput: outputDir,
+				generateOptions: { night: true, profiles: 'all' },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.outputDir).toBe(absoluteOutputDir);
+				expect(result.generatedFiles).toContain('profile-model.json');
+				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+				expect(
+					await exists(path.join(absoluteOutputDir, 'profile-model.json')),
+				).toBe(true);
+				expect(
+					await exists(
+						path.join(absoluteOutputDir, 'profile-model-mobile.json'),
+					),
+				).toBe(true);
+				expect(
+					await exists(
+						path.join(
+							path.dirname(themePath),
+							'profiles',
+							outputDir,
+							'profile-model-mobile.json',
+						),
+					),
+				).toBe(false);
+			}
+
+			await fs.rm(absoluteOutputDir, { recursive: true, force: true });
 		});
 
 		test('legacy themefile without main yaml still uses fallback when no profile is requested', async () => {
