@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Completed and released in Wave 0.16.0.
+
 **Goal:** Fix the regressions found by real `orca` and root-matrix testing after the profile-model refactor.
 
 **Architecture:** Keep the existing parser/resolver/transformer/generator boundaries. Fix packaged resource lookup at the resource boundary, make doctor inspect the same default `main.yaml` that build uses, normalize composite token values in the transformer, and make CSS/Sketch formatters reject or format normalized values instead of silently emitting fallback placeholders.
@@ -981,7 +983,7 @@ Append a new section to `docs/research/handoff.md`:
 
 Recorded at: paste the output of `date +%Y-%m-%dT%H:%M:%S%z`
 
-The manual-test regressions recorded above have been fixed in this worktree.
+The manual-test regressions recorded above have been fixed and released in 0.16.0.
 
 Verified:
 

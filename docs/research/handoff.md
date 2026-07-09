@@ -1,7 +1,7 @@
 # Wave DT Research Handoff
 
 Date: 2026-07-09
-Status: manual-test fixes implemented and verified in worktree
+Status: released in Wave 0.16.0
 
 ## Read First
 
@@ -11,18 +11,19 @@ Start from these files:
 - `docs/research/wave-dt-profile-model.md`
 - `docs/research/wave-token-helper-private.md`
 
-The implementation worktree is:
-
-```text
-/Users/teatao/.worktree/cli_wave/refactor-dt
-```
-
-Do not treat older research notes as implemented behavior. The approved plan is the execution source for this iteration.
+The implementation worktree used for this iteration has been merged and removed.
+Use `main` and the 0.16.0 release tag as the current source of truth.
 
 Implementation plans:
 
 - `docs/superpowers/plans/2026-07-09-wave-dt-profile-model.md`
 - `docs/superpowers/plans/2026-07-09-wave-dt-manual-test-fixes.md`
+
+Release closeout:
+
+- Version: `0.16.0`
+- Tag: `v0.16.0`
+- Merge commit: `75c59959ba8bb18652a4e78287fbb20e972d813f`
 
 ## Current Decision Summary
 
@@ -63,7 +64,7 @@ Follow-up deprecation direction:
 
 ## Execution Discipline
 
-Use Subagent-Driven execution.
+Historical execution discipline for this iteration:
 
 - Work in `/Users/teatao/.worktree/cli_wave/refactor-dt`.
 - Execute the approved plan task by task.
@@ -327,7 +328,7 @@ Implemented in this iteration:
 
 Recorded at: 2026-07-09T23:37:23+0800
 
-The manual-test regressions recorded above have been fixed in this worktree.
+The manual-test regressions recorded above have been fixed and released in 0.16.0.
 
 Verified:
 

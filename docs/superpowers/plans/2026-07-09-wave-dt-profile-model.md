@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status:** Completed and released in Wave 0.16.0.
+
 **Goal:** Implement the next `wave dt` profile model: explicit profiles, non-blocking Night Mode, public taxonomy roots, CSS typography/outline output, Sketch outline/text-style output, and dimension migration diagnostics.
 
 **Architecture:** Treat `main.yaml` as the default profile and project baseline, then build requested profiles through an explicit resolver instead of auto-discovering variants. Keep authoring semantics in the pipeline/transformer, keep platform decisions in CSS and Sketch formatters, and keep migration guidance split between build warnings and doctor diagnostics. Do not introduce executable `$helper` behavior in this iteration.

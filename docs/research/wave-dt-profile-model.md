@@ -1,12 +1,12 @@
 # Wave DT Profile Model Notes
 
 Date: 2026-07-08
-Status: iteration draft
+Status: implemented in Wave 0.16.0
 Audience: Wave maintainers and implementation agents
 
 ## Purpose
 
-This note records the current product-design consensus for a future Wave design-token model. It is not an implementation plan and does not describe current released behavior.
+This note records the product-design consensus implemented by the Wave 0.16.0 design-token profile model. Sections explicitly marked as future scope remain design notes, not released behavior.
 
 The discussion used these references:
 
