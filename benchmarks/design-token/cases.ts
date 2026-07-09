@@ -65,7 +65,7 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 			risks: [
 				'custom resources',
 				'parameter groups',
-				'variants',
+				'profile migration',
 				'css and sketch outputs',
 				'color alpha references',
 				'sketch property mapping',

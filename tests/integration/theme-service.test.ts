@@ -395,7 +395,7 @@ describe('Theme Service Integration', () => {
 			const result = await generateTheme({
 				themeName: 'orca-realistic',
 				themePath: path.join(fixtureDir, 'main.yaml'),
-				generateOptions: { night: false, variants: [] },
+				generateOptions: { night: false },
 			});
 
 			expect(result.ok).toBe(true);
@@ -480,7 +480,7 @@ describe('Theme Service Integration', () => {
 				const result = await generateTheme({
 					themeName: 'no-main-mixed',
 					themePath: path.join(tempThemeDir, 'themefile'),
-					generateOptions: { night: true, variants: [] },
+					generateOptions: { night: true },
 				});
 
 				if (!result.ok) throw new Error(result.message);
@@ -549,7 +549,7 @@ describe('Theme Service Integration', () => {
 					{
 						themeName: 'no-main-warning',
 						themePath: path.join(tempThemeDir, 'themefile'),
-						generateOptions: { night: false, variants: [] },
+						generateOptions: { night: false },
 					},
 					ctx,
 				);
@@ -621,7 +621,7 @@ describe('Theme Service Integration', () => {
 					{
 						themeName: 'no-main-groups',
 						themePath: path.join(tempThemeDir, 'themefile'),
-						generateOptions: { night: false, variants: [] },
+						generateOptions: { night: false },
 					},
 					ctx,
 				);
@@ -634,7 +634,7 @@ describe('Theme Service Integration', () => {
 			}
 		});
 
-		test('main night and variant mixed passes render sketch from hex tokens', async () => {
+		test('main and night mixed passes render sketch from hex tokens', async () => {
 			const tempThemeDir = await fs.mkdtemp(
 				path.join(os.tmpdir(), 'wave-mixed-branches-'),
 			);
@@ -697,16 +697,11 @@ describe('Theme Service Integration', () => {
 					path.join(tempThemeDir, 'main@night.yaml'),
 					'#0052f5',
 				);
-				await writeThemeYaml(
-					path.join(tempThemeDir, 'variants', 'dark.yaml'),
-					'#1860dd',
-				);
-
 				for (const run of [1, 2]) {
 					const result = await generateTheme({
 						themeName: 'mixed-branches',
 						themePath: path.join(tempThemeDir, 'themefile'),
-						generateOptions: { night: true, variants: ['dark'] },
+						generateOptions: { night: true },
 					});
 					expect(result.ok).toBe(true);
 					if (run === 1) {
@@ -716,7 +711,7 @@ describe('Theme Service Integration', () => {
 					}
 				}
 
-				for (const suffix of ['', '-night', '-dark']) {
+				for (const suffix of ['', '-night']) {
 					const css = await fs.readFile(
 						path.join(outputDir, `mixed-branches${suffix}.css`),
 						'utf-8',

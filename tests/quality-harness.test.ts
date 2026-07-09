@@ -72,7 +72,7 @@ describe('Quality Harness design-token case registry', () => {
 			(testCase) => testCase.id === 'orca-realistic',
 		);
 		expect(orca?.origin).toBe('example-derived');
-		expect(orca?.example?.risks).toContain('variants');
+		expect(orca?.example?.risks).toContain('profile migration');
 		expect(orca?.example?.risks).toContain('css and sketch outputs');
 	});
 });
@@ -308,7 +308,7 @@ describe('Quality Harness workspace and runner', () => {
 		}
 	});
 
-	test('runs an example-derived design-token case with variant artifacts', async () => {
+	test('runs an example-derived design-token case without legacy variant artifacts', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-qh-'));
 		try {
 			const testCase = getDesignTokenCases('default').find(
@@ -324,11 +324,7 @@ describe('Quality Harness workspace and runner', () => {
 
 			expect(result.status).toBe('success');
 			expect(result.outputFileNames).toEqual([
-				path.join('css', 'orca-realistic-assistant-app.css'),
-				path.join('css', 'orca-realistic-viz-fos.css'),
 				path.join('css', 'orca-realistic.css'),
-				path.join('sketch', 'orca-realistic-assistant-app2sketch.json'),
-				path.join('sketch', 'orca-realistic-viz-fos2sketch.json'),
 				path.join('sketch', 'orca-realistic2sketch.json'),
 			]);
 			expect(
@@ -377,7 +373,7 @@ describe('Quality Harness workspace and runner', () => {
 		expect(result.benchmarkFiles).toEqual(result.generateThemeFiles);
 	});
 
-	test('matches generateTheme output hashes for group night and variant outputs', async () => {
+	test('matches generateTheme output hashes for group night outputs', async () => {
 		const testCase = getDesignTokenCases('default').find(
 			(candidate) => candidate.id === 'config-group-variants',
 		);
@@ -393,11 +389,9 @@ describe('Quality Harness workspace and runner', () => {
 				file.includes('config-group-variants-night'),
 			),
 		).toBe(true);
-		expect(
-			result.benchmarkFiles.some((file) =>
-				file.includes('config-group-variants-dark'),
-			),
-		).toBe(true);
+		expect(result.benchmarkFiles.some((file) => file.includes('-dark'))).toBe(
+			false,
+		);
 	});
 
 	test('matches generateTheme output hashes for legacy themefile cases', async () => {

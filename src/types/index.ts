@@ -62,7 +62,8 @@ export interface DetectionResult {
 
 export interface GenerateOptions {
 	night: boolean;
-	variants?: string[] | undefined;
+	profile?: string | undefined;
+	profiles?: 'all' | undefined;
 	brand?: string | undefined;
 	platform?: string[];
 	colorSpace?: ColorSpaceFormat;

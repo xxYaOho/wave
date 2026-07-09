@@ -60,7 +60,6 @@ async function timed<T>(fn: () => Promise<T>): Promise<TimedValue<T>> {
 function makeGenerateOptions(testCase: DesignTokenCase): GenerateOptions {
 	return {
 		night: testCase.includeNight,
-		variants: testCase.includeVariants ? undefined : [],
 		platform: testCase.platforms,
 	};
 }

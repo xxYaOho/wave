@@ -81,11 +81,11 @@ function compareVersions(a: string, b: string): number {
 function resolveExplicitTheme(
 	allFiles: ThemeFileEntry[],
 	night: boolean,
-	variantName: string | undefined,
+	profileName: string | undefined,
 ): ThemeFileEntry | undefined {
-	if (!night && !variantName) return undefined;
+	if (!night && !profileName) return undefined;
 
-	const baseName = variantName ?? 'main';
+	const baseName = profileName ?? 'main';
 	const targetName = night ? `${baseName}@night` : baseName;
 
 	const match = allFiles.find((f) => f.name === targetName);
@@ -102,7 +102,7 @@ interface DoctorCommandOptions {
 	file?: string;
 	contrast?: boolean;
 	night?: boolean;
-	variants?: string;
+	profile?: string;
 	theme?: boolean;
 	json?: boolean;
 	verbose?: boolean;
@@ -115,14 +115,14 @@ export function createDoctorCommand(name = 'doctor'): Command {
 		.option('-f, --file <path>', 'Themefile path to validate')
 		.option('-o, --output <path>', 'Output directory to check')
 		.option('--contrast', 'Run WCAG contrast check on theme colors')
-		.option('--night', 'Check night variant (use with --contrast)')
+		.option('--night', 'Check night profile (use with --contrast)')
+		.option(
+			'--profile <name>',
+			'Check specific profile by name (use with --contrast)',
+		)
 		.option('--json', 'Output structured JSON for core diagnostics')
 		.option('--verbose', 'Show detailed core diagnostics')
 		.option('--status', 'Show compact core health status')
-		.option(
-			'--variants <name>',
-			'Check specific variant by name (use with --contrast)',
-		)
 		.addOption(
 			new Command()
 				.createOption('--theme', '(deprecated) Use --contrast instead')
@@ -240,17 +240,17 @@ export function createDoctorCommand(name = 'doctor'): Command {
 			}
 
 			// Selection strategy:
-			// 1. Explicit --night / --variants → non-interactive, resolve directly
+			// 1. Explicit --night / --profile → non-interactive, resolve directly
 			// 2. No explicit scope + interactive TTY + single theme → auto-select
 			// 3. No explicit scope + interactive TTY + multiple themes → TUI selector
 			// 4. No explicit scope + non-TTY → default to main
 			let selectedTheme: ThemeFileEntry;
 
-			const hasExplicitScope = !!options.night || !!options.variants;
+			const hasExplicitScope = !!options.night || !!options.profile;
 			const explicit = resolveExplicitTheme(
 				allThemeFiles,
 				!!options.night,
-				options.variants,
+				options.profile,
 			);
 			if (hasExplicitScope && !explicit) {
 				return;

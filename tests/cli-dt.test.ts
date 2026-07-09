@@ -65,6 +65,92 @@ describe('wave dt', () => {
 		expect(designToken.stdout).toBe(dt.stdout);
 	});
 
+	test('dt build help exposes profile options and removes variant options', async () => {
+		const result = await runWave(['dt', 'build', '--help']);
+
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain('--profile <name>');
+		expect(result.stdout).toContain('--profiles <mode>');
+		expect(result.stdout).toContain('--night');
+		expect(result.stdout).not.toContain('--variant');
+		expect(result.stdout).not.toContain('--variants');
+		expect(result.stdout).not.toContain('--no-variants');
+		expect(result.stdout).not.toContain('--no-night');
+	});
+
+	test('dt build rejects removed variant flags', async () => {
+		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/standard');
+		const result = await runWave([
+			'dt',
+			'build',
+			'-f',
+			path.join(fixtureDir, 'themefile'),
+			'--variant',
+			'dark',
+		]);
+
+		expect(result.exitCode).not.toBe(0);
+		expect(`${result.stdout}\n${result.stderr}`).toContain('unknown option');
+	});
+
+	test('dt build no longer auto-discovers variants directory', async () => {
+		const fixtureDir = path.join(
+			rootDir,
+			'tests/fixtures/themes/config-group-variants',
+		);
+		const outputDir = path.join(fixtureDir, 'theme');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const { exitCode, stdout } = await runWave(['dt', 'build'], fixtureDir);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('config-group-variants.css');
+		expect(stdout).not.toContain('config-group-variants-dark.css');
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'css', 'config-group-variants.css'),
+			).exists(),
+		).toBe(true);
+		expect(
+			await Bun.file(
+				path.join(outputDir, 'css', 'config-group-variants-dark.css'),
+			).exists(),
+		).toBe(false);
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+	});
+
+	test('dt wcag forwards profile scope without variant option errors', async () => {
+		const { exitCode, stdout, stderr } = await runWave([
+			'dt',
+			'wcag',
+			'--profile',
+			'dark',
+			'--file',
+			'tests/fixtures/themes/doctor-contrast-variant-night/themefile',
+		]);
+
+		expect(`${stdout}\n${stderr}`).not.toContain("unknown option '--profile'");
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('doctor-contrast-variant-night-dark');
+	});
+
+	test('dt doctor rejects removed variants option', async () => {
+		const result = await runWave([
+			'dt',
+			'doctor',
+			'--contrast',
+			'--variants',
+			'dark',
+			'-f',
+			'tests/fixtures/themes/doctor-contrast-variant-night/themefile',
+		]);
+
+		expect(result.exitCode).not.toBe(0);
+		expect(`${result.stdout}\n${result.stderr}`).toContain('unknown option');
+	});
+
 	test('dt subcommand help renders without running subcommand actions', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-dt-help-'));
 
@@ -363,7 +449,7 @@ describe('wave dt', () => {
 		expect(stdout).toContain('dimension');
 		expect(stdout).toContain('sketch-extensions2sketch.json');
 		expect(stdout).toContain('Night mode');
-		expect(stdout).toContain('skipped');
+		expect(stdout).toContain('disabled');
 		expect(stdout).toContain('Variants');
 
 		const sketchOutput = JSON.parse(
@@ -411,159 +497,6 @@ describe('wave dt', () => {
 		expect(cssOutput).toContain('--primary-main: #1872f0;');
 		expect(cssOutput).not.toContain('foundation/color/primary/main');
 		expect(cssOutput).not.toContain('_sketch');
-
-		await fs.rm(outputDir, { recursive: true, force: true });
-	});
-
-	test('dt supports repeatable --variant alias for selected variants', async () => {
-		const fixtureDir = path.join(
-			rootDir,
-			'tests/fixtures/baseline-independent',
-		);
-		const outputDir = path.join(rootDir, '.temp-test-dt-variant-alias');
-
-		await fs.rm(outputDir, { recursive: true, force: true });
-
-		const { exitCode } = await runWave([
-			'dt',
-			'-f',
-			path.join(fixtureDir, 'themefile'),
-			'-o',
-			outputDir,
-			'--variant',
-			'dark',
-		]);
-
-		expect(exitCode).toBe(0);
-		expect(
-			await Bun.file(
-				path.join(outputDir, 'baseline-independent-dark.json'),
-			).exists(),
-		).toBe(true);
-
-		await fs.rm(outputDir, { recursive: true, force: true });
-	});
-
-	test('dt build writes variants for every parameter group pass', async () => {
-		const fixtureDir = path.join(
-			rootDir,
-			'tests/fixtures/themes/config-group-variants',
-		);
-		const outputDir = path.join(fixtureDir, 'theme');
-
-		await fs.rm(outputDir, { recursive: true, force: true });
-
-		const { exitCode, stdout } = await runWave(
-			['dt', 'build', '--variants', 'dark'],
-			fixtureDir,
-		);
-
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('config-group-variants.css');
-		expect(stdout).toContain('config-group-variants-night.css');
-		expect(stdout).toContain('config-group-variants-dark.css');
-		expect(
-			await Bun.file(
-				path.join(outputDir, 'css', 'config-group-variants.css'),
-			).exists(),
-		).toBe(true);
-		expect(
-			await Bun.file(
-				path.join(outputDir, 'sketch', 'config-group-variants2sketch.json'),
-			).exists(),
-		).toBe(true);
-		expect(
-			await Bun.file(
-				path.join(outputDir, 'css', 'config-group-variants-night.css'),
-			).exists(),
-		).toBe(true);
-		expect(
-			await Bun.file(
-				path.join(
-					outputDir,
-					'sketch',
-					'config-group-variants-night2sketch.json',
-				),
-			).exists(),
-		).toBe(true);
-		expect(
-			await Bun.file(
-				path.join(outputDir, 'css', 'config-group-variants-dark.css'),
-			).exists(),
-		).toBe(true);
-		expect(
-			await Bun.file(
-				path.join(
-					outputDir,
-					'sketch',
-					'config-group-variants-dark2sketch.json',
-				),
-			).exists(),
-		).toBe(true);
-
-		const mainCss = await fs.readFile(
-			path.join(outputDir, 'css', 'config-group-variants.css'),
-			'utf-8',
-		);
-		const nightCss = await fs.readFile(
-			path.join(outputDir, 'css', 'config-group-variants-night.css'),
-			'utf-8',
-		);
-		const darkCss = await fs.readFile(
-			path.join(outputDir, 'css', 'config-group-variants-dark.css'),
-			'utf-8',
-		);
-		const mainSketch = JSON.parse(
-			await fs.readFile(
-				path.join(outputDir, 'sketch', 'config-group-variants2sketch.json'),
-				'utf-8',
-			),
-		);
-		const nightSketch = JSON.parse(
-			await fs.readFile(
-				path.join(
-					outputDir,
-					'sketch',
-					'config-group-variants-night2sketch.json',
-				),
-				'utf-8',
-			),
-		);
-		const darkSketch = JSON.parse(
-			await fs.readFile(
-				path.join(
-					outputDir,
-					'sketch',
-					'config-group-variants-dark2sketch.json',
-				),
-				'utf-8',
-			),
-		);
-
-		expect(mainCss).toMatch(/--primary: #[0-9a-f]{6};/i);
-		expect(nightCss).toMatch(/--primary: #[0-9a-f]{6};/i);
-		expect(darkCss).toMatch(/--primary: #[0-9a-f]{6};/i);
-		expect(new Set([mainCss, nightCss, darkCss]).size).toBe(3);
-		expect(mainCss).not.toContain('--alpha-sm');
-		expect(mainSketch['color-primary'].color).toMatch(/^#[0-9a-f]{8}$/i);
-		expect(nightSketch['color-primary'].color).toMatch(/^#[0-9a-f]{8}$/i);
-		expect(darkSketch['color-primary'].color).toMatch(/^#[0-9a-f]{8}$/i);
-		expect(
-			new Set([
-				mainSketch['color-primary'].color,
-				nightSketch['color-primary'].color,
-				darkSketch['color-primary'].color,
-			]).size,
-		).toBe(3);
-		expect(mainSketch['dimension-alpha-sm'].value).toBeLessThan(
-			nightSketch['dimension-alpha-sm'].value,
-		);
-		expect(darkSketch['dimension-alpha-sm'].value).toBeGreaterThan(
-			mainSketch['dimension-alpha-sm'].value,
-		);
-		expect(darkSketch['dimension-alpha-sm'].value).toBeLessThan(
-			nightSketch['dimension-alpha-sm'].value,
-		);
 
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
@@ -710,33 +643,6 @@ describe('wave dt', () => {
 
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('doctor-contrast-multi-night');
-	});
-
-	test('dt wcag supports variant scope', async () => {
-		const { exitCode, stdout } = await runWave([
-			'dt',
-			'wcag',
-			'dark',
-			'--file',
-			'tests/fixtures/themes/doctor-contrast-variant-night/themefile',
-		]);
-
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('doctor-contrast-variant-night-dark');
-	});
-
-	test('dt wcag supports variant night scope', async () => {
-		const { exitCode, stdout } = await runWave([
-			'dt',
-			'wcag',
-			'dark',
-			'--night',
-			'--file',
-			'tests/fixtures/themes/doctor-contrast-variant-night/themefile',
-		]);
-
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('doctor-contrast-variant-night-dark-night');
 	});
 
 	test('dt init creates a design-token workspace template', async () => {
