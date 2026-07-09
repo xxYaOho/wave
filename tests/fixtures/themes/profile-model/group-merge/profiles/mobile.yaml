@@ -1,0 +1,10 @@
+$config:
+  parameterGroup:
+    css:
+      outputDir: ./mobile-css-dist
+
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "{tailwindcss.color.green.600}"

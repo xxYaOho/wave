@@ -1,0 +1,22 @@
+$config:
+  theme: profile-model
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+  parameterGroup:
+    css:
+      platform:
+        - css
+      outputDir: ./css-dist
+
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "{tailwindcss.color.blue.600}"

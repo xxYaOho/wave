@@ -1,0 +1,5 @@
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "#00ff00"

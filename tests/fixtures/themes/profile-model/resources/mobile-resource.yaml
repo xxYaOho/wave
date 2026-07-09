@@ -1,0 +1,5 @@
+namespace: mobile
+color:
+  accent:
+    $type: color
+    $value: "#00aa88"

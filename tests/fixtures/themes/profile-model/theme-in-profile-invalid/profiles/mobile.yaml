@@ -1,0 +1,8 @@
+$config:
+  theme: should-not-rename-output
+
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "#00ff00"

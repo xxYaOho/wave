@@ -23,10 +23,11 @@ async function resolveResourcePath(
 	ref: string,
 	themeDir: string,
 ): Promise<{ path: string; source: 'builtin' | 'cache' | 'user' }> {
+	if (path.isAbsolute(ref)) {
+		return { path: ref, source: 'user' };
+	}
+
 	if (kind === 'custom') {
-		if (path.isAbsolute(ref)) {
-			return { path: ref, source: 'user' };
-		}
 		return { path: path.join(themeDir, ref), source: 'user' };
 	}
 
