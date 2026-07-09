@@ -54,7 +54,7 @@ wave dt show tailwindcss --format flat-json
 ```bash
 wave dt doctor
 wave dt wcag
-wave dt wcag dark --night
+wave dt wcag mobile --night
 ```
 
 ## main.yaml
@@ -299,7 +299,7 @@ theme:
 - `path` 是 Sketch 分组路径，不是文件路径，也不是完整 token 名称。
 - `path` 不能包含首尾 slash、空分段或 `.`。
 - 没有 `path` 时保持默认 flat-json key，例如 `shadow-1`。
-- 有 `path` 时按 slash 创建嵌套分组，叶子节点仍使用默认 flat-json key。例如 `theme.dimension.shadow.1` 配置 `path: "aaa/bbb"` 时，输出为 `{ "aaa": { "bbb": { "shadow-1": { ... } } } }`。
+- 有 `path` 时按 slash 创建嵌套分组，叶子节点仍使用默认 flat-json key。例如 `theme.shadow.raised` 配置 `path: "aaa/bbb"` 时，输出为 `{ "aaa": { "bbb": { "shadow-raised": { ... } } } }`。
 - 两个 token 经过 `path` 和 `filterLayer` 后不能输出到同一路径；冲突会报错。
 
 ### property
