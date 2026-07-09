@@ -139,9 +139,31 @@ describe('Theme Service Integration', () => {
 			if (result.ok) {
 				expect(result.generatedFiles).toContain('profile-model.json');
 				expect(result.generatedFiles).toContain('profile-model.css');
+				expect(result.generatedFiles).toContain('profile-model2sketch.json');
 				expect(result.generatedFiles).not.toContain(
 					'profile-model-mobile.json',
 				);
+
+				const css = await fs.readFile(
+					path.join(outputDir, 'profile-model.css'),
+					'utf-8',
+				);
+				const sketch = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'profile-model2sketch.json'),
+						'utf-8',
+					),
+				);
+
+				expect(css).toContain('--color-primary:');
+				expect(css).toContain('--state-hover:');
+				expect(css).toContain('--shadow-elevation-low: 0 1px 2px 0');
+				expect(css).toContain('--border-outline-focus:');
+				expect(css).toContain('--border-outline-focus-offset: 2px;');
+				expect(css).toContain('--font-heading-h1:');
+				expect(css).not.toContain('--dimension-');
+				expect(JSON.stringify(sketch)).toContain('textStyle');
+				expect(JSON.stringify(sketch)).toContain('"spread":3');
 			}
 			await fs.rm(outputDir, { recursive: true, force: true });
 		});

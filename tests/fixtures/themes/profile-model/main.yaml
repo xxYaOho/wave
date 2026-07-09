@@ -22,6 +22,69 @@ theme:
       $value: "{tailwindcss.color.blue.600}"
     on-primary:
       $value: "{tailwindcss.color.white}"
+    outline:
+      ring:
+        $value: "{tailwindcss.color.blue.600}"
+  state:
+    hover:
+      $type: number
+      $value: "{wave.dimension.alpha.100}"
+      $extensions:
+        sketch:
+          property:
+            opacity: true
+  radius:
+    md:
+      $type: dimension
+      $value: "{wave.dimension.px.4}"
+  border:
+    width:
+      medium:
+        $type: dimension
+        $value: 1
+    outline:
+      focus:
+        $type: border
+        $value:
+          color: "{theme.color.outline.ring}"
+          width: "{theme.border.width.medium}"
+          style: solid
+        $extensions:
+          outline:
+            offset: 2
+  shadow:
+    elevation:
+      low:
+        $type: shadow
+        $value:
+          color: "{tailwindcss.color.black}"
+          offsetX: 0
+          offsetY: 1
+          blur: 2
+          spread: 0
+  gradient:
+    mask:
+      soft:
+        $type: gradient
+        $value:
+          - color: "#00000000"
+            position: 0
+          - color: "#000000ff"
+            position: 1
+  font:
+    heading:
+      h1:
+        $type: typography
+        $value:
+          fontFamily: Helvetica
+          fontSize:
+            value: 32
+            unit: px
+          fontWeight: 9
+          lineHeight:
+            value: 40
+            unit: px
+          letterSpacing: 0
 
 doctor:
   wcagPairs:
