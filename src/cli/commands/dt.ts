@@ -177,7 +177,7 @@ export function createDesignTokenCommand(name = 'design-token'): Command {
 		.addHelpCommand(false)
 		.option('-h, --help', 'Show help')
 		.addCommand(createBuildCommand('build', DT_BUILD_CONFIG))
-		.addCommand(createDoctorCommand('doctor'))
+		.addCommand(createDoctorCommand('doctor', { defaultMainYaml: true }))
 		.addCommand(createWcagCommand())
 		.addCommand(createShowCommand('show'))
 		.addCommand(createUpdateCommand())

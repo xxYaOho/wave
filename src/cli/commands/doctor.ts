@@ -2,7 +2,7 @@ import * as path from 'node:path';
 import { Command } from 'commander';
 import * as yaml from 'js-yaml';
 import {
-	findPublicDimensionRoots,
+	findDimensionMigrationFindings,
 	renderDimensionMigrationAdvice,
 } from '../../core/doctor/dimension-migration.ts';
 import { runThemeContrastCheck } from '../../core/doctor/registry.ts';
@@ -27,6 +27,24 @@ import type { DoctorThemeReport } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 
 const SEPARATOR = '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~';
+
+async function fileExists(filePath: string): Promise<boolean> {
+	return await Bun.file(filePath).exists();
+}
+
+async function inspectRawDimensionMigration(
+	filePath: string | undefined,
+): Promise<ReturnType<typeof findDimensionMigrationFindings>> {
+	if (!filePath) return [];
+	try {
+		const content = await Bun.file(filePath).text();
+		return findDimensionMigrationFindings(yaml.load(content), {
+			includeDependencies: true,
+		});
+	} catch {
+		return [];
+	}
+}
 
 function renderScoreLines(report: DoctorThemeReport): string[] {
 	const lines: string[] = [];
@@ -95,7 +113,14 @@ interface DoctorCommandOptions {
 	status?: boolean;
 }
 
-export function createDoctorCommand(name = 'doctor'): Command {
+interface CreateDoctorCommandOptions {
+	defaultMainYaml?: boolean;
+}
+
+export function createDoctorCommand(
+	name = 'doctor',
+	commandOptions: CreateDoctorCommandOptions = {},
+): Command {
 	return new Command(name)
 		.description('Run health diagnostics and contrast checks')
 		.option('-f, --file <path>', 'Themefile path to validate')
@@ -160,9 +185,18 @@ export function createDoctorCommand(name = 'doctor'): Command {
 				);
 
 				let allPassed = bunPassed;
+				let resourcesChecked = false;
+				let resourcesPassed = true;
+				const defaultMainPath = path.resolve(process.cwd(), 'main.yaml');
+				const effectiveFile =
+					options.file ??
+					(commandOptions.defaultMainYaml === true &&
+					(await fileExists(defaultMainPath))
+						? defaultMainPath
+						: undefined);
 
-				if (options.file) {
-					const loadResult = await loadThemefile(options.file);
+				if (effectiveFile) {
+					const loadResult = await loadThemefile(effectiveFile);
 					if ('error' in loadResult) {
 						console.log(`✗ Config File: ${loadResult.error.message}`);
 						allPassed = false;
@@ -170,23 +204,26 @@ export function createDoctorCommand(name = 'doctor'): Command {
 						console.log(
 							`✓ Config File: Valid (${loadResult.parsed.THEME || 'unknown'})`,
 						);
+						const adjacentMainPath = path.join(loadResult.themeDir, 'main.yaml');
+						const inspectPath =
+							loadResult.mainYamlPath ??
+							((await fileExists(adjacentMainPath))
+								? adjacentMainPath
+								: undefined);
 						const dictResult = await buildDependencyDictionary(
 							loadResult.parsed,
 							loadResult.themeDir,
 						);
+						resourcesChecked = true;
 						if ('error' in dictResult) {
 							console.log(`✗ Resources: ${dictResult.error.message}`);
+							resourcesPassed = false;
 							allPassed = false;
+							const findings = await inspectRawDimensionMigration(inspectPath);
+							if (findings.length > 0) {
+								console.log(renderDimensionMigrationAdvice(findings));
+							}
 						} else {
-							const adjacentMainPath = path.join(
-								loadResult.themeDir,
-								'main.yaml',
-							);
-							const inspectPath =
-								loadResult.mainYamlPath ??
-								((await Bun.file(adjacentMainPath).exists())
-									? adjacentMainPath
-									: undefined);
 							if (!inspectPath) {
 								console.log(
 									'Theme: dimension migration check skipped; no main.yaml token entry found',
@@ -197,11 +234,11 @@ export function createDoctorCommand(name = 'doctor'): Command {
 									dictResult.dict,
 								);
 								if (ctxResult.ok) {
-									const dimensionPaths = findPublicDimensionRoots(
+									const findings = findDimensionMigrationFindings(
 										ctxResult.context.resolvedTree,
 									);
-									if (dimensionPaths.length > 0) {
-										console.log(renderDimensionMigrationAdvice(dimensionPaths));
+									if (findings.length > 0) {
+										console.log(renderDimensionMigrationAdvice(findings));
 										allPassed = false;
 									}
 								} else {
@@ -217,7 +254,9 @@ export function createDoctorCommand(name = 'doctor'): Command {
 					console.log('✓ Config File: No themefile specified');
 				}
 
-				console.log('✓ Resources: All built-in resources available');
+				if (!resourcesChecked || resourcesPassed) {
+					console.log('✓ Resources: All built-in resources available');
+				}
 				console.log('✓ Output Directory: OK');
 				if (options.verbose || toolchain.issues.length > 0) {
 					for (const check of toolchain.checks) {
