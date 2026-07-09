@@ -108,9 +108,26 @@ themefile（声明数据源 + 输出参数）
 
 - 不传 `scope` 时检查 main
 - `scope=main` 时检查 `main.yaml`
-- 其他 scope 视作 variant 名称
+- 其他 scope 视作 profile 名称
 - `--night` 检查 night 版本
-- `--variants <name>` 可显式指定 variant，优先于 scope 推断
+- `--profile <name>` 可显式指定 profile，优先于 scope 推断
+
+### Profile Model
+
+- `main.yaml` 是 default profile 和项目基线。
+- `profiles/<name>.yaml` 是 named profile。
+- `wave dt build` 只构建 `main.yaml`。
+- `wave dt build --profile <name>` 构建一个 named profile。
+- `wave dt build --profiles all` 构建 `main.yaml` 和所有 named profiles。
+- `--night` 包含有效的 `main@night.yaml` 或 `profiles/<name>@night.yaml` overlay。
+- 缺失或无效的 Night Mode 输出 `Night Mode unavailable/invalid and skipped`，跳过 night 输出，并保持 day build 成功。
+- `variants/`、`--variant` 和 `--variants` 不支持。
+
+### Public Theme Roots
+
+CSS 输出包含 `theme.color`、`theme.state`、`theme.shadow`、`theme.gradient`、`theme.border`、`theme.radius` 和 `theme.font`。
+
+`theme.dimension` 不是 public output root。迁移阶段 build 会警告一次，`wave dt doctor` 输出迁移建议。
 
 ### show 命令
 
@@ -124,12 +141,10 @@ themefile（声明数据源 + 输出参数）
 
 **create 命令参数选项：**
 
-- `--list`：列出内置资源（调色板和尺寸系统）
-- `--no-night`：禁用 night 模式生成
-- `--no-variants`：禁用 variants 生成
-- `--variants [names]`：指定变体（逗号分隔）
+- `--profile <name>`：构建一个 named profile
+- `--profiles <mode>`：构建 profile 集合；当前支持 `all`
+- `--night`：包含有效的 Night Mode overlay
 - `--platform <list>`：指定输出平台（逗号分隔）：`json`、`jsonc`、`css`、`sketch`
-- `--init`：创建主题模板（生成 themefile、main.yaml）
 - `-o, --out <path>`：指定输出目录
 - `--output <dir>`：兼容旧参数，等价于 `--out`
 
@@ -208,7 +223,6 @@ RESOURCE custom ./tokens/brand.yml
 - `filterLayer`：过滤层级（数字），输出扁平化 KV 结构
 - `output`：输出目录路径
 - `night`：Night 模式，`auto`（默认）或 `false`
-- `variants`：变体列表（逗号分隔）
 - `brand`：品牌名
 - `colorSpace`：全局输出色彩空间，`hex`（默认）、`oklch`、`srgb`、`hsl`
 
@@ -1017,10 +1031,11 @@ doctor:
 - 红色评分仅做报告，**不阻断命令**（退出码仍为 0）
 - 非法 schema、无效引用、非 color 使用等会返回**非零退出码**
 
-**多主题支持：**
+**Profile 支持：**
 
-- 自动扫描 `main.yaml`、`main@night.yaml`、`variants/*.yaml`、`variants/*{@night}.yaml`
-- 带 `--night` / `--variants`：非交互路径，直接解析
+- 默认检查 `main.yaml`
+- `--profile <name>` 检查 `profiles/<name>.yaml`
+- `--night` 检查有效的 `main@night.yaml` 或 `profiles/<name>@night.yaml` overlay
 - 无显式 scope + 交互 TTY + 单主题：自动检查
 - 无显式 scope + 交互 TTY + 多主题：TUI 选择器
 - 无显式 scope + 非 TTY：默认 main
@@ -1034,14 +1049,14 @@ wave doctor --contrast
 # 显式指定 themefile 路径
 wave doctor --contrast --file ./my-theme/themefile
 
-# 检查 night 变体
+# 检查 night profile
 wave doctor --contrast --night
 
-# 检查指定 variant
-wave doctor --contrast --variants dark
+# 检查指定 profile
+wave doctor --contrast --profile mobile
 
-# 检查 variant 的 night 变体
-wave doctor --contrast --variants dark --night
+# 检查 profile 的 night overlay
+wave doctor --contrast --profile mobile --night
 ```
 
 ---
@@ -1051,6 +1066,11 @@ wave doctor --contrast --variants dark --night
 - `json`（默认）：输出 `{theme}.json`，扁平化 KV，kebab-case 键名
 - `jsonc`：输出 `{theme}.jsonc`，带描述注释的 JSON
 - `css`：输出 `{theme}.css`，CSS 变量，带描述注释
+  - 输出 public roots：`color`、`state`、`shadow`、`gradient`、`border`、`radius`、`font`
+  - 不输出 `theme.dimension`
+  - 长度类数值自动补浏览器需要的 `px`
+  - `$type: typography` token 输出字段变量和一个 shorthand 变量
+  - 带 `$extensions.outline.offset` 的 border token 输出 outline value 变量和 offset companion 变量
 - `sketch`：输出 Sketch API 兼容格式 `{theme}2sketch.json`
   - 默认按 `filterLayer` 后的 flat-json key 输出到根级对象
   - `$extensions.sketch.path` 作为分组路径；可写在 group 或 token 上，叶子节点仍使用 `filterLayer` 后的 flat-json key，例如 `{ "aaa": { "bbb": { "shadow-1": { "shadow": [...] } } } }`
@@ -1058,11 +1078,13 @@ wave doctor --contrast --variants dark --night
   - Sketch 输出不固定包裹 `color`、`style`、`dimension` 或 `component` 顶层对象
   - `$extensions.sketch.property.opacity: true` 生成 `{ opacity: value }`
   - `$extensions.sketch.property.cornerRadius: true` 生成 `{ corners: { radii: value } }`
-  - `sketch.property` 不继承，只允许写在 `theme.dimension.*` 或等价 dimension root 下的 `number` / `dimension` token
+  - `sketch.property` 不继承；`opacity` 可用于 `theme.state.*`，`cornerRadius` 可用于 dimension/radius 类 token
   - legacy `$extensions.sketchMap` 不再作为 Sketch property 映射来源，新内容使用 `$extensions.sketch.property`
   - `$extensions.sketch` 在 `$extends` 中按普通 extension 覆盖，不再深层合并
   - component token 不再映射为 Sketch component 样式；component 逻辑后续单独设计
   - inheritColor 通过 siblingSlot 查找兄弟 token 颜色
+  - `$type: typography` token 生成 text shared style payload
+  - 带 `$extensions.outline.offset` 的 border token 生成两层 shadow 模拟 outline；最终 JSON 顺序为 ring layer 在前、gap layer 在后，gap color 固定为 `#ffffff`
 - 多平台：`json,jsonc,css,sketch` 可同时输出多种格式
 
 **备注位置（v0.3.0+）：**
@@ -1076,25 +1098,20 @@ wave doctor --contrast --variants dark --night
 
 ## 检测机制
 
-**Night 模式：**
+**Profile 与 Night Mode：**
 
-- 检测 `{themeDir}/main@night.yaml` 是否存在
-- 存在时生成 `{theme}-night` 主题
-- 可通过 `--no-night` 禁用
-
-**Variants：**
-
-- 检测 `{themeDir}/variants/*.yaml` 文件
-- 为每个变体生成 `{theme}-{variant}` 主题
-- `@night` 后缀变体生成 `{theme}-{variant}-night`
-- 可通过 `--no-variants` 禁用
+- 默认只构建 `{themeDir}/main.yaml`
+- `--profile <name>` 构建 `{themeDir}/profiles/<name>.yaml`
+- `--profiles all` 构建 `main.yaml` 和所有 `profiles/*.yaml`
+- `--night` 包含有效的 `main@night.yaml` 或 `profiles/<name>@night.yaml`
+- 缺失或无效的 Night Mode 输出 `Night Mode unavailable/invalid and skipped`，并跳过 night 输出
 
 ---
 
 ## 错误处理（Fail-Fast）
 
 - 若 `main.yaml` 存在但解析失败（引用错误、格式错误等），直接返回非 0 退出码，**不再 fallback 到依赖直出**
-- 同样适用于 `main@night.yaml` 和 `variants/*.yaml`
+- 同样适用于 day profile 文件；缺失或无效的 Night Mode overlay 只跳过 night 输出，不影响 day build
 
 ---
 
@@ -1181,5 +1198,5 @@ test("应处理 xxx", async () => {
 - 内置主题：已移除，不再支持 `wave create beluga`
 - Windows/Linux 平台：未测试
 - 嵌套引用条件判断：`{theme.x ? a : b}` 格式不支持
-- 跨 variants 引用：Variant A 不能引用 Variant B 的 token
+- 跨 profile 引用：Profile A 不能引用 Profile B 的 token
 - RGB 格式：仅支持 sRGB 组件格式

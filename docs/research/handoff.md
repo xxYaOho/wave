@@ -1,7 +1,7 @@
 # Wave DT Research Handoff
 
 Date: 2026-07-09
-Status: implementation handoff for `refactor-dt` worktree
+Status: implementation planned
 
 ## Read First
 
@@ -18,6 +18,10 @@ The implementation worktree is:
 ```
 
 Do not treat older research notes as implemented behavior. The approved plan is the execution source for this iteration.
+
+Implementation plan:
+
+- `docs/superpowers/plans/2026-07-09-wave-dt-profile-model.md`
 
 ## Current Decision Summary
 
