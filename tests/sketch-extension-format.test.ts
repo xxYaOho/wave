@@ -138,6 +138,27 @@ describe('sketch extension format', () => {
 		});
 	});
 
+	test('uses sketch.property.opacity for state number output', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-state-hover',
+				path: ['theme', 'state', 'hover'],
+				value: 0.16,
+				type: 'number',
+				_sketch: {
+					path: 'foundation/state',
+					property: { opacity: true },
+				},
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
+
+		expect(parsed.foundation.state['state-hover']).toEqual({
+			opacity: 0.16,
+		});
+	});
+
 	test('uses sketch.property.cornerRadius for dimension output', () => {
 		const tokens: WaveToken[] = [
 			token({

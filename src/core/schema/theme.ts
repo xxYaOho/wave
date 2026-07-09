@@ -161,10 +161,10 @@ function validateInheritColor(
 	});
 }
 
-function isDimensionPath(tokenPath: string): boolean {
+function isSketchPropertyPath(tokenPath: string): boolean {
 	const parts = tokenPath.split('.');
 	const rootIndex = parts[0] === 'theme' ? 1 : 0;
-	return parts[rootIndex] === 'dimension';
+	return parts[rootIndex] === 'dimension' || parts[rootIndex] === 'state';
 }
 
 function validateSketchExtension(
@@ -263,11 +263,11 @@ function validateSketchExtension(
 				message: `${key} requires $type "number" or "dimension", got "${tokenType}"`,
 			});
 		}
-		if (!isDimensionPath(tokenPath)) {
+		if (!isSketchPropertyPath(tokenPath)) {
 			issues.push({
 				path: `${tokenPath}.$extensions.sketch.property.${key}`,
 				level: 'error',
-				message: `sketch.property.${key} must be under a dimension root for Sketch dimension output`,
+				message: `sketch.property.${key} must be under a dimension or state root for Sketch property output`,
 			});
 		}
 	}

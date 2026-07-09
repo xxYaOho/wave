@@ -209,7 +209,7 @@ describe('sketch extension schema', () => {
 		expect(result.valid).toBe(true);
 	});
 
-	test('rejects number property outside dimension root', () => {
+	test('rejects number property outside dimension or state root', () => {
 		const result = validateThemeSchema({
 			theme: {
 				color: {
@@ -227,7 +227,7 @@ describe('sketch extension schema', () => {
 		expect(result.valid).toBe(false);
 		expect(
 			result.issues.some((issue) =>
-				issue.message.includes('must be under a dimension root'),
+				issue.message.includes('must be under a dimension or state root'),
 			),
 		).toBe(true);
 	});

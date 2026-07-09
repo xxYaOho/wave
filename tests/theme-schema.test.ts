@@ -128,4 +128,27 @@ describe('theme schema', () => {
 			),
 		).toBe(true);
 	});
+
+	test('allows sketch opacity property under theme.state', () => {
+		const result = validateThemeSchema({
+			theme: {
+				state: {
+					hover: {
+						$type: 'number',
+						$value: 0.16,
+						$extensions: {
+							sketch: {
+								property: {
+									opacity: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(true);
+		expect(result.issues).toEqual([]);
+	});
 });
