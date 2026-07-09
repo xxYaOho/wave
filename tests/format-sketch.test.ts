@@ -35,6 +35,54 @@ describe('sketchFormat (Wave-native)', () => {
 		expect(parsed['gap-small']).toEqual({ value: 4 });
 	});
 
+	test('sketch output excludes public dimension root', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-dimension-radius-md',
+				path: ['theme', 'dimension', 'radius', 'md'],
+				value: 8,
+				type: 'dimension',
+				_order: 0,
+				_sketch: { path: 'dimension/v2/radius' },
+			},
+			{
+				name: 'theme-radius-md',
+				path: ['theme', 'radius', 'md'],
+				value: 8,
+				type: 'dimension',
+				_order: 1,
+				_sketch: { path: 'radius/v2' },
+			},
+			{
+				name: 'style-shadow-legacy',
+				path: ['style', 'shadow', 'legacy'],
+				value: [
+					{ color: '#000000', offsetX: 0, offsetY: 1, blur: 2, spread: 0 },
+				],
+				type: 'shadow',
+				_order: 2,
+				_sketch: { path: 'legacy/shadow' },
+			},
+		];
+
+		const out = sketchFormat(tokens, {
+			filterLayer: 1,
+			includeRootKeys: [
+				'color',
+				'state',
+				'shadow',
+				'gradient',
+				'border',
+				'radius',
+				'font',
+			],
+		});
+
+		expect(out).toContain('radius-md');
+		expect(out).not.toContain('dimension-radius-md');
+		expect(out).not.toContain('shadow-legacy');
+	});
+
 	test('emits shadow tokens as sketch shadow objects', () => {
 		const tokens: WaveToken[] = [
 			{

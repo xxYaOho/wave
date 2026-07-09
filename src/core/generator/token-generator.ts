@@ -47,11 +47,32 @@ const PLATFORMS: Record<string, PlatformDefinition> = {
 	css: {
 		format: cssVariablesFormat,
 		filename: (n) => `${n}.css`,
-		extra: { includeRootKeys: ['color', 'style'] },
+		extra: {
+			includeRootKeys: [
+				'color',
+				'state',
+				'shadow',
+				'gradient',
+				'border',
+				'radius',
+				'font',
+			],
+		},
 	},
 	sketch: {
 		format: sketchFormat,
 		filename: (n) => `${n}2sketch.json`,
+		extra: {
+			includeRootKeys: [
+				'color',
+				'state',
+				'shadow',
+				'gradient',
+				'border',
+				'radius',
+				'font',
+			],
+		},
 	},
 };
 

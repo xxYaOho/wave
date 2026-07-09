@@ -14,33 +14,35 @@ function colorToRgba(colorVal: unknown): string {
 	return `rgb(${red} ${green} ${blue} / ${alphaRounded})`;
 }
 
-function formatShadowLength(val: unknown): string {
-	if (typeof val === 'string') {
-		if (val.endsWith('px')) {
-			const num = parseFloat(val);
-			return Number.isNaN(num) ? val : String(num);
-		}
-		return val;
+export function formatCssLength(value: unknown): string {
+	if (typeof value === 'number') {
+		if (value === 0) return '0';
+		return `${Math.round(value * 1000) / 1000}px`;
 	}
-	if (typeof val === 'number') return String(Math.round(val));
-	return String(val);
+	if (typeof value === 'string') {
+		const trimmed = value.trim();
+		if (/^-?0(?:\.0+)?px$/.test(trimmed)) return '0';
+		if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) {
+			const numeric = Number(trimmed);
+			return numeric === 0 ? '0' : `${trimmed}px`;
+		}
+		return trimmed;
+	}
+	return String(value);
 }
 
 export function shadowToCss(value: unknown): string {
-	if (!Array.isArray(value)) {
-		return String(value);
-	}
-
-	const layers = value.map((layer: unknown) => {
+	const shadowLayers = Array.isArray(value) ? value : [value];
+	const layers = shadowLayers.map((layer: unknown) => {
 		if (typeof layer !== 'object' || layer === null) {
 			return String(layer);
 		}
 
 		const l = layer as Record<string, unknown>;
-		const offsetX = formatShadowLength(l.offsetX);
-		const offsetY = formatShadowLength(l.offsetY);
-		const blur = formatShadowLength(l.blur);
-		const spread = formatShadowLength(l.spread);
+		const offsetX = formatCssLength(l.offsetX);
+		const offsetY = formatCssLength(l.offsetY);
+		const blur = formatCssLength(l.blur);
+		const spread = formatCssLength(l.spread);
 		const color = colorToRgba(l.color);
 		const inset = l.inset === true ? 'inset ' : '';
 

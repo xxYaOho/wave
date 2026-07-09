@@ -510,16 +510,10 @@ describe('wave dt', () => {
 		expect(sketchOutput.foundation.color['color-primary-main']).toEqual({
 			color: '#1872f0ff',
 		});
-		expect(
-			sketchOutput.foundation.interaction['dimension-interaction-hover'],
-		).toEqual({
-			opacity: 0.16,
-		});
-		expect(sketchOutput.foundation.radius['dimension-radius-card']).toEqual({
-			corners: { radii: 8 },
-		});
-		expect(sketchOutput.aaa.bbb['style-shadow-1'].shadow).toHaveLength(4);
-		expect(sketchOutput.aaa.bbb['style-shadow-1'].shadow[0]).toMatchObject({
+		expect(sketchOutput.foundation.interaction).toBeUndefined();
+		expect(sketchOutput.foundation.radius).toBeUndefined();
+		expect(sketchOutput.aaa.bbb['shadow-1'].shadow).toHaveLength(4);
+		expect(sketchOutput.aaa.bbb['shadow-1'].shadow[0]).toMatchObject({
 			color: '#0f172b0f',
 			y: 4,
 			blur: 8,

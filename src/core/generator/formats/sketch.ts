@@ -281,6 +281,15 @@ function buildOutputPath(token: WaveToken, filterLayer: number): string[] {
 	return [...sketchPath.split('/').filter(Boolean), leafKey];
 }
 
+function shouldIncludeSketchToken(
+	token: WaveToken,
+	includeRootKeys?: string[],
+): boolean {
+	if (!includeRootKeys || includeRootKeys.length === 0) return true;
+	const root = token.path[0] === 'theme' ? token.path[1] : token.path[0];
+	return root !== undefined && includeRootKeys.includes(root);
+}
+
 function setNestedValue(
 	root: Record<string, unknown>,
 	parts: string[],
@@ -382,8 +391,12 @@ export const sketchFormat: WaveFormatFn = (
 	options?: Record<string, unknown>,
 ): string => {
 	const filterLayer = (options?.filterLayer as number) ?? 0;
+	const includeRootKeys = options?.includeRootKeys as string[] | undefined;
 	const result: Record<string, unknown> = {};
-	const sortedTokens = [...tokens].sort(
+	const filteredTokens = tokens.filter((token) =>
+		shouldIncludeSketchToken(token, includeRootKeys),
+	);
+	const sortedTokens = [...filteredTokens].sort(
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);
 

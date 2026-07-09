@@ -1,5 +1,5 @@
 import type { WaveFormatFn, WaveToken } from '../../../types/index.ts';
-import { gradientToCss, shadowToCss } from './utils.ts';
+import { formatCssLength, gradientToCss, shadowToCss } from './utils.ts';
 
 export interface CssVariablesFormatOptions {
 	filterLayer?: number;
@@ -15,12 +15,21 @@ function getFilteredName(token: WaveToken, filterLayer: number): string {
 	return path.slice(filterLayer).join('-');
 }
 
-function isShadow(token: WaveToken): boolean {
+function isShadowToken(token: WaveToken): boolean {
 	return token.type === 'shadow';
 }
 
 function isGradient(token: WaveToken): boolean {
 	return token.type === 'gradient';
+}
+
+function publicRootKey(token: WaveToken): string | undefined {
+	return token.path[0] === 'theme' ? token.path[1] : token.path[0];
+}
+
+function isCssLengthToken(token: WaveToken): boolean {
+	const root = publicRootKey(token);
+	return token.type === 'dimension' && (root === 'radius' || root === 'border');
 }
 
 function assertNoObjectColorValue(value: unknown, token: WaveToken): void {
@@ -31,8 +40,8 @@ function assertNoObjectColorValue(value: unknown, token: WaveToken): void {
 }
 
 function assertCompositeColorsAreNormalized(token: WaveToken): void {
-	if (!Array.isArray(token.value)) return;
-	for (const item of token.value) {
+	const items = Array.isArray(token.value) ? token.value : [token.value];
+	for (const item of items) {
 		if (typeof item !== 'object' || item === null || Array.isArray(item)) {
 			continue;
 		}
@@ -71,7 +80,7 @@ function formatTokenValue(token: WaveToken): string {
 		return shadowToCss(layers);
 	}
 
-	if (isShadow(token) && Array.isArray(tokenValue)) {
+	if (isShadowToken(token)) {
 		assertCompositeColorsAreNormalized(token);
 		return shadowToCss(tokenValue);
 	}
@@ -83,6 +92,10 @@ function formatTokenValue(token: WaveToken): string {
 
 	if (token.type === 'color') {
 		assertNoObjectColorValue(tokenValue, token);
+	}
+
+	if (isCssLengthToken(token)) {
+		return formatCssLength(tokenValue);
 	}
 
 	return String(tokenValue);
@@ -98,10 +111,8 @@ function getGroupCommentPaths(tokenPath: string[]): string[] {
 
 function shouldInclude(token: WaveToken, includeRootKeys?: string[]): boolean {
 	if (!includeRootKeys || includeRootKeys.length === 0) return true;
-	const rootKeys = [token.path[0], token.path[1]].filter(
-		(key): key is string => typeof key === 'string',
-	);
-	return rootKeys.some((key) => includeRootKeys.includes(key));
+	const root = publicRootKey(token);
+	return root !== undefined && includeRootKeys.includes(root);
 }
 
 export const cssVariablesFormat: WaveFormatFn = (

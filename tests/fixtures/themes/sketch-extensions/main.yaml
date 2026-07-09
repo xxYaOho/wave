@@ -39,30 +39,29 @@ theme:
             path: "foundation/color"
     shadow:
       $value: "#0f172b"
-  style:
-    shadow:
-      1:
-        $type: shadow
-        $value:
-          color:
-            $ref: "#/theme/color/shadow/$value"
-            alpha: 0.02
-          offsetX: 0
-          offsetY: 0
-          blur: 2
-          spread: 1
-        $extensions:
-          sketch:
-            path: "aaa/bbb"
-          smoothShadow:
-            cubicBezier: "{wave.dimension.cubicBezier.easeInQuad}"
-            step: 4
-            target:
-              alpha: 0.06
-              offsetX: 0
-              offsetY: 4
-              blur: 8
-              spread: -2
+  shadow:
+    1:
+      $type: shadow
+      $value:
+        color:
+          $ref: "#/theme/color/shadow/$value"
+          alpha: 0.02
+        offsetX: 0
+        offsetY: 0
+        blur: 2
+        spread: 1
+      $extensions:
+        sketch:
+          path: "aaa/bbb"
+        smoothShadow:
+          cubicBezier: "{wave.dimension.cubicBezier.easeInQuad}"
+          step: 4
+          target:
+            alpha: 0.06
+            offsetX: 0
+            offsetY: 4
+            blur: 8
+            spread: -2
   dimension:
     interaction:
       hover:

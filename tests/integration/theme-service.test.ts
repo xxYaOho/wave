@@ -114,9 +114,7 @@ describe('Theme Service Integration', () => {
 				]);
 				expect(typeof json['theme-dimension-alpha-sm']).toBe('number');
 				expect(css).toMatch(/--theme-color-primary: #[0-9a-f]{6};/i);
-				expect(css).toContain(
-					'--theme-style-shadow-sm: 0 1 2 0 rgb(0 0 0 / 1);',
-				);
+				expect(css).not.toContain('--theme-style-shadow-sm');
 				expect(css).not.toContain('--theme-dimension-alpha-sm');
 			}
 		});
@@ -613,15 +611,9 @@ describe('Theme Service Integration', () => {
 				expect(sketch.foundation.color['color-primary-main']).toEqual({
 					color: '#1872f0ff',
 				});
-				expect(
-					sketch.foundation.interaction['dimension-interaction-hover'],
-				).toEqual({
-					opacity: 0.16,
-				});
-				expect(sketch.foundation.radius['dimension-radius-card']).toEqual({
-					corners: { radii: 8 },
-				});
-				expect(sketch.aaa.bbb['style-shadow-1'].shadow).toHaveLength(4);
+				expect(sketch.foundation.interaction).toBeUndefined();
+				expect(sketch.foundation.radius).toBeUndefined();
+				expect(sketch.aaa.bbb['shadow-1'].shadow).toHaveLength(4);
 				expect(sketch['aaa/bbb']).toBeUndefined();
 				expect(sketch.color).toBeUndefined();
 				expect(sketch.dimension).toBeUndefined();
@@ -656,8 +648,8 @@ describe('Theme Service Integration', () => {
 				'utf-8',
 			);
 			expect(css).toContain('--orcaFallback-main: #0052f5;');
-			expect(css).toContain('rgb(0 82 245 / 0.5)');
-			expect(css).not.toContain('linear-gradient(to right');
+			expect(css).toContain('rgb(0 82 245 / 0.25)');
+			expect(css).toContain('linear-gradient(to right');
 			expect(css).not.toContain('[object Object]');
 
 			const sketch = JSON.parse(
@@ -669,9 +661,9 @@ describe('Theme Service Integration', () => {
 			expect(sketch.foundation.color['orcaFallback-main']).toEqual({
 				color: '#0052f5ff',
 			});
-			expect(
-				JSON.stringify(sketch.foundation.shadow['shadow-raised'].shadow),
-			).toContain('#0052f5');
+			expect(JSON.stringify(sketch.foundation.shadow.raised.shadow)).toContain(
+				'#0052f5',
+			);
 			expect(sketch.foundation.gradient.fallback.gradient[0].color).toBe(
 				'#0052f540',
 			);
@@ -997,9 +989,7 @@ describe('Theme Service Integration', () => {
 				expect(sketch.foundation.color['theme-color-secondary']).toEqual({
 					color: '#0052f5ff',
 				});
-				expect(sketch.foundation.space['theme-dimension-spacing-sm']).toEqual({
-					value: 4,
-				});
+				expect(sketch.foundation.space).toBeUndefined();
 				expect(
 					await Bun.file(
 						path.join(outputDir, 'mixed-branches-night.css'),
