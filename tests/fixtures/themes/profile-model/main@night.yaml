@@ -2,6 +2,4 @@ theme:
   color:
     $type: color
     primary:
-      $value: "{tailwindcss.color.blue.900}"
-    on-primary:
-      $value: "{tailwindcss.color.white}"
+      $value: "{tailwindcss.color.blue.300}"

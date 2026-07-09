@@ -232,6 +232,146 @@ describe('Theme Service Integration', () => {
 			}
 			await fs.rm(outputDir, { recursive: true, force: true });
 		});
+
+		test('invalid night mode is skipped without failing day profile build', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+			const ctx = new BuildContext();
+
+			const result = await generateTheme(
+				{
+					themeName: 'profile-model',
+					themePath,
+					cliOutput: outputDir,
+					generateOptions: { night: true, profile: 'mobile' },
+				},
+				ctx,
+			);
+
+			expect(result.ok).toBe(true);
+			expect(
+				ctx.warnings.some(
+					(warning) =>
+						warning.message === 'Night Mode unavailable/invalid and skipped',
+				),
+			).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+				expect(result.generatedFiles).not.toContain(
+					'profile-model-mobile-night.json',
+				);
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('missing night mode is skipped without failing explicit night build', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model-missing-night/main.yaml',
+			);
+			const ctx = new BuildContext();
+
+			const result = await generateTheme(
+				{
+					themeName: 'profile-model',
+					themePath,
+					cliOutput: outputDir,
+					generateOptions: { night: true, profile: 'missing-night' },
+				},
+				ctx,
+			);
+
+			expect(result.ok).toBe(true);
+			expect(
+				ctx.warnings.some(
+					(warning) =>
+						warning.message === 'Night Mode unavailable/invalid and skipped',
+				),
+			).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain(
+					'profile-model-missing-night.json',
+				);
+				expect(result.generatedFiles).not.toContain(
+					'profile-model-missing-night-night.json',
+				);
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('night overlay generation errors are skipped without failing day profile build', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+			const ctx = new BuildContext();
+
+			const result = await generateTheme(
+				{
+					themeName: 'profile-model',
+					themePath,
+					cliOutput: outputDir,
+					generateOptions: { night: true, profile: 'bad-ref' },
+				},
+				ctx,
+			);
+
+			expect(result.ok).toBe(true);
+			expect(
+				ctx.warnings.some(
+					(warning) =>
+						warning.message === 'Night Mode unavailable/invalid and skipped',
+				),
+			).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model-bad-ref.json');
+				expect(result.generatedFiles).not.toContain(
+					'profile-model-bad-ref-night.json',
+				);
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
+
+		test('profiles all keeps valid night output when another profile night is invalid', async () => {
+			const outputDir = createTempOutputDir();
+			const themePath = path.join(
+				process.cwd(),
+				'tests/fixtures/themes/profile-model/main.yaml',
+			);
+			const ctx = new BuildContext();
+
+			const result = await generateTheme(
+				{
+					themeName: 'profile-model',
+					themePath,
+					cliOutput: outputDir,
+					generateOptions: { night: true, profiles: 'all' },
+				},
+				ctx,
+			);
+
+			expect(result.ok).toBe(true);
+			expect(ctx.nightMode.state).toBe('enabled');
+			expect(
+				ctx.warnings.some(
+					(warning) =>
+						warning.message === 'Night Mode unavailable/invalid and skipped',
+				),
+			).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('profile-model-night.json');
+				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+				expect(result.generatedFiles).not.toContain(
+					'profile-model-mobile-night.json',
+				);
+			}
+			await fs.rm(outputDir, { recursive: true, force: true });
+		});
 	});
 
 	describe('$ref 引用解析', () => {

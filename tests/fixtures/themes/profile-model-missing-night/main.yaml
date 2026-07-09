@@ -1,0 +1,30 @@
+$schema: "https://www.designtokens.org/tr/2025.10/format/"
+
+$config:
+  theme: profile-model
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+      - css
+      - sketch
+    filterLayer: 1
+
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "{tailwindcss.color.blue.600}"
+    on-primary:
+      $value: "{tailwindcss.color.white}"
+
+doctor:
+  wcagPairs:
+    primary:
+      foreground: "{theme.color.on-primary}"
+      background: "{theme.color.primary}"

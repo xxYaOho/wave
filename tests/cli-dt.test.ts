@@ -121,6 +121,31 @@ describe('wave dt', () => {
 		await fs.rm(outputDir, { recursive: true, force: true });
 	});
 
+	test('dt build explicit night skips invalid profile night without failing', async () => {
+		const outputDir = path.join(
+			rootDir,
+			'tests/fixtures/themes/profile-model/profiles/mobile-dist',
+		);
+		await fs.rm(outputDir, { recursive: true, force: true });
+
+		const { exitCode, stdout } = await runWave([
+			'dt',
+			'build',
+			'--profile',
+			'mobile',
+			'--night',
+			'--file',
+			'tests/fixtures/themes/profile-model/main.yaml',
+		]);
+
+		expect(exitCode).toBe(0);
+		expect(stdout).toContain('Night Mode unavailable/invalid and skipped');
+		expect(stdout).toContain('profile-model-mobile.json');
+		expect(stdout).not.toContain('profile-model-mobile-night.json');
+
+		await fs.rm(outputDir, { recursive: true, force: true });
+	});
+
 	test('dt wcag forwards profile scope without variant option errors', async () => {
 		const { exitCode, stdout, stderr } = await runWave([
 			'dt',

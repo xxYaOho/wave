@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import * as path from 'node:path';
 import {
 	discoverProfiles,
+	mergeNightOverlay,
 	normalizeProfileName,
 	parseProfileDocument,
 	resolveProfilesToBuild,
@@ -47,7 +48,11 @@ describe('profile resolver', () => {
 	test('discovers main and named profiles without variants', async () => {
 		const profiles = await discoverProfiles(fixtureDir);
 
-		expect(profiles.map((profile) => profile.name)).toEqual(['main', 'mobile']);
+		expect(profiles.map((profile) => profile.name)).toEqual([
+			'main',
+			'bad-ref',
+			'mobile',
+		]);
 		expect(profiles.find((profile) => profile.name === 'main')?.isDefault).toBe(
 			true,
 		);
@@ -62,7 +67,11 @@ describe('profile resolver', () => {
 		const profiles = await discoverProfiles(fixtureDir);
 		const main = profiles.find((profile) => profile.name === 'main');
 
-		expect(profiles.map((profile) => profile.name)).toEqual(['main', 'mobile']);
+		expect(profiles.map((profile) => profile.name)).toEqual([
+			'main',
+			'bad-ref',
+			'mobile',
+		]);
 		expect(main?.nightPath?.endsWith('main@night.yaml')).toBe(true);
 	});
 
@@ -90,7 +99,11 @@ describe('profile resolver', () => {
 			profiles: 'all',
 		});
 
-		expect(selected.map((profile) => profile.name)).toEqual(['main', 'mobile']);
+		expect(selected.map((profile) => profile.name)).toEqual([
+			'main',
+			'bad-ref',
+			'mobile',
+		]);
 	});
 
 	test('default profile with local config does not duplicate loaded resources', async () => {
@@ -205,5 +218,88 @@ describe('profile resolver', () => {
 		expect(document.parsed.groups[0]!.PARAMETER.output).toContain(
 			'profiles/mobile-css-dist',
 		);
+	});
+
+	test('night overlay can override existing color paths', () => {
+		const day = {
+			theme: {
+				color: {
+					primary: { $type: 'color', $value: '#000000' },
+				},
+			},
+		};
+		const night = {
+			theme: {
+				color: {
+					primary: { $value: '#ffffff' },
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			const primary = (
+				result.tree as {
+					theme: { color: { primary: { $type: string; $value: string } } };
+				}
+			).theme.color.primary;
+			expect(primary.$type).toBe('color');
+			expect(primary.$value).toBe('#ffffff');
+		}
+	});
+
+	test('night overlay rejects unsupported roots without throwing', () => {
+		const day = {
+			theme: {
+				color: {
+					primary: { $type: 'color', $value: '#000000' },
+				},
+			},
+		};
+		const night = {
+			theme: {
+				radius: {
+					md: { $type: 'dimension', $value: 8 },
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.message).toBe('Night Mode unavailable/invalid and skipped');
+		}
+	});
+
+	test('night overlay rejects $config content', () => {
+		const day = {
+			theme: {
+				color: {
+					primary: { $type: 'color', $value: '#000000' },
+				},
+			},
+		};
+		const night = {
+			$config: {
+				parameter: {
+					platform: ['sketch'],
+				},
+			},
+			theme: {
+				color: {
+					primary: { $value: '#ffffff' },
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.message).toBe('Night Mode unavailable/invalid and skipped');
+		}
 	});
 });

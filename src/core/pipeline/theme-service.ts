@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import * as yaml from 'js-yaml';
 import type { GeneratorResult } from '../../core/generator/index.ts';
 import { generateTokens } from '../../core/generator/index.ts';
 import {
@@ -20,6 +21,8 @@ import type { BuildContext } from '../../utils/receipt.ts';
 import { transformToWaveTokens } from '../transformer/index.ts';
 import {
 	discoverProfiles,
+	mergeNightOverlay,
+	NIGHT_SKIP_MESSAGE,
 	type ProfileDocument,
 	type ProfileEntry,
 	parseProfileDocument,
@@ -36,6 +39,14 @@ import {
 
 const MAIN_FALLBACK_WARNING =
 	'No main.yaml found. Direct RESOURCE token generation is deprecated and will be removed; create main.yaml with wave dt init.';
+
+function parseYamlObject(content: string): Record<string, unknown> | undefined {
+	const parsed = yaml.load(content);
+	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+		return undefined;
+	}
+	return parsed as Record<string, unknown>;
+}
 
 export interface ThemeGenerationInput {
 	themeName: string;
@@ -88,6 +99,7 @@ async function generatePass(
 	warnLegacyFallback?: () => void,
 	outputScope: 'main' | 'profile' | 'night' = 'main',
 	outputLabel?: string,
+	fatal: boolean = true,
 ): Promise<{ files: string[] } | ThemeGenerationFailure> {
 	const files: string[] = [];
 
@@ -109,7 +121,7 @@ async function generatePass(
 			const msg = parseResult.line
 				? `${parseResult.message} at line ${parseResult.line}`
 				: parseResult.message;
-			ctx?.markFailed('parse', msg, { phase: 'main parse' });
+			if (fatal) ctx?.markFailed('parse', msg, { phase: 'main parse' });
 			return {
 				ok: false,
 				exitCode: parseResult.exitCode,
@@ -131,7 +143,7 @@ async function generatePass(
 
 		if (!mainResult.success) {
 			const msg = mainResult.error || 'Failed to generate tokens';
-			ctx?.markFailed('generate', msg, { phase: 'main generate' });
+			if (fatal) ctx?.markFailed('generate', msg, { phase: 'main generate' });
 			return {
 				ok: false,
 				exitCode: ExitCode.GENERAL_ERROR,
@@ -181,11 +193,21 @@ export async function generateTheme(
 	const { themeName, themePath, cliOutput, cliPlatform, generateOptions } =
 		input;
 	const legacyFallbackWarnings = new Set<string>();
+	const nightSkipWarnings = new Set<string>();
 	const warnLegacyFallback = (): void => {
 		if (legacyFallbackWarnings.has('main')) return;
 		legacyFallbackWarnings.add('main');
 		logger.warn(MAIN_FALLBACK_WARNING);
 		ctx?.addWarning('main', MAIN_FALLBACK_WARNING);
+	};
+	const warnNightSkipped = (name: string): void => {
+		if (nightSkipWarnings.has(name)) return;
+		nightSkipWarnings.add(name);
+		if (ctx?.nightMode.state !== 'enabled') {
+			ctx?.setNight('skipped', NIGHT_SKIP_MESSAGE);
+		}
+		ctx?.addWarning('night', NIGHT_SKIP_MESSAGE);
+		if (!ctx) logger.warn(NIGHT_SKIP_MESSAGE);
 	};
 
 	// Step 1: Load themefile
@@ -328,6 +350,7 @@ export async function generateTheme(
 		defaultParsed: parsed,
 		baseDir: themeDir,
 	});
+	const baseDayTree = parseYamlObject(baseDocument.tokenContent);
 	const firstPass = buildGroupPasses(
 		baseDocument.parsed,
 		baseDocument.buildDir,
@@ -343,6 +366,9 @@ export async function generateTheme(
 					baseParsed: baseDocument.parsed,
 					baseDir: themeDir,
 				});
+		const dayTree = entry.isDefault
+			? baseDayTree
+			: parseYamlObject(document.tokenContent);
 		const profileDepResult = await buildDependencyDictionary(
 			document.parsed,
 			themeDir,
@@ -379,6 +405,60 @@ export async function generateTheme(
 				entry.isDefault ? undefined : entry.name,
 			);
 			if (!('files' in result)) return result;
+			generatedFiles.push(...result.files);
+		}
+
+		if (!generateOptions.night) {
+			ctx?.setNight('disabled');
+			continue;
+		}
+		if (!entry.nightPath || !dayTree) {
+			warnNightSkipped(entry.name);
+			continue;
+		}
+
+		let nightTree: Record<string, unknown> | undefined;
+		try {
+			nightTree = parseYamlObject(await Bun.file(entry.nightPath).text());
+		} catch {
+			nightTree = undefined;
+		}
+		if (!nightTree) {
+			warnNightSkipped(entry.name);
+			continue;
+		}
+
+		const mergedNight = mergeNightOverlay(dayTree, nightTree);
+		if (!mergedNight.ok) {
+			warnNightSkipped(entry.name);
+			continue;
+		}
+
+		ctx?.setNight('enabled');
+		const nightContent = yaml.dump(mergedNight.tree, { lineWidth: -1 });
+		for (const pass of profilePasses) {
+			const result = await generatePass(
+				`${profileThemeName(resolvedThemeName, document)}-night`,
+				path.dirname(entry.path),
+				pass.outputDir,
+				profileDepResult.dict,
+				profileDepResult,
+				pass.platforms,
+				pass.filterLayer,
+				pass.colorSpace,
+				generateOptions,
+				entry.nightPath,
+				nightContent,
+				ctx,
+				warnLegacyFallback,
+				'night',
+				entry.isDefault ? undefined : entry.name,
+				false,
+			);
+			if (!('files' in result)) {
+				warnNightSkipped(entry.name);
+				break;
+			}
 			generatedFiles.push(...result.files);
 		}
 	}

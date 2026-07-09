@@ -1,0 +1,4 @@
+theme:
+  color:
+    primary:
+      $value: "{theme.color.missing}"

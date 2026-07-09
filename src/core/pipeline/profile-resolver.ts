@@ -28,6 +28,11 @@ interface ProfileParseOptions {
 }
 
 const PROFILE_STEM_RE = /^[A-Za-z0-9 _-]+$/;
+export const NIGHT_SKIP_MESSAGE = 'Night Mode unavailable/invalid and skipped';
+
+type MergeNightResult =
+	| { ok: true; tree: Record<string, unknown> }
+	| { ok: false; message: typeof NIGHT_SKIP_MESSAGE };
 
 function exists(filePath: string): Promise<boolean> {
 	return fs
@@ -109,6 +114,103 @@ function mergeGroups(
 	}
 
 	return output;
+}
+
+function cloneJson<T>(value: T): T {
+	return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function isNightWritablePath(pathParts: string[]): boolean {
+	return (
+		pathParts[0] === 'theme' &&
+		(pathParts[1] === 'color' || pathParts[1] === 'state')
+	);
+}
+
+function hasPath(root: Record<string, unknown>, pathParts: string[]): boolean {
+	let current: unknown = root;
+	for (const part of pathParts) {
+		if (
+			typeof current !== 'object' ||
+			current === null ||
+			Array.isArray(current)
+		) {
+			return false;
+		}
+		if (!(part in current)) return false;
+		current = (current as Record<string, unknown>)[part];
+	}
+	return true;
+}
+
+function assignPath(
+	root: Record<string, unknown>,
+	pathParts: string[],
+	value: unknown,
+): void {
+	let current = root;
+	for (const part of pathParts.slice(0, -1)) {
+		current = current[part] as Record<string, unknown>;
+	}
+	const key = pathParts[pathParts.length - 1]!;
+	const existing = current[key];
+	if (
+		typeof existing === 'object' &&
+		existing !== null &&
+		!Array.isArray(existing) &&
+		typeof value === 'object' &&
+		value !== null &&
+		!Array.isArray(value)
+	) {
+		current[key] = { ...existing, ...value };
+		return;
+	}
+	current[key] = value;
+}
+
+function walkNightLeaves(
+	node: unknown,
+	pathParts: string[],
+	leaves: Array<{ path: string[]; value: unknown }>,
+): void {
+	if (
+		typeof node !== 'object' ||
+		node === null ||
+		Array.isArray(node) ||
+		'$value' in node
+	) {
+		leaves.push({ path: pathParts, value: node });
+		return;
+	}
+	for (const [key, child] of Object.entries(node as Record<string, unknown>)) {
+		if (key.startsWith('$')) continue;
+		walkNightLeaves(child, [...pathParts, key], leaves);
+	}
+}
+
+export function mergeNightOverlay(
+	dayTree: Record<string, unknown>,
+	nightTree: Record<string, unknown>,
+): MergeNightResult {
+	for (const key of Object.keys(nightTree)) {
+		if (key === '$schema') continue;
+		if (key !== 'theme') return { ok: false, message: NIGHT_SKIP_MESSAGE };
+	}
+
+	const leaves: Array<{ path: string[]; value: unknown }> = [];
+	walkNightLeaves(nightTree, [], leaves);
+	for (const leaf of leaves) {
+		if (!isNightWritablePath(leaf.path)) {
+			return { ok: false, message: NIGHT_SKIP_MESSAGE };
+		}
+		if (!hasPath(dayTree, leaf.path)) {
+			return { ok: false, message: NIGHT_SKIP_MESSAGE };
+		}
+	}
+
+	const merged = cloneJson(dayTree);
+	for (const leaf of leaves) assignPath(merged, leaf.path, leaf.value);
+	return { ok: true, tree: merged };
 }
 
 export function normalizeProfileName(stem: string): string {
