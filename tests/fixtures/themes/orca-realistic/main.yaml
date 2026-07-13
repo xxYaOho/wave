@@ -67,12 +67,16 @@ theme:
           $ref: "#/theme/color/text/default/$value"
           alpha: "{wave.dimension.alpha.400}"
     outline:
+      ring:
+        $value: "{theme.color.primary.main}"
       default:
         $value: "#ff00ff"
         $extensions:
           inheritColor:
             property:
               opacity: "{wave.dimension.alpha.400}"
+    direct-alias:
+      $value: "{theme.color.primary.main}"
     surface:
       default:
         $value:
@@ -181,6 +185,10 @@ theme:
           lineHeight: 1.5
           color:
             $ref: "#/theme/color/text/subtlest/$value"
+      alias:
+        $value:
+          lineHeight: 1.5
+          color: "{theme.color.direct-alias}"
     label:
       $value:
         lineHeight:
@@ -211,7 +219,7 @@ theme:
               unit: px
     outline:
       $value:
-        color: "{theme.color.primary.main}"
+        color: "{theme.color.outline.ring}"
         width:
           value: 1
           unit: px

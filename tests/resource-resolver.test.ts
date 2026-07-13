@@ -336,6 +336,62 @@ describe('generalized resolver', () => {
 		expect(body._sketchColorReference).toBe('{theme.color.text}');
 	});
 
+	test('preserves composite color source metadata through internal passes', () => {
+		const result = resolveReferences(
+			{
+				theme: {
+					color: {
+						$type: 'color',
+						primary: { main: { $value: '#112233' } },
+						outline: {
+							ring: { $value: '{theme.color.primary.main}' },
+						},
+						'direct-alias': {
+							$value: '{theme.color.primary.main}',
+						},
+					},
+					font: {
+						$type: 'typography',
+						alias: {
+							$value: {
+								color: '{theme.color.direct-alias}',
+							},
+						},
+					},
+					border: {
+						$type: 'border',
+						outline: {
+							$value: {
+								color: '{theme.color.outline.ring}',
+								width: 1,
+								style: 'solid',
+							},
+						},
+					},
+				},
+			},
+			{},
+		);
+		const theme = result.theme as Record<string, Record<string, unknown>>;
+		const outline = theme.border?.outline as {
+			$value: { color: string };
+			_colorReference?: string;
+			_sketchColorReference?: string;
+		};
+		const alias = theme.font?.alias as {
+			$value: { color: string };
+			_colorReference?: string;
+			_sketchColorReference?: string;
+		};
+
+		expect(outline.$value.color).toBe('#112233');
+		expect(outline._colorReference).toBe('{theme.color.outline.ring}');
+		expect(outline._sketchColorReference).toBe('{theme.color.outline.ring}');
+		expect(alias.$value.color).toBe('#112233');
+		expect(alias._colorReference).toBe('{theme.color.direct-alias}');
+		expect(alias._sketchColorReference).toBe('{theme.color.direct-alias}');
+	});
+
 	test('preserves Sketch color metadata only for unmodified references', () => {
 		const tree: DtcgTokenGroup = {
 			theme: {

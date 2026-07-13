@@ -46,9 +46,9 @@ export function processTokenInternal(
 		swatchName = token._swatchName;
 	}
 	const colorReference =
-		extractDirectColorReference(token.$value) ?? token._colorReference;
+		token._colorReference ?? extractDirectColorReference(token.$value);
 	const sketchColorReference =
-		extractSketchColorReference(token.$value) ?? token._sketchColorReference;
+		token._sketchColorReference ?? extractSketchColorReference(token.$value);
 
 	const resolvedExtensions = token.$extensions
 		? Object.fromEntries(

@@ -805,6 +805,7 @@ describe('Theme Service Integration', () => {
 			);
 			expect(css).toContain('--body-line-height: 1.5;');
 			expect(css).toContain('--body-color: var(--text-default);');
+			expect(css).toContain('--display-alias-color: var(--direct-alias);');
 			expect(css).toContain('--label-line-height: 20px;');
 			expect(css).toContain('--antline: 1px dashed #0052f5;');
 			expect(css).toContain('--antline-dash-array: 4px 8px;');
@@ -889,6 +890,9 @@ describe('Theme Service Integration', () => {
 			expect(sketch.v2.display['display-footnote'].textStyle.textColor).toBe(
 				'@text-subtlest',
 			);
+			expect(sketch.v2.display['display-alias'].textStyle.textColor).toBe(
+				'@direct-alias',
+			);
 			expect(sketch.foundation.font.label.textStyle.lineHeight).toBe(20);
 			expect(sketch.foundation.font.internal).toBeUndefined();
 			expect(json['font-internal']).toBeDefined();
@@ -913,7 +917,7 @@ describe('Theme Service Integration', () => {
 				},
 			});
 			expect(sketch.foundation.border.outline.shadow).toEqual([
-				{ x: 0, y: 0, blur: 0, spread: 3, color: '@primary-main' },
+				{ x: 0, y: 0, blur: 0, spread: 3, color: '@outline-ring' },
 				{ x: 0, y: 0, blur: 0, spread: 2, color: '#ffffffff' },
 			]);
 		} finally {
@@ -1394,7 +1398,7 @@ theme:
 					'@color-base',
 				);
 				expect(sketch['border-outline-token-curly-alias'].shadow[0].color).toBe(
-					'@color-base',
+					'@color-alias',
 				);
 				expect(
 					sketch['border-outline-token-curly-external'].shadow[0].color,
@@ -1407,7 +1411,7 @@ theme:
 				);
 				expect(
 					sketch['border-outline-pointer-alias-value'].shadow[0].color,
-				).toBe('@color-base');
+				).toBe('@color-alias');
 				expect(sketch['border-outline-ref-width'].shadow[0]).toMatchObject({
 					spread: 6,
 					color: '@color-base',
