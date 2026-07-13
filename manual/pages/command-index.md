@@ -37,10 +37,10 @@ wave dt doctor
 wave dt init
 ```
 
-进入已有 `themefile` 的 token 项目目录后运行：
+进入已有 token 项目目录后运行：
 
 ```bash
-wave dt build -f ./themefile
+wave dt build
 wave dt wcag
 ```
 

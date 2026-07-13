@@ -104,6 +104,7 @@ export async function checkDesignTokenGenerateThemeEquivalence(
 						: prepared.mainYamlPath,
 				generateOptions: {
 					night: testCase.includeNight,
+					profiles: testCase.includeProfiles ? 'all' : undefined,
 					platform: testCase.platforms,
 				},
 			}),

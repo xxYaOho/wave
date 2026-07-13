@@ -28,8 +28,17 @@ describe('Quality Harness design-token case registry', () => {
 			defaultCases.every((testCase) => testCase.entryKind === 'main-config'),
 		).toBe(true);
 		expect(
+			defaultCases.every((testCase) => 'includeProfiles' in testCase),
+		).toBe(true);
+		expect(
 			defaultCases.some((testCase) => testCase.id === 'sketch-extensions'),
 		).toBe(true);
+		expect(
+			defaultCases.some((testCase) => testCase.id === 'config-group-profiles'),
+		).toBe(true);
+		expect(
+			defaultCases.some((testCase) => testCase.id === 'config-group-variants'),
+		).toBe(false);
 		expect(defaultCases.some((testCase) => testCase.id === 'standard')).toBe(
 			false,
 		);
@@ -323,10 +332,19 @@ describe('Quality Harness workspace and runner', () => {
 			});
 
 			expect(result.status).toBe('success');
-			expect(result.outputFileNames).toEqual([
+			expect(result.outputFileNames).toContain(
 				path.join('css', 'orca-realistic.css'),
+			);
+			expect(result.outputFileNames).toContain(
 				path.join('sketch', 'orca-realistic2sketch.json'),
-			]);
+			);
+			expect(result.outputFileNames).toContain(
+				path.join('css', 'orca-realistic-assistant-app.css'),
+			);
+			expect(result.outputFileNames).toContain(
+				path.join('css', 'orca-realistic-viz-fos.css'),
+			);
+			expect(result.outputFileNames.join('\n')).not.toContain('variants');
 			expect(
 				result.resources.some((resource) => resource.kind === 'custom'),
 			).toBe(true);
@@ -372,7 +390,7 @@ describe('Quality Harness workspace and runner', () => {
 
 	test('matches generateTheme output hashes without legacy group night outputs', async () => {
 		const testCase = getDesignTokenCases('default').find(
-			(candidate) => candidate.id === 'config-group-variants',
+			(candidate) => candidate.id === 'config-group-profiles',
 		);
 		expect(testCase).toBeDefined();
 		const result = await checkDesignTokenGenerateThemeEquivalence(
@@ -381,14 +399,32 @@ describe('Quality Harness workspace and runner', () => {
 		);
 
 		expect(result.ok, JSON.stringify(result.issues, null, 2)).toBe(true);
+		expect(result.benchmarkFiles).toContain(
+			path.join('css', 'config-group-profiles-dark.css'),
+		);
+		expect(result.benchmarkFiles).toContain(
+			path.join('css', 'config-group-profiles-night.css'),
+		);
+		expect(result.benchmarkFiles).toContain(
+			path.join('css', 'config-group-profiles-dark-night.css'),
+		);
+		expect(result.benchmarkFiles).toContain(
+			path.join('sketch', 'config-group-profiles2sketch.json'),
+		);
+		expect(result.benchmarkFiles).toContain(
+			path.join('sketch', 'config-group-profiles-dark2sketch.json'),
+		);
+		expect(result.benchmarkFiles).toContain(
+			path.join('sketch', 'config-group-profiles-night2sketch.json'),
+		);
+		expect(result.benchmarkFiles).toContain(
+			path.join('sketch', 'config-group-profiles-dark-night2sketch.json'),
+		);
 		expect(
 			result.benchmarkFiles.some((file) =>
-				file.includes('config-group-variants-night'),
+				file.includes('config-group-variants'),
 			),
 		).toBe(false);
-		expect(result.benchmarkFiles.some((file) => file.includes('-dark'))).toBe(
-			false,
-		);
 	});
 
 	test('runs legacy themefile cases through benchmark fallback', async () => {

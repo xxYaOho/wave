@@ -2,7 +2,12 @@ import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import type { BuiltinDimension, BuiltinPalette } from '../../types/index.ts';
 
-const SOURCE_RESOURCES_DIR = path.join(import.meta.dir, '..', '..', 'resources');
+const SOURCE_RESOURCES_DIR = path.join(
+	import.meta.dir,
+	'..',
+	'..',
+	'resources',
+);
 
 function candidateResourceDirs(): string[] {
 	const execDir = path.dirname(process.execPath);
@@ -12,7 +17,8 @@ function candidateResourceDirs(): string[] {
 function hasKnownResource(resourceDir: string): boolean {
 	try {
 		return (
-			Bun.file(path.join(resourceDir, 'palettes', 'tailwindcss.yaml')).size > 0 &&
+			Bun.file(path.join(resourceDir, 'palettes', 'tailwindcss.yaml')).size >
+				0 &&
 			Bun.file(path.join(resourceDir, 'dimensions', 'wave.yaml')).size > 0
 		);
 	} catch {

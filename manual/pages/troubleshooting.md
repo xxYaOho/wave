@@ -25,13 +25,13 @@ wave doctor --status
 
 ## 找不到 main.yaml
 
-`wave dt` 默认读取当前目录的 `main.yaml`。如果项目是通过 `wave dt init` 创建的，优先使用生成的 `themefile`：
+`wave dt` 默认读取当前目录的 `main.yaml`。如果项目是通过 `wave dt init` 创建的，直接在生成目录运行：
 
 ```bash
-wave dt build -f ./themefile
+wave dt build
 ```
 
-直接指定 `main.yaml` 时，这个文件需要包含 `$config`。`wave dt init` 生成的 `main.yaml` 只保存 token 内容，不包含 `$config`。如果不确定，先使用 `themefile` 入口。
+直接指定 `main.yaml` 时，这个文件需要包含 `$config`。`wave dt init` 生成的 `main.yaml` 已包含 `$config`。
 
 新项目可以先运行：
 
@@ -42,18 +42,22 @@ wave dt init
 然后构建：
 
 ```bash
-wave dt build -f ./themefile
+wave dt build
 ```
 
 ## main.yaml 缺少 $config
 
-直接把 `main.yaml` 作为输入时，文件需要包含 `$config`。如果看到 `Missing required $config in main.yaml entry`，可以改用 `themefile` 构建：
+直接把 `main.yaml` 作为输入时，文件需要包含 `$config`。如果看到 `Missing required $config in main.yaml entry`，先补齐 `$config`。
 
-```bash
-wave dt build -f ./themefile
+```yaml
+$config:
+  theme: example
+  resource:
+    palette:
+      - tailwindcss
 ```
 
-也可以在 `main.yaml` 中补齐 `$config`，再运行 `wave dt`。
+如需检查 `theme.dimension` 迁移，再运行 `wave dt doctor`。
 
 ## 压缩工具缺失
 

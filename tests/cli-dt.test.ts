@@ -26,6 +26,31 @@ async function runWave(
 	return { exitCode, stdout, stderr };
 }
 
+function isolatedResourceEnv(tempDir: string): Record<string, string> {
+	return {
+		WAVE_RESOURCE_CACHE_DIR: path.join(tempDir, '.wave-cache'),
+		WAVE_RESOURCE_STATE_PATH: path.join(tempDir, '.wave-state.json'),
+		WAVE_RESOURCE_CONFIG_DIR: path.join(tempDir, '.wave-config'),
+	};
+}
+
+async function copyFixtureWorkspace(
+	relativePath: string,
+): Promise<{ dir: string; env: Record<string, string> }> {
+	const sourceDir = path.join(rootDir, relativePath);
+	const workspaceDir = await fs.mkdtemp(
+		path.join(os.tmpdir(), 'wave-fixture-'),
+	);
+	await fs.cp(sourceDir, workspaceDir, {
+		recursive: true,
+		filter: (source) => {
+			const name = path.basename(source);
+			return !['.DS_Store', '.tmp', 'theme', 'dist', 'build'].includes(name);
+		},
+	});
+	return { dir: workspaceDir, env: isolatedResourceEnv(workspaceDir) };
+}
+
 describe('wave dt', () => {
 	test('top-level help shows actionable command overview', async () => {
 		const bare = await runWave([]);
@@ -95,56 +120,64 @@ describe('wave dt', () => {
 	});
 
 	test('dt build no longer auto-discovers variants directory', async () => {
-		const fixtureDir = path.join(
-			rootDir,
+		const fixture = await copyFixtureWorkspace(
 			'tests/fixtures/themes/config-group-variants',
 		);
+		const fixtureDir = fixture.dir;
 		const outputDir = path.join(fixtureDir, 'theme');
 
-		await fs.rm(outputDir, { recursive: true, force: true });
+		try {
+			const { exitCode, stdout } = await runWave(
+				['dt', 'build'],
+				fixtureDir,
+				fixture.env,
+			);
 
-		const { exitCode, stdout } = await runWave(['dt', 'build'], fixtureDir);
-
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('config-group-variants.css');
-		expect(stdout).not.toContain('config-group-variants-dark.css');
-		expect(
-			await Bun.file(
-				path.join(outputDir, 'css', 'config-group-variants.css'),
-			).exists(),
-		).toBe(true);
-		expect(
-			await Bun.file(
-				path.join(outputDir, 'css', 'config-group-variants-dark.css'),
-			).exists(),
-		).toBe(false);
-
-		await fs.rm(outputDir, { recursive: true, force: true });
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('config-group-variants.css');
+			expect(stdout).not.toContain('config-group-variants-dark.css');
+			expect(
+				await Bun.file(
+					path.join(outputDir, 'css', 'config-group-variants.css'),
+				).exists(),
+			).toBe(true);
+			expect(
+				await Bun.file(
+					path.join(outputDir, 'css', 'config-group-variants-dark.css'),
+				).exists(),
+			).toBe(false);
+		} finally {
+			await fs.rm(fixtureDir, { recursive: true, force: true });
+		}
 	});
 
 	test('dt build explicit night skips invalid profile night without failing', async () => {
-		const outputDir = path.join(
-			rootDir,
-			'tests/fixtures/themes/profile-model/profiles/mobile-dist',
+		const fixture = await copyFixtureWorkspace(
+			'tests/fixtures/themes/profile-model',
 		);
-		await fs.rm(outputDir, { recursive: true, force: true });
+		const fixtureDir = fixture.dir;
+		try {
+			const { exitCode, stdout } = await runWave(
+				[
+					'dt',
+					'build',
+					'--profile',
+					'mobile',
+					'--night',
+					'--file',
+					path.join(fixtureDir, 'main.yaml'),
+				],
+				rootDir,
+				fixture.env,
+			);
 
-		const { exitCode, stdout } = await runWave([
-			'dt',
-			'build',
-			'--profile',
-			'mobile',
-			'--night',
-			'--file',
-			'tests/fixtures/themes/profile-model/main.yaml',
-		]);
-
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('Night Mode unavailable/invalid and skipped');
-		expect(stdout).toContain('profile-model-mobile.json');
-		expect(stdout).not.toContain('profile-model-mobile-night.json');
-
-		await fs.rm(outputDir, { recursive: true, force: true });
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('Night Mode unavailable/invalid and skipped');
+			expect(stdout).toContain('profile-model-mobile.json');
+			expect(stdout).not.toContain('profile-model-mobile-night.json');
+		} finally {
+			await fs.rm(fixtureDir, { recursive: true, force: true });
+		}
 	});
 
 	test('dt wcag supports profile scope', async () => {
@@ -290,17 +323,22 @@ describe('wave dt', () => {
 	test('dt build generates design token output through the new module entry', async () => {
 		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/standard');
 		const outputDir = path.join(rootDir, '.temp-test-dt-build');
+		const env = isolatedResourceEnv(outputDir);
 
 		await fs.rm(outputDir, { recursive: true, force: true });
 
-		const { exitCode } = await runWave([
-			'dt',
-			'build',
-			'-f',
-			path.join(fixtureDir, 'themefile'),
-			'-o',
-			outputDir,
-		]);
+		const { exitCode } = await runWave(
+			[
+				'dt',
+				'build',
+				'-f',
+				path.join(fixtureDir, 'themefile'),
+				'-o',
+				outputDir,
+			],
+			rootDir,
+			env,
+		);
 
 		expect(exitCode).toBe(0);
 
@@ -345,14 +383,11 @@ describe('wave dt', () => {
 				].join('\n'),
 			);
 
-			const { exitCode, stderr } = await runWave([
-				'dt',
-				'build',
-				'-f',
-				path.join(tempDir, 'themefile'),
-				'-o',
-				outputDir,
-			]);
+			const { exitCode, stderr } = await runWave(
+				['dt', 'build', '-f', path.join(tempDir, 'themefile'), '-o', outputDir],
+				rootDir,
+				isolatedResourceEnv(tempDir),
+			);
 
 			expect(stderr).not.toContain('Theme schema validation failed');
 			expect(exitCode).toBe(0);
@@ -372,16 +407,15 @@ describe('wave dt', () => {
 	test('dt without subcommand defaults to build', async () => {
 		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/standard');
 		const outputDir = path.join(rootDir, '.temp-test-dt-default-build');
+		const env = isolatedResourceEnv(outputDir);
 
 		await fs.rm(outputDir, { recursive: true, force: true });
 
-		const { exitCode } = await runWave([
-			'dt',
-			'-f',
-			path.join(fixtureDir, 'themefile'),
-			'-o',
-			outputDir,
-		]);
+		const { exitCode } = await runWave(
+			['dt', '-f', path.join(fixtureDir, 'themefile'), '-o', outputDir],
+			rootDir,
+			env,
+		);
 
 		expect(exitCode).toBe(0);
 		expect(
@@ -394,16 +428,21 @@ describe('wave dt', () => {
 	test('design-token without subcommand defaults to build', async () => {
 		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/standard');
 		const outputDir = path.join(rootDir, '.temp-test-design-token-build');
+		const env = isolatedResourceEnv(outputDir);
 
 		await fs.rm(outputDir, { recursive: true, force: true });
 
-		const { exitCode } = await runWave([
-			'design-token',
-			'-f',
-			path.join(fixtureDir, 'themefile'),
-			'-o',
-			outputDir,
-		]);
+		const { exitCode } = await runWave(
+			[
+				'design-token',
+				'-f',
+				path.join(fixtureDir, 'themefile'),
+				'-o',
+				outputDir,
+			],
+			rootDir,
+			env,
+		);
 
 		expect(exitCode).toBe(0);
 		expect(
@@ -414,134 +453,157 @@ describe('wave dt', () => {
 	});
 
 	test('dt build accepts main.yaml with $config as the design-token entry', async () => {
-		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/config-main');
+		const fixture = await copyFixtureWorkspace(
+			'tests/fixtures/themes/config-main',
+		);
+		const fixtureDir = fixture.dir;
 		const outputDir = path.join(fixtureDir, 'theme');
 
-		await fs.rm(outputDir, { recursive: true, force: true });
+		try {
+			const { exitCode, stdout } = await runWave(
+				['dt', 'build', path.join(fixtureDir, 'main.yaml')],
+				rootDir,
+				fixture.env,
+			);
 
-		const { exitCode, stdout } = await runWave([
-			'dt',
-			'build',
-			path.join(fixtureDir, 'main.yaml'),
-		]);
-
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('config-main.css');
-		expect(stdout).toContain('config-main2sketch.json');
-		expect(
-			await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
-		).toBe(true);
-		expect(
-			await Bun.file(path.join(outputDir, 'config-main2sketch.json')).exists(),
-		).toBe(true);
-
-		await fs.rm(outputDir, { recursive: true, force: true });
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('config-main.css');
+			expect(stdout).toContain('config-main2sketch.json');
+			expect(
+				await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
+			).toBe(true);
+			expect(
+				await Bun.file(
+					path.join(outputDir, 'config-main2sketch.json'),
+				).exists(),
+			).toBe(true);
+		} finally {
+			await fs.rm(fixtureDir, { recursive: true, force: true });
+		}
 	});
 
 	test('dt without explicit input defaults to current directory main.yaml', async () => {
-		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/config-main');
+		const fixture = await copyFixtureWorkspace(
+			'tests/fixtures/themes/config-main',
+		);
+		const fixtureDir = fixture.dir;
 		const outputDir = path.join(fixtureDir, 'theme');
 
-		await fs.rm(outputDir, { recursive: true, force: true });
+		try {
+			const { exitCode, stdout } = await runWave(
+				['dt'],
+				fixtureDir,
+				fixture.env,
+			);
 
-		const { exitCode, stdout } = await runWave(['dt'], fixtureDir);
-
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('config-main.css');
-		expect(stdout).not.toContain('No themefile found');
-		expect(
-			await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
-		).toBe(true);
-
-		await fs.rm(outputDir, { recursive: true, force: true });
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('config-main.css');
+			expect(stdout).not.toContain('No themefile found');
+			expect(
+				await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
+			).toBe(true);
+		} finally {
+			await fs.rm(fixtureDir, { recursive: true, force: true });
+		}
 	});
 
 	test('dt accepts positional and -f main.yaml inputs', async () => {
-		const fixtureDir = path.join(rootDir, 'tests/fixtures/themes/config-main');
+		const fixture = await copyFixtureWorkspace(
+			'tests/fixtures/themes/config-main',
+		);
+		const fixtureDir = fixture.dir;
 		const outputDir = path.join(fixtureDir, 'theme');
 		const mainYaml = path.join(fixtureDir, 'main.yaml');
 
-		await fs.rm(outputDir, { recursive: true, force: true });
+		try {
+			const positional = await runWave(['dt', mainYaml], rootDir, fixture.env);
+			expect(positional.exitCode).toBe(0);
+			expect(
+				await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
+			).toBe(true);
 
-		const positional = await runWave(['dt', mainYaml]);
-		expect(positional.exitCode).toBe(0);
-		expect(
-			await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
-		).toBe(true);
+			await fs.rm(outputDir, { recursive: true, force: true });
 
-		await fs.rm(outputDir, { recursive: true, force: true });
-
-		const fileFlag = await runWave(['dt', '-f', mainYaml]);
-		expect(fileFlag.exitCode).toBe(0);
-		expect(
-			await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
-		).toBe(true);
-
-		await fs.rm(outputDir, { recursive: true, force: true });
+			const fileFlag = await runWave(
+				['dt', '-f', mainYaml],
+				rootDir,
+				fixture.env,
+			);
+			expect(fileFlag.exitCode).toBe(0);
+			expect(
+				await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
+			).toBe(true);
+		} finally {
+			await fs.rm(fixtureDir, { recursive: true, force: true });
+		}
 	});
 
 	test('dt build emits sketch extension path and property mappings', async () => {
-		const fixtureDir = path.join(
-			rootDir,
+		const fixture = await copyFixtureWorkspace(
 			'tests/fixtures/themes/sketch-extensions',
 		);
+		const fixtureDir = fixture.dir;
 		const outputDir = path.join(fixtureDir, 'theme');
 
-		await fs.rm(outputDir, { recursive: true, force: true });
+		try {
+			const { exitCode, stdout } = await runWave(
+				['dt', 'build'],
+				fixtureDir,
+				fixture.env,
+			);
 
-		const { exitCode, stdout } = await runWave(['dt', 'build'], fixtureDir);
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain('THEME');
+			expect(stdout).toContain('RESOURCES');
+			expect(stdout).toContain('tailwindcss');
+			expect(stdout).toContain('dimension');
+			expect(stdout).toContain('sketch-extensions2sketch.json');
+			expect(stdout).toContain('Night mode');
+			expect(stdout).toContain('disabled');
+			expect(stdout).toContain('Profiles');
 
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('THEME');
-		expect(stdout).toContain('RESOURCES');
-		expect(stdout).toContain('tailwindcss');
-		expect(stdout).toContain('dimension');
-		expect(stdout).toContain('sketch-extensions2sketch.json');
-		expect(stdout).toContain('Night mode');
-		expect(stdout).toContain('disabled');
-		expect(stdout).toContain('Profiles');
+			const sketchOutput = JSON.parse(
+				await fs.readFile(
+					path.join(outputDir, 'sketch', 'sketch-extensions2sketch.json'),
+					'utf-8',
+				),
+			);
 
-		const sketchOutput = JSON.parse(
-			await fs.readFile(
-				path.join(outputDir, 'sketch', 'sketch-extensions2sketch.json'),
+			expect(sketchOutput.foundation.color['color-primary-main']).toEqual({
+				color: '#1872f0ff',
+			});
+			expect(sketchOutput.foundation.interaction).toBeUndefined();
+			expect(sketchOutput.foundation.radius).toBeUndefined();
+			expect(sketchOutput.aaa.bbb['shadow-1'].shadow).toHaveLength(4);
+			expect(sketchOutput.aaa.bbb['shadow-1'].shadow[0]).toMatchObject({
+				color: '#0f172b0f',
+				y: 4,
+				blur: 8,
+				spread: -2,
+			});
+			expect(sketchOutput['aaa/bbb']).toBeUndefined();
+			expect(sketchOutput.component).toBeUndefined();
+
+			const jsonOutput = JSON.parse(
+				await fs.readFile(
+					path.join(outputDir, 'json', 'sketch-extensions.json'),
+					'utf-8',
+				),
+			);
+			expect(jsonOutput['color-primary-main']).toBe('#1872f0');
+			expect(jsonOutput['foundation/color/primary/main']).toBeUndefined();
+			expect(JSON.stringify(jsonOutput)).not.toContain('_sketch');
+
+			const cssOutput = await fs.readFile(
+				path.join(outputDir, 'css', 'sketch-extensions.css'),
 				'utf-8',
-			),
-		);
-
-		expect(sketchOutput.foundation.color['color-primary-main']).toEqual({
-			color: '#1872f0ff',
-		});
-		expect(sketchOutput.foundation.interaction).toBeUndefined();
-		expect(sketchOutput.foundation.radius).toBeUndefined();
-		expect(sketchOutput.aaa.bbb['shadow-1'].shadow).toHaveLength(4);
-		expect(sketchOutput.aaa.bbb['shadow-1'].shadow[0]).toMatchObject({
-			color: '#0f172b0f',
-			y: 4,
-			blur: 8,
-			spread: -2,
-		});
-		expect(sketchOutput['aaa/bbb']).toBeUndefined();
-		expect(sketchOutput.component).toBeUndefined();
-
-		const jsonOutput = JSON.parse(
-			await fs.readFile(
-				path.join(outputDir, 'json', 'sketch-extensions.json'),
-				'utf-8',
-			),
-		);
-		expect(jsonOutput['color-primary-main']).toBe('#1872f0');
-		expect(jsonOutput['foundation/color/primary/main']).toBeUndefined();
-		expect(JSON.stringify(jsonOutput)).not.toContain('_sketch');
-
-		const cssOutput = await fs.readFile(
-			path.join(outputDir, 'css', 'sketch-extensions.css'),
-			'utf-8',
-		);
-		expect(cssOutput).toContain('--primary-main: #1872f0;');
-		expect(cssOutput).not.toContain('foundation/color/primary/main');
-		expect(cssOutput).not.toContain('_sketch');
-
-		await fs.rm(outputDir, { recursive: true, force: true });
+			);
+			expect(cssOutput).toContain('--primary-main: #1872f0;');
+			expect(cssOutput).not.toContain('foundation/color/primary/main');
+			expect(cssOutput).not.toContain('_sketch');
+		} finally {
+			await fs.rm(fixtureDir, { recursive: true, force: true });
+		}
 	});
 
 	test('dt build main.yaml fails clearly when $config is missing', async () => {
@@ -600,14 +662,18 @@ describe('wave dt', () => {
 		);
 		try {
 			await writeInvalidDtcgColorTheme(tempDir, valueLines);
-			const result = await runWave([
-				'dt',
-				'build',
-				'-f',
-				path.join(tempDir, 'themefile'),
-				'-o',
-				path.join(tempDir, 'dist'),
-			]);
+			const result = await runWave(
+				[
+					'dt',
+					'build',
+					'-f',
+					path.join(tempDir, 'themefile'),
+					'-o',
+					path.join(tempDir, 'dist'),
+				],
+				rootDir,
+				isolatedResourceEnv(tempDir),
+			);
 
 			expect(result.exitCode).not.toBe(0);
 			expect(`${result.stdout}\n${result.stderr}`).toContain(expectedMessage);
@@ -731,8 +797,12 @@ describe('wave dt', () => {
 				path.join(rootDir, 'tests/fixtures/themes/profile-model/main.yaml'),
 				'utf-8',
 			);
-			const parsed = yaml.load(mainYaml) as Record<string, any>;
-			const fixture = yaml.load(fixtureYaml) as Record<string, any>;
+			type InitTemplate = {
+				$config: { theme: string; resource: unknown };
+				theme: Record<string, unknown>;
+			};
+			const parsed = yaml.load(mainYaml) as InitTemplate;
+			const fixture = yaml.load(fixtureYaml) as InitTemplate;
 
 			expect(mainYaml.startsWith('$schema:')).toBe(true);
 			expect(parsed.$config.theme).toBe('example');

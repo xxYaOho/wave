@@ -57,9 +57,9 @@ describe('compiled wave built-in resources', () => {
 		const palette = await runDist(['dt', 'show', 'palette', 'tailwindcss']);
 		expect(palette.exitCode).toBe(0);
 		expect(palette.stdout).toContain('tailwindcss');
-		expect(await Bun.file(path.join(tempCacheDir, 'tailwindcss.yaml')).exists()).toBe(
-			false,
-		);
+		expect(
+			await Bun.file(path.join(tempCacheDir, 'tailwindcss.yaml')).exists(),
+		).toBe(false);
 
 		const dimension = await runDist(['dt', 'show', 'dimension', 'wave']);
 		expect(dimension.exitCode).toBe(0);
@@ -84,8 +84,8 @@ describe('compiled wave built-in resources', () => {
 		expect(result.stdout).toContain('palette             tailwindcss');
 		expect(result.stdout).toContain('(builtin)');
 		expect(result.stdout).toContain('dimension           wave');
-		expect(await Bun.file(path.join(tempOut, 'test-standard.css')).exists()).toBe(
-			true,
-		);
+		expect(
+			await Bun.file(path.join(tempOut, 'test-standard.css')).exists(),
+		).toBe(true);
 	});
 });

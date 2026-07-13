@@ -1,10 +1,18 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { performance } from 'node:perf_hooks';
+import * as yaml from 'js-yaml';
 import { generateTokens } from '../../src/core/generator/index.ts';
+import {
+	discoverProfiles,
+	mergeNightOverlay,
+	type ProfileEntry,
+	parseProfileDocument,
+} from '../../src/core/pipeline/profile-resolver.ts';
 import {
 	buildDependencyDictionary,
 	buildGroupPasses,
+	type DependencyDict,
 	loadThemefile,
 	processThemeDocument,
 } from '../../src/core/pipeline/theme-pipeline.ts';
@@ -41,6 +49,8 @@ interface GenerateScope {
 	themeName: string;
 	filePath: string;
 	contentOverride?: string;
+	dict: DependencyDict;
+	passes: ReturnType<typeof buildGroupPasses>;
 }
 
 function now(): number {
@@ -64,6 +74,21 @@ function createInitialPhases(): PhaseDurations {
 		pipelineDurationMs: 0,
 		totalWallMs: 0,
 	};
+}
+
+function parseYamlObject(content: string): Record<string, unknown> | undefined {
+	const parsed = yaml.load(content);
+	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+		return undefined;
+	}
+	return parsed as Record<string, unknown>;
+}
+
+function profileThemeName(
+	baseThemeName: string,
+	profile: ProfileEntry,
+): string {
+	return profile.isDefault ? baseThemeName : `${baseThemeName}-${profile.name}`;
 }
 
 function failureResult(
@@ -145,32 +170,86 @@ export async function runDesignTokenBenchmarkCase(
 					return fail(load.value.error.message);
 				}
 
-				const { parsed, themeDir, mainYamlPath, mainYamlContent } = load.value;
+				const { parsed, themeDir, mainYamlPath } = load.value;
 				const resolvedThemeName = parsed.THEME || testCase.id;
 
-				const resource = await timed(() =>
-					buildDependencyDictionary(parsed, themeDir),
-				);
-				phases.resourceMs = resource.ms;
-				if ('error' in resource.value) {
-					return fail(resource.value.error.message);
-				}
-				const dependency = resource.value;
-
-				const groupPass = await timed(async () =>
-					buildGroupPasses(parsed, themeDir, undefined, undefined),
-				);
-				phases.groupPassMs = groupPass.ms;
-
 				const scopes: GenerateScope[] = [];
-				if (mainYamlPath) {
-					scopes.push({
-						name: 'main',
-						themeName: resolvedThemeName,
-						filePath: mainYamlPath,
-						contentOverride: mainYamlContent,
+				const profiles = mainYamlPath ? await discoverProfiles(themeDir) : [];
+				if (profiles.length > 0) {
+					const baseProfile = profiles.find((profile) => profile.isDefault);
+					if (!baseProfile) {
+						return fail('No main.yaml found');
+					}
+					const selectedProfiles = testCase.includeProfiles
+						? profiles
+						: [baseProfile];
+					const baseDocument = await parseProfileDocument(baseProfile, {
+						defaultParsed: parsed,
+						baseDir: themeDir,
 					});
+
+					for (const profile of selectedProfiles) {
+						const document = profile.isDefault
+							? baseDocument
+							: await parseProfileDocument(profile, {
+									baseParsed: baseDocument.parsed,
+									baseDir: themeDir,
+								});
+						const resource = await timed(() =>
+							buildDependencyDictionary(document.parsed, themeDir),
+						);
+						phases.resourceMs += resource.ms;
+						if ('error' in resource.value) {
+							return fail(resource.value.error.message);
+						}
+						const groupPass = await timed(async () =>
+							buildGroupPasses(document.parsed, document.buildDir),
+						);
+						phases.groupPassMs += groupPass.ms;
+						scopes.push({
+							name: profile.name,
+							themeName: profileThemeName(resolvedThemeName, profile),
+							filePath: profile.path,
+							contentOverride: document.tokenContent,
+							dict: resource.value.dict,
+							passes: groupPass.value,
+						});
+
+						if (!testCase.includeNight || !profile.nightPath) {
+							continue;
+						}
+						const dayTree = parseYamlObject(document.tokenContent);
+						const nightTree = parseYamlObject(
+							await fs.readFile(profile.nightPath, 'utf-8'),
+						);
+						if (!dayTree || !nightTree) {
+							continue;
+						}
+						const mergedNight = mergeNightOverlay(dayTree, nightTree);
+						if (!mergedNight.ok) {
+							continue;
+						}
+						scopes.push({
+							name: `${profile.name}-night`,
+							themeName: `${profileThemeName(resolvedThemeName, profile)}-night`,
+							filePath: profile.nightPath,
+							contentOverride: yaml.dump(mergedNight.tree, { lineWidth: -1 }),
+							dict: resource.value.dict,
+							passes: groupPass.value,
+						});
+					}
 				} else {
+					const resource = await timed(() =>
+						buildDependencyDictionary(parsed, themeDir),
+					);
+					phases.resourceMs += resource.ms;
+					if ('error' in resource.value) {
+						return fail(resource.value.error.message);
+					}
+					const groupPass = await timed(async () =>
+						buildGroupPasses(parsed, themeDir, undefined, undefined),
+					);
+					phases.groupPassMs += groupPass.ms;
 					const fallbackMainYamlPath = path.join(themeDir, 'main.yaml');
 					try {
 						const stat = await fs.stat(fallbackMainYamlPath);
@@ -179,6 +258,8 @@ export async function runDesignTokenBenchmarkCase(
 								name: 'main',
 								themeName: resolvedThemeName,
 								filePath: fallbackMainYamlPath,
+								dict: resource.value.dict,
+								passes: groupPass.value,
 							});
 						}
 					} catch (err) {
@@ -191,11 +272,11 @@ export async function runDesignTokenBenchmarkCase(
 				const generatedFiles: string[] = [];
 				let tokensCount = 0;
 				for (const scope of scopes) {
-					for (const pass of groupPass.value) {
+					for (const pass of scope.passes) {
 						const process = await timed(() =>
 							processThemeDocument(
 								scope.filePath,
-								dependency.dict,
+								scope.dict,
 								pass.colorSpace,
 								scope.contentOverride,
 							),
@@ -236,8 +317,11 @@ export async function runDesignTokenBenchmarkCase(
 
 				phases.pipelineDurationMs = now() - pipelineStart;
 				const outputDir =
-					commonDirectoryRoot(groupPass.value.map((pass) => pass.outputDir)) ??
-					path.join(themeDir, parsed.THEME);
+					commonDirectoryRoot(
+						scopes.flatMap((scope) =>
+							scope.passes.map((pass) => pass.outputDir),
+						),
+					) ?? path.join(themeDir, parsed.THEME);
 				const files = await collectFileArtifacts(outputDir);
 				phases.totalWallMs = now() - totalStart;
 

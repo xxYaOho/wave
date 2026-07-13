@@ -58,6 +58,8 @@ skills-lock.json
 # Graphify (临时文件与缓存，可随时重建)
 .graphify_*
 graphify-out/cache/
+graphify-out/cost.json
+graphify-out/manifest.json
 
 # Quality Harness
 benchmarks/.tmp/

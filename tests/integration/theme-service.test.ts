@@ -38,6 +38,55 @@ async function exists(filePath: string): Promise<boolean> {
 	}
 }
 
+function isolatedResourceEnv(tempDir: string): Record<string, string> {
+	return {
+		WAVE_RESOURCE_CACHE_DIR: path.join(tempDir, '.wave-cache'),
+		WAVE_RESOURCE_STATE_PATH: path.join(tempDir, '.wave-state.json'),
+		WAVE_RESOURCE_CONFIG_DIR: path.join(tempDir, '.wave-config'),
+	};
+}
+
+function applyResourceEnv(
+	env: Record<string, string>,
+): Record<string, string | undefined> {
+	const previous = {
+		WAVE_RESOURCE_CACHE_DIR: process.env.WAVE_RESOURCE_CACHE_DIR,
+		WAVE_RESOURCE_STATE_PATH: process.env.WAVE_RESOURCE_STATE_PATH,
+		WAVE_RESOURCE_CONFIG_DIR: process.env.WAVE_RESOURCE_CONFIG_DIR,
+	};
+	Object.assign(process.env, env);
+	return previous;
+}
+
+function restoreResourceEnv(
+	previous: Record<string, string | undefined>,
+): void {
+	for (const [key, value] of Object.entries(previous)) {
+		if (value === undefined) {
+			delete process.env[key];
+		} else {
+			process.env[key] = value;
+		}
+	}
+}
+
+async function copyFixtureWorkspace(
+	relativePath: string,
+): Promise<{ dir: string; env: Record<string, string> }> {
+	const sourceDir = path.join(import.meta.dir, '..', relativePath);
+	const workspaceDir = await fs.mkdtemp(
+		path.join(os.tmpdir(), 'wave-fixture-'),
+	);
+	await fs.cp(sourceDir, workspaceDir, {
+		recursive: true,
+		filter: (source) => {
+			const name = path.basename(source);
+			return !['.DS_Store', '.tmp', 'theme', 'dist', 'build'].includes(name);
+		},
+	});
+	return { dir: workspaceDir, env: isolatedResourceEnv(workspaceDir) };
+}
+
 function makeInput(
 	overrides: Partial<ThemeGenerationInput> & {
 		themeName: string;
@@ -52,14 +101,17 @@ function makeInput(
 }
 
 let tempDir: string;
+let previousResourceEnv: Record<string, string | undefined>;
 
 describe('Theme Service Integration', () => {
 	afterAll(async () => {
+		restoreResourceEnv(previousResourceEnv);
 		await fs.rm(tempDir, { recursive: true, force: true });
 	});
 
 	beforeAll(() => {
 		tempDir = createTempOutputDir();
+		previousResourceEnv = applyResourceEnv(isolatedResourceEnv(tempDir));
 	});
 
 	describe('标准主题生成', () => {
@@ -223,56 +275,53 @@ describe('Theme Service Integration', () => {
 		});
 
 		test('profiles all uses one cli output directory across profile files', async () => {
+			const fixture = await copyFixtureWorkspace(
+				'fixtures/themes/profile-model',
+			);
 			const outputDir = 'temp-output-profile-model-all';
 			const absoluteOutputDir = path.join(process.cwd(), outputDir);
-			const themePath = path.join(
-				process.cwd(),
-				'tests/fixtures/themes/profile-model/main.yaml',
-			);
+			const themePath = path.join(fixture.dir, 'main.yaml');
+			const previousEnv = applyResourceEnv(fixture.env);
 
-			await fs.rm(absoluteOutputDir, { recursive: true, force: true });
-			await fs.rm(path.join(path.dirname(themePath), outputDir), {
-				recursive: true,
-				force: true,
-			});
-			await fs.rm(path.join(path.dirname(themePath), 'profiles', outputDir), {
-				recursive: true,
-				force: true,
-			});
+			try {
+				await fs.rm(absoluteOutputDir, { recursive: true, force: true });
 
-			const result = await generateTheme({
-				themeName: 'profile-model',
-				themePath,
-				cliOutput: outputDir,
-				generateOptions: { night: true, profiles: 'all' },
-			});
+				const result = await generateTheme({
+					themeName: 'profile-model',
+					themePath,
+					cliOutput: outputDir,
+					generateOptions: { night: true, profiles: 'all' },
+				});
 
-			expect(result.ok).toBe(true);
-			if (result.ok) {
-				expect(result.outputDir).toBe(absoluteOutputDir);
-				expect(result.generatedFiles).toContain('profile-model.json');
-				expect(result.generatedFiles).toContain('profile-model-mobile.json');
-				expect(
-					await exists(path.join(absoluteOutputDir, 'profile-model.json')),
-				).toBe(true);
-				expect(
-					await exists(
-						path.join(absoluteOutputDir, 'profile-model-mobile.json'),
-					),
-				).toBe(true);
-				expect(
-					await exists(
-						path.join(
-							path.dirname(themePath),
-							'profiles',
-							outputDir,
-							'profile-model-mobile.json',
+				expect(result.ok).toBe(true);
+				if (result.ok) {
+					expect(result.outputDir).toBe(absoluteOutputDir);
+					expect(result.generatedFiles).toContain('profile-model.json');
+					expect(result.generatedFiles).toContain('profile-model-mobile.json');
+					expect(
+						await exists(path.join(absoluteOutputDir, 'profile-model.json')),
+					).toBe(true);
+					expect(
+						await exists(
+							path.join(absoluteOutputDir, 'profile-model-mobile.json'),
 						),
-					),
-				).toBe(false);
+					).toBe(true);
+					expect(
+						await exists(
+							path.join(
+								path.dirname(themePath),
+								'profiles',
+								outputDir,
+								'profile-model-mobile.json',
+							),
+						),
+					).toBe(false);
+				}
+			} finally {
+				restoreResourceEnv(previousEnv);
+				await fs.rm(absoluteOutputDir, { recursive: true, force: true });
+				await fs.rm(fixture.dir, { recursive: true, force: true });
 			}
-
-			await fs.rm(absoluteOutputDir, { recursive: true, force: true });
 		});
 
 		test('legacy themefile without main yaml still uses fallback when no profile is requested', async () => {
@@ -709,15 +758,12 @@ describe('Theme Service Integration', () => {
 	});
 
 	test('orca-realistic DTCG fallback color builds css and sketch', async () => {
-		const fixtureDir = path.join(
-			import.meta.dir,
-			'..',
-			'fixtures',
-			'themes',
-			'orca-realistic',
+		const fixture = await copyFixtureWorkspace(
+			'fixtures/themes/orca-realistic',
 		);
+		const fixtureDir = fixture.dir;
 		const outputDir = path.join(fixtureDir, 'theme');
-		await fs.rm(outputDir, { recursive: true, force: true });
+		const previousEnv = applyResourceEnv(fixture.env);
 
 		try {
 			const result = await generateTheme({
@@ -752,7 +798,8 @@ describe('Theme Service Integration', () => {
 				'#0052f540',
 			);
 		} finally {
-			await fs.rm(outputDir, { recursive: true, force: true });
+			restoreResourceEnv(previousEnv);
+			await fs.rm(fixtureDir, { recursive: true, force: true });
 		}
 	});
 
@@ -1217,30 +1264,28 @@ theme:
 				expect(css).toContain(
 					'--border-outline-pointer-alias-value: 1px solid #2563eb;',
 				);
-				expect(css).toContain(
-					'--border-outline-ref-width: 4px solid #2563eb;',
-				);
+				expect(css).toContain('--border-outline-ref-width: 4px solid #2563eb;');
 				expect(css).not.toContain('[object Object]');
 				expect(css).not.toContain('1px solid currentColor');
 
-				expect(
-					sketch['border-outline-direct-hex'].shadow[0].color,
-				).toBe('#2563ebff');
-				expect(
-					sketch['border-outline-token-curly-base'].shadow[0].color,
-				).toBe('#2563ebff');
-				expect(
-					sketch['border-outline-token-curly-alias'].shadow[0].color,
-				).toBe('#2563ebff');
+				expect(sketch['border-outline-direct-hex'].shadow[0].color).toBe(
+					'#2563ebff',
+				);
+				expect(sketch['border-outline-token-curly-base'].shadow[0].color).toBe(
+					'#2563ebff',
+				);
+				expect(sketch['border-outline-token-curly-alias'].shadow[0].color).toBe(
+					'#2563ebff',
+				);
 				expect(
 					sketch['border-outline-token-curly-external'].shadow[0].color,
 				).toBe('#1d293dff');
-				expect(
-					sketch['border-outline-pointer-token'].shadow[0].color,
-				).toBe('#2563ebff');
-				expect(
-					sketch['border-outline-pointer-value'].shadow[0].color,
-				).toBe('#2563ebff');
+				expect(sketch['border-outline-pointer-token'].shadow[0].color).toBe(
+					'#2563ebff',
+				);
+				expect(sketch['border-outline-pointer-value'].shadow[0].color).toBe(
+					'#2563ebff',
+				);
 				expect(
 					sketch['border-outline-pointer-alias-value'].shadow[0].color,
 				).toBe('#2563ebff');

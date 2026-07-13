@@ -16,7 +16,7 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		platforms: ['json'],
 		filterLayer: 0,
 		includeNight: false,
-		includeVariants: false,
+		includeProfiles: false,
 		compareDurations: true,
 	},
 	{
@@ -32,23 +32,23 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		platforms: ['json', 'css', 'sketch'],
 		filterLayer: 1,
 		includeNight: false,
-		includeVariants: false,
+		includeProfiles: false,
 		compareDurations: true,
 	},
 	{
-		id: 'config-group-variants',
+		id: 'config-group-profiles',
 		caseVersion: 1,
 		suites: ['default'],
 		entryKind: 'main-config',
 		origin: 'internal-fixture',
 		source: {
 			kind: 'fixture',
-			path: 'tests/fixtures/themes/config-group-variants',
+			path: 'tests/fixtures/themes/config-group-profiles',
 		},
 		platforms: ['css', 'sketch'],
 		filterLayer: 1,
 		includeNight: true,
-		includeVariants: true,
+		includeProfiles: true,
 		compareDurations: true,
 	},
 	{
@@ -80,7 +80,7 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		platforms: ['css', 'sketch'],
 		filterLayer: 2,
 		includeNight: false,
-		includeVariants: true,
+		includeProfiles: true,
 		compareDurations: true,
 	},
 	{
@@ -93,7 +93,7 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		platforms: SYNTHETIC_MIXED_1000.platforms,
 		filterLayer: SYNTHETIC_MIXED_1000.filterLayer,
 		includeNight: false,
-		includeVariants: false,
+		includeProfiles: false,
 		compareDurations: true,
 	},
 	{
@@ -106,7 +106,7 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		platforms: SYNTHETIC_MIXED_5000.platforms,
 		filterLayer: SYNTHETIC_MIXED_5000.filterLayer,
 		includeNight: false,
-		includeVariants: false,
+		includeProfiles: false,
 		compareDurations: true,
 	},
 	{
@@ -119,7 +119,7 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		platforms: SYNTHETIC_DEEP_REFERENCE.platforms,
 		filterLayer: SYNTHETIC_DEEP_REFERENCE.filterLayer,
 		includeNight: false,
-		includeVariants: false,
+		includeProfiles: false,
 		compareDurations: true,
 	},
 	{
@@ -132,7 +132,7 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		platforms: ['json', 'css'],
 		filterLayer: 0,
 		includeNight: false,
-		includeVariants: false,
+		includeProfiles: false,
 		compareDurations: false,
 	},
 	{
@@ -145,7 +145,7 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		platforms: ['json'],
 		filterLayer: 0,
 		includeNight: false,
-		includeVariants: false,
+		includeProfiles: false,
 		compareDurations: false,
 	},
 	{
@@ -158,7 +158,7 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		platforms: ['json', 'css', 'sketch'],
 		filterLayer: 0,
 		includeNight: false,
-		includeVariants: false,
+		includeProfiles: false,
 		compareDurations: false,
 	},
 	{
@@ -171,7 +171,7 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		platforms: ['json', 'css', 'sketch'],
 		filterLayer: 0,
 		includeNight: false,
-		includeVariants: false,
+		includeProfiles: false,
 		compareDurations: false,
 	},
 ];

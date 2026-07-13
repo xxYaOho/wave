@@ -43,20 +43,27 @@ wave dt status
 
 ## Design Token 输出
 
-`themefile` 中可设置输出目录：
+`main.yaml` 的 `$config.parameter` 中可设置输出目录：
 
-```text
-THEME example
-RESOURCE palette tailwindcss
-RESOURCE dimension wave
-PARAMETER output ./dist
-PARAMETER platform json,css
+```yaml
+$config:
+  theme: example
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+      - css
 ```
 
-进入已有 `themefile` 的 token 项目目录后，命令行也可覆盖：
+进入已有 token 项目目录后，命令行也可覆盖：
 
 ```bash
-wave dt build -f ./themefile -o ./dist
+wave dt build -o ./dist
 ```
 
 ## Compress 输出

@@ -11,10 +11,10 @@ wave 是面向 UI/UX 设计师的本地 CLI 工具集。当前已包含 design t
 **当前 token 生成的数据流：**
 
 ```
-themefile（声明数据源 + 输出参数）
-    + main.yaml（定义 token 内容，DTCG 格式）
+main.yaml（$config + default profile token 内容，DTCG 格式）
+    + profiles/<name>.yaml（named profile，可选）
     ↓
-引用解析（RESOURCE 声明的数据源作为依赖字典）
+引用解析（$config.resource 声明的数据源作为依赖字典）
     ↓
 颜色转换（colorSpace 在输出阶段介入）
     ↓
@@ -23,9 +23,10 @@ themefile（声明数据源 + 输出参数）
 
 **认知边界：**
 
-- themefile：声明"用什么数据源、怎么输出"，不定义 token 内容
-- main.yaml：唯一的 token 内容来源
-- RESOURCE：只提供引用解析数据，不直接输出
+- main.yaml：default profile、token 内容和 `$config` 来源
+- profiles/<name>.yaml：named profile 覆盖
+- $config.resource：只提供引用解析数据，不直接输出
+- themefile：旧项目兼容入口，不作为新项目推荐结构
 - 无 `main.yaml` 时从 RESOURCE 直接生成 token 仅作为 legacy fallback 保留，会在 receipt 中输出弃用 warning；新项目必须迁移到 `main.yaml`
 - colorSpace 转换发生在输出阶段，不影响引用解析过程
 - dt：当前是 design-token 模块入口，默认读取当前目录 `main.yaml`，内部仍复用 token 生成主链路
@@ -51,7 +52,7 @@ themefile（声明数据源 + 输出参数）
 - ❌ 不要新增或扩大绕过 main.yaml 直接从资源生成 token 的路径
 - ❌ 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
 - ❌ 不要把 compress 和 motion 的外部工具判断各写一套；应复用 `ToolResolver` / `CommandRunner`
-- ❌ 不要把 `create` 误写成已完成 `main.yaml::$config` 的 vNext 模型；`create` 仍以 `themefile` 为默认入口
+- ❌ 不要把旧 `themefile` 兼容路径重新写成新项目推荐入口；`create` 仍以 `themefile` 为默认入口，但新脚本优先使用 `wave dt`
 - ❌ 不要把 Quality Harness 当作单次跑分结论；它提供趋势和阶段定位参考
 
 ---
@@ -99,7 +100,7 @@ themefile（声明数据源 + 输出参数）
 - `wave design-token`：内部归一化为 `wave design-token build`，默认使用 `./main.yaml`
 - `wave dt build [path]`：生成 design token 输出；`path` 可为 `main.yaml` 或兼容的 `themefile`
 - `wave dt build -f <path>`：指定 `main.yaml` 或兼容的 `themefile`
-- `wave dt init`：创建 themefile / main.yaml 模板
+- `wave dt init`：创建以 `main.yaml + $config` 为入口的 profile model 模板
 - `wave dt show [category] [name]`：浏览内置资源
 - `wave dt doctor`：运行 design-token 健康检查
 - `wave dt wcag [scope]`：运行 WCAG 对比度检查
@@ -521,14 +522,15 @@ wave workspace create
 
 **解析规则：**
 
-1. 按 themefile 中 `RESOURCE` 声明顺序读取
-2. 每个资源文件解析后得到 `{ namespace, data }`
-3. 拒绝重复 namespace（直接报错，不覆盖）
-4. 资源来源元数据保留（用于错误定位）
+1. 新项目按 `main.yaml` 中 `$config.resource` 声明顺序读取资源
+2. 兼容项目可继续按 `themefile` 中 `RESOURCE` 声明顺序读取
+3. 每个资源文件解析后得到 `{ namespace, data }`
+4. 拒绝重复 namespace（直接报错，不覆盖）
+5. 资源来源元数据保留（用于错误定位）
 
 **引用查找顺序：**
 
-1. 显式项目路径：相对路径（相对于 themefile 目录）或绝对路径
+1. 显式项目路径：相对路径或绝对路径。`$config.resource` 中的相对路径以当前 `main.yaml` / profile 文件所在目录为基准；legacy `themefile RESOURCE` 中的相对路径以 themefile 目录为基准
 2. 用户本地 cache：`~/.cache/wave/resources/<name>.yaml`
 3. 内置资源名：`src/resources/<kind>/<name>.yaml`
 
@@ -582,7 +584,7 @@ wave dt status
 
 - `BUILTIN_THEMES` 已清空为 `{}`
 - `isBuiltinTheme()` 恒返回 `false`
-- 用户必须通过 themefile 指定资源
+- 用户必须通过 `main.yaml` 的 `$config.resource` 指定资源；legacy `themefile RESOURCE` 仅作为旧项目兼容入口保留
 
 ---
 
@@ -1043,20 +1045,23 @@ doctor:
 **使用方式：**
 
 ```bash
-# 默认读取当前目录 themefile
-wave doctor --contrast
+# 默认读取当前目录 main.yaml
+wave dt doctor --contrast
 
-# 显式指定 themefile 路径
-wave doctor --contrast --file ./my-theme/themefile
+# 显式指定 main.yaml 路径
+wave dt doctor --contrast --file ./my-theme/main.yaml
+
+# 兼容旧 themefile 路径
+wave dt doctor --contrast --file ./my-theme/themefile
 
 # 检查 night profile
-wave doctor --contrast --night
+wave dt doctor --contrast --night
 
 # 检查指定 profile
-wave doctor --contrast --profile mobile
+wave dt doctor --contrast --profile mobile
 
 # 检查 profile 的 night overlay
-wave doctor --contrast --profile mobile --night
+wave dt doctor --contrast --profile mobile --night
 ```
 
 ---

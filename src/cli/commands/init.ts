@@ -140,8 +140,12 @@ export function createInitCommand(name = 'init'): Command {
 				logger.success('Theme template initialized successfully!');
 				logger.info('');
 				logger.info('Next steps:');
-				logger.info('  1. Edit main.yaml to define your tokens and output config');
-				logger.info('  2. Replace {TOKEN} placeholders with real values or references');
+				logger.info(
+					'  1. Edit main.yaml to define your tokens and output config',
+				);
+				logger.info(
+					'  2. Replace {TOKEN} placeholders with real values or references',
+				);
 				logger.info('  3. See MANUAL.md for detailed usage');
 				logger.info('  4. Run "wave dt" to generate tokens');
 			} catch (err) {

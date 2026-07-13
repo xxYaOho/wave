@@ -1,10 +1,10 @@
 ---
 title: Design Token
-description: 配置 themefile、main.yaml、$extensions，并生成 json、jsonc、css 和 sketch 输出。
+description: 配置 main.yaml、profile、$extensions，并生成 json、jsonc、css 和 sketch 输出。
 category: 能力
 commands:
   - wave dt init
-  - wave dt build -f ./themefile
+  - wave dt build
   - wave dt status
 appliesTo:
   - 本地 CLI
@@ -18,42 +18,90 @@ appliesTo:
 
 ```bash
 wave dt init
-wave dt build -f ./themefile
+wave dt build
 ```
 
 开发环境中，用 `pnpm dev -- dt ...` 代替已安装的 `wave dt ...`。
 
 ## 选择入口
 
-优先使用 `themefile` 作为构建入口：
-
-```bash
-wave dt build -f ./themefile
-```
-
-`themefile` 声明资源和输出参数，`main.yaml` 只保存 token 内容。这是推荐结构。
-
-也可以直接在 token 项目目录运行：
+优先使用 `main.yaml` 作为构建入口。`wave dt init` 生成的 `main.yaml` 已包含 `$config`：
 
 ```bash
 wave dt build
 ```
 
-直接运行时，当前目录的 `main.yaml` 必须包含 `$config`。不确定用哪种方式时，使用 `themefile`。
+也可以显式指定入口：
+
+```bash
+wave dt build -f ./main.yaml
+```
+
+旧项目仍可指定兼容的 `themefile`，但新项目不再以 `themefile` 作为推荐入口。
 
 ## 文件职责
 
 | 文件 | 职责 |
 | --- | --- |
-| `themefile` | 构建入口，声明主题名、资源和输出参数 |
-| `main.yaml` | default profile 和 token 内容来源 |
+| `main.yaml` | default profile、token 内容和 `$config` 来源 |
 | `profiles/<name>.yaml` | named profile，可选 |
 | `main@night.yaml` | default profile 的 Night Mode 覆盖文件，可选 |
 | `profiles/<name>@night.yaml` | named profile 的 Night Mode 覆盖文件，可选 |
+| `themefile` | 旧项目兼容入口，可选 |
 
-`RESOURCE` 只提供引用解析数据，不直接决定输出内容。
+`$config.resource` 只提供引用解析数据，不直接决定输出内容。
 
-## themefile
+## main.yaml
+
+`main.yaml` 同时声明 `$config` 和 token 内容：
+
+```yaml
+$schema: "https://www.designtokens.org/tr/2025.10/format/"
+
+$config:
+  theme: example
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./build
+    platform:
+      - json
+      - css
+    colorSpace: hex
+theme:
+  color:
+    $type: color
+    primary:
+      $description: 品牌主色
+      $value: "{tailwindcss.color.indigo.600}"
+    onPrimary:
+      $value: "#ffffff"
+  radius:
+    card:
+      $type: dimension
+      $value: "12px"
+```
+
+`$config` 支持：
+
+| 字段 | 说明 |
+| --- | --- |
+| `theme` | 主题名，也是输出文件名前缀 |
+| `resource.palette[]` | 色板资源，例如 `tailwindcss` |
+| `resource.dimension[]` | 尺寸资源，例如 `wave` |
+| `resource.custom[]` | 自定义资源文件 |
+| `parameter.outputDir` | 输出目录 |
+| `parameter.platform[]` | 输出格式 |
+| `parameter.filterLayer` | 输出 key 时跳过前 N 层路径 |
+| `parameter.colorSpace` | 颜色输出格式 |
+| `parameterGroup.<name>` | 多组输出参数，字段同 `parameter` |
+
+## 旧 themefile 入口
+
+`themefile` 只为旧项目保留兼容，不作为新项目推荐结构。
 
 最小示例：
 
@@ -91,10 +139,10 @@ PARAMETER colorSpace hex
 | `filterLayer` | `1` | 输出 key 时跳过前 N 层路径 |
 | `colorSpace` | `oklch` | 颜色输出格式，支持 `hex`、`oklch`、`srgb`、`hsl` |
 
-命令行参数优先级高于 `themefile`：
+命令行参数优先级高于配置文件：
 
 ```bash
-wave dt build -f ./themefile --platform json,css -o ./dist
+wave dt build --platform json,css -o ./dist
 ```
 
 ## GROUP
@@ -123,64 +171,6 @@ GROUP "sketch" {
 ```
 
 `GROUP` 块内只接受 `PARAMETER`、注释和空行。
-
-## main.yaml
-
-通过 `themefile` 构建时，`main.yaml` 不需要 `$config`：
-
-```yaml
-theme:
-  color:
-    $type: color
-    primary:
-      $description: 品牌主色
-      $value: "{tailwindcss.color.indigo.600}"
-    onPrimary:
-      $value: "#ffffff"
-  radius:
-    card:
-      $type: dimension
-      $value: "12px"
-```
-
-直接运行 `wave dt build` 时，`main.yaml` 需要包含 `$config`：
-
-```yaml
-$schema: "https://www.designtokens.org/tr/2025.10/format/"
-
-$config:
-  theme: example
-  resource:
-    palette:
-      - tailwindcss
-    dimension:
-      - wave
-  parameter:
-    outputDir: ./build
-    platform:
-      - json
-      - css
-    colorSpace: hex
-theme:
-  color:
-    $type: color
-    primary:
-      $value: "{tailwindcss.color.indigo.600}"
-```
-
-`$config` 支持：
-
-| 字段 | 说明 |
-| --- | --- |
-| `theme` | 主题名，也是输出文件名前缀 |
-| `resource.palette[]` | 色板资源，例如 `tailwindcss` |
-| `resource.dimension[]` | 尺寸资源，例如 `wave` |
-| `resource.custom[]` | 自定义资源文件 |
-| `parameter.outputDir` | 输出目录；等价于 `themefile` 的 `PARAMETER output` |
-| `parameter.platform[]` | 输出格式 |
-| `parameter.filterLayer` | 输出 key 时跳过前 N 层路径 |
-| `parameter.colorSpace` | 颜色输出格式 |
-| `parameterGroup.<name>` | 多组输出参数，字段同 `parameter` |
 
 ## token 写法
 
@@ -559,14 +549,14 @@ wave dt wcag --profile mobile
 默认构建只构建 `main.yaml`：
 
 ```bash
-wave dt build -f ./themefile
+wave dt build
 ```
 
 构建 named profile：
 
 ```bash
-wave dt build -f ./themefile --profile mobile
-wave dt build -f ./themefile --profiles all
+wave dt build --profile mobile
+wave dt build --profiles all
 ```
 
 Profile 文件放在：
@@ -579,9 +569,9 @@ profiles/mobile.yaml
 Night Mode 是覆盖文件，不是 profile。需要 night 输出时显式加 `--night`：
 
 ```bash
-wave dt build -f ./themefile --night
-wave dt build -f ./themefile --profile mobile --night
-wave dt build -f ./themefile --profiles all --night
+wave dt build --night
+wave dt build --profile mobile --night
+wave dt build --profiles all --night
 ```
 
 Night Mode 文件放在：
@@ -599,8 +589,8 @@ profiles/mobile@night.yaml
 
 | 现象 | 处理 |
 | --- | --- |
-| 找不到 `main.yaml` | 在 token 项目目录执行命令，或用 `-f ./themefile` |
-| `main.yaml` 缺少 `$config` | 改用 `wave dt build -f ./themefile`，或补齐 `$config` |
+| 找不到 `main.yaml` | 在 token 项目目录执行命令，或先运行 `wave dt init` |
+| `main.yaml` 缺少 `$config` | 补齐 `$config`；如需检查 dimension 迁移，再运行 `wave dt doctor` |
 | 出现 `Direct RESOURCE token generation is deprecated` | 当前目录缺少 `main.yaml`，Wave 正在使用旧兼容路径；运行 `wave dt init` 后把 token 内容迁移到 `main.yaml` |
 | 引用无法解析 | 检查 `RESOURCE` 是否声明，或 token 路径是否正确 |
 | Sketch opacity 不输出 | 确认 token 在 `theme.state.*` 下，且 `$type` 是 `number` |

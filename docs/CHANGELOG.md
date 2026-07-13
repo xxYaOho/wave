@@ -1,6 +1,6 @@
 # Changelog
 
-> v0.15.0 及更早版本的历史记录见此文件。后续版本变更由 changesets 管理，参见 [CHANGELOG.md](../../CHANGELOG.md)。
+> v0.15.0 及更早版本的历史记录见此文件。当前版本变更记录见仓库根目录 [CHANGELOG.md](../CHANGELOG.md)。
 
 ## v0.15.0 — 2026-04-13
 

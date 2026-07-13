@@ -1,7 +1,7 @@
 $schema: "https://www.designtokens.org/tr/2025.10/format/"
 
 $config:
-  theme: config-main
+  theme: config-group-profiles
   resource:
     palette:
       - tailwindcss
@@ -9,15 +9,16 @@ $config:
       - wave
   parameter:
     outputDir: ./theme
-    night: false
   parameterGroup:
     css:
       platform:
         - css
+      outputDir: ./theme/css
       filterLayer: 2
     sketch:
       platform:
         - sketch
+      outputDir: ./theme/sketch
       filterLayer: 1
 
 theme:

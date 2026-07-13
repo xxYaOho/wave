@@ -23,7 +23,7 @@ export const SYNTHETIC_MIXED_1000: SyntheticDesignTokenOptions = {
 	platforms: ['json', 'css', 'sketch'],
 	filterLayer: 1,
 	includeNight: false,
-	includeVariants: false,
+	includeProfiles: false,
 };
 
 export const SYNTHETIC_MIXED_5000: SyntheticDesignTokenOptions = {
@@ -269,7 +269,7 @@ export function createSyntheticMainYaml(
 				platform: options.platforms,
 				filterLayer: options.filterLayer,
 				night: options.includeNight,
-				variants: options.includeVariants,
+				profiles: options.includeProfiles ? 'all' : 'main',
 			},
 		},
 		theme: {

@@ -76,7 +76,8 @@ tests/          bun:test 测试
 - `wave manual`：用户手册。
 - [docs/SPEC.md](./docs/SPEC.md)：当前行为快照，适合实现和 review 前阅读。
 - [benchmarks/README.md](./benchmarks/README.md)：Quality Harness 说明，适合质量优化前阅读。
-- [docs/CHANGELOG.md](./docs/CHANGELOG.md)：变更记录。
+- [CHANGELOG.md](./CHANGELOG.md)：当前变更记录。
+- [docs/CHANGELOG.md](./docs/CHANGELOG.md)：v0.15.0 及更早版本历史。
 - [docs/SWISS_KNIFE_REFACTOR.md](./docs/SWISS_KNIFE_REFACTOR.md)：瑞士军刀化重构路线。
 
 版本唯一真源是 [package.json](./package.json)。

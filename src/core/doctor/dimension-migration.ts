@@ -47,9 +47,9 @@ function walkDimensionReferences(
 		return;
 	}
 	if (Array.isArray(value)) {
-		value.forEach((item, index) =>
-			walkDimensionReferences(item, [...path, String(index)], findings),
-		);
+		value.forEach((item, index) => {
+			walkDimensionReferences(item, [...path, String(index)], findings);
+		});
 		return;
 	}
 	if (typeof value !== 'object' || value === null) {

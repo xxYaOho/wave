@@ -204,7 +204,10 @@ export function createDoctorCommand(
 						console.log(
 							`✓ Config File: Valid (${loadResult.parsed.THEME || 'unknown'})`,
 						);
-						const adjacentMainPath = path.join(loadResult.themeDir, 'main.yaml');
+						const adjacentMainPath = path.join(
+							loadResult.themeDir,
+							'main.yaml',
+						);
 						const inspectPath =
 							loadResult.mainYamlPath ??
 							((await fileExists(adjacentMainPath))

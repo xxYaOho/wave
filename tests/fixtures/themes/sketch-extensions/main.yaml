@@ -10,7 +10,6 @@ $config:
   parameter:
     outputDir: ./theme
     night: false
-    variants: false
   parameterGroup:
     json:
       platform:

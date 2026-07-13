@@ -34,7 +34,7 @@ export interface SyntheticDesignTokenOptions {
 	platforms: string[];
 	filterLayer: number;
 	includeNight: boolean;
-	includeVariants: boolean;
+	includeProfiles: boolean;
 }
 
 export interface DesignTokenCase {
@@ -56,6 +56,6 @@ export interface DesignTokenCase {
 	platforms: string[];
 	filterLayer: number;
 	includeNight: boolean;
-	includeVariants: boolean;
+	includeProfiles: boolean;
 	compareDurations: boolean;
 }

@@ -25,10 +25,10 @@ pnpm dev -- --help
 
 ## 常用入口
 
-Design Token 命令需要在已有 `themefile` 的 token 项目目录中运行；新项目先执行 `wave dt init`。
+Design Token 命令需要在 token 项目目录中运行；新项目先执行 `wave dt init`。
 
 ```bash
-wave dt build -f ./themefile
+wave dt build
 ```
 
 素材和动效命令需要替换为你自己的素材目录：

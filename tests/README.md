@@ -5,12 +5,14 @@
 ```
 tests/
 ├── fixtures/           # 测试固件
-│   ├── themes/         # 标准主题模板
-│   │   ├── standard/   # 标准主题（颜色、阴影、dimension）
-│   │   ├── ref-test/   # $ref 引用测试主题
-│   │   ├── inherit-color/       # inheritColor 扩展测试主题
-│   │   └── sketch-extensions/   # Sketch 扩展测试主题
-│   └── expectations/   # 预期输出快照
+│   ├── themes/         # design-token fixture
+│   │   ├── profile-model/         # main.yaml + $config 主路径
+│   │   ├── config-group-profiles/ # benchmark profile/group 覆盖
+│   │   ├── config-group-variants/ # legacy variants 负覆盖
+│   │   ├── standard/              # legacy themefile 兼容覆盖
+│   │   ├── ref-test/              # $ref 引用测试主题
+│   │   ├── inherit-color/         # inheritColor 扩展测试主题
+│   │   └── sketch-extensions/     # Sketch 扩展测试主题
 ├── integration/        # 集成测试
 │   └── theme-service.test.ts
 ├── utils/              # 测试工具
@@ -34,7 +36,25 @@ pnpm test -- tests/utils/fixture-loader.test.ts
 
 ## 测试固件
 
-### 标准主题 (fixtures/themes/standard/)
+Fixture 默认只读。需要生成输出的测试应复制到临时 workspace，并隔离 resource cache/state/config；不要直接写 `tests/fixtures/**/theme`、`.tmp`、`dist` 或本机用户级 Wave 状态。
+
+### Profile Model (fixtures/themes/profile-model/)
+
+当前 design-token 主路径：
+
+- `main.yaml` 是 default profile，包含 `$config`
+- `profiles/<name>.yaml` 是 named profile
+- `main@night.yaml` 和 `profiles/<name>@night.yaml` 是 Night Mode overlay
+
+### Benchmark Profile Fixture (fixtures/themes/config-group-profiles/)
+
+Quality Harness 的 profile/group 正向覆盖。用于验证 benchmark runner 真实构建 main、profile、main night 和 profile night 输出。
+
+### Legacy Variants Negative Fixture (fixtures/themes/config-group-variants/)
+
+只用于验证 `variants/` 不再被自动发现，不能作为 benchmark 正向覆盖。
+
+### Legacy Themefile Fixture (fixtures/themes/standard/)
 
 包含完整的主题结构：
 - 颜色令牌（含 $description）

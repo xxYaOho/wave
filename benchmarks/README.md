@@ -91,7 +91,7 @@ design-token suite 不使用用户本机 resource cache。runner 会：
 流程：
 
 1. 记录来源：实例名、原始路径、触发命令、实际问题和期望差异。
-2. 归因风险：标注它覆盖的是 resource、variant、parameter group、输出格式、Sketch 映射、warning、性能，还是产物语义漂移。
+2. 归因风险：标注它覆盖的是 resource、profile、legacy variant 迁移、parameter group、输出格式、Sketch 映射、warning、性能，还是产物语义漂移。
 3. 提炼 fixture：不要直接依赖用户本机路径；把必要结构提炼到 `tests/fixtures/...`，保留能复现风险的最小真实形态。
 4. 登记 case：在对应模块的 case registry 中把 `origin` 标为 `example-derived`，并填写 `example.sourceName`、`example.reason` 和 `example.risks`。
 5. 加入 suite：默认优先加入 `default`。只有体积很小、能快速证明 harness 正常工作时，才加入 `smoke`。
