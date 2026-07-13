@@ -1074,7 +1074,8 @@ wave dt doctor --contrast --profile mobile --night
   - 输出 public roots：`color`、`state`、`shadow`、`gradient`、`border`、`radius`、`font`
   - 不输出 `theme.dimension`
   - 长度类数值自动补浏览器需要的 `px`
-  - `$type: typography` token 输出字段变量和一个 shorthand 变量
+  - `$type: typography` token 输出 materialized 字段变量和一个 shorthand 变量；group `typography.defaults` 按祖先到 token 浅合并，数组 font family 按 CSS stack 规则序列化，倍率 line height 保持无单位
+  - DTCG border `style.dashArray` 输出 `dashed` shorthand 和 `-dash-array` companion variable
   - 带 `$extensions.outline.offset` 的 border token 输出 outline value 变量和 offset companion 变量
 - `sketch`：输出 Sketch API 兼容格式 `{theme}2sketch.json`
   - 默认按 `filterLayer` 后的 flat-json key 输出到根级对象
@@ -1086,9 +1087,11 @@ wave dt doctor --contrast --profile mobile --night
   - `sketch.property` 不继承；`opacity` 可用于 `theme.state.*`，`cornerRadius` 可用于 dimension/radius 类 token
   - legacy `$extensions.sketchMap` 不再作为 Sketch property 映射来源，新内容使用 `$extensions.sketch.property`
   - `$extensions.sketch` 在 `$extends` 中按普通 extension 覆盖，不再深层合并
+  - `sketch.skip` 从 group 向后代继承，最近 group 或 token 的显式 boolean 覆盖；仅从 Sketch emission list 过滤，其他平台不受影响
   - component token 不再映射为 Sketch component 样式；component 逻辑后续单独设计
   - inheritColor 通过 siblingSlot 查找兄弟 token 颜色
-  - `$type: typography` token 生成 text shared style payload
+  - `$type: typography` token 生成 text shared style payload；数组 font family 优先选择 `PingFang SC`，倍率 line height 乘 materialized font size，绝对 `px`/`pt` line height 取数值部分
+  - 普通 DTCG dashed border 保留结构化 `style.dashArray`
   - 带 `$extensions.outline.offset` 的 border token 生成两层 shadow 模拟 outline；最终 JSON 顺序为 ring layer 在前、gap layer 在后，gap color 固定为 `#ffffff`
 - 多平台：`json,jsonc,css,sketch` 可同时输出多种格式
 

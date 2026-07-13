@@ -198,7 +198,23 @@ theme:
 | `$extends` | group | 继承另一个 group，格式 `{theme.group.path}` |
 | `$extensions` | group 或 token | Wave 扩展字段 |
 
-支持的 `$type` 包括 `color`、`shadow`、`gradient`、`border`、`opacity`、`dimension`、`number`、`cubicBezier`。
+支持的 `$type` 包括 `color`、`shadow`、`gradient`、`border`、`typography`、`opacity`、`dimension`、`number`、`cubicBezier`。
+
+## theme 顶级 key
+
+`theme` 下的顶级 key 表达 token 的用途，也会影响 CSS 和 Sketch 输出。新项目优先使用这些 root：
+
+| key | 用途 | 常见 `$type` |
+| --- | --- | --- |
+| `color` | 品牌色、语义色、文本色、背景色、描边色 | `color` |
+| `state` | hover、pressed、disabled 等交互状态值 | `number`、`opacity` |
+| `shadow` | 投影、层级阴影、平滑阴影 | `shadow` |
+| `gradient` | 渐变、mask 渐变、平滑渐变 | `gradient` |
+| `border` | 描边宽度、描边样式、outline token | `dimension`、`border` |
+| `radius` | 圆角、组件角半径 | `dimension`、`number` |
+| `font` | 字体、字号、字重、行高、字距组合 | `typography` |
+
+CSS 输出只把 `color`、`state`、`shadow`、`gradient`、`border`、`radius` 和 `font` 作为 public roots。`theme.dimension` 只保留旧项目兼容，不再作为推荐的 public output root；尺寸、透明度和曲线优先放入具体用途对应的 root，或继续作为 `$config.resource.dimension` 中的引用资源使用。
 
 引用有两种形式：
 
@@ -240,6 +256,57 @@ inverse:
 
 构建时，Wave 会先解析引用，再按 `colorSpace` 输出最终颜色。
 
+## Typography
+
+`typography` group 可以用 `$extensions.typography.defaults` 为后代 token 提供公共字段。`defaults` 只能写在有效 `$type` 为 `typography` 的 group 上，只接受 `fontFamily`、`fontSize`、`fontWeight`、`lineHeight` 和 `letterSpacing`。子 group 按字段覆盖祖先 defaults，token 自己的 `$value` 最后覆盖 defaults；合并后每个 typography token 必须包含这五个字段。legacy `color` 可以保留在 token `$value` 和 JSON/JSONC 输出中，但 CSS 和 Sketch 会忽略它。
+
+```yaml
+theme:
+  font:
+    $type: typography
+    $extensions:
+      typography:
+        defaults:
+          fontFamily: "{wave.dimension.fontFamily}"
+          fontSize:
+            value: 14
+            unit: pt
+          fontWeight: 400
+          letterSpacing: 0
+    body:
+      $value:
+        lineHeight: 1.5
+    label:
+      $value:
+        lineHeight:
+          value: 20
+          unit: px
+```
+
+`fontFamily` 可以是一个字符串，也可以是非空字符串数组。CSS 把数组输出为合法 font stack：简单 CSS identifier 不加引号；其他名称会去掉一层已有配对引号，再用双引号包裹并转义。`inherit`、`initial`、`unset`、`revert` 和 `revert-layer` 始终加引号。Sketch 不解析系统别名；数组含 `PingFang SC` 时优先使用它，否则选择第一个具体字体。`system`、`system-ui`、`-apple-system`、`BlinkMacSystemFont` 和 CSS generic family 不属于具体字体；数组只有这些值时，Sketch 不输出 `fontFamily`。字符串值保持原有行为。
+
+`lineHeight` 必须大于 0。无单位 number 或纯数字字符串表示倍率；`{ value }` 不表示倍率，必须带单位。CSS 保留倍率；Sketch 用合并后的 `fontSize` 乘以倍率，并将结果四舍五入到 3 位小数。带 `px` 或 `pt` 的字符串或 `{ value, unit }` 表示绝对行高：CSS 保留单位，Sketch 输出数值部分。Wave 不接受其他 typography 单位，也不换算 `px` 和 `pt`。
+
+## 虚线 border
+
+border 的 `style` 可以使用 DTCG `dashArray`：
+
+```yaml
+antline:
+  $type: border
+  $value:
+    color: "{theme.color.primary}"
+    width: 1
+    style:
+      dashArray:
+        - value: 4
+          unit: px
+        - value: 8
+          unit: px
+```
+
+`dashArray` 必须是非空数组，成员必须是非负 dimension，且至少一个成员大于 0。无单位值按 `px` 输出；显式单位可以是 `px`、`pt`、`rem`、`em` 或 `%`。CSS 会为这个 token 输出可用的 `dashed` shorthand，并额外输出 `{token-name}-dash-array` companion variable 保存真实 dash pattern。例如 `--border-antline: 1px dashed #1872f0` 同时生成 `--border-antline-dash-array: 4px 8px`。companion 名称与真实 token key 冲突时构建失败。Sketch 保留完整的 `style.dashArray` 结构。
+
 ## 输出格式
 
 | platform | 输出文件 | 说明 |
@@ -273,6 +340,7 @@ PARAMETER platform json,jsonc,css,sketch
 | `smoothGradient` | token | `gradient` | 从 2 个 stop 派生平滑渐变 |
 | `inheritColor` | token | `color` | 输出继承上下文颜色 |
 | `sketch.path` | group 或 token | 任意 token | 调整 Sketch 输出路径 |
+| `sketch.skip` | group 或 token | 任意 token | 仅跳过 Sketch 输出 |
 | `sketch.property.opacity` | token | `theme.state.*` 下的 `number` | 输出 Sketch opacity 字段 |
 | `sketch.property.cornerRadius` | token | radius/dimension 类 token | 输出 Sketch corners.radii 字段 |
 | `outline` | border token | `border` | 输出 CSS outline 和 Sketch 双层 shadow 模拟 |
@@ -394,7 +462,7 @@ theme:
 
 ## sketch
 
-`$extensions.sketch` 只控制 Sketch JSON 输出，不影响 `json`、`jsonc`、`css` 的 key。`sketch.path` 可以写在 group 或 token 上；写在 group 上时，会应用到后代 token。
+`$extensions.sketch` 只控制 Sketch JSON 输出，不影响 `json`、`jsonc`、`css` 的 key。`sketch.path` 和 `sketch.skip` 可以写在 group 或 token 上；写在 group 上时，会应用到后代 token。
 
 ```yaml
 theme:
@@ -429,6 +497,7 @@ theme:
 | 字段 | 说明 |
 | --- | --- |
 | `sketch.path` | Sketch 输出中的嵌套路径，例如 `foundation/color`；可写在 group 或 token 上 |
+| `sketch.skip` | `true` 时不输出到 Sketch；后代 group 或 token 可以显式写 `false` 恢复输出 |
 | `sketch.property.opacity` | 在 Sketch 输出中写 `{ opacity: value }` |
 | `sketch.property.cornerRadius` | 在 Sketch 输出中写 `{ corners: { radii: value } }` |
 
@@ -467,6 +536,8 @@ Sketch 输出：
 3. 更上层祖先 group 的 `sketch.path`
 
 `sketch.property` 不继承。需要输出 `{ opacity: value }` 或 `{ corners: { radii: value } }` 时，仍要写在对应 token 上。
+
+`sketch.skip` 只接受 boolean，按最近声明继承，token 自己的值优先。显式 `false` 会覆盖祖先 group 的 `true`。这个开关只过滤 Sketch JSON，CSS、JSON 和 JSONC 仍会输出该 token。
 
 Sketch 输出不再固定包裹 `color`、`style`、`dimension` 或 `component` 顶层对象。位置由 `sketch.path` 控制，值形态由 `$type` 和 `sketch.property` 控制。
 
