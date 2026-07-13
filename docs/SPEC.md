@@ -1089,11 +1089,17 @@ wave dt doctor --contrast --profile mobile --night
   - `$extensions.sketch` 在 `$extends` 中按普通 extension 覆盖，不再深层合并
   - `sketch.skip` 从 group 向后代继承，最近 group 或 token 的显式 boolean 覆盖；仅从 Sketch emission list 过滤，其他平台不受影响
   - component token 不再映射为 Sketch component 样式；component 逻辑后续单独设计
-  - inheritColor 通过 siblingSlot 查找兄弟 token 颜色
-  - `$type: typography` token 生成 text shared style payload；数组 font family 优先选择 `PingFang SC`，倍率 line height 乘 materialized font size 后向上取整，绝对 `px`/`pt` line height 原样取数值部分；可选 color 解析为 HEX8 `textColor`，不携带 Sketch 颜色引用关系
+  - inheritColor 通过 siblingSlot 查找兄弟 token 颜色，但其输出始终 materialize 为 HEX8
+  - `$type: typography` token 生成 text shared style payload；数组 font family 优先选择 `PingFang SC`，倍率 line height 乘 materialized font size 后向上取整，绝对 `px`/`pt` line height 原样取数值部分
+  - Sketch composite color-slot 合同：`#RRGGBBAA` 是所有 color slot 的真值和非变量 fallback。仅当值是同文档、直接的 current-theme color reference，且目标 color token 在同一 Sketch emission list 中时，才输出 `@<filterLayer-key>`；支持的 consumer 仅为 typography `textStyle.textColor`、普通 border `value.color` 和 outline ring `shadow[0].color`
+  - `@` 的 key 只由目标 token 的 `filterLayer` 后 flat key 计算，完全不依赖 `sketch.path`；`sketch.path` 只控制对象嵌套位置
+  - color token 自身、shadow、gradient、inheritColor、external reference、literal color 与 alpha override 均输出 HEX8；outline `shadow[1].color` 是固定 gap `#ffffffff`
+  - 内部直接 color reference 的 target 若被 `sketch.skip` 跳过，或被 root selection 排除，Sketch build 必须报错，不得以 HEX8 降级；外部 reference 与不符合直接引用条件的值正常 materialize 为 HEX8
   - 普通 DTCG dashed border 保留结构化 `style.dashArray`
-  - 带 `$extensions.outline.offset` 的 border token 生成两层 shadow 模拟 outline；最终 JSON 顺序为 ring layer 在前、gap layer 在后，gap color 固定为 `#ffffff`
+  - 带 `$extensions.outline.offset` 的 border token 生成两层 shadow 模拟 outline；最终 JSON 顺序为 ring layer 在前、gap layer 在后
 - 多平台：`json,jsonc,css,sketch` 可同时输出多种格式
+
+CSS 不使用 Sketch 的 `@` 合同，保持既有颜色引用行为，包括 typography color 对已输出 `theme.color.*` 的 `var(--<color-token>)` 引用。Sync Token 的 `@` importer 属于独立后续仓库工作，不是 Wave 构建 gate。
 
 **备注位置（v0.3.0+）：**
 
