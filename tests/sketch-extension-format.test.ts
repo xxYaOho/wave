@@ -305,7 +305,7 @@ describe('sketch extension format', () => {
 		];
 
 		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
-			'Duplicate Sketch output path "foundation/color/primary-main"',
+			'Duplicate Sketch color variable key "primary-main"',
 		);
 	});
 
@@ -401,5 +401,111 @@ describe('sketch extension format', () => {
 
 		expect(parsed.foundation.color.primary).toEqual({ color: '#1872f0ff' });
 		expect(parsed.primary).toBeUndefined();
+	});
+
+	test('rejects typography references to skipped or root-excluded color targets', () => {
+		const typography = {
+			fontFamily: 'Inter',
+			fontSize: 14,
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+			color: '#112233',
+		};
+		const target = token({
+			name: 'theme-color-text-default',
+			path: ['theme', 'color', 'text', 'default'],
+			value: '#112233',
+			type: 'color',
+			_sketch: { skip: true },
+		});
+		const body = token({
+			name: 'theme-font-body',
+			path: ['theme', 'font', 'body'],
+			type: 'typography',
+			value: typography,
+			_typographyColor: '#112233',
+			_sketchTypographyColorReference: '{theme.color.text.default}',
+			_order: 1,
+		});
+
+		expect(() => sketchFormat([target, body])).toThrow('theme.font.body');
+		expect(() =>
+			sketchFormat([{ ...target, _sketch: undefined }, body], {
+				includeRootKeys: ['font'],
+			}),
+		).toThrow('theme.font.body');
+	});
+
+	test('keeps nested and dotted-key JSON Pointer aliases distinct', () => {
+		const typography = {
+			fontFamily: 'Inter',
+			fontSize: 14,
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+			color: '#112233',
+		};
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-color-a-b',
+				path: ['theme', 'color', 'a', 'b'],
+				value: '#112233',
+				type: 'color',
+			}),
+			token({
+				name: 'theme-color-a.dotted',
+				path: ['theme', 'color', 'a.b'],
+				value: '#445566',
+				type: 'color',
+				_order: 1,
+			}),
+			token({
+				name: 'theme-font-nested',
+				path: ['theme', 'font', 'nested'],
+				type: 'typography',
+				value: typography,
+				_typographyColor: '#112233',
+				_sketchTypographyColorReference: '{theme.color.a.b}',
+				_order: 2,
+			}),
+			token({
+				name: 'theme-font-dotted',
+				path: ['theme', 'font', 'dotted'],
+				type: 'typography',
+				value: { ...typography, color: '#445566' },
+				_typographyColor: '#445566',
+				_sketchTypographyColorReference: '#/theme/color/a.b',
+				_order: 3,
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		expect(parsed.nested.textStyle.textColor).toBe('@a-b');
+		expect(parsed.dotted.textStyle.textColor).toBe('@a.b');
+	});
+
+	test('rejects filtered color key collisions regardless of sketch.path', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-color-text-default',
+				path: ['theme', 'color', 'text', 'default'],
+				value: '#112233',
+				type: 'color',
+				_sketch: { path: 'foundation/color' },
+			}),
+			token({
+				name: 'theme-state-text-default',
+				path: ['theme', 'state', 'text', 'default'],
+				value: '#445566',
+				type: 'color',
+				_sketch: { path: 'foundation/state' },
+				_order: 1,
+			}),
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
+			'Duplicate Sketch color variable key "text-default"',
+		);
 	});
 });

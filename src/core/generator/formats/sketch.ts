@@ -3,6 +3,7 @@ import type {
 	WaveFormatFn,
 	WaveToken,
 } from '../../../types/index.ts';
+import { REFERENCE_PATTERN } from '../../resolver/reference-utils.ts';
 import {
 	normalizeFontFamilyMember,
 	parseTypographyDimension,
@@ -246,7 +247,10 @@ function selectSketchFontFamily(value: unknown): string | undefined {
 	);
 }
 
-function formatSketchTypography(token: WaveToken): unknown {
+function formatSketchTypography(
+	token: WaveToken,
+	colorReferenceKeys: Map<string, string>,
+): unknown {
 	const value = token.value;
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
 		throw new Error(
@@ -288,7 +292,23 @@ function formatSketchTypography(token: WaveToken): unknown {
 		}
 		textStyle.kerning = letterSpacing.value;
 
-		if (token._typographyColor !== undefined) {
+		if (token._sketchTypographyColorReference !== undefined) {
+			const colorKey = colorReferenceKeys.get(
+				token._sketchTypographyColorReference,
+			);
+			if (colorKey !== undefined) {
+				textStyle.textColor = `@${colorKey}`;
+			} else if (
+				isInternalSketchTypographyColorReference(
+					token._sketchTypographyColorReference,
+				)
+			) {
+				throw new Error('color reference target is not emitted');
+			} else if (token._typographyColor !== undefined) {
+				assertHexColor(token._typographyColor, token);
+				textStyle.textColor = hexToSketchColor(token._typographyColor);
+			}
+		} else if (token._typographyColor !== undefined) {
 			assertHexColor(token._typographyColor, token);
 			textStyle.textColor = hexToSketchColor(token._typographyColor);
 		}
@@ -405,6 +425,64 @@ function getFilteredName(token: WaveToken, filterLayer: number): string {
 	return path.slice(filterLayer).join('-');
 }
 
+function encodeJsonPointerSegment(segment: string): string {
+	return segment.replaceAll('~', '~0').replaceAll('/', '~1');
+}
+
+function hasSafeCurlyPath(path: string[]): boolean {
+	return (
+		path.every((segment) => !segment.includes('.')) &&
+		REFERENCE_PATTERN.test(`{${path.join('.')}}`)
+	);
+}
+
+function colorReferenceAliases(token: WaveToken): string[] {
+	const pointer = token.path.map(encodeJsonPointerSegment).join('/');
+	const aliases = [`#/${pointer}`, `#/${pointer}/$value`];
+	if (hasSafeCurlyPath(token.path)) {
+		aliases.unshift(`{${token.path.join('.')}}`);
+	}
+	return aliases;
+}
+
+function isInternalSketchTypographyColorReference(reference: string): boolean {
+	return reference.startsWith('{theme.') || reference.startsWith('#/theme/');
+}
+
+function buildSketchColorReferenceKeys(
+	emissionTokens: WaveToken[],
+	filterLayer: number,
+): Map<string, string> {
+	const aliases = new Map<string, WaveToken>();
+	const keys = new Map<string, WaveToken>();
+	const colorReferenceKeys = new Map<string, string>();
+
+	for (const token of emissionTokens) {
+		if (token.type !== 'color' || token.value === undefined) continue;
+		const filteredKey = getFilteredName(token, filterLayer);
+		const keyOwner = keys.get(filteredKey);
+		if (keyOwner !== undefined && keyOwner !== token) {
+			throw new Error(
+				`Duplicate Sketch color variable key "${filteredKey}" at ${tokenPathLabel(token)}`,
+			);
+		}
+		keys.set(filteredKey, token);
+
+		for (const alias of colorReferenceAliases(token)) {
+			const aliasOwner = aliases.get(alias);
+			if (aliasOwner !== undefined && aliasOwner !== token) {
+				throw new Error(
+					`Duplicate Sketch color reference alias "${alias}" at ${tokenPathLabel(token)}`,
+				);
+			}
+			aliases.set(alias, token);
+			colorReferenceKeys.set(alias, filteredKey);
+		}
+	}
+
+	return colorReferenceKeys;
+}
+
 function buildOutputPath(token: WaveToken, filterLayer: number): string[] {
 	const leafKey = getFilteredName(token, filterLayer);
 	const sketchPath = token._sketch?.path;
@@ -453,7 +531,11 @@ function setNestedValue(
 	current[leaf] = value;
 }
 
-function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
+function formatSketchValue(
+	token: WaveToken,
+	allTokens: WaveToken[],
+	colorReferenceKeys: Map<string, string>,
+): unknown {
 	const propertyKey = dimensionPropertyKey(token);
 	if (propertyKey) {
 		if (propertyKey === 'cornerRadius') {
@@ -463,7 +545,7 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 	}
 
 	if (token.type === 'typography') {
-		return formatSketchTypography(token);
+		return formatSketchTypography(token, colorReferenceKeys);
 	}
 
 	if (token.type === 'color' || token.inheritColor === true) {
@@ -561,11 +643,15 @@ export const sketchFormat: WaveFormatFn = (
 			shouldIncludeSketchToken(token, includeRootKeys) &&
 			token._sketch?.skip !== true,
 	);
+	const colorReferenceKeys = buildSketchColorReferenceKeys(
+		emissionTokens,
+		filterLayer,
+	);
 
 	for (const token of emissionTokens) {
 		if (token.value === undefined) continue;
 		const outputPath = buildOutputPath(token, filterLayer);
-		const value = formatSketchValue(token, allTokens);
+		const value = formatSketchValue(token, allTokens, colorReferenceKeys);
 		setNestedValue(result, outputPath, value, token);
 	}
 

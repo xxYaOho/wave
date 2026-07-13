@@ -486,4 +486,147 @@ describe('sketchFormat (Wave-native)', () => {
 
 		expect(parsed['radius-md']).toEqual({ corners: { radii: 8 } });
 	});
+
+	test('maps safe curly typography color references to emitted Sketch keys', () => {
+		const typography = {
+			fontFamily: 'Inter',
+			fontSize: 14,
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+			color: '#112233',
+		};
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-text-default',
+				path: ['theme', 'color', 'text', 'default'],
+				type: 'color',
+				value: '#112233',
+				_order: 0,
+			},
+			{
+				name: 'theme-color-2x',
+				path: ['theme', 'color', '2x'],
+				type: 'color',
+				value: '#445566',
+				_order: 1,
+			},
+			{
+				name: 'theme-font-body',
+				path: ['theme', 'font', 'body'],
+				type: 'typography',
+				value: typography,
+				_typographyColor: '#112233',
+				_sketchTypographyColorReference: '{theme.color.text.default}',
+				_order: 2,
+			},
+			{
+				name: 'theme-font-numeric-reference',
+				path: ['theme', 'font', 'numeric-reference'],
+				type: 'typography',
+				value: { ...typography, color: '#445566' },
+				_typographyColor: '#445566',
+				_sketchTypographyColorReference: '{theme.color.2x}',
+				_order: 3,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		expect(parsed.body.textStyle.textColor).toBe('@text-default');
+		expect(parsed['numeric-reference'].textStyle.textColor).toBe('@2x');
+	});
+
+	test('maps both JSON Pointer typography color reference forms', () => {
+		const typography = {
+			fontFamily: 'Inter',
+			fontSize: 14,
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+			color: '#112233',
+		};
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-brand-main',
+				path: ['theme', 'color', 'brand', 'main'],
+				type: 'color',
+				value: '#112233',
+				_order: 0,
+			},
+			{
+				name: 'theme-font-pointer',
+				path: ['theme', 'font', 'pointer'],
+				type: 'typography',
+				value: typography,
+				_typographyColor: '#112233',
+				_sketchTypographyColorReference: '#/theme/color/brand/main',
+				_order: 1,
+			},
+			{
+				name: 'theme-font-pointer-value',
+				path: ['theme', 'font', 'pointer-value'],
+				type: 'typography',
+				value: typography,
+				_typographyColor: '#112233',
+				_sketchTypographyColorReference: '#/theme/color/brand/main/$value',
+				_order: 2,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		expect(parsed.pointer.textStyle.textColor).toBe('@brand-main');
+		expect(parsed['pointer-value'].textStyle.textColor).toBe('@brand-main');
+	});
+
+	test('preserves HEX8 typography colors without a matching Sketch reference', () => {
+		const typography = {
+			fontFamily: 'Inter',
+			fontSize: 14,
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+			color: '#112233',
+		};
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-text-default',
+				path: ['theme', 'color', 'text', 'default'],
+				type: 'color',
+				value: '#112233',
+				_order: 0,
+			},
+			{
+				name: 'theme-font-literal',
+				path: ['theme', 'font', 'literal'],
+				type: 'typography',
+				value: typography,
+				_colorReference: '{theme.color.text.default}',
+				_typographyColor: '#112233',
+				_order: 1,
+			},
+			{
+				name: 'theme-font-external',
+				path: ['theme', 'font', 'external'],
+				type: 'typography',
+				value: typography,
+				_sketchTypographyColorReference: '#/palette/text/default',
+				_typographyColor: '#112233',
+				_order: 2,
+			},
+			{
+				name: 'theme-font-alpha',
+				path: ['theme', 'font', 'alpha'],
+				type: 'typography',
+				value: typography,
+				_colorReference: '#/theme/color/text/default',
+				_typographyColor: '#11223380',
+				_order: 3,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		expect(parsed.literal.textStyle.textColor).toBe('#112233ff');
+		expect(parsed.external.textStyle.textColor).toBe('#112233ff');
+		expect(parsed.alpha.textStyle.textColor).toBe('#11223380');
+	});
 });

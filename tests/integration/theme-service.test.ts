@@ -860,7 +860,7 @@ describe('Theme Service Integration', () => {
 				fontWeight: 400,
 				lineHeight: 21,
 				kerning: 0,
-				textColor: '#0f172bff',
+				textColor: '@text-default',
 			});
 			expect(sketch.foundation.font.label.textStyle.lineHeight).toBe(20);
 			expect(sketch.foundation.font.internal).toBeUndefined();
