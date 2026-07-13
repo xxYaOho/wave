@@ -56,6 +56,12 @@ theme:
     text:
       default:
         $value: "{tailwindcss.color.slate.900}"
+      emphasis:
+        $value: "{orca-brand.color.main.500}"
+      subtlest:
+        $value: "#7a869a"
+      "escaped.key/~color":
+        $value: "#12ab34"
       disabled:
         $value:
           $ref: "#/theme/color/text/default/$value"
@@ -132,6 +138,49 @@ theme:
       $extensions:
         sketch:
           skip: false
+    heading:
+      $extensions:
+        sketch:
+          path: "v2/heading"
+          skip: false
+      h1:
+        $value:
+          lineHeight: 1.5
+          color: "{theme.color.text.emphasis}"
+      external:
+        $value:
+          lineHeight: 1.5
+          color: "{orca-brand.color.main.500}"
+      literal:
+        $value:
+          lineHeight: 1.5
+          color: "#d12f6a"
+      alpha:
+        $value:
+          lineHeight: 1.5
+          color:
+            $ref: "#/theme/color/text/default"
+            alpha: 0.5
+      escaped:
+        $value:
+          lineHeight: 1.5
+          color:
+            $ref: "#/theme/color/text/escaped.key~1~0color"
+    display:
+      $extensions:
+        sketch:
+          path: "v2/display"
+          skip: false
+      body:
+        $value:
+          lineHeight: 1.5
+          color:
+            $ref: "#/theme/color/text/default"
+      footnote:
+        $value:
+          lineHeight: 1.5
+          color:
+            $ref: "#/theme/color/text/subtlest/$value"
     label:
       $value:
         lineHeight:
@@ -160,6 +209,16 @@ theme:
               unit: px
             - value: 8
               unit: px
+    outline:
+      $value:
+        color: "{theme.color.primary.main}"
+        width:
+          value: 1
+          unit: px
+        style: solid
+      $extensions:
+        outline:
+          offset: 2
   shadow:
     $extensions:
       sketch:

@@ -848,12 +848,18 @@ describe('Theme Service Integration', () => {
 			expect(sketch.foundation.color['orcaFallback-main']).toEqual({
 				color: '#0052f5ff',
 			});
-			expect(JSON.stringify(sketch.foundation.shadow.raised.shadow)).toContain(
-				'#0052f5',
+			expect(sketch.foundation.shadow.raised.shadow).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({ color: '#0052f580' }),
+				]),
 			);
 			expect(sketch.foundation.gradient.fallback.gradient[0].color).toBe(
 				'#0052f540',
 			);
+			expect(sketch.foundation.color['outline-default']).toEqual({
+				color: '#ff00ffff',
+				opacity: 0.36,
+			});
 			expect(sketch.foundation.font.body.textStyle).toEqual({
 				fontFamily: 'PingFang SC',
 				fontSize: 14,
@@ -862,6 +868,27 @@ describe('Theme Service Integration', () => {
 				kerning: 0,
 				textColor: '@text-default',
 			});
+			expect(sketch.v2.heading['heading-h1'].textStyle.textColor).toBe(
+				'@text-emphasis',
+			);
+			expect(sketch.v2.heading['heading-escaped'].textStyle.textColor).toBe(
+				'@text-escaped.key/~color',
+			);
+			expect(sketch.v2.heading['heading-external'].textStyle.textColor).toBe(
+				'#3695fbff',
+			);
+			expect(sketch.v2.heading['heading-literal'].textStyle.textColor).toBe(
+				'#d12f6aff',
+			);
+			expect(sketch.v2.heading['heading-alpha'].textStyle.textColor).toBe(
+				'#0f172b80',
+			);
+			expect(sketch.v2.display['display-body'].textStyle.textColor).toBe(
+				'@text-default',
+			);
+			expect(sketch.v2.display['display-footnote'].textStyle.textColor).toBe(
+				'@text-subtlest',
+			);
 			expect(sketch.foundation.font.label.textStyle.lineHeight).toBe(20);
 			expect(sketch.foundation.font.internal).toBeUndefined();
 			expect(json['font-internal']).toBeDefined();
@@ -885,6 +912,10 @@ describe('Theme Service Integration', () => {
 					},
 				},
 			});
+			expect(sketch.foundation.border.outline.shadow).toEqual([
+				{ x: 0, y: 0, blur: 0, spread: 3, color: '@primary-main' },
+				{ x: 0, y: 0, blur: 0, spread: 2, color: '#ffffffff' },
+			]);
 		} finally {
 			restoreResourceEnv(previousEnv);
 			await fs.rm(fixtureDir, { recursive: true, force: true });
