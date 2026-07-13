@@ -1,5 +1,11 @@
 # wave
 
+## 0.17.0
+
+### Minor Changes
+
+- Add Sketch color-token references for typography, borders, and outline rings while preserving literal color fallbacks.
+
 ## 0.16.0
 
 ### Minor Changes
