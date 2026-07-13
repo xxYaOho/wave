@@ -11,7 +11,6 @@ import {
 } from './reference-utils.ts';
 import {
 	type NestedValue,
-	resolveInternalDtcgValue,
 	resolveNestedInternalRefs,
 } from './reference-value-resolver.ts';
 
@@ -24,15 +23,15 @@ export function processTokenInternal(
 	rootKeys: Set<string>,
 ): ResolvedDtcgToken {
 	const resolutionPath = currentPath ? [currentPath] : [];
-	const resolvedValue = resolveInternalDtcgValue(
-		token.$value,
+	const resolvedValue = resolveNestedInternalRefs(
+		token.$value as NestedValue,
 		sources,
 		themeTree,
 		resolutionPath,
 		unresolvedCollector,
 		currentPath,
 		rootKeys,
-	);
+	) as ResolvedDtcgToken['$value'];
 
 	let swatchName: string | undefined;
 	if (typeof token.$value === 'string') {

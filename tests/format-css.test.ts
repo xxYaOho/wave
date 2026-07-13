@@ -440,6 +440,112 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		);
 	});
 
+	test('formats DTCG dashArray border with dashed fallback and companion', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-antline',
+				path: ['theme', 'border', 'antline'],
+				type: 'border',
+				value: {
+					color: '#2563eb',
+					width: '1px',
+					style: {
+						dashArray: [0, 4, '8', '1.5rem', { value: 2, unit: 'pt' }, '25%'],
+					},
+				},
+				comment: 'animated border',
+				_outline: { offset: 2 },
+				_order: 0,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens, {
+			includeRootKeys: ['border'],
+			filterLayer: 1,
+		});
+
+		expect(out).toContain(
+			'--border-antline: 1px dashed #2563eb; /* animated border */',
+		);
+		expect(out).toContain(
+			'--border-antline-dash-array: 0 4px 8px 1.5rem 2pt 25%;',
+		);
+		expect(out).toContain('--border-antline-offset: 2px;');
+		expect(out).not.toContain('[object Object]');
+		expect(out.indexOf('--border-antline-dash-array:')).toBeGreaterThan(
+			out.indexOf('--border-antline:'),
+		);
+	});
+
+	test('ignores resolved swatch metadata on dashArray dimensions', () => {
+		const token: WaveToken = {
+			name: 'theme-border-antline',
+			path: ['theme', 'border', 'antline'],
+			type: 'border',
+			value: {
+				color: '#2563eb',
+				width: 1,
+				style: {
+					dashArray: [
+						{ value: 4, unit: 'px', _swatchName: 'dimension/dash' },
+						8,
+					],
+				},
+			},
+			_order: 0,
+		};
+
+		const out = cssVariablesFormat([token], { filterLayer: 1 });
+
+		expect(out).toContain('--border-antline-dash-array: 4px 8px;');
+		expect(out).not.toContain('_swatchName');
+	});
+
+	test('rejects invalid dashArray objects instead of stringifying them', () => {
+		const token: WaveToken = {
+			name: 'theme-border-antline',
+			path: ['theme', 'border', 'antline'],
+			type: 'border',
+			value: {
+				color: '#2563eb',
+				width: 1,
+				style: { dashArray: [{ nope: 4 }, 8] },
+			},
+			_order: 0,
+		};
+
+		expect(() => cssVariablesFormat([token], { filterLayer: 1 })).toThrow(
+			'dashArray',
+		);
+	});
+
+	test('rejects dashArray companion collisions with real token keys', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-antline',
+				path: ['theme', 'border', 'antline'],
+				type: 'border',
+				value: {
+					color: '#2563eb',
+					width: 1,
+					style: { dashArray: [4, 8] },
+				},
+				_order: 0,
+			},
+			{
+				name: 'theme-border-antline-dash-array',
+				path: ['theme', 'border', 'antline', 'dash-array'],
+				type: 'dimension',
+				value: 12,
+				_order: 1,
+			},
+		];
+
+		expect(() => cssVariablesFormat(tokens, { filterLayer: 1 })).toThrow(
+			'--border-antline-dash-array',
+		);
+	});
+
 	test('throws instead of falling back for object border color', () => {
 		const tokens: WaveToken[] = [
 			{

@@ -362,6 +362,154 @@ describe('theme schema', () => {
 		).toBe(true);
 	});
 
+	test('accepts string and DTCG dashArray border styles', () => {
+		for (const style of [
+			'solid',
+			{
+				dashArray: [0, 4, '8', '1.5rem', { value: 2, unit: 'pt' }, '25%'],
+			},
+		]) {
+			const result = validateThemeSchema(
+				{
+					theme: {
+						border: {
+							$type: 'border',
+							pattern: {
+								$value: { color: '#000000', width: 1, style },
+							},
+						},
+					},
+				},
+				'resolved',
+			);
+			expect(result.valid, JSON.stringify(style)).toBe(true);
+		}
+	});
+
+	test('raw border dashArray accepts aliases before resolution', () => {
+		const result = validateThemeSchema(
+			{
+				theme: {
+					border: {
+						$type: 'border',
+						pattern: {
+							$value: {
+								color: '#000000',
+								width: 1,
+								style: {
+									dashArray: [
+										'{theme.dimension.dash}',
+										{ $ref: '#/resource/dimension/dash/$value' },
+									],
+								},
+							},
+						},
+					},
+				},
+			},
+			'raw',
+		);
+
+		expect(result.valid).toBe(true);
+	});
+
+	test('rejects invalid resolved border dashArray values', () => {
+		for (const dashArray of [
+			[],
+			[0, '0px'],
+			[-1, 2],
+			[Number.NaN, 2],
+			['1e2', 2],
+			['+2px', 2],
+			['2vh', 2],
+			[{ value: 2, unit: 'vh' }, 2],
+			[{ value: 2, unit: 'px', extra: true }, 2],
+			[{ nope: 2 }, 2],
+		] as unknown[][]) {
+			const result = validateThemeSchema(
+				{
+					theme: {
+						border: {
+							$type: 'border',
+							pattern: {
+								$value: {
+									color: '#000000',
+									width: 1,
+									style: { dashArray },
+								},
+							},
+						},
+					},
+				},
+				'resolved',
+			);
+			expect(result.valid, JSON.stringify(dashArray)).toBe(false);
+		}
+	});
+
+	test('rejects border style objects with fields other than dashArray', () => {
+		const result = validateThemeSchema(
+			{
+				theme: {
+					border: {
+						$type: 'border',
+						pattern: {
+							$value: {
+								color: '#000000',
+								width: 1,
+								style: { dashArray: [2, 4], lineCap: 'round' },
+							},
+						},
+					},
+				},
+			},
+			'resolved',
+		);
+
+		expect(result.valid).toBe(false);
+		expect(result.issues).toContainEqual(
+			expect.objectContaining({
+				path: 'theme.border.pattern.$value.style.lineCap',
+			}),
+		);
+	});
+
+	test('allows resolved swatch metadata but rejects user dash dimension fields', () => {
+		const makeTree = (member: Record<string, unknown>) => ({
+			theme: {
+				border: {
+					$type: 'border',
+					pattern: {
+						$value: {
+							color: '#000000',
+							width: 1,
+							style: { dashArray: [member, 8] },
+						},
+					},
+				},
+			},
+		});
+
+		expect(
+			validateThemeSchema(
+				makeTree({ value: 4, unit: 'px', _swatchName: 'dimension/dash' }),
+				'resolved',
+			).valid,
+		).toBe(true);
+		expect(
+			validateThemeSchema(
+				makeTree({ value: 4, unit: 'px', extra: true }),
+				'resolved',
+			).valid,
+		).toBe(false);
+		expect(
+			validateThemeSchema(
+				makeTree({ value: 4, unit: 'px', _swatchName: 'user-value' }),
+				'raw',
+			).valid,
+		).toBe(false);
+	});
+
 	test('allows sketch opacity property under theme.state', () => {
 		const result = validateThemeSchema({
 			theme: {

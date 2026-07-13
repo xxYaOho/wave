@@ -139,6 +139,68 @@ describe('doctor theme context', () => {
 		);
 	});
 
+	test('rejects border dash values that become invalid after resolution', async () => {
+		const result = await createThemeDoctorContextFromContent(
+			'/tmp/border-dash-invalid/main.yaml',
+			`theme:
+  dimension:
+    invalid:
+      $value: -1
+  border:
+    $type: border
+    antline:
+      $value:
+        color: "#000000"
+        width: 1
+        style:
+          dashArray:
+            - "{theme.dimension.invalid}"
+            - 8
+`,
+			{},
+		);
+
+		expect(result.ok).toBe(false);
+		if (result.ok) return;
+		expect(result.findings[0]?.message).toContain(
+			'Theme schema validation failed after reference resolution',
+		);
+		expect(result.findings[0]?.message).toContain(
+			'theme.border.antline.$value.style.dashArray[0]',
+		);
+	});
+
+	test('accepts border dash $ref dimensions with resolved swatch metadata', async () => {
+		const result = await createThemeDoctorContextFromContent(
+			'/tmp/border-dash-ref/main.yaml',
+			`theme:
+  dimension:
+    dash:
+      $type: dimension
+      $value:
+        value: 4
+        unit: px
+  border:
+    $type: border
+    antline:
+      $value:
+        color: "#000000"
+        width: 1
+        style:
+          dashArray:
+            - $ref: "#/theme/dimension/dash/$value"
+            - 8
+`,
+			{},
+		);
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(JSON.stringify(result.context.resolvedTree)).toContain(
+			'"_swatchName"',
+		);
+	});
+
 	test('build and doctor reject the same missing materialized typography field', async () => {
 		const content = `theme:
   font:

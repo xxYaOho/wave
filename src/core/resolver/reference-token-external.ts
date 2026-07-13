@@ -13,7 +13,6 @@ import {
 } from './reference-utils.ts';
 import {
 	type NestedValue,
-	resolveExternalDtcgValue,
 	resolveNestedRefs,
 } from './reference-value-resolver.ts';
 
@@ -25,15 +24,15 @@ export function processTokenExternal(
 	currentPath: string = '',
 	rootKeys: Set<string>,
 ): ResolvedDtcgToken {
-	const resolvedValue = resolveExternalDtcgValue(
-		token.$value,
+	const resolvedValue = resolveNestedRefs(
+		token.$value as NestedValue,
 		sources,
 		themeTree,
 		[],
 		unresolvedCollector,
 		currentPath,
 		rootKeys,
-	);
+	) as ResolvedDtcgToken['$value'];
 
 	let swatchName: string | undefined;
 	if (typeof token.$value === 'string') {

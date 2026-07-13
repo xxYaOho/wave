@@ -1,4 +1,5 @@
 import type { WaveFormatFn, WaveToken } from '../../../types/index.ts';
+import { formatDashArray } from '../../stroke-style.ts';
 import {
 	normalizeFontFamilyMember,
 	parseTypographyDimension,
@@ -218,9 +219,14 @@ function typographyLines(key: string, value: unknown): string[] {
 	return lines;
 }
 
-function formatBorderValue(value: unknown): string {
+interface FormattedBorderValue {
+	value: string;
+	dashArray?: string;
+}
+
+function formatBorderValue(value: unknown): FormattedBorderValue {
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-		return String(value);
+		return { value: String(value) };
 	}
 	const obj = value as Record<string, unknown>;
 	if (typeof obj.width === 'object' && obj.width !== null) {
@@ -230,12 +236,22 @@ function formatBorderValue(value: unknown): string {
 		throw new Error('CSS output requires transformer-normalized value');
 	}
 	const width = formatCssLength(obj.width);
-	const style = String(obj.style ?? 'solid');
+	let style = 'solid';
+	let dashArray: string | undefined;
+	if (typeof obj.style === 'string') {
+		style = obj.style;
+	} else if (typeof obj.style === 'object' && obj.style !== null) {
+		const styleObject = obj.style as Record<string, unknown>;
+		dashArray = formatDashArray(styleObject.dashArray);
+		style = 'dashed';
+	} else if (obj.style !== undefined) {
+		throw new Error('CSS border style must be a string or dashArray object');
+	}
 	const color =
 		typeof obj.color === 'string' || typeof obj.color === 'number'
 			? String(obj.color)
 			: 'currentColor';
-	return `${width} ${style} ${color}`;
+	return { value: `${width} ${style} ${color}`, dashArray };
 }
 
 function getGroupCommentPaths(tokenPath: string[]): string[] {
@@ -315,6 +331,9 @@ export const cssVariablesFormat: WaveFormatFn = (
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);
 	const emittedGroups = new Set<string>();
+	const tokenKeys = new Set(
+		sortedTokens.map((token) => getFilteredName(token, filterLayer)),
+	);
 
 	for (const token of sortedTokens) {
 		const key = getFilteredName(token, filterLayer);
@@ -326,7 +345,17 @@ export const cssVariablesFormat: WaveFormatFn = (
 		}
 
 		if (token.type === 'border') {
-			pushTokenDeclaration(lines, key, token, formatBorderValue(token.value));
+			const border = formatBorderValue(token.value);
+			pushTokenDeclaration(lines, key, token, border.value);
+			if (border.dashArray !== undefined) {
+				const companionKey = `${key}-dash-array`;
+				if (tokenKeys.has(companionKey)) {
+					throw new Error(
+						`CSS border companion --${companionKey} collides with a real token key`,
+					);
+				}
+				lines.push(`  --${companionKey}: ${border.dashArray};`);
+			}
 			if (isOutlineBorder(token)) {
 				lines.push(
 					`  --${key}-offset: ${formatCssLength(token._outline!.offset)};`,

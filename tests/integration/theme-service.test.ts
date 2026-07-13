@@ -1386,5 +1386,95 @@ theme:
 			}
 			await cleanupTempTheme(theme);
 		});
+
+		test('build rejects border dash values that become invalid after resolution', async () => {
+			const theme = await createTempTheme({
+				name: 'border-dash-resolved-invalid',
+				tokens: {},
+			});
+			await fs.writeFile(
+				theme.mainYaml,
+				`theme:
+  dimension:
+    invalid:
+      $value: -1
+  border:
+    $type: border
+    antline:
+      $value:
+        color: "#000000"
+        width: 1
+        style:
+          dashArray:
+            - "{theme.dimension.invalid}"
+            - 8
+`,
+				'utf8',
+			);
+
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'border-dash-resolved-invalid',
+					themePath: theme.themefile,
+				}),
+			);
+
+			expect(result.ok).toBe(false);
+			if (!result.ok) {
+				expect(result.message).toContain(
+					'Theme schema validation failed after reference resolution',
+				);
+				expect(result.message).toContain(
+					'theme.border.antline.$value.style.dashArray[0]',
+				);
+			}
+			await cleanupTempTheme(theme);
+		});
+
+		test('build accepts border dash $ref dimensions with resolved swatch metadata', async () => {
+			const theme = await createTempTheme({
+				name: 'border-dash-ref-valid',
+				platform: ['css'],
+				tokens: {},
+			});
+			await fs.writeFile(
+				theme.mainYaml,
+				`theme:
+  dimension:
+    dash:
+      $type: dimension
+      $value:
+        value: 4
+        unit: px
+  border:
+    $type: border
+    antline:
+      $value:
+        color: "#000000"
+        width: 1
+        style:
+          dashArray:
+            - $ref: "#/theme/dimension/dash/$value"
+            - 8
+`,
+				'utf8',
+			);
+
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'border-dash-ref-valid',
+					themePath: theme.themefile,
+				}),
+			);
+
+			expect(result.ok).toBe(true);
+			const css = await fs.readFile(
+				path.join(tempDir, 'border-dash-ref-valid.css'),
+				'utf8',
+			);
+			expect(css).toContain('--theme-border-antline-dash-array: 4px 8px;');
+			expect(css).not.toContain('_swatchName');
+			await cleanupTempTheme(theme);
+		});
 	});
 });

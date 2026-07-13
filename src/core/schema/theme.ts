@@ -1,5 +1,9 @@
 import type { DtcgTokenGroup, TypographyDefaults } from '../../types/index.ts';
 import {
+	type StrokeStyleSchemaPhase,
+	validateBorderStrokeStyle,
+} from '../stroke-style.ts';
+import {
 	materializeTypographyValue,
 	mergeTypographyDefaults,
 	missingTypographyFields,
@@ -508,6 +512,15 @@ function validateToken(
 	const explicitTokenType =
 		typeof token.$type === 'string' ? token.$type : undefined;
 	const tokenType = explicitTokenType ?? inheritedType;
+	if (tokenType === 'border' && isRecord(value) && 'style' in value) {
+		for (const issue of validateBorderStrokeStyle(
+			value.style,
+			`${tokenPath}.$value.style`,
+			phase as StrokeStyleSchemaPhase,
+		)) {
+			issues.push({ ...issue, level: 'error' });
+		}
+	}
 	if (tokenType === 'typography') {
 		validateTypographyToken(
 			token,

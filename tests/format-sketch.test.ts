@@ -133,6 +133,33 @@ describe('sketchFormat (Wave-native)', () => {
 		]);
 	});
 
+	test('preserves structured dashArray on ordinary borders', () => {
+		const dashArray = [0, 4, '8px', { value: 2, unit: 'pt' }];
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-border-antline',
+				path: ['theme', 'border', 'antline'],
+				type: 'border',
+				value: {
+					color: '#000000',
+					width: 1,
+					style: { dashArray },
+				},
+				_order: 0,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
+
+		expect(parsed['border-antline']).toEqual({
+			value: {
+				color: '#000000',
+				width: 1,
+				style: { dashArray },
+			},
+		});
+	});
+
 	test('throws instead of falling back for object outline color', () => {
 		const tokens: WaveToken[] = [
 			{
