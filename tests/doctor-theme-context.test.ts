@@ -2,11 +2,13 @@ import { describe, expect, test } from 'bun:test';
 import { extractDoctorPairs } from '../src/core/doctor/pair-extractor.ts';
 import {
 	createThemeDoctorContext,
+	createThemeDoctorContextFromContent,
 	detectThemeFiles,
 } from '../src/core/doctor/theme-context.ts';
 import {
 	buildDependencyDictionary,
 	loadThemefile,
+	processThemeDocument,
 } from '../src/core/pipeline/theme-pipeline.ts';
 import { loadTestTheme } from './utils/fixture-loader.ts';
 
@@ -102,5 +104,76 @@ describe('doctor theme context', () => {
 		const files = await detectThemeFiles(theme.dir);
 		expect(files.length).toBeGreaterThanOrEqual(1);
 		expect(files.some((f) => f.name === 'main')).toBe(true);
+	});
+
+	test('rejects typography values that become invalid after resolution', async () => {
+		const result = await createThemeDoctorContextFromContent(
+			'/tmp/typography-invalid/main.yaml',
+			`theme:
+  dimension:
+    invalid:
+      $value: -1
+  font:
+    $type: typography
+    $extensions:
+      typography:
+        defaults:
+          fontFamily: Inter
+          fontSize: "{theme.dimension.invalid}"
+          fontWeight: 400
+          lineHeight: 1.5
+          letterSpacing: 0
+    body:
+      $value: {}
+`,
+			{},
+		);
+
+		expect(result.ok).toBe(false);
+		if (result.ok) return;
+		expect(result.findings[0]?.message).toContain(
+			'Theme schema validation failed after reference resolution',
+		);
+		expect(result.findings[0]?.message).toContain(
+			'theme.font.$extensions.typography.defaults.fontSize',
+		);
+	});
+
+	test('build and doctor reject the same missing materialized typography field', async () => {
+		const content = `theme:
+  font:
+    $type: typography
+    body:
+      $value:
+        fontFamily: Inter
+        fontSize: 14
+        fontWeight: 400
+        lineHeight: 1.5
+`;
+		const yamlPath = '/tmp/typography-missing/main.yaml';
+		const buildResult = await processThemeDocument(
+			yamlPath,
+			{},
+			undefined,
+			content,
+		);
+		const doctorResult = await createThemeDoctorContextFromContent(
+			yamlPath,
+			content,
+			{},
+		);
+
+		expect(buildResult.ok).toBe(false);
+		expect(doctorResult.ok).toBe(false);
+		if (buildResult.ok || doctorResult.ok) return;
+		const buildMessage = buildResult.message;
+		const doctorMessage = doctorResult.findings[0]?.message ?? '';
+		for (const expected of [
+			'theme.font.body',
+			'missing required fields: letterSpacing',
+		]) {
+			expect(buildMessage).toContain(expected);
+			expect(doctorMessage).toContain(expected);
+		}
 	});
 });

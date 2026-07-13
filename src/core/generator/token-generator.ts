@@ -104,6 +104,7 @@ export async function generateTokens(
 	const targetPlatforms = platform ?? ['json'];
 
 	try {
+		const pendingOutputs: Array<{ filename: string; out: string }> = [];
 		for (const p of targetPlatforms) {
 			const normalized = p.trim();
 			const def = PLATFORMS[normalized];
@@ -125,8 +126,13 @@ export async function generateTokens(
 				tokensForPlatform(normalized, tokens, resolved, colorSpace),
 				formatOptions,
 			);
+			pendingOutputs.push({ filename, out });
+		}
 
+		if (pendingOutputs.length > 0) {
 			await fs.mkdir(outputDir, { recursive: true });
+		}
+		for (const { filename, out } of pendingOutputs) {
 			await Bun.write(path.join(outputDir, filename), out);
 			generatedFiles.push(filename);
 		}

@@ -151,7 +151,7 @@ async function createThemeDoctorContextFromParsedContent(
 		};
 	}
 
-	const schemaResult = validateThemeSchema(yamlParsed.raw);
+	const schemaResult = validateThemeSchema(yamlParsed.raw, 'raw');
 	if (!schemaResult.valid) {
 		const errorMessages = schemaResult.issues
 			.filter((i) => i.level === 'error')
@@ -200,6 +200,23 @@ async function createThemeDoctorContextFromParsedContent(
 		if (rootKeys.size === 0) rootKeys.add('theme');
 		const expanded = expandExtends(rawTree, rootKeys);
 		const resolved = resolveReferences(expanded, sources);
+		const resolvedSchemaResult = validateThemeSchema(resolved, 'resolved');
+		if (!resolvedSchemaResult.valid) {
+			const errorMessages = resolvedSchemaResult.issues
+				.filter((i) => i.level === 'error')
+				.map((i) => `  [${i.path}] ${i.message}`)
+				.join('\n');
+			return {
+				ok: false,
+				findings: [
+					{
+						level: 'error',
+						message: `Theme schema validation failed after reference resolution:\n${errorMessages}`,
+					},
+				],
+				exitCode: ExitCode.FORMAT_ERROR,
+			};
+		}
 
 		return {
 			ok: true,

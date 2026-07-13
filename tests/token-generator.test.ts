@@ -231,6 +231,46 @@ describe('generateTokens (Wave-native)', () => {
 		});
 	});
 
+	test('formats every platform before writing any output file', async () => {
+		await withTempDir(async (outputDir) => {
+			const jsonPath = path.join(outputDir, 'demo.json');
+			const cssPath = path.join(outputDir, 'demo.css');
+			await fs.writeFile(jsonPath, 'existing-json');
+			await fs.writeFile(cssPath, 'existing-css');
+			const tokens: WaveToken[] = [
+				{
+					name: 'theme-font-bad',
+					path: ['theme', 'font', 'bad'],
+					type: 'typography',
+					value: {
+						fontFamily: 'Inter',
+						fontSize: 'bad',
+						fontWeight: 400,
+						lineHeight: 1.5,
+						letterSpacing: 0,
+					},
+					_order: 0,
+				},
+			];
+
+			const result = await generateTokens({
+				themeName: 'demo',
+				outputDir,
+				tokens,
+				platform: ['json', 'css', 'sketch'],
+			});
+
+			expect(result.success).toBe(false);
+			expect(await fs.readFile(jsonPath, 'utf8')).toBe('existing-json');
+			expect(await fs.readFile(cssPath, 'utf8')).toBe('existing-css');
+			expect(
+				await fs
+					.stat(path.join(outputDir, 'demo2sketch.json'))
+					.catch(() => undefined),
+			).toBeUndefined();
+		});
+	});
+
 	test('returns success:true with no files when no valid platform', async () => {
 		await withTempDir(async (outputDir) => {
 			const result = await generateTokens({

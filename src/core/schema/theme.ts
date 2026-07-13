@@ -1,4 +1,13 @@
-import type { DtcgTokenGroup } from '../../types/index.ts';
+import type { DtcgTokenGroup, TypographyDefaults } from '../../types/index.ts';
+import {
+	materializeTypographyValue,
+	mergeTypographyDefaults,
+	missingTypographyFields,
+	TYPOGRAPHY_FIELDS,
+	type TypographySchemaPhase,
+	typographyDefaultsFromExtensions,
+	validateTypographyField,
+} from '../typography-value.ts';
 
 export interface ThemeSchemaIssue {
 	path: string;
@@ -33,6 +42,7 @@ const KNOWN_EXTENSIONS = new Set([
 	'inheritColor',
 	'sketch',
 	'outline',
+	'typography',
 ]);
 
 const EXTENSION_TYPE_MAP: Record<string, string> = {
@@ -322,11 +332,144 @@ function validateOutlineExtension(
 	}
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function validateTypographyFields(
+	value: unknown,
+	valuePath: string,
+	allowLegacyColor: boolean,
+	phase: TypographySchemaPhase,
+	issues: ThemeSchemaIssue[],
+): Record<string, unknown> | undefined {
+	if (!isRecord(value)) {
+		issues.push({
+			path: valuePath,
+			level: 'error',
+			message: 'typography value must be an object',
+		});
+		return undefined;
+	}
+
+	const allowed = new Set<string>(TYPOGRAPHY_FIELDS);
+	if (allowLegacyColor) allowed.add('color');
+	for (const key of Object.keys(value)) {
+		if (!allowed.has(key)) {
+			issues.push({
+				path: `${valuePath}.${key}`,
+				level: 'error',
+				message: `Unknown typography field "${key}"`,
+			});
+		}
+	}
+
+	for (const field of TYPOGRAPHY_FIELDS) {
+		if (value[field] === undefined) continue;
+		const message = validateTypographyField(field, value[field], phase);
+		if (message) {
+			issues.push({
+				path: `${valuePath}.${field}`,
+				level: 'error',
+				message: `typography.${field} ${message}`,
+			});
+		}
+	}
+	return value;
+}
+
+function validateTypographyToken(
+	token: Record<string, unknown>,
+	tokenPath: string,
+	phase: TypographySchemaPhase,
+	defaults: TypographyDefaults | undefined,
+	issues: ThemeSchemaIssue[],
+): void {
+	const tokenValue = validateTypographyFields(
+		token.$value,
+		`${tokenPath}.$value`,
+		true,
+		phase,
+		issues,
+	);
+	if (phase !== 'resolved') return;
+	const materialized = materializeTypographyValue(defaults, tokenValue);
+	const missing = missingTypographyFields(materialized);
+	if (missing.length > 0) {
+		issues.push({
+			path: tokenPath,
+			level: 'error',
+			message: `materialized typography is missing required fields: ${missing.join(', ')}`,
+		});
+	}
+}
+
+function validateTypographyGroupExtension(
+	extensions: Record<string, unknown>,
+	groupType: string | undefined,
+	group: Record<string, unknown>,
+	groupPath: string,
+	phase: TypographySchemaPhase,
+	issues: ThemeSchemaIssue[],
+): TypographyDefaults | undefined {
+	if (!('typography' in extensions)) return undefined;
+	const extensionPath = `${groupPath}.$extensions.typography`;
+	const extension = extensions.typography;
+	if (!isRecord(extension)) {
+		issues.push({
+			path: extensionPath,
+			level: 'error',
+			message: 'typography extension must be an object',
+		});
+		return undefined;
+	}
+	for (const key of Object.keys(extension)) {
+		if (key !== 'defaults') {
+			issues.push({
+				path: `${extensionPath}.${key}`,
+				level: 'error',
+				message: `Unknown typography extension field "${key}"`,
+			});
+		}
+	}
+
+	const deferTypeCheck =
+		phase === 'raw' &&
+		groupType === undefined &&
+		typeof group.$extends === 'string';
+	if (!deferTypeCheck && groupType !== 'typography') {
+		issues.push({
+			path: extensionPath,
+			level: 'error',
+			message: `typography defaults require effective $type "typography", got "${groupType ?? 'undefined'}"`,
+		});
+	}
+
+	if (!('defaults' in extension)) {
+		issues.push({
+			path: extensionPath,
+			level: 'error',
+			message: 'typography extension must contain defaults',
+		});
+		return undefined;
+	}
+	const defaults = validateTypographyFields(
+		extension.defaults,
+		`${extensionPath}.defaults`,
+		false,
+		phase,
+		issues,
+	);
+	return defaults as TypographyDefaults | undefined;
+}
+
 function validateToken(
 	token: Record<string, unknown>,
 	tokenPath: string,
 	issues: ThemeSchemaIssue[],
 	inheritedType?: string,
+	phase: TypographySchemaPhase = 'raw',
+	typographyDefaults?: TypographyDefaults,
 ): void {
 	const value = token.$value;
 	if (value !== undefined) {
@@ -357,6 +500,15 @@ function validateToken(
 	const explicitTokenType =
 		typeof token.$type === 'string' ? token.$type : undefined;
 	const tokenType = explicitTokenType ?? inheritedType;
+	if (tokenType === 'typography') {
+		validateTypographyToken(
+			token,
+			tokenPath,
+			phase,
+			typographyDefaults,
+			issues,
+		);
+	}
 
 	// Rule 3: unknown $type
 	if (explicitTokenType !== undefined && !KNOWN_TYPES.has(explicitTokenType)) {
@@ -374,6 +526,13 @@ function validateToken(
 		token.$extensions !== null
 	) {
 		const extensions = token.$extensions as Record<string, unknown>;
+		if ('typography' in extensions) {
+			issues.push({
+				path: `${tokenPath}.$extensions.typography`,
+				level: 'error',
+				message: 'typography defaults are only supported on groups',
+			});
+		}
 
 		// Check for deprecated currentColor
 		if ('currentColor' in extensions) {
@@ -482,6 +641,8 @@ function walkNode(
 	path: string,
 	issues: ThemeSchemaIssue[],
 	inheritedType?: string,
+	phase: TypographySchemaPhase = 'raw',
+	inheritedTypographyDefaults?: TypographyDefaults,
 ): void {
 	if (node === null || node === undefined) return;
 
@@ -490,12 +651,20 @@ function walkNode(
 		const nodeType = typeof obj.$type === 'string' ? obj.$type : inheritedType;
 
 		if ('$value' in obj) {
-			validateToken(obj, path, issues, inheritedType);
+			validateToken(
+				obj,
+				path,
+				issues,
+				inheritedType,
+				phase,
+				inheritedTypographyDefaults,
+			);
 			return;
 		}
 
 		// Group node — validate $extends and recurse into non-meta children
 		validateExtends(obj, path, issues);
+		let localTypographyDefaults: TypographyDefaults | undefined;
 		if ('$extensions' in obj) {
 			const extensions = obj.$extensions;
 			if (
@@ -510,25 +679,53 @@ function walkNode(
 					issues,
 					'group',
 				);
+				localTypographyDefaults = validateTypographyGroupExtension(
+					extensions as Record<string, unknown>,
+					nodeType,
+					obj,
+					path,
+					phase,
+					issues,
+				);
 			}
 		}
 		validateComposite(obj, path, issues);
+		const typographyDefaults =
+			nodeType === 'typography'
+				? mergeTypographyDefaults(
+						inheritedTypographyDefaults,
+						localTypographyDefaults ??
+							typographyDefaultsFromExtensions(
+								obj.$extensions as Record<string, unknown> | undefined,
+							),
+					)
+				: undefined;
 
 		for (const [key, child] of Object.entries(obj)) {
 			if (key.startsWith('$')) continue;
-			walkNode(child, path ? `${path}.${key}` : key, issues, nodeType);
+			walkNode(
+				child,
+				path ? `${path}.${key}` : key,
+				issues,
+				nodeType,
+				phase,
+				typographyDefaults,
+			);
 		}
 	}
 }
 
-export function validateThemeSchema(tree: DtcgTokenGroup): ThemeSchemaResult {
+export function validateThemeSchema(
+	tree: DtcgTokenGroup,
+	phase: TypographySchemaPhase = 'raw',
+): ThemeSchemaResult {
 	const issues: ThemeSchemaIssue[] = [];
 
 	// Walk from root keys (skip $-prefixed like $schema)
 	for (const [key, child] of Object.entries(tree)) {
 		if (key.startsWith('$')) continue;
 		if (key === 'doctor') continue; // validated separately
-		walkNode(child, key, issues);
+		walkNode(child, key, issues, undefined, phase);
 	}
 
 	// Validate doctor section

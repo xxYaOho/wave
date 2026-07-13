@@ -3,6 +3,12 @@ import type {
 	WaveFormatFn,
 	WaveToken,
 } from '../../../types/index.ts';
+import {
+	normalizeFontFamilyMember,
+	parseTypographyDimension,
+	parseTypographyLineHeight,
+	parseTypographyNumber,
+} from '../../typography-value.ts';
 
 interface SketchShadowLayer {
 	x: number | string;
@@ -196,32 +202,94 @@ function outlineColor(value: unknown, token: WaveToken): string {
 	return typeof color === 'string' ? color : '#000000';
 }
 
-function parseTypographyNumber(value: unknown): number | undefined {
-	const parsed = parseDimensionNumber(value);
-	if (parsed !== undefined) return parsed;
-	if (typeof value === 'number' && Number.isFinite(value)) return value;
+const SKETCH_SYSTEM_FONT_ALIASES = new Set([
+	'system',
+	'system-ui',
+	'-apple-system',
+	'blinkmacsystemfont',
+	'sans-serif',
+	'serif',
+	'monospace',
+	'cursive',
+	'fantasy',
+	'ui-sans-serif',
+	'ui-serif',
+	'ui-monospace',
+	'ui-rounded',
+]);
+
+function selectSketchFontFamily(value: unknown): string | undefined {
 	if (typeof value === 'string') {
-		const number = parseFloat(value);
-		return Number.isFinite(number) ? number : undefined;
+		const family = normalizeFontFamilyMember(value, false);
+		if (family === undefined) {
+			throw new Error('Sketch typography fontFamily is invalid');
+		}
+		return family;
 	}
-	return undefined;
+	if (!Array.isArray(value) || value.length === 0) {
+		throw new Error('Sketch typography fontFamily must be a string or array');
+	}
+	const families = value.map((item) => {
+		const family = normalizeFontFamilyMember(item);
+		if (family === undefined) {
+			throw new Error(
+				'Sketch typography fontFamily array members must be non-empty strings',
+			);
+		}
+		return family;
+	});
+	if (families.some((family) => family.toLowerCase() === 'pingfang sc')) {
+		return 'PingFang SC';
+	}
+	return families.find(
+		(family) => !SKETCH_SYSTEM_FONT_ALIASES.has(family.toLowerCase()),
+	);
 }
 
-function formatSketchTypography(value: unknown): unknown {
+function formatSketchTypography(token: WaveToken): unknown {
+	const value = token.value;
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-		return value;
+		throw new Error(
+			`Sketch typography requires an object at ${tokenPathLabel(token)}`,
+		);
 	}
 	const obj = value as Record<string, unknown>;
 	const textStyle: Record<string, unknown> = {};
-	if (typeof obj.fontFamily === 'string') textStyle.fontFamily = obj.fontFamily;
-	const fontSize = parseTypographyNumber(obj.fontSize);
-	if (fontSize !== undefined) textStyle.fontSize = fontSize;
-	const fontWeight = parseTypographyNumber(obj.fontWeight);
-	if (fontWeight !== undefined) textStyle.fontWeight = fontWeight;
-	const lineHeight = parseTypographyNumber(obj.lineHeight);
-	if (lineHeight !== undefined) textStyle.lineHeight = lineHeight;
-	const letterSpacing = parseTypographyNumber(obj.letterSpacing);
-	if (letterSpacing !== undefined) textStyle.kerning = letterSpacing;
+	try {
+		const fontFamily = selectSketchFontFamily(obj.fontFamily);
+		if (fontFamily !== undefined) textStyle.fontFamily = fontFamily;
+
+		const fontSize = parseTypographyDimension(obj.fontSize);
+		if (fontSize === undefined || fontSize.value <= 0) {
+			throw new Error('fontSize is invalid');
+		}
+		textStyle.fontSize = fontSize.value;
+
+		const fontWeight = parseTypographyNumber(obj.fontWeight);
+		if (fontWeight === undefined || fontWeight <= 0) {
+			throw new Error('fontWeight is invalid');
+		}
+		textStyle.fontWeight = fontWeight;
+
+		const lineHeight = parseTypographyLineHeight(obj.lineHeight);
+		if (lineHeight === undefined || lineHeight.value <= 0) {
+			throw new Error('lineHeight is invalid');
+		}
+		const resolvedLineHeight = lineHeight.unit
+			? lineHeight.value
+			: fontSize.value * lineHeight.value;
+		textStyle.lineHeight = Math.round(resolvedLineHeight * 1000) / 1000;
+
+		const letterSpacing = parseTypographyDimension(obj.letterSpacing);
+		if (letterSpacing === undefined) {
+			throw new Error('letterSpacing is invalid');
+		}
+		textStyle.kerning = letterSpacing.value;
+	} catch (error) {
+		throw new Error(
+			`Sketch typography output failed at ${tokenPathLabel(token)}: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
 	return { textStyle };
 }
 
@@ -388,7 +456,7 @@ function formatSketchValue(token: WaveToken, allTokens: WaveToken[]): unknown {
 	}
 
 	if (token.type === 'typography') {
-		return formatSketchTypography(token.value);
+		return formatSketchTypography(token);
 	}
 
 	if (token.type === 'color' || token.inheritColor === true) {

@@ -284,6 +284,125 @@ describe('sketchFormat (Wave-native)', () => {
 		);
 	});
 
+	test('prefers PingFang SC and resolves multiplier line height', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-font-body',
+				path: ['theme', 'font', 'body'],
+				type: 'typography',
+				value: {
+					fontFamily: ['system-ui', 'Inter', 'PingFang SC'],
+					fontSize: { value: 14, unit: 'pt' },
+					fontWeight: '400',
+					lineHeight: 1.33333,
+					letterSpacing: { value: -0.2, unit: 'pt' },
+					color: '#112233',
+				},
+				_order: 0,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens));
+		expect(parsed['theme-font-body']).toEqual({
+			textStyle: {
+				fontFamily: 'PingFang SC',
+				fontSize: 14,
+				fontWeight: 400,
+				lineHeight: 18.667,
+				kerning: -0.2,
+			},
+		});
+	});
+
+	test('selects the first concrete family and omits aliases-only arrays', () => {
+		const makeTypography = (family: string[], order: number): WaveToken => ({
+			name: `font-${order}`,
+			path: ['font', String(order)],
+			type: 'typography',
+			value: {
+				fontFamily: family,
+				fontSize: 12,
+				fontWeight: 400,
+				lineHeight: '16px',
+				letterSpacing: 0,
+			},
+			_order: order,
+		});
+		const parsed = JSON.parse(
+			sketchFormat([
+				makeTypography(['SYSTEM-UI', 'Inter', 'Helvetica'], 0),
+				makeTypography(['sans-serif', '-APPLE-SYSTEM'], 1),
+			]),
+		);
+		expect(parsed['font-0'].textStyle.fontFamily).toBe('Inter');
+		expect(parsed['font-1'].textStyle.fontFamily).toBeUndefined();
+		expect(parsed['font-0'].textStyle.lineHeight).toBe(16);
+	});
+
+	test('throws with token path when multiplier line height cannot use font size', () => {
+		const token: WaveToken = {
+			name: 'font-bad',
+			path: ['theme', 'font', 'bad'],
+			type: 'typography',
+			value: {
+				fontFamily: 'Inter',
+				fontSize: 'bad',
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+			},
+			_order: 0,
+		};
+		expect(() => sketchFormat([token])).toThrow('theme.font.bad');
+	});
+
+	test('normalizes string font families and rejects control boundaries', () => {
+		const token: WaveToken = {
+			name: 'font-body',
+			path: ['theme', 'font', 'body'],
+			type: 'typography',
+			value: {
+				fontFamily: '  Inter  ',
+				fontSize: 14,
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+			},
+			_order: 0,
+		};
+		const parsed = JSON.parse(sketchFormat([token]));
+		expect(parsed['font-body'].textStyle.fontFamily).toBe('Inter');
+
+		for (const fontFamily of ['\u0000Inter', 'Inter\u007f', '\u0085Inter']) {
+			expect(() =>
+				sketchFormat([
+					{
+						...token,
+						value: { ...(token.value as object), fontFamily },
+					},
+				]),
+			).toThrow('theme.font.body');
+		}
+	});
+
+	test('rejects a unitless lineHeight object', () => {
+		const token: WaveToken = {
+			name: 'font-body',
+			path: ['theme', 'font', 'body'],
+			type: 'typography',
+			value: {
+				fontFamily: 'Inter',
+				fontSize: 14,
+				fontWeight: 400,
+				lineHeight: { value: 1.5 },
+				letterSpacing: 0,
+			},
+			_order: 0,
+		};
+
+		expect(() => sketchFormat([token])).toThrow('lineHeight');
+	});
+
 	test('formats theme radius cornerRadius property as corners radii', () => {
 		const tokens: WaveToken[] = [
 			{

@@ -5,8 +5,15 @@ import {
 	isResolvedToken,
 	type ResolvedDtcgToken,
 	type ResolvedTokenGroup,
+	type TypographyDefaults,
 	type WaveToken,
 } from '../../types/index.ts';
+import {
+	materializeTypographyValue,
+	mergeTypographyDefaults,
+	missingTypographyFields,
+	typographyDefaultsFromExtensions,
+} from '../typography-value.ts';
 import { formatColorOutput, isDtcgColorSpaceValue } from './color-space.ts';
 import { normalizeColorValue } from './color-value.ts';
 import { sampleCubicBezier } from './cubic-bezier.ts';
@@ -16,6 +23,7 @@ import { parseSketchExtension } from './sketch-extension.ts';
 
 interface InheritedExtensions {
 	sketchPath?: string;
+	typographyDefaults?: TypographyDefaults;
 }
 
 function isLegacyColorObject(value: unknown): value is Record<string, unknown> {
@@ -472,8 +480,22 @@ function transformToken(
 	inheritedExtensions: InheritedExtensions = {},
 ): Omit<WaveToken, 'name' | 'path'> {
 	const typeValue = token.$type ?? parentType;
+	let sourceValue: DtcgValue = token.$value;
+	if (typeValue === 'typography') {
+		const materialized = materializeTypographyValue(
+			inheritedExtensions.typographyDefaults,
+			token.$value,
+		);
+		const missing = missingTypographyFields(materialized);
+		if (missing.length > 0) {
+			throw new Error(
+				`Materialized typography at ${tokenPath ?? '<unknown>'} is missing required fields: ${missing.join(', ')}`,
+			);
+		}
+		sourceValue = materialized as DtcgValue;
+	}
 	let processedValue = processValue(
-		token.$value,
+		sourceValue,
 		targetColorSpace,
 		tokenPath,
 		typeValue,
@@ -687,11 +709,23 @@ export function transformToWaveTokens(
 			group.$type ??
 			(path[path.length - 1] === 'color' ? 'color' : inheritedType);
 		const groupSketchExtension = parseSketchExtension(group.$extensions);
+		const localTypographyDefaults =
+			groupType === 'typography'
+				? typographyDefaultsFromExtensions(group.$extensions)
+				: undefined;
 		const childInheritedExtensions: InheritedExtensions = {
 			...inheritedExtensions,
 			...(groupSketchExtension?.path !== undefined && {
 				sketchPath: groupSketchExtension.path,
 			}),
+			...(groupType === 'typography'
+				? {
+						typographyDefaults: mergeTypographyDefaults(
+							inheritedExtensions.typographyDefaults,
+							localTypographyDefaults,
+						),
+					}
+				: { typographyDefaults: undefined }),
 		};
 
 		if (group.$description !== undefined && path.length > 0) {
@@ -722,6 +756,7 @@ export function transformToWaveTokens(
 
 			const child = value as ResolvedTokenGroup;
 			if (child.$extensions?.composite === true) {
+				const compositeType = child.$type ?? groupType;
 				const compositeSketchExtension = parseSketchExtension(
 					child.$extensions,
 				);
@@ -730,6 +765,14 @@ export function transformToWaveTokens(
 					...(compositeSketchExtension?.path !== undefined && {
 						sketchPath: compositeSketchExtension.path,
 					}),
+					...(compositeType === 'typography'
+						? {
+								typographyDefaults: mergeTypographyDefaults(
+									childInheritedExtensions.typographyDefaults,
+									typographyDefaultsFromExtensions(child.$extensions),
+								),
+							}
+						: { typographyDefaults: undefined }),
 				};
 				for (const propKey of Object.keys(child)) {
 					if (propKey.startsWith('$')) continue;
@@ -744,7 +787,7 @@ export function transformToWaveTokens(
 					if (!isResolvedToken(propValue)) continue;
 					const partial = transformToken(
 						propValue,
-						groupType,
+						compositeType,
 						orderCounter++,
 						targetColorSpace,
 						`${childPathStr}.${propKey}`,

@@ -1340,5 +1340,51 @@ theme:
 
 			await cleanupTempTheme(theme);
 		});
+
+		test('build rejects typography values that become invalid after resolution', async () => {
+			const theme = await createTempTheme({
+				name: 'typography-resolved-invalid',
+				tokens: {},
+			});
+			await fs.writeFile(
+				theme.mainYaml,
+				`theme:
+  dimension:
+    invalid:
+      $value: -1
+  font:
+    $type: typography
+    $extensions:
+      typography:
+        defaults:
+          fontFamily: Inter
+          fontSize: "{theme.dimension.invalid}"
+          fontWeight: 400
+          lineHeight: 1.5
+          letterSpacing: 0
+    body:
+      $value: {}
+`,
+				'utf8',
+			);
+
+			const result = await generateTheme(
+				makeInput({
+					themeName: 'typography-resolved-invalid',
+					themePath: theme.themefile,
+				}),
+			);
+
+			expect(result.ok).toBe(false);
+			if (!result.ok) {
+				expect(result.message).toContain(
+					'Theme schema validation failed after reference resolution',
+				);
+				expect(result.message).toContain(
+					'theme.font.$extensions.typography.defaults.fontSize',
+				);
+			}
+			await cleanupTempTheme(theme);
+		});
 	});
 });

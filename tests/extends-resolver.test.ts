@@ -158,6 +158,35 @@ describe('group $extends inheritance', () => {
 		expect(extensions.composite).toBe(false);
 	});
 
+	test('replaces the typography extension namespace during extends', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				base: {
+					$type: 'typography',
+					$extensions: {
+						typography: {
+							defaults: { fontFamily: 'Inter', fontWeight: 400 },
+						},
+					},
+				},
+				derived: {
+					$extends: '{theme.base}',
+					$extensions: {
+						typography: { defaults: { fontFamily: 'Helvetica' } },
+					},
+				},
+			},
+		};
+
+		const expanded = expandExtends(tree, new Set(['theme']));
+		const theme = expanded.theme as Record<string, unknown>;
+		const derived = theme.derived as Record<string, unknown>;
+		const extensions = derived.$extensions as Record<string, unknown>;
+		expect(extensions.typography).toEqual({
+			defaults: { fontFamily: 'Helvetica' },
+		});
+	});
+
 	test('deep merges nested groups while child tokens override parent tokens', () => {
 		const tree: DtcgTokenGroup = {
 			theme: {

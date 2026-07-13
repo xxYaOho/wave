@@ -255,6 +255,107 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		);
 	});
 
+	test('formats typography arrays, units, and ignores legacy color', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-font-body',
+				path: ['theme', 'font', 'body'],
+				type: 'typography',
+				value: {
+					fontFamily: ['system-ui', '"Segoe UI"', 'PingFang SC', 'inherit'],
+					fontSize: 14,
+					fontWeight: '400',
+					lineHeight: '1.5',
+					letterSpacing: -0.2,
+					color: '#112233',
+				},
+				_order: 0,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens, { filterLayer: 1 });
+		expect(out).toContain(
+			'--font-body-family: system-ui, "Segoe UI", "PingFang SC", "inherit";',
+		);
+		expect(out).toContain('--font-body-size: 14px;');
+		expect(out).toContain('--font-body-weight: 400;');
+		expect(out).toContain('--font-body-line-height: 1.5;');
+		expect(out).toContain('--font-body-letter-spacing: -0.2px;');
+		expect(out).not.toContain('#112233');
+	});
+
+	test('escapes quoted font families and rejects invalid array members', () => {
+		const base: WaveToken = {
+			name: 'font-body',
+			path: ['font', 'body'],
+			type: 'typography',
+			value: {
+				fontFamily: ['ACME \\ "UI"'],
+				fontSize: 14,
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+			},
+			_order: 0,
+		};
+		expect(cssVariablesFormat([base])).toContain(
+			'--font-body-family: "ACME \\\\ \\"UI\\"";',
+		);
+		expect(() =>
+			cssVariablesFormat([
+				{
+					...base,
+					value: { ...(base.value as object), fontFamily: ['ok', ''] },
+				},
+			]),
+		).toThrow('fontFamily');
+	});
+
+	test('normalizes string font families and rejects control boundaries', () => {
+		const token: WaveToken = {
+			name: 'font-body',
+			path: ['font', 'body'],
+			type: 'typography',
+			value: {
+				fontFamily: '  Inter  ',
+				fontSize: 14,
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+			},
+			_order: 0,
+		};
+		expect(cssVariablesFormat([token])).toContain('--font-body-family: Inter;');
+		for (const fontFamily of ['\u0000Inter', 'Inter\u007f', '\u0085Inter']) {
+			expect(() =>
+				cssVariablesFormat([
+					{
+						...token,
+						value: { ...(token.value as object), fontFamily },
+					},
+				]),
+			).toThrow('fontFamily');
+		}
+	});
+
+	test('rejects a unitless lineHeight object', () => {
+		const token: WaveToken = {
+			name: 'font-body',
+			path: ['font', 'body'],
+			type: 'typography',
+			value: {
+				fontFamily: 'Inter',
+				fontSize: 14,
+				fontWeight: 400,
+				lineHeight: { value: 1.5 },
+				letterSpacing: 0,
+			},
+			_order: 0,
+		};
+
+		expect(() => cssVariablesFormat([token])).toThrow('lineHeight');
+	});
+
 	test('formats outline border with offset companion', () => {
 		const tokens: WaveToken[] = [
 			{

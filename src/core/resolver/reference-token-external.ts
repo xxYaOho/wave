@@ -79,6 +79,7 @@ export function processTokenGroupExternal(
 	themeTree: ResolvedTokenGroup,
 	unresolvedCollector: UnresolvedReference[],
 	rootKeys: Set<string>,
+	parentPath: string = '',
 ): ResolvedTokenGroup {
 	const result: ResolvedTokenGroup = {};
 
@@ -91,13 +92,27 @@ export function processTokenGroupExternal(
 	}
 
 	if (group.$extensions !== undefined) {
-		result.$extensions = group.$extensions;
+		result.$extensions = Object.fromEntries(
+			Object.entries(group.$extensions).map(([key, value]) => [
+				key,
+				resolveNestedRefs(
+					value as NestedValue,
+					sources,
+					themeTree,
+					[],
+					unresolvedCollector,
+					`${parentPath}.$extensions.${key}`,
+					rootKeys,
+				),
+			]),
+		);
 	}
 
 	for (const [key, value] of Object.entries(group)) {
 		if (key === '$type' || key === '$description' || key === '$extensions') {
 			continue;
 		}
+		const currentPath = parentPath ? `${parentPath}.${key}` : key;
 
 		if (isDtcgToken(value)) {
 			result[key] = processTokenExternal(
@@ -105,7 +120,7 @@ export function processTokenGroupExternal(
 				sources,
 				themeTree,
 				unresolvedCollector,
-				key,
+				currentPath,
 				rootKeys,
 			);
 		} else if (
@@ -119,6 +134,7 @@ export function processTokenGroupExternal(
 				themeTree,
 				unresolvedCollector,
 				rootKeys,
+				currentPath,
 			);
 		} else {
 			result[key] = value as string | number | boolean | undefined;

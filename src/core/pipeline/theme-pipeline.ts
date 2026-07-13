@@ -389,7 +389,7 @@ export async function processThemeDocument(
 		};
 	}
 
-	const schemaResult = validateThemeSchema(parsed.raw);
+	const schemaResult = validateThemeSchema(parsed.raw, 'raw');
 	if (!schemaResult.valid) {
 		const errorMessages = schemaResult.issues
 			.filter((i) => i.level === 'error')
@@ -422,6 +422,19 @@ export async function processThemeDocument(
 		const expanded = expandExtends(parsed.raw, rootKeys);
 
 		const resolved = resolveReferences(expanded, sources);
+		const resolvedSchemaResult = validateThemeSchema(resolved, 'resolved');
+		if (!resolvedSchemaResult.valid) {
+			const errorMessages = resolvedSchemaResult.issues
+				.filter((i) => i.level === 'error')
+				.map((i) => `  [${i.path}] ${i.message}`)
+				.join('\n');
+			return {
+				ok: false,
+				reason: 'schema_error',
+				message: `Theme schema validation failed after reference resolution:\n${errorMessages}`,
+				exitCode: ExitCode.FORMAT_ERROR,
+			};
+		}
 		const transformResult = transformToWaveTokens(
 			resolved,
 			undefined,

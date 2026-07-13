@@ -1,4 +1,10 @@
 import type { WaveFormatFn, WaveToken } from '../../../types/index.ts';
+import {
+	normalizeFontFamilyMember,
+	parseTypographyDimension,
+	parseTypographyLineHeight,
+	parseTypographyNumber,
+} from '../../typography-value.ts';
 import { formatCssLength, gradientToCss, shadowToCss } from './utils.ts';
 
 export interface CssVariablesFormatOptions {
@@ -109,20 +115,68 @@ function formatTokenValue(token: WaveToken): string {
 	return String(tokenValue);
 }
 
-function formatTypographyField(value: unknown): string {
-	if (
-		typeof value === 'object' &&
-		value !== null &&
-		!Array.isArray(value) &&
-		'value' in value
-	) {
-		const obj = value as { value?: unknown; unit?: unknown };
-		if (typeof obj.value === 'number' && typeof obj.unit === 'string') {
-			return `${obj.value}${obj.unit}`;
+const SIMPLE_FONT_FAMILY_PATTERN = /^-?[_a-zA-Z][_a-zA-Z0-9-]*$/;
+const CSS_WIDE_KEYWORDS = new Set([
+	'inherit',
+	'initial',
+	'unset',
+	'revert',
+	'revert-layer',
+]);
+
+function formatFontFamily(value: unknown): string {
+	if (typeof value === 'string') {
+		const family = normalizeFontFamilyMember(value, false);
+		if (family === undefined) {
+			throw new Error('CSS typography fontFamily must be a non-empty string');
 		}
-		if (obj.value !== undefined) return String(obj.value);
+		return family;
 	}
-	return String(value);
+	if (!Array.isArray(value) || value.length === 0) {
+		throw new Error('CSS typography fontFamily must be a string or array');
+	}
+	return value
+		.map((item) => {
+			const family = normalizeFontFamilyMember(item);
+			if (family === undefined) {
+				throw new Error(
+					'CSS typography fontFamily array members must be non-empty strings',
+				);
+			}
+			if (
+				SIMPLE_FONT_FAMILY_PATTERN.test(family) &&
+				!CSS_WIDE_KEYWORDS.has(family.toLowerCase())
+			) {
+				return family;
+			}
+			return `"${family.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+		})
+		.join(', ');
+}
+
+function formatTypographyDimension(
+	value: unknown,
+	field: 'fontSize' | 'lineHeight' | 'letterSpacing',
+): string {
+	const parsed =
+		field === 'lineHeight'
+			? parseTypographyLineHeight(value)
+			: parseTypographyDimension(value);
+	if (parsed === undefined) {
+		throw new Error(`CSS typography ${field} has an invalid value`);
+	}
+	if (parsed.unit) return `${parsed.value}${parsed.unit}`;
+	if (field === 'lineHeight') return String(parsed.value);
+	if (field === 'letterSpacing' && parsed.value === 0) return '0';
+	return `${parsed.value}px`;
+}
+
+function formatTypographyWeight(value: unknown): string {
+	const parsed = parseTypographyNumber(value);
+	if (parsed === undefined || parsed <= 0) {
+		throw new Error('CSS typography fontWeight has an invalid value');
+	}
+	return String(parsed);
 }
 
 function typographyLines(key: string, value: unknown): string[] {
@@ -138,20 +192,24 @@ function typographyLines(key: string, value: unknown): string[] {
 	const lines: string[] = [];
 
 	if (family !== undefined) {
-		lines.push(`  --${key}-family: ${formatTypographyField(family)};`);
+		lines.push(`  --${key}-family: ${formatFontFamily(family)};`);
 	}
 	if (size !== undefined) {
-		lines.push(`  --${key}-size: ${formatTypographyField(size)};`);
+		lines.push(
+			`  --${key}-size: ${formatTypographyDimension(size, 'fontSize')};`,
+		);
 	}
 	if (weight !== undefined) {
-		lines.push(`  --${key}-weight: ${formatTypographyField(weight)};`);
+		lines.push(`  --${key}-weight: ${formatTypographyWeight(weight)};`);
 	}
 	if (lineHeight !== undefined) {
-		lines.push(`  --${key}-line-height: ${formatTypographyField(lineHeight)};`);
+		lines.push(
+			`  --${key}-line-height: ${formatTypographyDimension(lineHeight, 'lineHeight')};`,
+		);
 	}
 	if (letterSpacing !== undefined) {
 		lines.push(
-			`  --${key}-letter-spacing: ${formatTypographyField(letterSpacing)};`,
+			`  --${key}-letter-spacing: ${formatTypographyDimension(letterSpacing, 'letterSpacing')};`,
 		);
 	}
 	lines.push(

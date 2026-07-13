@@ -3,6 +3,7 @@ import {
 	flatJsoncFormat,
 	flatJsonFormat,
 } from '../src/core/generator/formats/flat.ts';
+import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
 import type { WaveToken } from '../src/types/index.ts';
 
 function makeToken(partial: Partial<WaveToken> & { name: string }): WaveToken {
@@ -144,6 +145,39 @@ describe('flatJsonFormat (Wave-native)', () => {
 		const parsed = JSON.parse(out);
 		expect(parsed['component-button']).toEqual({ fill: '#ff0000', radius: 8 });
 		expect(parsed['component-button-fill']).toBeUndefined();
+	});
+
+	test('emits materialized typography including legacy color in JSON', () => {
+		const transformed = transformToWaveTokens({
+			theme: {
+				font: {
+					$type: 'typography',
+					$extensions: {
+						typography: {
+							defaults: {
+								fontFamily: 'Inter',
+								fontSize: 14,
+								fontWeight: 400,
+								lineHeight: 1.5,
+								letterSpacing: 0,
+							},
+						},
+					},
+					body: { $value: { color: '#112233' } },
+				},
+			},
+		}).tokens;
+
+		const parsed = JSON.parse(flatJsonFormat(transformed));
+		expect(parsed['theme-font-body']).toEqual({
+			fontFamily: 'Inter',
+			fontSize: 14,
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+			color: '#112233',
+		});
+		expect(flatJsoncFormat(transformed)).toContain('"color":"#112233"');
 	});
 });
 

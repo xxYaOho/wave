@@ -68,8 +68,17 @@ export function groupHasInternalReferences(
 	group: ResolvedTokenGroup,
 	rootKeys: Set<string>,
 ): boolean {
+	if (
+		group.$extensions !== undefined &&
+		hasInternalReferences(
+			group.$extensions as unknown as NestedDtcgValue,
+			rootKeys,
+		)
+	) {
+		return true;
+	}
 	for (const [key, value] of Object.entries(group)) {
-		if (key === '$type' || key === '$description') {
+		if (key === '$type' || key === '$description' || key === '$extensions') {
 			continue;
 		}
 
@@ -136,8 +145,14 @@ export function collectInternalReferences(
 		}
 	}
 
+	if (group.$extensions !== undefined) {
+		collectFromValue(group.$extensions, '$extensions');
+	}
+
 	for (const [key, value] of Object.entries(group)) {
-		if (key === '$type' || key === '$description') continue;
+		if (key === '$type' || key === '$description' || key === '$extensions') {
+			continue;
+		}
 
 		if (typeof value === 'object' && value !== null && '$value' in value) {
 			const token = value as ResolvedDtcgToken;

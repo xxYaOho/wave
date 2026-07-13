@@ -262,6 +262,97 @@ describe('generalized resolver', () => {
 		expect(token.gradient.hero.$extensions.smoothGradient.step).toBe(5);
 	});
 
+	test('resolves external and internal references inside group extensions', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				dimension: {
+					family: { $value: ['system-ui', 'PingFang SC'] },
+				},
+				font: {
+					$type: 'typography',
+					$extensions: {
+						typography: {
+							defaults: {
+								fontFamily: '{theme.dimension.family}',
+								fontSize: '{wave.dimension.pt.14}',
+							},
+						},
+					},
+				},
+			},
+		};
+		const result = resolveReferences(tree, {
+			wave: {
+				dimension: { pt: { 14: { $value: { value: 14, unit: 'pt' } } } },
+			},
+		});
+		const extensions = (
+			(result.theme as Record<string, unknown>).font as Record<string, unknown>
+		).$extensions as Record<string, unknown>;
+		const typography = extensions.typography as Record<string, unknown>;
+		const defaults = typography.defaults as Record<string, unknown>;
+
+		expect(defaults.fontFamily).toEqual(['system-ui', 'PingFang SC']);
+		expect(defaults.fontSize).toEqual({
+			value: 14,
+			unit: 'pt',
+		});
+	});
+
+	test('reports the full group extension path for unresolved references', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				font: {
+					$type: 'typography',
+					$extensions: {
+						typography: {
+							defaults: { fontFamily: '{missing.font.family}' },
+						},
+					},
+				},
+			},
+		};
+
+		expect(() => resolveReferences(tree, {})).toThrow(
+			'theme.font.$extensions.typography.defaults.fontFamily',
+		);
+	});
+
+	test('rejects cyclic internal references in group extensions', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				fontA: {
+					$type: 'typography',
+					$extensions: {
+						typography: {
+							defaults: {
+								fontFamily: {
+									$ref: '#/theme/fontB/$extensions/typography/defaults/fontFamily',
+								},
+							},
+						},
+					},
+				},
+				fontB: {
+					$type: 'typography',
+					$extensions: {
+						typography: {
+							defaults: {
+								fontFamily: {
+									$ref: '#/theme/fontA/$extensions/typography/defaults/fontFamily',
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+
+		expect(() => resolveReferences(tree, {})).toThrow(
+			'theme.fontA.$extensions.typography.defaults.fontFamily',
+		);
+	});
+
 	test('resolves references inside smoothShadow target', () => {
 		const tree: DtcgTokenGroup = {
 			theme: {

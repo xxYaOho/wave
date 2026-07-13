@@ -238,4 +238,87 @@ describe('transformToWaveTokens', () => {
 		expect(fill._composite).toBe('component.button');
 		expect(radius._composite).toBe('component.button');
 	});
+
+	test('materializes inherited typography defaults with nearest and token overrides', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				font: {
+					$type: 'typography',
+					$extensions: {
+						typography: {
+							defaults: {
+								fontFamily: ['system-ui', 'PingFang SC'],
+								fontSize: { value: 14, unit: 'pt' },
+								fontWeight: 400,
+								lineHeight: 1.5,
+								letterSpacing: 0,
+							},
+						},
+					},
+					body: {
+						$extensions: {
+							typography: { defaults: { fontWeight: 500 } },
+						},
+						md: {
+							$value: { fontSize: 16, color: '#112233' },
+						},
+					},
+				},
+			},
+		};
+
+		const token = transformToWaveTokens(input).tokens[0];
+		expect(token?.value).toEqual({
+			fontFamily: ['system-ui', 'PingFang SC'],
+			fontSize: 16,
+			fontWeight: 500,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+			color: '#112233',
+		});
+	});
+
+	test('does not apply typography defaults to non-typography tokens', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				font: {
+					$type: 'typography',
+					$extensions: {
+						typography: {
+							defaults: {
+								fontFamily: 'Inter',
+								fontSize: 14,
+								fontWeight: 400,
+								lineHeight: 1.5,
+								letterSpacing: 0,
+							},
+						},
+					},
+					count: { $type: 'number', $value: 2 },
+				},
+			},
+		};
+
+		expect(transformToWaveTokens(input).tokens[0]?.value).toBe(2);
+	});
+
+	test('throws the token path when materialized typography is incomplete', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				font: {
+					$type: 'typography',
+					body: {
+						$value: {
+							fontFamily: 'Inter',
+							fontSize: 14,
+							fontWeight: 400,
+							lineHeight: 1.5,
+						},
+					},
+				},
+			},
+		};
+
+		expect(() => transformToWaveTokens(input)).toThrow('theme.font.body');
+	});
 });

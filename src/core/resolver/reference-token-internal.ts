@@ -95,7 +95,21 @@ export function processTokenGroupInternal(
 	}
 
 	if (group.$extensions !== undefined) {
-		result.$extensions = group.$extensions;
+		const resolutionPath = parentPath ? [parentPath] : [];
+		result.$extensions = Object.fromEntries(
+			Object.entries(group.$extensions).map(([key, value]) => [
+				key,
+				resolveNestedInternalRefs(
+					value as NestedValue,
+					sources,
+					themeTree,
+					resolutionPath,
+					unresolvedCollector,
+					`${parentPath}.$extensions.${key}`,
+					rootKeys,
+				),
+			]),
+		);
 	}
 
 	for (const [key, value] of Object.entries(group)) {

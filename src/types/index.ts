@@ -223,12 +223,15 @@ export type DtcgValue =
 	| DtcgValue[];
 
 export interface WaveTypographyValue {
-	fontFamily?: string;
+	fontFamily?: string | string[];
 	fontSize?: DtcgValue;
 	fontWeight?: DtcgValue;
 	letterSpacing?: DtcgValue;
 	lineHeight?: DtcgValue;
+	color?: DtcgValue;
 }
+
+export type TypographyDefaults = Omit<WaveTypographyValue, 'color'>;
 
 export interface DtcgToken {
 	$value: DtcgValue;
