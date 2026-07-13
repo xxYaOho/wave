@@ -199,6 +199,39 @@ Run `git commit -m "test(dt): cover sketch composite color references"`.
 - [ ] Give the approved spec, Task 3 commit, and hermetic integration-test output to a read-only `critic-gate`.
 - [ ] Resolve every FATAL finding and repeat the gate until `STATUS: PASS` before modifying documentation.
 
+### Task 3.5: Preserve original references across internal passes
+
+**Files:**
+- Modify: `src/core/resolver/reference-token-internal.ts`
+- Modify: `tests/resource-resolver.test.ts`
+- Modify: `tests/fixtures/themes/orca-realistic/main.yaml`
+- Modify: `tests/integration/theme-service.test.ts`
+
+- [ ] **Precondition: Commit this approved plan revision**
+
+Run `pnpm check:ci`, then commit this plan revision before implementation. Include that documentation commit with the Task 3.5 commit and test output in Milestone 2.5 gate input.
+
+- [ ] **Step 1: Capture the two-hop regression**
+
+Make the hermetic outline consumer reference `theme.color.outline.ring`, where that color token itself references `theme.color.primary.main`. Add a two-hop typography consumer that references a color alias token. Assert the resolver preserves both `_colorReference` and `_sketchColorReference` as the consumer's direct source target. Assert final Sketch output is `@outline-ring`, not `@primary-main`, and the outline gap layer stays `#ffffffff`; assert CSS emits the two-hop typography color as its direct `var(--<alias-key>)`, not the downstream primary/default key.
+
+- [ ] **Step 2: Preserve authoritative source metadata**
+
+In `processTokenInternal()`, retain existing `_colorReference` and `_sketchColorReference` before attempting to derive metadata from the current, already-resolved `$value`. Only extract from `$value` when the corresponding metadata is absent. This preserves CSS and Sketch direct-source contracts across repeated internal passes.
+
+- [ ] **Step 3: Verify and commit**
+
+Run `pnpm check:ci`.
+Expected: PASS.
+
+Run `git add src/core/resolver/reference-token-internal.ts tests/resource-resolver.test.ts tests/fixtures/themes/orca-realistic/main.yaml tests/integration/theme-service.test.ts`.
+Run `git commit -m "fix(dt): preserve color source references"`.
+
+### Milestone 2.5: Source-reference stability gate
+
+- [ ] Give the approved plan revision, spec, Task 3.5 commit, and test output to a read-only `critic-gate`.
+- [ ] Resolve every FATAL finding and repeat the gate until `STATUS: PASS` before final verification.
+
 ### Task 4: User and maintainer contract documentation
 
 **Files:**
