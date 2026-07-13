@@ -325,9 +325,65 @@ describe('generalized resolver', () => {
 		const result = resolveReferences(tree, {});
 		const body = (
 			(result.theme as Record<string, unknown>).font as Record<string, unknown>
-		).body as { $value: { color: string }; _colorReference?: string };
+		).body as {
+			$value: { color: string };
+			_colorReference?: string;
+			_sketchTypographyColorReference?: string;
+		};
 		expect(body.$value.color).toBe('#112233');
 		expect(body._colorReference).toBe('{theme.color.text}');
+		expect(body._sketchTypographyColorReference).toBe('{theme.color.text}');
+	});
+
+	test('preserves Sketch typography color metadata only for unmodified references', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					text: { $value: '#112233' },
+				},
+				font: {
+					$type: 'typography',
+					brace: {
+						$value: { color: '{theme.color.text}' },
+					},
+					pointer: {
+						$value: { color: { $ref: '#/theme/color/text' } },
+					},
+					pointerValue: {
+						$value: { color: { $ref: '#/theme/color/text/$value' } },
+					},
+					alphaOverride: {
+						$value: {
+							color: {
+								$ref: '#/theme/color/text/$value',
+								alpha: 0.5,
+							},
+						},
+					},
+				},
+			},
+		};
+
+		const result = resolveReferences(tree, {});
+		const font = (result.theme as Record<string, unknown>).font as Record<
+			string,
+			Record<string, unknown>
+		>;
+
+		expect(font.brace?._sketchTypographyColorReference).toBe(
+			'{theme.color.text}',
+		);
+		expect(font.pointer?._sketchTypographyColorReference).toBe(
+			'#/theme/color/text',
+		);
+		expect(font.pointerValue?._sketchTypographyColorReference).toBe(
+			'#/theme/color/text/$value',
+		);
+		expect(font.alphaOverride?._colorReference).toBe(
+			'#/theme/color/text/$value',
+		);
+		expect(font.alphaOverride?._sketchTypographyColorReference).toBeUndefined();
 	});
 
 	test('reports the full group extension path for unresolved references', () => {

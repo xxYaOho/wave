@@ -174,6 +174,26 @@ export function extractDirectColorReference(
 	return undefined;
 }
 
+export function extractSketchTypographyColorReference(
+	value: unknown,
+): string | undefined {
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+		return undefined;
+	}
+	const color = (value as Record<string, unknown>).color;
+	if (typeof color === 'string' && REFERENCE_PATTERN.test(color)) return color;
+	if (
+		typeof color === 'object' &&
+		color !== null &&
+		!Array.isArray(color) &&
+		Object.keys(color).length === 1 &&
+		typeof (color as Record<string, unknown>).$ref === 'string'
+	) {
+		return (color as { $ref: string }).$ref;
+	}
+	return undefined;
+}
+
 export function inferRootKeys(tree: DtcgTokenGroup): Set<string> {
 	const keys = Object.keys(tree).filter((k) => !k.startsWith('$'));
 	return new Set(keys.length > 0 ? keys : ['theme']);

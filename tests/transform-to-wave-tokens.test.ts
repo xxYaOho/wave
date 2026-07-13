@@ -294,6 +294,7 @@ describe('transformToWaveTokens', () => {
 							color: '#112233',
 						},
 						_colorReference: '{theme.color.text.emphasis}',
+						_sketchTypographyColorReference: '{theme.color.text.emphasis}',
 					},
 				},
 			},
@@ -301,6 +302,9 @@ describe('transformToWaveTokens', () => {
 
 		const token = transformToWaveTokens(input).tokens[0]!;
 		expect(token._colorReference).toBe('{theme.color.text.emphasis}');
+		expect(token._sketchTypographyColorReference).toBe(
+			'{theme.color.text.emphasis}',
+		);
 		expect(token._typographyColor).toBe('#112233');
 		expect(token.value).toEqual({
 			fontFamily: 'Inter',
@@ -310,6 +314,32 @@ describe('transformToWaveTokens', () => {
 			letterSpacing: 0,
 			color: '#112233',
 		});
+	});
+
+	test('keeps alpha from a resolved pointer wrapper without Sketch metadata', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				font: {
+					$type: 'typography',
+					body: {
+						$value: {
+							fontFamily: 'Inter',
+							fontSize: 14,
+							fontWeight: 400,
+							lineHeight: 1.5,
+							letterSpacing: 0,
+							color: { $value: '#112233', alpha: 0.5 },
+						},
+						_colorReference: '#/theme/color/text',
+					},
+				},
+			},
+		};
+
+		const token = transformToWaveTokens(input).tokens[0]!;
+		expect(token._typographyColor).toBe('#11223380');
+		expect(token._colorReference).toBe('#/theme/color/text');
+		expect(token._sketchTypographyColorReference).toBeUndefined();
 	});
 
 	test('does not apply typography defaults to non-typography tokens', () => {

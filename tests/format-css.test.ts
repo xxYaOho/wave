@@ -350,6 +350,37 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		);
 	});
 
+	test('uses the CSS color reference when alpha override excludes Sketch metadata', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-text-emphasis',
+				path: ['theme', 'color', 'text', 'emphasis'],
+				type: 'color',
+				value: '#112233',
+				_order: 0,
+			},
+			{
+				name: 'theme-font-body',
+				path: ['theme', 'font', 'body'],
+				type: 'typography',
+				value: {
+					fontFamily: 'Inter',
+					fontSize: 14,
+					fontWeight: 400,
+					lineHeight: 1.5,
+					letterSpacing: 0,
+					color: { $value: '#112233', alpha: 0.5 },
+				},
+				_colorReference: '#/theme/color/text/emphasis',
+				_typographyColor: '#11223380',
+				_order: 1,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens, { filterLayer: 1 });
+		expect(out).toContain('--font-body-color: var(--color-text-emphasis);');
+	});
+
 	test('selects the first emitted matching font family token', () => {
 		const family = ['Inter', 'sans-serif'];
 		const makeFamily = (name: string, order: number): WaveToken => ({

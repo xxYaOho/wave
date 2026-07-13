@@ -9,6 +9,7 @@ import {
 	deriveSwatchNameFromDtcgRef,
 	deriveSwatchNameFromStringRef,
 	extractDirectColorReference,
+	extractSketchTypographyColorReference,
 } from './reference-utils.ts';
 import {
 	type NestedValue,
@@ -46,6 +47,9 @@ export function processTokenInternal(
 	}
 	const colorReference =
 		extractDirectColorReference(token.$value) ?? token._colorReference;
+	const sketchTypographyColorReference =
+		extractSketchTypographyColorReference(token.$value) ??
+		token._sketchTypographyColorReference;
 
 	const resolvedExtensions = token.$extensions
 		? Object.fromEntries(
@@ -76,6 +80,9 @@ export function processTokenInternal(
 		}),
 		...(swatchName !== undefined && { _swatchName: swatchName }),
 		...(colorReference !== undefined && { _colorReference: colorReference }),
+		...(sketchTypographyColorReference !== undefined && {
+			_sketchTypographyColorReference: sketchTypographyColorReference,
+		}),
 	};
 }
 

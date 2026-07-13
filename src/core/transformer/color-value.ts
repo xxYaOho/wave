@@ -273,6 +273,13 @@ export function normalizeColorValue(
 		return normalizeFromHex(value, targetFormat, tokenPath, 'legacy-string');
 	}
 	if (isObject(value) && '$value' in value) {
+		if (value.alpha !== undefined) {
+			return normalizeColorValue(
+				{ color: value.$value, alpha: value.alpha },
+				targetFormat,
+				tokenPath,
+			);
+		}
 		return normalizeColorValue(value.$value, targetFormat, tokenPath);
 	}
 	if (isDtcgColorObjectShape(value)) {

@@ -483,6 +483,10 @@ function transformToken(
 	const typeValue = token.$type ?? parentType;
 	let sourceValue: DtcgValue = token.$value;
 	let typographyColor: string | undefined;
+	const sketchTypographyColorReference =
+		typeValue === 'typography'
+			? token._sketchTypographyColorReference
+			: undefined;
 	if (typeValue === 'typography') {
 		const materialized = materializeTypographyValue(
 			inheritedExtensions.typographyDefaults,
@@ -666,6 +670,9 @@ function transformToken(
 		...(token._swatchName !== undefined && { _swatchName: token._swatchName }),
 		...(token._colorReference !== undefined && {
 			_colorReference: token._colorReference,
+		}),
+		...(sketchTypographyColorReference !== undefined && {
+			_sketchTypographyColorReference: sketchTypographyColorReference,
 		}),
 		...(typographyColor !== undefined && { _typographyColor: typographyColor }),
 		...(mergedSketchExtension !== undefined && {
