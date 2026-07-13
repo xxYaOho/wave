@@ -285,6 +285,25 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).toContain('--font-body-color: #112233;');
 	});
 
+	test('rejects typography color without normalized formatter metadata', () => {
+		const token: WaveToken = {
+			name: 'theme-font-body',
+			path: ['theme', 'font', 'body'],
+			type: 'typography',
+			value: {
+				fontFamily: 'Inter',
+				fontSize: 14,
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+				color: '#112233',
+			},
+			_order: 0,
+		};
+
+		expect(() => cssVariablesFormat([token])).toThrow('theme.font.body');
+	});
+
 	test('reuses an emitted font family token and typography color reference', () => {
 		const family = ['system-ui', 'PingFang SC'];
 		const tokens: WaveToken[] = [

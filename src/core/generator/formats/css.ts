@@ -384,6 +384,11 @@ export const cssVariablesFormat: WaveFormatFn = (
 
 		if (isTypography(token)) {
 			const value = token.value as Record<string, unknown>;
+			if (value.color !== undefined && token._typographyColor === undefined) {
+				throw new Error(
+					`CSS typography color is not normalized at ${token.path.join('.')}`,
+				);
+			}
 			const family = formatFontFamily(value.fontFamily);
 			lines.push(
 				...typographyLines(key, token.value, {

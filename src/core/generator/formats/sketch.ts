@@ -256,6 +256,9 @@ function formatSketchTypography(token: WaveToken): unknown {
 	const obj = value as Record<string, unknown>;
 	const textStyle: Record<string, unknown> = {};
 	try {
+		if (obj.color !== undefined && token._typographyColor === undefined) {
+			throw new Error('color is not normalized');
+		}
 		const fontFamily = selectSketchFontFamily(obj.fontFamily);
 		if (fontFamily !== undefined) textStyle.fontFamily = fontFamily;
 

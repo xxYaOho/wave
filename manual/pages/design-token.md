@@ -198,7 +198,7 @@ theme:
 | `$extends` | group | 继承另一个 group，格式 `{theme.group.path}` |
 | `$extensions` | group 或 token | Wave 扩展字段 |
 
-支持的 `$type` 包括 `color`、`shadow`、`gradient`、`border`、`typography`、`opacity`、`dimension`、`number`、`cubicBezier`。
+支持的 `$type` 包括 `color`、`shadow`、`gradient`、`border`、`typography`、`opacity`、`dimension`、`number`、`fontFamily`、`cubicBezier`。
 
 ## theme 顶级 key
 

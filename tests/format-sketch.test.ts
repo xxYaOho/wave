@@ -343,6 +343,25 @@ describe('sketchFormat (Wave-native)', () => {
 		});
 	});
 
+	test('rejects typography color without normalized formatter metadata', () => {
+		const token: WaveToken = {
+			name: 'theme-font-body',
+			path: ['theme', 'font', 'body'],
+			type: 'typography',
+			value: {
+				fontFamily: 'Inter',
+				fontSize: 14,
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+				color: '#112233',
+			},
+			_order: 0,
+		};
+
+		expect(() => sketchFormat([token])).toThrow('theme.font.body');
+	});
+
 	test('preserves fractional absolute line height', () => {
 		const token: WaveToken = {
 			name: 'font-caption',
