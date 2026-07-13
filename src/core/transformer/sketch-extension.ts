@@ -29,6 +29,9 @@ export function parseSketchExtension(
 	if (explicitProperty) {
 		normalized.property = explicitProperty;
 	}
+	if (sketch && typeof sketch.skip === 'boolean') {
+		normalized.skip = sketch.skip;
+	}
 
-	return normalized.path || normalized.property ? normalized : undefined;
+	return Object.keys(normalized).length > 0 ? normalized : undefined;
 }

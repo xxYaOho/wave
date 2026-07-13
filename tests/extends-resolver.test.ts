@@ -187,6 +187,28 @@ describe('group $extends inheritance', () => {
 		});
 	});
 
+	test('replaces the sketch extension namespace during extends', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				base: {
+					$extensions: {
+						sketch: { path: 'foundation/color', skip: true },
+					},
+				},
+				derived: {
+					$extends: '{theme.base}',
+					$extensions: { sketch: { skip: false } },
+				},
+			},
+		};
+
+		const expanded = expandExtends(tree, new Set(['theme']));
+		const theme = expanded.theme as Record<string, unknown>;
+		const derived = theme.derived as Record<string, unknown>;
+		const extensions = derived.$extensions as Record<string, unknown>;
+		expect(extensions.sketch).toEqual({ skip: false });
+	});
+
 	test('deep merges nested groups while child tokens override parent tokens', () => {
 		const tree: DtcgTokenGroup = {
 			theme: {

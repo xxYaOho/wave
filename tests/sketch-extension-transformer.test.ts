@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { parseSketchExtension } from '../src/core/transformer/sketch-extension.ts';
 import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
 import type { ResolvedTokenGroup } from '../src/types/index.ts';
 
@@ -12,6 +13,15 @@ function tokenByName(
 }
 
 describe('sketch extension transformer', () => {
+	test('parses skip-only extensions and retains explicit false', () => {
+		expect(parseSketchExtension({ sketch: { skip: true } })).toEqual({
+			skip: true,
+		});
+		expect(parseSketchExtension({ sketch: { skip: false } })).toEqual({
+			skip: false,
+		});
+	});
+
 	test('normalizes sketch.path and sketch.property', () => {
 		const resolved: ResolvedTokenGroup = {
 			theme: {
@@ -206,5 +216,70 @@ describe('sketch extension transformer', () => {
 
 		expect(fill._sketch).toEqual({ path: 'component/button' });
 		expect(radius._sketch).toEqual({ path: 'component/button' });
+	});
+
+	test('inherits nearest group skip and lets tokens explicitly restore output', () => {
+		const resolved: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					$extensions: {
+						sketch: { path: 'foundation/color', skip: true },
+					},
+					hidden: { $value: '#111111' },
+					keep: {
+						$value: '#222222',
+						$extensions: { sketch: { skip: false } },
+					},
+					brand: {
+						$extensions: { sketch: { skip: false } },
+						primary: { $value: '#333333' },
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(resolved);
+		expect(tokenByName(result, 'theme-color-hidden')._sketch).toEqual({
+			path: 'foundation/color',
+			skip: true,
+		});
+		expect(tokenByName(result, 'theme-color-keep')._sketch).toEqual({
+			path: 'foundation/color',
+			skip: false,
+		});
+		expect(tokenByName(result, 'theme-color-brand-primary')._sketch).toEqual({
+			path: 'foundation/color',
+			skip: false,
+		});
+	});
+
+	test('applies inherited sketch.skip to composite child tokens', () => {
+		const resolved: ResolvedTokenGroup = {
+			component: {
+				button: {
+					$extensions: {
+						composite: true,
+						sketch: { path: 'component/button', skip: true },
+					},
+					fill: { $type: 'color', $value: '#1872f0' },
+					radius: {
+						$type: 'dimension',
+						$value: 8,
+						$extensions: { sketch: { skip: false } },
+					},
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(resolved);
+		expect(tokenByName(result, 'component-button-fill')._sketch).toEqual({
+			path: 'component/button',
+			skip: true,
+		});
+		expect(tokenByName(result, 'component-button-radius')._sketch).toEqual({
+			path: 'component/button',
+			skip: false,
+		});
 	});
 });

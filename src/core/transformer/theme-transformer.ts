@@ -23,6 +23,7 @@ import { parseSketchExtension } from './sketch-extension.ts';
 
 interface InheritedExtensions {
 	sketchPath?: string;
+	sketchSkip?: boolean;
 	typographyDefaults?: TypographyDefaults;
 }
 
@@ -619,9 +620,15 @@ function transformToken(
 
 	const sketchExtension = parseSketchExtension(token.$extensions);
 	const mergedSketchExtension =
-		inheritedExtensions.sketchPath !== undefined
+		inheritedExtensions.sketchPath !== undefined ||
+		inheritedExtensions.sketchSkip !== undefined
 			? {
-					path: inheritedExtensions.sketchPath,
+					...(inheritedExtensions.sketchPath !== undefined && {
+						path: inheritedExtensions.sketchPath,
+					}),
+					...(inheritedExtensions.sketchSkip !== undefined && {
+						skip: inheritedExtensions.sketchSkip,
+					}),
 					...sketchExtension,
 				}
 			: sketchExtension;
@@ -718,6 +725,9 @@ export function transformToWaveTokens(
 			...(groupSketchExtension?.path !== undefined && {
 				sketchPath: groupSketchExtension.path,
 			}),
+			...(groupSketchExtension?.skip !== undefined && {
+				sketchSkip: groupSketchExtension.skip,
+			}),
 			...(groupType === 'typography'
 				? {
 						typographyDefaults: mergeTypographyDefaults(
@@ -764,6 +774,9 @@ export function transformToWaveTokens(
 					...childInheritedExtensions,
 					...(compositeSketchExtension?.path !== undefined && {
 						sketchPath: compositeSketchExtension.path,
+					}),
+					...(compositeSketchExtension?.skip !== undefined && {
+						sketchSkip: compositeSketchExtension.skip,
 					}),
 					...(compositeType === 'typography'
 						? {

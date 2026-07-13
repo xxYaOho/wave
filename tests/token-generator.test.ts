@@ -231,6 +231,42 @@ describe('generateTokens (Wave-native)', () => {
 		});
 	});
 
+	test('applies sketch.skip only to Sketch output', async () => {
+		await withTempDir(async (outputDir) => {
+			const tokens: WaveToken[] = [
+				{
+					name: 'theme-color-hidden',
+					path: ['theme', 'color', 'hidden'],
+					value: '#ff0000',
+					type: 'color',
+					_order: 0,
+					_sketch: { skip: true },
+				},
+			];
+
+			const result = await generateTokens({
+				themeName: 'demo',
+				outputDir,
+				tokens,
+				platform: ['json', 'jsonc', 'css', 'sketch'],
+			});
+
+			expect(result.success).toBe(true);
+			expect(
+				await fs.readFile(path.join(outputDir, 'demo.json'), 'utf8'),
+			).toContain('theme-color-hidden');
+			expect(
+				await fs.readFile(path.join(outputDir, 'demo.jsonc'), 'utf8'),
+			).toContain('theme-color-hidden');
+			expect(
+				await fs.readFile(path.join(outputDir, 'demo.css'), 'utf8'),
+			).toContain('--theme-color-hidden');
+			expect(
+				await fs.readFile(path.join(outputDir, 'demo2sketch.json'), 'utf8'),
+			).not.toContain('theme-color-hidden');
+		});
+	});
+
 	test('formats every platform before writing any output file', async () => {
 		await withTempDir(async (outputDir) => {
 			const jsonPath = path.join(outputDir, 'demo.json');

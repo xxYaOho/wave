@@ -546,17 +546,19 @@ export const sketchFormat: WaveFormatFn = (
 	const filterLayer = (options?.filterLayer as number) ?? 0;
 	const includeRootKeys = options?.includeRootKeys as string[] | undefined;
 	const result: Record<string, unknown> = {};
-	const filteredTokens = tokens.filter((token) =>
-		shouldIncludeSketchToken(token, includeRootKeys),
-	);
-	const sortedTokens = [...filteredTokens].sort(
+	const allTokens = [...tokens].sort(
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);
+	const emissionTokens = allTokens.filter(
+		(token) =>
+			shouldIncludeSketchToken(token, includeRootKeys) &&
+			token._sketch?.skip !== true,
+	);
 
-	for (const token of sortedTokens) {
+	for (const token of emissionTokens) {
 		if (token.value === undefined) continue;
 		const outputPath = buildOutputPath(token, filterLayer);
-		const value = formatSketchValue(token, sortedTokens);
+		const value = formatSketchValue(token, allTokens);
 		setNestedValue(result, outputPath, value, token);
 	}
 

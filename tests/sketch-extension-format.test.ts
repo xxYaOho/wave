@@ -309,6 +309,56 @@ describe('sketch extension format', () => {
 		);
 	});
 
+	test('filters skipped tokens before output path and duplicate checks', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-color-primary-skipped',
+				path: ['theme', 'color', 'primary'],
+				value: '#111111',
+				type: 'color',
+				_sketch: { path: 'foundation/color', skip: true },
+			}),
+			token({
+				name: 'theme-color-primary',
+				path: ['theme', 'color', 'primary'],
+				value: '#1872f0',
+				type: 'color',
+				_sketch: { path: 'foundation/color' },
+				_order: 1,
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		expect(parsed.foundation.color.primary).toEqual({ color: '#1872f0ff' });
+	});
+
+	test('keeps skipped tokens available to inheritColor sibling lookup', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-component-button-label',
+				path: ['theme', 'component', 'button', 'label'],
+				value: '#1872f0',
+				type: 'color',
+				_sketch: { skip: true },
+			}),
+			token({
+				name: 'theme-component-button-icon',
+				path: ['theme', 'component', 'button', 'icon'],
+				value: '#000000',
+				type: 'color',
+				inheritColor: true,
+				inheritColorSiblingSlot: 'label',
+				_order: 1,
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens));
+		expect(parsed['theme-component-button-label']).toBeUndefined();
+		expect(parsed['theme-component-button-icon']).toEqual({
+			color: '#1872f0ff',
+		});
+	});
+
 	test('does not map composite tokens through component special cases', () => {
 		const tokens: WaveToken[] = [
 			token({

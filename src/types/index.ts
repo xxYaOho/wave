@@ -322,6 +322,7 @@ export interface SketchPropertyMap {
 export interface SketchExtension {
 	path?: string;
 	property?: SketchPropertyMap;
+	skip?: boolean;
 }
 
 /**

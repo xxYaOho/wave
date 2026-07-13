@@ -52,7 +52,7 @@ const EXTENSION_TYPE_MAP: Record<string, string> = {
 };
 
 const SKETCH_PROPERTY_KEYS = new Set(['opacity', 'cornerRadius']);
-const SKETCH_KEYS = new Set(['path', 'property']);
+const SKETCH_KEYS = new Set(['path', 'property', 'skip']);
 const SKETCH_PATH_PATTERN = /^[^/.\s][^/.]*(?:\/[^/.\s][^/.]*)*$/;
 
 function checkDanglingJsonPointer(
@@ -213,9 +213,17 @@ function validateSketchExtension(
 			issues.push({
 				path: `${tokenPath}.$extensions.sketch.${key}`,
 				level: 'error',
-				message: `Unknown sketch field "${key}". Supported fields: path, property`,
+				message: `Unknown sketch field "${key}". Supported fields: path, property, skip`,
 			});
 		}
+	}
+
+	if ('skip' in sketchObj && typeof sketchObj.skip !== 'boolean') {
+		issues.push({
+			path: `${tokenPath}.$extensions.sketch.skip`,
+			level: 'error',
+			message: 'sketch.skip must be a boolean',
+		});
 	}
 
 	if (context === 'group' && 'property' in sketchObj) {

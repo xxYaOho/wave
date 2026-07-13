@@ -2,6 +2,47 @@ import { describe, expect, test } from 'bun:test';
 import { validateThemeSchema } from '../src/core/schema/theme.ts';
 
 describe('sketch extension schema', () => {
+	test('accepts boolean sketch.skip on groups and tokens', () => {
+		const result = validateThemeSchema({
+			theme: {
+				color: {
+					$type: 'color',
+					$extensions: { sketch: { skip: true } },
+					primary: {
+						$value: '#1872f0',
+						$extensions: { sketch: { skip: false } },
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(true);
+	});
+
+	test('rejects non-boolean sketch.skip on groups and tokens', () => {
+		for (const skip of ['true', 1, null, {}, []]) {
+			const result = validateThemeSchema({
+				theme: {
+					color: {
+						$type: 'color',
+						$extensions: { sketch: { skip } },
+						primary: {
+							$value: '#1872f0',
+							$extensions: { sketch: { skip } },
+						},
+					},
+				},
+			});
+
+			expect(result.valid).toBe(false);
+			expect(
+				result.issues.filter((issue) =>
+					issue.message.includes('sketch.skip must be a boolean'),
+				),
+			).toHaveLength(2);
+		}
+	});
+
 	test('accepts path and supported property on number token under dimension root', () => {
 		const result = validateThemeSchema({
 			theme: {
