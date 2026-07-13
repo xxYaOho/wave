@@ -1,10 +1,12 @@
-# Sketch Typography Color Reference Implementation Plan
+# Sketch Composite Color Reference Implementation Plan
 
-**Goal:** Emit `@<filtered color key>` for typography colors that directly reference emitted color tokens in the current `theme` document.
+**Goal:** Emit `@<filtered color key>` for direct current-theme color references used by Sketch typography, ordinary border, and outline ring slots, while keeping color tokens and unsupported consumers as HEX8.
 
-**Architecture:** Preserve existing `_colorReference` for CSS. Add `_sketchTypographyColorReference` only for unmodified direct typography color references, and fix color normalization when an un-suffixed JSON Pointer resolves to a token object with alpha. The Sketch formatter indexes emitted color aliases by their current-pass filtered key. JSON Pointer aliases preserve token path segments; curly aliases are only generated for the resolver's safe curly grammar. It rejects alias or variable-key ambiguity, emits `@key` only for the Sketch-specific trusted metadata, and otherwise preserves HEX8.
+**Architecture:** Preserve existing `_colorReference` for CSS. Use `_sketchColorReference` only for unmodified direct composite color references, and preserve alpha when an un-suffixed JSON Pointer resolves to a token object. The Sketch formatter indexes emitted color aliases by their current-pass filtered key. JSON Pointer aliases preserve token path segments; curly aliases are only generated for the resolver's safe curly grammar. It rejects alias or variable-key ambiguity, emits `@key` only for the Sketch-specific trusted metadata, and otherwise emits the slot's required HEX8 fallback.
 
 **Tech Stack:** TypeScript strict ESM, Bun tests, Wave Sketch formatter
+
+**Scope update:** `@` applies only to direct current-theme references in typography `textColor`, ordinary border `value.color`, and outline ring `shadow[0].color`. Color token outputs stay HEX8. Shadow, gradient, inheritColor, external references, literals, and alpha-overridden references stay HEX8.
 
 ---
 
@@ -29,11 +31,11 @@
 
 - [ ] **Step 1: Add resolver and transformer regression coverage**
 
-Keep the existing pure curly direct-reference assertion. Add pure JSON Pointer assertions for both `#/theme/color/text` and `#/theme/color/text/$value`. Add `color: { $ref: "#/theme/color/text", alpha: 0.5 }` and assert its materialized typography color is `#11223380`, its existing `_colorReference` remains available to CSS, and its `_sketchTypographyColorReference` is absent. Lock CSS's existing `var(--color-text)` result for that metadata.
+Keep the existing pure curly direct-reference assertion. Add pure JSON Pointer assertions for both `#/theme/color/text` and `#/theme/color/text/$value`. Add `color: { $ref: "#/theme/color/text", alpha: 0.5 }` and assert its materialized typography color is `#11223380`, its existing `_colorReference` remains available to CSS, and its `_sketchColorReference` is absent. Lock CSS's existing `var(--color-text)` result for that metadata.
 
 - [ ] **Step 2: Implement source-metadata and alpha handling**
 
-Keep `extractDirectColorReference()` unchanged. Add a dedicated pure-reference extractor that accepts a color `$ref` object only if `$ref` is its sole key, then carry `_sketchTypographyColorReference` through both resolver passes, the type definitions, and the transformer. In `normalizeColorValue()`, when a resolver-produced object holds both `$value` and `alpha`, carry alpha into color normalization instead of returning the raw `$value` result.
+Keep `extractDirectColorReference()` unchanged. Add a dedicated pure-reference extractor that accepts a color `$ref` object only if `$ref` is its sole key, then carry `_sketchColorReference` through both resolver passes, the type definitions, and the transformer. In `normalizeColorValue()`, when a resolver-produced object holds both `$value` and `alpha`, carry alpha into color normalization instead of returning the raw `$value` result.
 
 - [ ] **Step 3: Run focused tests and commit a green node**
 
@@ -78,7 +80,7 @@ Import the shared `REFERENCE_PATTERN` instead of duplicating the resolver gramma
 
 - [ ] **Step 3: Route typography through the index**
 
-Pass the index to `formatSketchTypography()` through `formatSketchValue()`. On a trusted `_sketchTypographyColorReference` alias match, emit `textColor: "@<filtered key>"`. When a trusted internal reference has no emitted color match, throw an error containing `tokenPathLabel(token)`. Preserve the current normalized HEX8 branch when the Sketch-specific metadata is absent, including literal, external, and alpha-override colors; do not consult `_colorReference` in the Sketch formatter.
+Pass the index to `formatSketchTypography()` through `formatSketchValue()`. On a trusted `_sketchColorReference` alias match, emit `textColor: "@<filtered key>"`. When a trusted internal reference has no emitted color match, throw an error containing `tokenPathLabel(token)`. Preserve the current normalized HEX8 branch when the Sketch-specific metadata is absent, including literal, external, and alpha-override colors; do not consult `_colorReference` in the Sketch formatter.
 
 - [ ] **Step 4: Run focused and full tests**
 
@@ -96,6 +98,50 @@ Run `git commit -m "feat(dt): preserve sketch typography color references"`.
 - [ ] Give the approved spec, Tasks 1-2 commits, and focused plus full test output to a read-only `critic-gate`.
 - [ ] Resolve every FATAL finding and repeat the gate until `STATUS: PASS` before modifying the fixture or documentation.
 
+### Task 2.5: Generalize Sketch composite color slots
+
+**Files:**
+- Modify: `src/core/resolver/reference-utils.ts`
+- Modify: `src/core/resolver/reference-token-external.ts`
+- Modify: `src/core/resolver/reference-token-internal.ts`
+- Modify: `src/core/transformer/theme-transformer.ts`
+- Modify: `src/types/index.ts`
+- Modify: `src/core/generator/formats/sketch.ts`
+- Modify: `tests/resource-resolver.test.ts`
+- Modify: `tests/transform-to-wave-tokens.test.ts`
+- Modify: `tests/format-sketch.test.ts`
+- Modify: `tests/sketch-extension-format.test.ts`
+- Modify: `tests/integration/theme-service.test.ts`
+
+- [ ] **Step 1: Add the un-suffixed Pointer regression at the resolver-to-transformer boundary**
+
+Change the current alpha override test to `color: { $ref: "#/theme/color/text", alpha: 0.5 }`. Assert through real resolver and transformer output that `_typographyColor` is `#11223380`, `_colorReference` is retained for CSS, and the Sketch-only metadata is absent.
+
+- [ ] **Step 2: Replace typography-only metadata with shared slot metadata**
+
+Rename the internal `_sketchTypographyColorReference` to `_sketchColorReference`. Preserve it only for an unmodified direct composite `color` reference, and carry it through both resolver passes and the transformer for typography and border tokens. Do not change CSS's `_colorReference` behavior.
+
+- [ ] **Step 3: Use one Sketch color-slot formatter**
+
+Refactor typography to consume `_sketchColorReference`. For ordinary border output, replace only `value.color`; when no `@` applies, canonicalize the fallback to HEX8. For outline output, replace only the ring layer `shadow[0].color` and keep `shadow[1].color` as `#ffffffff`. A trusted internal reference whose target is skipped or root-excluded must throw with the consumer token path. Color token, shadow, gradient, and inheritColor branches must retain existing HEX behavior.
+
+- [ ] **Step 4: Add focused regression coverage**
+
+Cover curly, `#/...`, and `#/.../$value` references for border and outline; literal, external, and alpha-override HEX8 fallback; skipped and root-excluded target errors; and negative HEX-only coverage for shadow, gradient, and inheritColor. Update existing Orca antline and root-matrix outline expectations in `tests/integration/theme-service.test.ts` in this same node so `pnpm check:ci` remains green.
+
+- [ ] **Step 5: Verify and commit a green node**
+
+Run `pnpm check:ci`.
+Expected: PASS.
+
+Run `git add src/core/resolver/reference-utils.ts src/core/resolver/reference-token-external.ts src/core/resolver/reference-token-internal.ts src/core/transformer/theme-transformer.ts src/types/index.ts src/core/generator/formats/sketch.ts tests/resource-resolver.test.ts tests/transform-to-wave-tokens.test.ts tests/format-sketch.test.ts tests/sketch-extension-format.test.ts tests/integration/theme-service.test.ts`.
+Run `git commit -m "feat(dt): reference sketch composite colors"`.
+
+### Milestone 1.5: Composite color-slot gate
+
+- [ ] Give the approved spec, Task 2.5 commit, and full test output to a read-only `critic-gate`.
+- [ ] Resolve every FATAL finding and repeat the gate until `STATUS: PASS` before extending the fixture.
+
 ### Task 3: Hermetic Orca integration contract
 
 **Files:**
@@ -104,7 +150,7 @@ Run `git commit -m "feat(dt): preserve sketch typography color references"`.
 
 - [ ] **Step 1: Extend the fixture without external-file dependency**
 
-Reuse existing `theme.color.text.default`; add `emphasis` and `subtlest`. Add `theme.font.heading` and `theme.font.display` with `sketch.path` values matching real Orca and explicit `sketch.skip: false` to override the inherited font-group skip. Keep the existing `font.body` curly reference, whose `@text-default` expectation is already updated in Task 2.
+Reuse existing `theme.color.text.default`; add `emphasis` and `subtlest`. Add `theme.font.heading` and `theme.font.display` with `sketch.path` values matching real Orca and explicit `sketch.skip: false` to override the inherited font-group skip. Keep the existing `font.body` curly reference, whose `@text-default` expectation is already updated in Task 2. Retain Task 2.5's antline expectation and add an outline direct-reference fixture whose ring is `@key` while its gap stays `#ffffffff`.
 
 Use the three reference forms below so integration coverage exercises resolver -> transformer -> formatter:
 
@@ -146,7 +192,7 @@ Expected: PASS without reading `/Users/teatao/Projects/my-color/orca`.
 - [ ] **Step 4: Commit fixture and integration coverage**
 
 Run `git add tests/fixtures/themes/orca-realistic/main.yaml tests/integration/theme-service.test.ts`.
-Run `git commit -m "test(dt): cover sketch typography color references"`.
+Run `git commit -m "test(dt): cover sketch composite color references"`.
 
 ### Milestone 2: Integration contract gate
 
@@ -186,7 +232,7 @@ Expected: PASS.
 
 - [ ] **Step 2: Build real Orca output**
 
-Record `shasum -a 256 /Users/teatao/Projects/my-color/orca/main.yaml` before the build. Run `pnpm dev -- dt build -f /Users/teatao/Projects/my-color/orca/main.yaml`, then use a Node assertion over `/Users/teatao/Projects/my-color/orca/theme/orca2sketch.json`: exactly seven text styles must be present; `v2.heading["heading-h1"]` through `v2.heading["heading-h5"]` must be `@text-emphasis`; `v2.display["display-body"]` must be `@text-default`; and `v2.display["display-footnote"]` must be `@text-subtlest`. Record the hash again.
+Record `shasum -a 256 /Users/teatao/Projects/my-color/orca/main.yaml` before the build. Run `pnpm dev -- dt build -f /Users/teatao/Projects/my-color/orca/main.yaml`, then use a Node assertion over `/Users/teatao/Projects/my-color/orca/theme/orca2sketch.json`: exactly seven text styles must be present; `v2.heading["heading-h1"]` through `v2.heading["heading-h5"]` must be `@text-emphasis`; `v2.display["display-body"]` must be `@text-default`; `v2.display["display-footnote"]` must be `@text-subtlest`; and `v2.outline["outline-ring"].shadow[0].color` must be `@outline-ring` while `shadow[1].color` remains `#ffffffff`. Record the hash again.
 Expected: all assertions pass and `main.yaml` hash is unchanged before and after. Do not invoke Sync Token here; its `@` importer is outside this repository's approved scope.
 
 - [ ] **Step 3: Run final critic-gate**
