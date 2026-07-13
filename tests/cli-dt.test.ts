@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import * as yaml from 'js-yaml';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 const cliEntry = path.join(rootDir, 'src/index.ts');
@@ -721,7 +722,27 @@ describe('wave dt', () => {
 				false,
 			);
 			expect(stdout).toContain('See MANUAL.md for detailed usage');
+			expect(stdout).toContain('Replace {TOKEN} placeholders');
 			expect(stdout).toContain('Run "wave dt" to generate tokens');
+
+			const mainYamlPath = path.join(tempDir, 'main.yaml');
+			const mainYaml = await fs.readFile(mainYamlPath, 'utf-8');
+			const fixtureYaml = await fs.readFile(
+				path.join(rootDir, 'tests/fixtures/themes/profile-model/main.yaml'),
+				'utf-8',
+			);
+			const parsed = yaml.load(mainYaml) as Record<string, any>;
+			const fixture = yaml.load(fixtureYaml) as Record<string, any>;
+
+			expect(mainYaml.startsWith('$schema:')).toBe(true);
+			expect(parsed.$config.theme).toBe('example');
+			expect(parsed.$config.resource).toEqual(fixture.$config.resource);
+			expect(Object.keys(parsed.theme)).toEqual(Object.keys(fixture.theme));
+			expect(mainYaml).toContain('$value: "{TOKEN}"');
+			expect(mainYaml).toContain('offset: "{TOKEN}"');
+			expect(mainYaml).toContain('fontFamily: "{TOKEN}"');
+			expect(mainYaml).not.toContain('{tailwindcss.color.blue.600}');
+			expect(mainYaml).not.toContain('{wave.dimension.alpha.100}');
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
