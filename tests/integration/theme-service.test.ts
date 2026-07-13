@@ -757,7 +757,7 @@ describe('Theme Service Integration', () => {
 		});
 	});
 
-	test('orca-realistic DTCG fallback color builds css and sketch', async () => {
+	test('orca-realistic materializes typography and preserves platform output contracts', async () => {
 		const fixture = await copyFixtureWorkspace(
 			'fixtures/themes/orca-realistic',
 		);
@@ -773,6 +773,26 @@ describe('Theme Service Integration', () => {
 			});
 
 			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toEqual(
+					expect.arrayContaining([
+						'orca-realistic.json',
+						'orca-realistic.jsonc',
+						'orca-realistic.css',
+						'orca-realistic2sketch.json',
+					]),
+				);
+			}
+			const json = JSON.parse(
+				await fs.readFile(
+					path.join(outputDir, 'json', 'orca-realistic.json'),
+					'utf-8',
+				),
+			);
+			const jsonc = await fs.readFile(
+				path.join(outputDir, 'json', 'orca-realistic.jsonc'),
+				'utf-8',
+			);
 			const css = await fs.readFile(
 				path.join(outputDir, 'css', 'orca-realistic.css'),
 				'utf-8',
@@ -780,7 +800,43 @@ describe('Theme Service Integration', () => {
 			expect(css).toContain('--orcaFallback-main: #0052f5;');
 			expect(css).toContain('rgb(0 82 245 / 0.25)');
 			expect(css).toContain('linear-gradient(to right');
+			expect(css).toContain(
+				'--body-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";',
+			);
+			expect(css).toContain('--body-line-height: 1.5;');
+			expect(css).toContain('--label-line-height: 20px;');
+			expect(css).toContain('--antline: 1px dashed #0052f5;');
+			expect(css).toContain('--antline-dash-array: 4px 8px;');
 			expect(css).not.toContain('[object Object]');
+
+			expect(json['font-body']).toEqual({
+				fontFamily: [
+					'system-ui',
+					'-apple-system',
+					'BlinkMacSystemFont',
+					'Segoe UI',
+					'Roboto',
+					'Helvetica Neue',
+					'Arial',
+					'PingFang SC',
+					'Hiragino Sans GB',
+					'Microsoft YaHei',
+					'Noto Sans',
+					'sans-serif',
+					'Apple Color Emoji',
+					'Segoe UI Emoji',
+					'Segoe UI Symbol',
+					'Noto Color Emoji',
+				],
+				fontSize: { value: 14, unit: 'pt' },
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+				color: {
+					colorSpace: 'oklch',
+					components: [0.208, 0.042, 265.755],
+				},
+			});
 
 			const sketch = JSON.parse(
 				await fs.readFile(
@@ -797,6 +853,36 @@ describe('Theme Service Integration', () => {
 			expect(sketch.foundation.gradient.fallback.gradient[0].color).toBe(
 				'#0052f540',
 			);
+			expect(sketch.foundation.font.body.textStyle).toEqual({
+				fontFamily: 'PingFang SC',
+				fontSize: 14,
+				fontWeight: 400,
+				lineHeight: 21,
+				kerning: 0,
+			});
+			expect(sketch.foundation.font.label.textStyle.lineHeight).toBe(20);
+			expect(sketch.foundation.font.internal).toBeUndefined();
+			expect(json['font-internal']).toBeDefined();
+			const fontBodyJsoncLine = jsonc
+				.split('\n')
+				.find((line) => line.includes('"font-body"'));
+			expect(fontBodyJsoncLine).toContain(
+				`"font-body": ${JSON.stringify(json['font-body'])}`,
+			);
+			expect(jsonc).toContain('"font-internal"');
+			expect(css).toContain('--internal-line-height: 1.25;');
+			expect(sketch.foundation.border.antline).toEqual({
+				value: {
+					color: '#0052f5',
+					width: '1px',
+					style: {
+						dashArray: [
+							{ value: 4, unit: 'px' },
+							{ value: 8, unit: 'px' },
+						],
+					},
+				},
+			});
 		} finally {
 			restoreResourceEnv(previousEnv);
 			await fs.rm(fixtureDir, { recursive: true, force: true });

@@ -13,6 +13,12 @@ $config:
     outputDir: ./theme
     filterLayer: 1
   parameterGroup:
+    json:
+      platform:
+        - json
+        - jsonc
+      outputDir: ./theme/json
+      filterLayer: 1
     css:
       platform:
         - css
@@ -105,6 +111,55 @@ theme:
           sketch:
             property:
               cornerRadius: true
+  font:
+    $type: typography
+    $extensions:
+      typography:
+        defaults:
+          fontFamily: "{wave.dimension.fontFamily}"
+          fontSize:
+            value: 14
+            unit: pt
+          fontWeight: 400
+          letterSpacing: 0
+      sketch:
+        path: "foundation/font"
+        skip: true
+    body:
+      $value:
+        lineHeight: 1.5
+        color: "{theme.color.text.default}"
+      $extensions:
+        sketch:
+          skip: false
+    label:
+      $value:
+        lineHeight:
+          value: 20
+          unit: px
+      $extensions:
+        sketch:
+          skip: false
+    internal:
+      $value:
+        lineHeight: 1.25
+  border:
+    $type: border
+    $extensions:
+      sketch:
+        path: "foundation/border"
+    antline:
+      $value:
+        color: "{theme.color.primary.main}"
+        width:
+          value: 1
+          unit: px
+        style:
+          dashArray:
+            - value: 4
+              unit: px
+            - value: 8
+              unit: px
   shadow:
     $extensions:
       sketch:
