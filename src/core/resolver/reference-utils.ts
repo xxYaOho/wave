@@ -155,7 +155,9 @@ export function deriveSwatchNameFromStringRef(
 	return formatSwatchName(parts);
 }
 
-export function extractDirectColorReference(value: unknown): string | undefined {
+export function extractDirectColorReference(
+	value: unknown,
+): string | undefined {
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
 		return undefined;
 	}

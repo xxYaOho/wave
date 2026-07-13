@@ -258,7 +258,7 @@ inverse:
 
 ## Typography
 
-`typography` group 可以用 `$extensions.typography.defaults` 为后代 token 提供公共字段。`defaults` 只能写在有效 `$type` 为 `typography` 的 group 上，只接受 `fontFamily`、`fontSize`、`fontWeight`、`lineHeight` 和 `letterSpacing`。子 group 按字段覆盖祖先 defaults，token 自己的 `$value` 最后覆盖 defaults；合并后每个 typography token 必须包含这五个字段。legacy `color` 可以保留在 token `$value` 和 JSON/JSONC 输出中，但 CSS 和 Sketch 会忽略它。
+`typography` group 可以用 `$extensions.typography.defaults` 为后代 token 提供公共字段。`defaults` 只能写在有效 `$type` 为 `typography` 的 group 上，只接受 `fontFamily`、`fontSize`、`fontWeight`、`lineHeight` 和 `letterSpacing`。子 group 按字段覆盖祖先 defaults，token 自己的 `$value` 最后覆盖 defaults；合并后每个 typography token 必须包含这五个字段。可选 `color` 保留在 token `$value` 和 JSON/JSONC 输出中；CSS 额外输出 `--<token>-color`，直接引用已输出的 `theme.color.*` 时保留为 `var(--<color-token>)`；Sketch 输出最终 HEX8 到 `textStyle.textColor`，不保留 Sketch 颜色引用关系。
 
 ```yaml
 theme:
@@ -283,9 +283,9 @@ theme:
           unit: px
 ```
 
-`fontFamily` 可以是一个字符串，也可以是非空字符串数组。CSS 把数组输出为合法 font stack：简单 CSS identifier 不加引号；其他名称会去掉一层已有配对引号，再用双引号包裹并转义。`inherit`、`initial`、`unset`、`revert` 和 `revert-layer` 始终加引号。Sketch 不解析系统别名；数组含 `PingFang SC` 时优先使用它，否则选择第一个具体字体。`system`、`system-ui`、`-apple-system`、`BlinkMacSystemFont` 和 CSS generic family 不属于具体字体；数组只有这些值时，Sketch 不输出 `fontFamily`。字符串值保持原有行为。
+`fontFamily` 可以是一个字符串，也可以是非空字符串数组。CSS 把数组输出为合法 font stack：简单 CSS identifier 不加引号；其他名称会去掉一层已有配对引号，再用双引号包裹并转义。`inherit`、`initial`、`unset`、`revert` 和 `revert-layer` 始终加引号。若已有输出的 `fontFamily` token 与 typography 的 font stack 等值，CSS shorthand 直接引用该全局变量，不再为每个 typography token 重复输出完整 family；没有等值 token 时仍输出局部 `--<token>-family`。Sketch 不解析系统别名；数组含 `PingFang SC` 时优先使用它，否则选择第一个具体字体。`system`、`system-ui`、`-apple-system`、`BlinkMacSystemFont` 和 CSS generic family 不属于具体字体；数组只有这些值时，Sketch 不输出 `fontFamily`。字符串值保持原有行为。
 
-`lineHeight` 必须大于 0。无单位 number 或纯数字字符串表示倍率；`{ value }` 不表示倍率，必须带单位。CSS 保留倍率；Sketch 用合并后的 `fontSize` 乘以倍率，并将结果四舍五入到 3 位小数。带 `px` 或 `pt` 的字符串或 `{ value, unit }` 表示绝对行高：CSS 保留单位，Sketch 输出数值部分。Wave 不接受其他 typography 单位，也不换算 `px` 和 `pt`。
+`lineHeight` 必须大于 0。无单位 number 或纯数字字符串表示倍率；`{ value }` 不表示倍率，必须带单位。CSS 保留倍率；Sketch 用合并后的 `fontSize` 乘以倍率，并将计算结果向上取整。带 `px` 或 `pt` 的字符串或 `{ value, unit }` 表示绝对行高：CSS 保留单位，Sketch 原样输出数值部分，不取整。Wave 不接受其他 typography 单位，也不换算 `px` 和 `pt`。
 
 ## 虚线 border
 

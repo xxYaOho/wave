@@ -32,6 +32,7 @@ const KNOWN_TYPES = new Set([
 	'opacity',
 	'dimension',
 	'number',
+	'fontFamily',
 	'cubicBezier',
 	'typography',
 ]);

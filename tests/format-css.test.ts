@@ -323,7 +323,9 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		const out = cssVariablesFormat(tokens, { filterLayer: 1 });
 		expect(out).toContain('--font-font-family: system-ui, "PingFang SC";');
 		expect(out).not.toContain('--font-heading-h1-family:');
-		expect(out).toContain('--font-heading-h1-color: var(--color-text-emphasis);');
+		expect(out).toContain(
+			'--font-heading-h1-color: var(--color-text-emphasis);',
+		);
 		expect(out).toContain(
 			'--font-heading-h1: var(--font-heading-h1-weight) var(--font-heading-h1-size) / var(--font-heading-h1-line-height) var(--font-font-family);',
 		);
@@ -353,7 +355,11 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		};
 
 		const out = cssVariablesFormat(
-			[makeFamily('primary-family', 0), makeFamily('alias-family', 1), typography],
+			[
+				makeFamily('primary-family', 0),
+				makeFamily('alias-family', 1),
+				typography,
+			],
 			{ filterLayer: 1 },
 		);
 		expect(out).toContain('var(--font-primary-family);');

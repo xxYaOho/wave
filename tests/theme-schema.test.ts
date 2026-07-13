@@ -2,6 +2,22 @@ import { describe, expect, test } from 'bun:test';
 import { validateThemeSchema } from '../src/core/schema/theme.ts';
 
 describe('theme schema', () => {
+	test('accepts fontFamily as a known token type', () => {
+		const result = validateThemeSchema({
+			theme: {
+				font: {
+					family: {
+						$type: 'fontFamily',
+						$value: ['system-ui', 'PingFang SC'],
+					},
+				},
+			},
+		});
+
+		expect(result.valid).toBe(true);
+		expect(result.issues).toEqual([]);
+	});
+
 	test('accepts DTCG typography type', () => {
 		const result = validateThemeSchema(
 			{

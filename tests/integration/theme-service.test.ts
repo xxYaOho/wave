@@ -804,9 +804,7 @@ describe('Theme Service Integration', () => {
 				'--body-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";',
 			);
 			expect(css).toContain('--body-line-height: 1.5;');
-			expect(css).toContain(
-				'--body-color: var(--text-default);',
-			);
+			expect(css).toContain('--body-color: var(--text-default);');
 			expect(css).toContain('--label-line-height: 20px;');
 			expect(css).toContain('--antline: 1px dashed #0052f5;');
 			expect(css).toContain('--antline-dash-array: 4px 8px;');
