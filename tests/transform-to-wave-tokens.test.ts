@@ -276,6 +276,40 @@ describe('transformToWaveTokens', () => {
 			letterSpacing: 0,
 			color: '#112233',
 		});
+		expect(token?._typographyColor).toBe('#112233');
+	});
+
+	test('keeps typography color reference metadata separate from its value', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				font: {
+					$type: 'typography',
+					body: {
+						$value: {
+							fontFamily: 'Inter',
+							fontSize: 14,
+							fontWeight: 400,
+							lineHeight: 1.5,
+							letterSpacing: 0,
+							color: '#112233',
+						},
+						_colorReference: '{theme.color.text.emphasis}',
+					},
+				},
+			},
+		};
+
+		const token = transformToWaveTokens(input).tokens[0]!;
+		expect(token._colorReference).toBe('{theme.color.text.emphasis}');
+		expect(token._typographyColor).toBe('#112233');
+		expect(token.value).toEqual({
+			fontFamily: 'Inter',
+			fontSize: 14,
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+			color: '#112233',
+		});
 	});
 
 	test('does not apply typography defaults to non-typography tokens', () => {

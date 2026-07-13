@@ -8,6 +8,7 @@ import type { UnresolvedReference } from './errors.ts';
 import {
 	deriveSwatchNameFromDtcgRef,
 	deriveSwatchNameFromStringRef,
+	extractDirectColorReference,
 } from './reference-utils.ts';
 import {
 	type NestedValue,
@@ -43,6 +44,8 @@ export function processTokenInternal(
 	if (swatchName === undefined && token._swatchName !== undefined) {
 		swatchName = token._swatchName;
 	}
+	const colorReference =
+		extractDirectColorReference(token.$value) ?? token._colorReference;
 
 	const resolvedExtensions = token.$extensions
 		? Object.fromEntries(
@@ -72,6 +75,7 @@ export function processTokenInternal(
 			$extensions: resolvedExtensions,
 		}),
 		...(swatchName !== undefined && { _swatchName: swatchName }),
+		...(colorReference !== undefined && { _colorReference: colorReference }),
 	};
 }
 

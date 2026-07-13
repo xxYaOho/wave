@@ -325,6 +325,7 @@ describe('sketchFormat (Wave-native)', () => {
 					letterSpacing: { value: -0.2, unit: 'pt' },
 					color: '#112233',
 				},
+				_typographyColor: '#112233',
 				_order: 0,
 			},
 		];
@@ -337,6 +338,7 @@ describe('sketchFormat (Wave-native)', () => {
 				fontWeight: 400,
 				lineHeight: 19,
 				kerning: -0.2,
+				textColor: '#112233ff',
 			},
 		});
 	});

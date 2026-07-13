@@ -112,6 +112,9 @@ function formatTokenValue(token: WaveToken): string {
 	if (isCssLengthToken(token)) {
 		return formatCssLength(tokenValue);
 	}
+	if (token.type === 'fontFamily') {
+		return formatFontFamily(tokenValue);
+	}
 
 	return String(tokenValue);
 }
@@ -180,7 +183,17 @@ function formatTypographyWeight(value: unknown): string {
 	return String(parsed);
 }
 
-function typographyLines(key: string, value: unknown): string[] {
+interface TypographyCssReferences {
+	familyKey?: string;
+	colorKey?: string;
+	colorValue?: string;
+}
+
+function typographyLines(
+	key: string,
+	value: unknown,
+	references: TypographyCssReferences = {},
+): string[] {
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
 		return [];
 	}
@@ -192,7 +205,7 @@ function typographyLines(key: string, value: unknown): string[] {
 	const letterSpacing = obj.letterSpacing;
 	const lines: string[] = [];
 
-	if (family !== undefined) {
+	if (family !== undefined && references.familyKey === undefined) {
 		lines.push(`  --${key}-family: ${formatFontFamily(family)};`);
 	}
 	if (size !== undefined) {
@@ -213,10 +226,26 @@ function typographyLines(key: string, value: unknown): string[] {
 			`  --${key}-letter-spacing: ${formatTypographyDimension(letterSpacing, 'letterSpacing')};`,
 		);
 	}
+	if (references.colorKey !== undefined) {
+		lines.push(`  --${key}-color: var(--${references.colorKey});`);
+	} else if (references.colorValue !== undefined) {
+		lines.push(`  --${key}-color: ${references.colorValue};`);
+	}
+	const familyExpression = references.familyKey
+		? `var(--${references.familyKey})`
+		: `var(--${key}-family)`;
 	lines.push(
-		`  --${key}: var(--${key}-weight) var(--${key}-size) / var(--${key}-line-height) var(--${key}-family);`,
+		`  --${key}: var(--${key}-weight) var(--${key}-size) / var(--${key}-line-height) ${familyExpression};`,
 	);
 	return lines;
+}
+
+function colorReferenceAliases(token: WaveToken): string[] {
+	const dotted = token.path.join('.');
+	const pointer = token.path
+		.map((part) => part.replaceAll('~', '~0').replaceAll('/', '~1'))
+		.join('/');
+	return [`{${dotted}}`, `#/${pointer}`, `#/${pointer}/$value`];
 }
 
 interface FormattedBorderValue {
@@ -334,13 +363,38 @@ export const cssVariablesFormat: WaveFormatFn = (
 	const tokenKeys = new Set(
 		sortedTokens.map((token) => getFilteredName(token, filterLayer)),
 	);
+	const familyKeys = new Map<string, string>();
+	const colorKeys = new Map<string, string>();
+	for (const token of sortedTokens) {
+		const key = getFilteredName(token, filterLayer);
+		if (token.type === 'fontFamily') {
+			const family = formatFontFamily(token.value);
+			if (!familyKeys.has(family)) familyKeys.set(family, key);
+		}
+		if (token.type === 'color') {
+			for (const alias of colorReferenceAliases(token)) {
+				colorKeys.set(alias, key);
+			}
+		}
+	}
 
 	for (const token of sortedTokens) {
 		const key = getFilteredName(token, filterLayer);
 		pushGroupComments(lines, token, groupComments, emittedGroups);
 
 		if (isTypography(token)) {
-			lines.push(...typographyLines(key, token.value));
+			const value = token.value as Record<string, unknown>;
+			const family = formatFontFamily(value.fontFamily);
+			lines.push(
+				...typographyLines(key, token.value, {
+					familyKey: familyKeys.get(family),
+					colorKey:
+						token._colorReference === undefined
+							? undefined
+							: colorKeys.get(token._colorReference),
+					colorValue: token._typographyColor,
+				}),
+			);
 			continue;
 		}
 

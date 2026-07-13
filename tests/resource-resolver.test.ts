@@ -299,6 +299,37 @@ describe('generalized resolver', () => {
 		});
 	});
 
+	test('preserves a direct composite color reference after resolution', () => {
+		const tree: DtcgTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					text: { $value: '#112233' },
+				},
+				font: {
+					$type: 'typography',
+					body: {
+						$value: {
+							color: '{theme.color.text}',
+							fontFamily: 'Inter',
+							fontSize: 14,
+							fontWeight: 400,
+							lineHeight: 1.5,
+							letterSpacing: 0,
+						},
+					},
+				},
+			},
+		};
+
+		const result = resolveReferences(tree, {});
+		const body = (
+			(result.theme as Record<string, unknown>).font as Record<string, unknown>
+		).body as { $value: { color: string }; _colorReference?: string };
+		expect(body.$value.color).toBe('#112233');
+		expect(body._colorReference).toBe('{theme.color.text}');
+	});
+
 	test('reports the full group extension path for unresolved references', () => {
 		const tree: DtcgTokenGroup = {
 			theme: {

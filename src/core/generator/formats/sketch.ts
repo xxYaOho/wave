@@ -284,6 +284,11 @@ function formatSketchTypography(token: WaveToken): unknown {
 			throw new Error('letterSpacing is invalid');
 		}
 		textStyle.kerning = letterSpacing.value;
+
+		if (token._typographyColor !== undefined) {
+			assertHexColor(token._typographyColor, token);
+			textStyle.textColor = hexToSketchColor(token._typographyColor);
+		}
 	} catch (error) {
 		throw new Error(
 			`Sketch typography output failed at ${tokenPathLabel(token)}: ${error instanceof Error ? error.message : String(error)}`,

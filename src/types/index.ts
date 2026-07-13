@@ -298,6 +298,8 @@ export interface ResolvedDtcgToken {
 	$deprecated?: boolean | string;
 	$extensions?: Record<string, unknown>;
 	_swatchName?: string;
+	/** Direct reference authored at a composite token's `$value.color`. */
+	_colorReference?: string;
 }
 
 export interface ResolvedTokenGroup {
@@ -352,6 +354,10 @@ export interface WaveToken {
 	_outline?: { offset: number };
 	/** original referenced token path for Sketch variable swatch mapping */
 	_swatchName?: string;
+	/** direct reference authored at a composite token's color field */
+	_colorReference?: string;
+	/** formatter-ready typography color in the active target color space */
+	_typographyColor?: string;
 	/** inheritColor metadata */
 	inheritColor?: boolean;
 	inheritColorOpacity?: number;

@@ -255,7 +255,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		);
 	});
 
-	test('formats typography arrays, units, and ignores legacy color', () => {
+	test('formats typography arrays, units, and resolved color', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-font-body',
@@ -269,6 +269,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 					letterSpacing: -0.2,
 					color: '#112233',
 				},
+				_typographyColor: '#112233',
 				_order: 0,
 			},
 		];
@@ -281,7 +282,82 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).toContain('--font-body-weight: 400;');
 		expect(out).toContain('--font-body-line-height: 1.5;');
 		expect(out).toContain('--font-body-letter-spacing: -0.2px;');
-		expect(out).not.toContain('#112233');
+		expect(out).toContain('--font-body-color: #112233;');
+	});
+
+	test('reuses an emitted font family token and typography color reference', () => {
+		const family = ['system-ui', 'PingFang SC'];
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-text-emphasis',
+				path: ['theme', 'color', 'text', 'emphasis'],
+				type: 'color',
+				value: '#112233',
+				_order: 0,
+			},
+			{
+				name: 'theme-font-font-family',
+				path: ['theme', 'font', 'font-family'],
+				type: 'fontFamily',
+				value: family,
+				_order: 1,
+			},
+			{
+				name: 'theme-font-heading-h1',
+				path: ['theme', 'font', 'heading', 'h1'],
+				type: 'typography',
+				value: {
+					fontFamily: family,
+					fontSize: 32,
+					fontWeight: 700,
+					lineHeight: 1.2,
+					letterSpacing: 0,
+					color: '#112233',
+				},
+				_colorReference: '{theme.color.text.emphasis}',
+				_typographyColor: '#112233',
+				_order: 2,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens, { filterLayer: 1 });
+		expect(out).toContain('--font-font-family: system-ui, "PingFang SC";');
+		expect(out).not.toContain('--font-heading-h1-family:');
+		expect(out).toContain('--font-heading-h1-color: var(--color-text-emphasis);');
+		expect(out).toContain(
+			'--font-heading-h1: var(--font-heading-h1-weight) var(--font-heading-h1-size) / var(--font-heading-h1-line-height) var(--font-font-family);',
+		);
+	});
+
+	test('selects the first emitted matching font family token', () => {
+		const family = ['Inter', 'sans-serif'];
+		const makeFamily = (name: string, order: number): WaveToken => ({
+			name,
+			path: ['theme', 'font', name],
+			type: 'fontFamily',
+			value: family,
+			_order: order,
+		});
+		const typography: WaveToken = {
+			name: 'theme-font-body',
+			path: ['theme', 'font', 'body'],
+			type: 'typography',
+			value: {
+				fontFamily: family,
+				fontSize: 14,
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+			},
+			_order: 2,
+		};
+
+		const out = cssVariablesFormat(
+			[makeFamily('primary-family', 0), makeFamily('alias-family', 1), typography],
+			{ filterLayer: 1 },
+		);
+		expect(out).toContain('var(--font-primary-family);');
+		expect(out).not.toContain('var(--font-alias-family);');
 	});
 
 	test('escapes quoted font families and rejects invalid array members', () => {

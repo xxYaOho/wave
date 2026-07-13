@@ -482,6 +482,7 @@ function transformToken(
 ): Omit<WaveToken, 'name' | 'path'> {
 	const typeValue = token.$type ?? parentType;
 	let sourceValue: DtcgValue = token.$value;
+	let typographyColor: string | undefined;
 	if (typeValue === 'typography') {
 		const materialized = materializeTypographyValue(
 			inheritedExtensions.typographyDefaults,
@@ -494,6 +495,14 @@ function transformToken(
 			);
 		}
 		sourceValue = materialized as DtcgValue;
+		const color = materialized?.color;
+		if (color !== undefined) {
+			typographyColor = normalizeColorValue(
+				color,
+				targetColorSpace,
+				tokenPath ? `${tokenPath}.color` : undefined,
+			).value;
+		}
 	}
 	let processedValue = processValue(
 		sourceValue,
@@ -655,6 +664,10 @@ function transformToken(
 		...(currentColorShadowAlpha !== undefined && { currentColorShadowAlpha }),
 		// Original referenced token path for sketch variable mapping
 		...(token._swatchName !== undefined && { _swatchName: token._swatchName }),
+		...(token._colorReference !== undefined && {
+			_colorReference: token._colorReference,
+		}),
+		...(typographyColor !== undefined && { _typographyColor: typographyColor }),
 		...(mergedSketchExtension !== undefined && {
 			_sketch: mergedSketchExtension,
 		}),
