@@ -153,7 +153,7 @@ describe('sketchFormat (Wave-native)', () => {
 
 		expect(parsed['border-antline']).toEqual({
 			value: {
-				color: '#000000',
+				color: '#000000ff',
 				width: 1,
 				style: { dashArray },
 			},
@@ -517,7 +517,7 @@ describe('sketchFormat (Wave-native)', () => {
 				type: 'typography',
 				value: typography,
 				_typographyColor: '#112233',
-				_sketchTypographyColorReference: '{theme.color.text.default}',
+				_sketchColorReference: '{theme.color.text.default}',
 				_order: 2,
 			},
 			{
@@ -526,7 +526,7 @@ describe('sketchFormat (Wave-native)', () => {
 				type: 'typography',
 				value: { ...typography, color: '#445566' },
 				_typographyColor: '#445566',
-				_sketchTypographyColorReference: '{theme.color.2x}',
+				_sketchColorReference: '{theme.color.2x}',
 				_order: 3,
 			},
 		];
@@ -559,7 +559,7 @@ describe('sketchFormat (Wave-native)', () => {
 				type: 'typography',
 				value: typography,
 				_typographyColor: '#112233',
-				_sketchTypographyColorReference: '#/theme/color/brand/main',
+				_sketchColorReference: '#/theme/color/brand/main',
 				_order: 1,
 			},
 			{
@@ -568,7 +568,7 @@ describe('sketchFormat (Wave-native)', () => {
 				type: 'typography',
 				value: typography,
 				_typographyColor: '#112233',
-				_sketchTypographyColorReference: '#/theme/color/brand/main/$value',
+				_sketchColorReference: '#/theme/color/brand/main/$value',
 				_order: 2,
 			},
 		];
@@ -609,7 +609,7 @@ describe('sketchFormat (Wave-native)', () => {
 				path: ['theme', 'font', 'external'],
 				type: 'typography',
 				value: typography,
-				_sketchTypographyColorReference: '#/palette/text/default',
+				_sketchColorReference: '#/palette/text/default',
 				_typographyColor: '#112233',
 				_order: 2,
 			},
@@ -628,5 +628,133 @@ describe('sketchFormat (Wave-native)', () => {
 		expect(parsed.literal.textStyle.textColor).toBe('#112233ff');
 		expect(parsed.external.textStyle.textColor).toBe('#112233ff');
 		expect(parsed.alpha.textStyle.textColor).toBe('#11223380');
+	});
+
+	test('maps curly and JSON Pointer color references in border and outline slots', () => {
+		const border = { color: '#112233', width: 1, style: 'solid' };
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-text-default',
+				path: ['theme', 'color', 'text', 'default'],
+				type: 'color',
+				value: '#112233',
+				_order: 0,
+			},
+			...[
+				['curly', '{theme.color.text.default}'],
+				['pointer', '#/theme/color/text/default'],
+				['pointer-value', '#/theme/color/text/default/$value'],
+			].flatMap(([name, reference], index) => [
+				{
+					name: `theme-border-${name}`,
+					path: ['theme', 'border', name!],
+					type: 'border',
+					value: border,
+					_sketchColorReference: reference,
+					_order: index * 2 + 1,
+				},
+				{
+					name: `theme-border-outline-${name}`,
+					path: ['theme', 'border', 'outline', name!],
+					type: 'border',
+					value: border,
+					_outline: { offset: 2 },
+					_sketchColorReference: reference,
+					_order: index * 2 + 2,
+				},
+			]),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		for (const key of ['curly', 'pointer', 'pointer-value']) {
+			expect(parsed[key].value.color).toBe('@text-default');
+			expect(parsed[`outline-${key}`].shadow[0].color).toBe('@text-default');
+			expect(parsed[`outline-${key}`].shadow[1].color).toBe('#ffffffff');
+		}
+	});
+
+	test('keeps literal, external, and alpha-override border colors as hex8', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-text-default',
+				path: ['theme', 'color', 'text', 'default'],
+				type: 'color',
+				value: '#112233',
+				_order: 0,
+			},
+			{
+				name: 'theme-border-literal',
+				path: ['theme', 'border', 'literal'],
+				type: 'border',
+				value: { color: '#112233', width: 1, style: 'solid' },
+				_order: 1,
+			},
+			{
+				name: 'theme-border-external',
+				path: ['theme', 'border', 'external'],
+				type: 'border',
+				value: { color: '#112233', width: 1, style: 'solid' },
+				_sketchColorReference: '#/palette/text/default',
+				_order: 2,
+			},
+			{
+				name: 'theme-border-outline-alpha',
+				path: ['theme', 'border', 'outline', 'alpha'],
+				type: 'border',
+				value: { color: '#11223380', width: 1, style: 'solid' },
+				_outline: { offset: 2 },
+				_colorReference: '#/theme/color/text/default',
+				_order: 3,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		expect(parsed.literal.value.color).toBe('#112233ff');
+		expect(parsed.external.value.color).toBe('#112233ff');
+		expect(parsed['outline-alpha'].shadow[0].color).toBe('#11223380');
+		expect(parsed['outline-alpha'].shadow[1].color).toBe('#ffffffff');
+	});
+
+	test('keeps shadow, gradient, and inheritColor output as hex8', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-base',
+				path: ['theme', 'color', 'base'],
+				type: 'color',
+				value: '#112233',
+				_order: 0,
+			},
+			{
+				name: 'theme-color-derived',
+				path: ['theme', 'color', 'derived'],
+				type: 'color',
+				value: '#112233',
+				inheritColor: true,
+				inheritColorSiblingSlot: 'base',
+				_sketchColorReference: '{theme.color.base}',
+				_order: 1,
+			},
+			{
+				name: 'theme-shadow-raised',
+				path: ['theme', 'shadow', 'raised'],
+				type: 'shadow',
+				value: { color: '#112233', offsetX: 0, offsetY: 1, blur: 2, spread: 0 },
+				_sketchColorReference: '{theme.color.base}',
+				_order: 2,
+			},
+			{
+				name: 'theme-gradient-accent',
+				path: ['theme', 'gradient', 'accent'],
+				type: 'gradient',
+				value: [{ color: '#112233', position: 0 }],
+				_sketchColorReference: '{theme.color.base}',
+				_order: 3,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		expect(parsed.derived.color).toBe('#112233ff');
+		expect(parsed.raised.shadow[0].color).toBe('#112233ff');
+		expect(parsed.accent.gradient[0].color).toBe('#112233ff');
 	});
 });

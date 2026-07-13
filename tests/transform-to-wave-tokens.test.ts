@@ -294,7 +294,7 @@ describe('transformToWaveTokens', () => {
 							color: '#112233',
 						},
 						_colorReference: '{theme.color.text.emphasis}',
-						_sketchTypographyColorReference: '{theme.color.text.emphasis}',
+						_sketchColorReference: '{theme.color.text.emphasis}',
 					},
 				},
 			},
@@ -302,9 +302,7 @@ describe('transformToWaveTokens', () => {
 
 		const token = transformToWaveTokens(input).tokens[0]!;
 		expect(token._colorReference).toBe('{theme.color.text.emphasis}');
-		expect(token._sketchTypographyColorReference).toBe(
-			'{theme.color.text.emphasis}',
-		);
+		expect(token._sketchColorReference).toBe('{theme.color.text.emphasis}');
 		expect(token._typographyColor).toBe('#112233');
 		expect(token.value).toEqual({
 			fontFamily: 'Inter',
@@ -339,7 +337,29 @@ describe('transformToWaveTokens', () => {
 		const token = transformToWaveTokens(input).tokens[0]!;
 		expect(token._typographyColor).toBe('#11223380');
 		expect(token._colorReference).toBe('#/theme/color/text');
-		expect(token._sketchTypographyColorReference).toBeUndefined();
+		expect(token._sketchColorReference).toBeUndefined();
+	});
+
+	test('keeps shared Sketch color metadata on border tokens', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				border: {
+					$type: 'border',
+					focus: {
+						$value: { color: '#112233', width: 1, style: 'solid' },
+						_sketchColorReference: '#/theme/color/text',
+					},
+				},
+			},
+		};
+
+		const token = transformToWaveTokens(input).tokens[0]!;
+		expect(token._sketchColorReference).toBe('#/theme/color/text');
+		expect(token.value).toEqual({
+			color: '#112233',
+			width: 1,
+			style: 'solid',
+		});
 	});
 
 	test('does not apply typography defaults to non-typography tokens', () => {

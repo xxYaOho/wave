@@ -174,7 +174,7 @@ export function extractDirectColorReference(
 	return undefined;
 }
 
-export function extractSketchTypographyColorReference(
+export function extractSketchColorReference(
 	value: unknown,
 ): string | undefined {
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) {

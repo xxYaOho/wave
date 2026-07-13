@@ -12,6 +12,7 @@ import {
 	resolveReferences,
 	UnresolvedReferenceError,
 } from '../src/core/resolver/theme-reference.ts';
+import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
 import type {
 	DtcgTokenGroup,
 	ReferenceDataSources,
@@ -328,14 +329,14 @@ describe('generalized resolver', () => {
 		).body as {
 			$value: { color: string };
 			_colorReference?: string;
-			_sketchTypographyColorReference?: string;
+			_sketchColorReference?: string;
 		};
 		expect(body.$value.color).toBe('#112233');
 		expect(body._colorReference).toBe('{theme.color.text}');
-		expect(body._sketchTypographyColorReference).toBe('{theme.color.text}');
+		expect(body._sketchColorReference).toBe('{theme.color.text}');
 	});
 
-	test('preserves Sketch typography color metadata only for unmodified references', () => {
+	test('preserves Sketch color metadata only for unmodified references', () => {
 		const tree: DtcgTokenGroup = {
 			theme: {
 				color: {
@@ -356,7 +357,7 @@ describe('generalized resolver', () => {
 					alphaOverride: {
 						$value: {
 							color: {
-								$ref: '#/theme/color/text/$value',
+								$ref: '#/theme/color/text',
 								alpha: 0.5,
 							},
 						},
@@ -371,19 +372,44 @@ describe('generalized resolver', () => {
 			Record<string, unknown>
 		>;
 
-		expect(font.brace?._sketchTypographyColorReference).toBe(
-			'{theme.color.text}',
-		);
-		expect(font.pointer?._sketchTypographyColorReference).toBe(
-			'#/theme/color/text',
-		);
-		expect(font.pointerValue?._sketchTypographyColorReference).toBe(
+		expect(font.brace?._sketchColorReference).toBe('{theme.color.text}');
+		expect(font.pointer?._sketchColorReference).toBe('#/theme/color/text');
+		expect(font.pointerValue?._sketchColorReference).toBe(
 			'#/theme/color/text/$value',
 		);
-		expect(font.alphaOverride?._colorReference).toBe(
-			'#/theme/color/text/$value',
+		expect(font.alphaOverride?._colorReference).toBe('#/theme/color/text');
+		expect(font.alphaOverride?._sketchColorReference).toBeUndefined();
+	});
+
+	test('preserves alpha from an un-suffixed pointer through transformation', () => {
+		const result = resolveReferences(
+			{
+				theme: {
+					color: { text: { $type: 'color', $value: '#112233' } },
+					font: {
+						body: {
+							$type: 'typography',
+							$value: {
+								fontFamily: 'Inter',
+								fontSize: 14,
+								fontWeight: 400,
+								lineHeight: 1.5,
+								letterSpacing: 0,
+								color: { $ref: '#/theme/color/text', alpha: 0.5 },
+							},
+						},
+					},
+				},
+			},
+			{},
 		);
-		expect(font.alphaOverride?._sketchTypographyColorReference).toBeUndefined();
+		const token = transformToWaveTokens(result).tokens.find(
+			(candidate) => candidate.name === 'theme-font-body',
+		);
+
+		expect(token?._typographyColor).toBe('#11223380');
+		expect(token?._colorReference).toBe('#/theme/color/text');
+		expect(token?._sketchColorReference).toBeUndefined();
 	});
 
 	test('reports the full group extension path for unresolved references', () => {

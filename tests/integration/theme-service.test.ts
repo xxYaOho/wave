@@ -875,7 +875,7 @@ describe('Theme Service Integration', () => {
 			expect(css).toContain('--internal-line-height: 1.25;');
 			expect(sketch.foundation.border.antline).toEqual({
 				value: {
-					color: '#0052f5',
+					color: '@primary-main',
 					width: '1px',
 					style: {
 						dashArray: [
@@ -1360,26 +1360,26 @@ theme:
 					'#2563ebff',
 				);
 				expect(sketch['border-outline-token-curly-base'].shadow[0].color).toBe(
-					'#2563ebff',
+					'@color-base',
 				);
 				expect(sketch['border-outline-token-curly-alias'].shadow[0].color).toBe(
-					'#2563ebff',
+					'@color-base',
 				);
 				expect(
 					sketch['border-outline-token-curly-external'].shadow[0].color,
-				).toBe('#1d293dff');
+				).toBe('@color-external');
 				expect(sketch['border-outline-pointer-token'].shadow[0].color).toBe(
-					'#2563ebff',
+					'@color-base',
 				);
 				expect(sketch['border-outline-pointer-value'].shadow[0].color).toBe(
-					'#2563ebff',
+					'@color-base',
 				);
 				expect(
 					sketch['border-outline-pointer-alias-value'].shadow[0].color,
-				).toBe('#2563ebff');
+				).toBe('@color-base');
 				expect(sketch['border-outline-ref-width'].shadow[0]).toMatchObject({
 					spread: 6,
-					color: '#2563ebff',
+					color: '@color-base',
 				});
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });

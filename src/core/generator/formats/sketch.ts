@@ -247,6 +247,25 @@ function selectSketchFontFamily(value: unknown): string | undefined {
 	);
 }
 
+function formatSketchColorSlot(
+	token: WaveToken,
+	color: string,
+	colorReferenceKeys: Map<string, string>,
+): string {
+	const reference = token._sketchColorReference;
+	if (reference !== undefined) {
+		const colorKey = colorReferenceKeys.get(reference);
+		if (colorKey !== undefined) return `@${colorKey}`;
+		if (isInternalSketchColorReference(reference)) {
+			throw new Error(
+				`Sketch color reference target is not emitted at ${tokenPathLabel(token)}`,
+			);
+		}
+	}
+	assertHexColor(color, token);
+	return hexToSketchColor(color);
+}
+
 function formatSketchTypography(
 	token: WaveToken,
 	colorReferenceKeys: Map<string, string>,
@@ -292,25 +311,12 @@ function formatSketchTypography(
 		}
 		textStyle.kerning = letterSpacing.value;
 
-		if (token._sketchTypographyColorReference !== undefined) {
-			const colorKey = colorReferenceKeys.get(
-				token._sketchTypographyColorReference,
+		if (token._typographyColor !== undefined) {
+			textStyle.textColor = formatSketchColorSlot(
+				token,
+				token._typographyColor,
+				colorReferenceKeys,
 			);
-			if (colorKey !== undefined) {
-				textStyle.textColor = `@${colorKey}`;
-			} else if (
-				isInternalSketchTypographyColorReference(
-					token._sketchTypographyColorReference,
-				)
-			) {
-				throw new Error('color reference target is not emitted');
-			} else if (token._typographyColor !== undefined) {
-				assertHexColor(token._typographyColor, token);
-				textStyle.textColor = hexToSketchColor(token._typographyColor);
-			}
-		} else if (token._typographyColor !== undefined) {
-			assertHexColor(token._typographyColor, token);
-			textStyle.textColor = hexToSketchColor(token._typographyColor);
 		}
 	} catch (error) {
 		throw new Error(
@@ -445,7 +451,7 @@ function colorReferenceAliases(token: WaveToken): string[] {
 	return aliases;
 }
 
-function isInternalSketchTypographyColorReference(reference: string): boolean {
+function isInternalSketchColorReference(reference: string): boolean {
 	return reference.startsWith('{theme.') || reference.startsWith('#/theme/');
 }
 
@@ -576,7 +582,7 @@ function formatSketchValue(
 					y: 0,
 					blur: 0,
 					spread: width + offset,
-					color: hexToSketchColor(color),
+					color: formatSketchColorSlot(token, color, colorReferenceKeys),
 				},
 				{
 					x: 0,
@@ -586,6 +592,24 @@ function formatSketchValue(
 					color: '#ffffffff',
 				},
 			],
+		};
+	}
+
+	if (token.type === 'border') {
+		if (
+			typeof token.value !== 'object' ||
+			token.value === null ||
+			Array.isArray(token.value)
+		) {
+			return { value: resolveDimensionValue(token) };
+		}
+		const value = token.value as Record<string, unknown>;
+		if (typeof value.color !== 'string') return { value };
+		return {
+			value: {
+				...value,
+				color: formatSketchColorSlot(token, value.color, colorReferenceKeys),
+			},
 		};
 	}
 

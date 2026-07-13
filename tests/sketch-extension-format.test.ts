@@ -403,7 +403,7 @@ describe('sketch extension format', () => {
 		expect(parsed.primary).toBeUndefined();
 	});
 
-	test('rejects typography references to skipped or root-excluded color targets', () => {
+	test('rejects composite references to skipped or root-excluded color targets', () => {
 		const typography = {
 			fontFamily: 'Inter',
 			fontSize: 14,
@@ -425,16 +425,30 @@ describe('sketch extension format', () => {
 			type: 'typography',
 			value: typography,
 			_typographyColor: '#112233',
-			_sketchTypographyColorReference: '{theme.color.text.default}',
+			_sketchColorReference: '{theme.color.text.default}',
 			_order: 1,
+		});
+		const border = token({
+			name: 'theme-border-focus',
+			path: ['theme', 'border', 'focus'],
+			type: 'border',
+			value: { color: '#112233', width: 1, style: 'solid' },
+			_sketchColorReference: '{theme.color.text.default}',
+			_order: 2,
 		});
 
 		expect(() => sketchFormat([target, body])).toThrow('theme.font.body');
+		expect(() => sketchFormat([target, border])).toThrow('theme.border.focus');
 		expect(() =>
 			sketchFormat([{ ...target, _sketch: undefined }, body], {
 				includeRootKeys: ['font'],
 			}),
 		).toThrow('theme.font.body');
+		expect(() =>
+			sketchFormat([{ ...target, _sketch: undefined }, border], {
+				includeRootKeys: ['border'],
+			}),
+		).toThrow('theme.border.focus');
 	});
 
 	test('keeps nested and dotted-key JSON Pointer aliases distinct', () => {
@@ -466,7 +480,7 @@ describe('sketch extension format', () => {
 				type: 'typography',
 				value: typography,
 				_typographyColor: '#112233',
-				_sketchTypographyColorReference: '{theme.color.a.b}',
+				_sketchColorReference: '{theme.color.a.b}',
 				_order: 2,
 			}),
 			token({
@@ -475,7 +489,7 @@ describe('sketch extension format', () => {
 				type: 'typography',
 				value: { ...typography, color: '#445566' },
 				_typographyColor: '#445566',
-				_sketchTypographyColorReference: '#/theme/color/a.b',
+				_sketchColorReference: '#/theme/color/a.b',
 				_order: 3,
 			}),
 		];
