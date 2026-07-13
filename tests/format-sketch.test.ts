@@ -335,10 +335,29 @@ describe('sketchFormat (Wave-native)', () => {
 				fontFamily: 'PingFang SC',
 				fontSize: 14,
 				fontWeight: 400,
-				lineHeight: 18.667,
+				lineHeight: 19,
 				kerning: -0.2,
 			},
 		});
+	});
+
+	test('preserves fractional absolute line height', () => {
+		const token: WaveToken = {
+			name: 'font-caption',
+			path: ['font', 'caption'],
+			type: 'typography',
+			value: {
+				fontFamily: 'Inter',
+				fontSize: 12,
+				fontWeight: 400,
+				lineHeight: '18.6px',
+				letterSpacing: 0,
+			},
+			_order: 0,
+		};
+
+		const parsed = JSON.parse(sketchFormat([token]));
+		expect(parsed['font-caption'].textStyle.lineHeight).toBe(18.6);
 	});
 
 	test('selects the first concrete family and omits aliases-only arrays', () => {

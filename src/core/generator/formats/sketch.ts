@@ -275,10 +275,9 @@ function formatSketchTypography(token: WaveToken): unknown {
 		if (lineHeight === undefined || lineHeight.value <= 0) {
 			throw new Error('lineHeight is invalid');
 		}
-		const resolvedLineHeight = lineHeight.unit
+		textStyle.lineHeight = lineHeight.unit
 			? lineHeight.value
-			: fontSize.value * lineHeight.value;
-		textStyle.lineHeight = Math.round(resolvedLineHeight * 1000) / 1000;
+			: Math.ceil(fontSize.value * lineHeight.value);
 
 		const letterSpacing = parseTypographyDimension(obj.letterSpacing);
 		if (letterSpacing === undefined) {
