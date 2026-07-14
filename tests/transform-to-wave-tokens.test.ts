@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { resolveReferences } from '../src/core/resolver/theme-reference.ts';
 import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
-import type { ResolvedTokenGroup } from '../src/types/index.ts';
+import type { DtcgTokenGroup, ResolvedTokenGroup } from '../src/types/index.ts';
 
 describe('transformToWaveTokens', () => {
 	test('emits a flat WaveToken array with kebab name and path', () => {
@@ -384,6 +385,92 @@ describe('transformToWaveTokens', () => {
 		};
 
 		expect(transformToWaveTokens(input).tokens[0]?.value).toBe(2);
+	});
+
+	test('propagates the theme.font rem baseline only to typography tokens', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				font: {
+					$type: 'typography',
+					$extensions: {
+						typography: {
+							baseFontSize: 14,
+							defaults: {
+								fontFamily: 'Inter',
+								fontWeight: 400,
+								lineHeight: 1.5,
+								letterSpacing: 0,
+							},
+						},
+					},
+					body: {
+						$value: { fontSize: { value: 0.875, unit: 'rem' } },
+					},
+					fixed: { $value: { fontSize: 14 } },
+					count: { $type: 'number', $value: 2 },
+				},
+			},
+		};
+
+		const first = transformToWaveTokens(input).tokens;
+		expect(
+			first.find((token) => token.name === 'theme-font-body'),
+		).toMatchObject({ _typographyBaseFontSize: 14 });
+		expect(first.find((token) => token.name === 'theme-font-count')).toEqual(
+			expect.not.objectContaining({ _typographyBaseFontSize: 14 }),
+		);
+		expect(first.find((token) => token.name === 'theme-font-fixed')).toEqual(
+			expect.not.objectContaining({ _typographyBaseFontSize: 14 }),
+		);
+
+		const second = transformToWaveTokens(input).tokens;
+		expect(
+			second.find((token) => token.name === 'theme-font-body'),
+		).toMatchObject({ _typographyBaseFontSize: 14 });
+	});
+
+	test('resolves root typography baseline references before transformation', () => {
+		for (const baseFontSize of [
+			'{theme.number.base}',
+			{ $ref: '#/theme/number/base/$value' },
+		]) {
+			const raw: DtcgTokenGroup = {
+				theme: {
+					number: { base: { $type: 'number', $value: 14 } },
+					font: {
+						$type: 'typography',
+						$extensions: {
+							typography: {
+								baseFontSize,
+								defaults: {
+									fontFamily: 'Inter',
+									fontWeight: 400,
+									lineHeight: 1.5,
+									letterSpacing: 0,
+								},
+							},
+						},
+						body: { $value: { fontSize: { value: 0.875, unit: 'rem' } } },
+					},
+				},
+			};
+			const resolved = resolveReferences(raw, {});
+			const font = (resolved.theme as Record<string, unknown>).font as Record<
+				string,
+				unknown
+			>;
+			const extensions = font.$extensions as Record<string, unknown>;
+			const typography = extensions.typography as Record<string, unknown>;
+			expect(typography.baseFontSize).toBe(14);
+			expect(transformToWaveTokens(resolved).tokens).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						name: 'theme-font-body',
+						_typographyBaseFontSize: 14,
+					}),
+				]),
+			);
+		}
 	});
 
 	test('throws the token path when materialized typography is incomplete', () => {

@@ -343,6 +343,53 @@ describe('sketchFormat (Wave-native)', () => {
 		});
 	});
 
+	test('converts rem typography lengths using the shared base font size', () => {
+		const token: WaveToken = {
+			name: 'theme-font-body',
+			path: ['theme', 'font', 'body'],
+			type: 'typography',
+			value: {
+				fontFamily: 'Inter',
+				fontSize: '0.875rem',
+				fontWeight: 400,
+				lineHeight: '1.25rem',
+				letterSpacing: '0.1rem',
+			},
+			_typographyBaseFontSize: 14,
+			_order: 0,
+		};
+
+		const parsed = JSON.parse(sketchFormat([token]));
+		expect(parsed['theme-font-body'].textStyle).toMatchObject({
+			fontSize: 12.25,
+			lineHeight: 18,
+			kerning: 1.4,
+		});
+	});
+
+	test('ceilings rem line height and rejects missing base metadata', () => {
+		const token: WaveToken = {
+			name: 'theme-font-body',
+			path: ['theme', 'font', 'body'],
+			type: 'typography',
+			value: {
+				fontFamily: 'Inter',
+				fontSize: '0.875rem',
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+			},
+			_typographyBaseFontSize: 14,
+			_order: 0,
+		};
+
+		const parsed = JSON.parse(sketchFormat([token]));
+		expect(parsed['theme-font-body'].textStyle.lineHeight).toBe(19);
+		expect(() =>
+			sketchFormat([{ ...token, _typographyBaseFontSize: undefined }]),
+		).toThrow('theme.font.body');
+	});
+
 	test('rejects typography color without normalized formatter metadata', () => {
 		const token: WaveToken = {
 			name: 'theme-font-body',
@@ -362,23 +409,27 @@ describe('sketchFormat (Wave-native)', () => {
 		expect(() => sketchFormat([token])).toThrow('theme.font.body');
 	});
 
-	test('preserves fractional absolute line height', () => {
-		const token: WaveToken = {
-			name: 'font-caption',
-			path: ['font', 'caption'],
-			type: 'typography',
-			value: {
-				fontFamily: 'Inter',
-				fontSize: 12,
-				fontWeight: 400,
-				lineHeight: '18.6px',
-				letterSpacing: 0,
-			},
-			_order: 0,
-		};
+	test('ceilings fractional absolute line height', () => {
+		for (const lineHeight of ['18.6px', '18.6pt']) {
+			const token: WaveToken = {
+				name: `font-caption-${lineHeight}`,
+				path: ['font', 'caption', lineHeight],
+				type: 'typography',
+				value: {
+					fontFamily: 'Inter',
+					fontSize: 12,
+					fontWeight: 400,
+					lineHeight,
+					letterSpacing: 0,
+				},
+				_order: 0,
+			};
 
-		const parsed = JSON.parse(sketchFormat([token]));
-		expect(parsed['font-caption'].textStyle.lineHeight).toBe(18.6);
+			const parsed = JSON.parse(sketchFormat([token]));
+			expect(parsed[`font-caption-${lineHeight}`].textStyle.lineHeight).toBe(
+				19,
+			);
+		}
 	});
 
 	test('selects the first concrete family and omits aliases-only arrays', () => {

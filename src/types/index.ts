@@ -362,6 +362,8 @@ export interface WaveToken {
 	_sketchColorReference?: string;
 	/** formatter-ready typography color in the active target color space */
 	_typographyColor?: string;
+	/** resolved root typography rem base, retained for platform formatters only */
+	_typographyBaseFontSize?: number;
 	/** inheritColor metadata */
 	inheritColor?: boolean;
 	inheritColorOpacity?: number;

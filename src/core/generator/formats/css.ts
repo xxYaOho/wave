@@ -342,6 +342,34 @@ function shouldInclude(token: WaveToken, includeRootKeys?: string[]): boolean {
 	return root !== undefined && includeRootKeys.includes(root);
 }
 
+function findTypographyBaseFontSize(tokens: WaveToken[]): number | undefined {
+	let baseFontSize: number | undefined;
+	let baseToken: WaveToken | undefined;
+
+	for (const token of tokens) {
+		if (token.type !== 'typography') continue;
+		const candidate = token._typographyBaseFontSize;
+		if (candidate === undefined) continue;
+		if (!Number.isFinite(candidate) || candidate <= 0) {
+			throw new Error(
+				`CSS typography baseFontSize must be a finite positive number at ${token.path.join('.')}`,
+			);
+		}
+		if (baseFontSize === undefined) {
+			baseFontSize = candidate;
+			baseToken = token;
+			continue;
+		}
+		if (candidate !== baseFontSize) {
+			throw new Error(
+				`CSS typography baseFontSize conflicts between ${baseToken!.path.join('.')} (${baseFontSize}) and ${token.path.join('.')} (${candidate})`,
+			);
+		}
+	}
+
+	return baseFontSize;
+}
+
 export const cssVariablesFormat: WaveFormatFn = (
 	tokens: WaveToken[],
 	options?: Record<string, unknown>,
@@ -351,14 +379,17 @@ export const cssVariablesFormat: WaveFormatFn = (
 		(options?.groupComments as Record<string, string>) ?? {};
 	const includeRootKeys = options?.includeRootKeys as string[] | undefined;
 
-	const lines: string[] = [':root {'];
-
 	const filtered = includeRootKeys
 		? tokens.filter((t) => shouldInclude(t, includeRootKeys))
 		: tokens;
 	const sortedTokens = [...filtered].sort(
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);
+	const baseFontSize = findTypographyBaseFontSize(sortedTokens);
+	const lines: string[] = [':root {'];
+	if (baseFontSize !== undefined) {
+		lines.push(`  font-size: ${baseFontSize}px;`);
+	}
 	const emittedGroups = new Set<string>();
 	const tokenKeys = new Set(
 		sortedTokens.map((token) => getFilteredName(token, filterLayer)),

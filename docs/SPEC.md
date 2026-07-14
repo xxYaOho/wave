@@ -24,7 +24,7 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 **认知边界：**
 
 - main.yaml：default profile、token 内容和 `$config` 来源
-- profiles/<name>.yaml：named profile 覆盖
+- profiles/<name>.yaml：named profile 的独立 token 内容；不与 main token 内容合并
 - $config.resource：只提供引用解析数据，不直接输出
 - themefile：旧项目兼容入口，不作为新项目推荐结构
 - 无 `main.yaml` 时从 RESOURCE 直接生成 token 仅作为 legacy fallback 保留，会在 receipt 中输出弃用 warning；新项目必须迁移到 `main.yaml`
@@ -121,6 +121,7 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - `wave dt build --profile <name>` 构建一个 named profile。
 - `wave dt build --profiles all` 构建 `main.yaml` 和所有 named profiles。
 - `--night` 包含有效的 `main@night.yaml` 或 `profiles/<name>@night.yaml` overlay。
+- named profile 可定义自己的 `theme.font.$extensions.typography.baseFontSize`；night overlay 只可写 `theme.color`、`theme.state`，因此继承 day profile 的字号基线。
 - 缺失或无效的 Night Mode 输出 `Night Mode unavailable/invalid and skipped`，跳过 night 输出，并保持 day build 成功。
 - `variants/`、`--variant` 和 `--variants` 不支持。
 
@@ -1075,6 +1076,7 @@ wave dt doctor --contrast --profile mobile --night
   - 不输出 `theme.dimension`
   - 长度类数值自动补浏览器需要的 `px`
   - `$type: typography` token 输出 materialized 字段变量和一个 shorthand 变量；group `typography.defaults` 按祖先到 token 浅合并，数组 font family 按 CSS stack 规则序列化；与已输出 `fontFamily` token 等值时 shorthand 复用全局变量，否则保留局部 family；倍率 line height 保持无单位；可选 color 独立输出，直接引用已输出的 `theme.color.*` 时保留 CSS variable 引用
+  - typography 支持 `px`、`pt`、`rem`。`rem` 默认使用 16px；可在唯一允许的位置 `theme.font.$extensions.typography.baseFontSize` 以大于 0 的无单位 CSS px 数值覆盖。使用 rem 时 CSS 在 `:root` 输出有效 `font-size`，并保留 token 中的 rem 值。此内部 metadata 不输出到 JSON 或 JSONC
   - DTCG border `style.dashArray` 输出 `dashed` shorthand 和 `-dash-array` companion variable
   - 带 `$extensions.outline.offset` 的 border token 输出 outline value 变量和 offset companion 变量
 - `sketch`：输出 Sketch API 兼容格式 `{theme}2sketch.json`
@@ -1090,7 +1092,7 @@ wave dt doctor --contrast --profile mobile --night
   - `sketch.skip` 从 group 向后代继承，最近 group 或 token 的显式 boolean 覆盖；仅从 Sketch emission list 过滤，其他平台不受影响
   - component token 不再映射为 Sketch component 样式；component 逻辑后续单独设计
   - inheritColor 通过 siblingSlot 查找兄弟 token 颜色，但其输出始终 materialize 为 HEX8
-  - `$type: typography` token 生成 text shared style payload；数组 font family 优先选择 `PingFang SC`，倍率 line height 乘 materialized font size 后向上取整，绝对 `px`/`pt` line height 原样取数值部分
+  - `$type: typography` token 生成 text shared style payload；数组 font family 优先选择 `PingFang SC`。rem 的 `fontSize`、绝对 `lineHeight` 和 `letterSpacing` 使用有效基准（默认 16，或 `baseFontSize`）换算；fontSize 与 letterSpacing 最多保留三位小数。Sketch 最终 lineHeight 始终向上取整为整数：倍率使用换算后字号计算，绝对 px/pt/rem 使用数值或换算结果后取整
   - Sketch composite color-slot 合同：`#RRGGBBAA` 是所有 color slot 的真值和非变量 fallback。仅当值是同文档、直接的 current-theme color reference，且目标 color token 在同一 Sketch emission list 中时，才输出 `@<filterLayer-key>`；支持的 consumer 仅为 typography `textStyle.textColor`、普通 border `value.color` 和 outline ring `shadow[0].color`
   - `@` 的 key 只由目标 token 的 `filterLayer` 后 flat key 计算，完全不依赖 `sketch.path`；`sketch.path` 只控制对象嵌套位置
   - color token 自身、shadow、gradient、inheritColor、external reference、literal color 与 alpha override 均输出 HEX8；outline `shadow[1].color` 是固定 gap `#ffffffff`

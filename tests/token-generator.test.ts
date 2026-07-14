@@ -380,6 +380,27 @@ describe('generateTokens (Wave-native)', () => {
 							},
 						},
 					},
+					font: {
+						$type: 'typography',
+						$extensions: {
+							typography: {
+								baseFontSize: 14,
+								defaults: {
+									fontFamily: 'Inter',
+									fontWeight: 400,
+									lineHeight: 1.5,
+									letterSpacing: 0,
+								},
+							},
+						},
+						body: {
+							$value: {
+								fontSize: { value: 0.875, unit: 'rem' },
+								lineHeight: { value: 1.5, unit: 'rem' },
+								letterSpacing: { value: 0.1, unit: 'rem' },
+							},
+						},
+					},
 				},
 			} as ResolvedTokenGroup;
 			const oklchTokens = transformToWaveTokens(resolved, undefined, 'oklch');
@@ -405,8 +426,15 @@ describe('generateTokens (Wave-native)', () => {
 				),
 			);
 			expect(css).toContain('oklch(');
+			expect(css).toContain('font-size: 14px;');
+			expect(css).toContain('--theme-font-body-size: 0.875rem;');
 			expect(sketch['theme-color-primary']).toEqual({
 				color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
+			});
+			expect(sketch['theme-font-body'].textStyle).toMatchObject({
+				fontSize: 12.25,
+				lineHeight: 21,
+				kerning: 1.4,
 			});
 		});
 	});

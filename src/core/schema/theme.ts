@@ -4,9 +4,11 @@ import {
 	validateBorderStrokeStyle,
 } from '../stroke-style.ts';
 import {
+	isTypographyReference,
 	materializeTypographyValue,
 	mergeTypographyDefaults,
 	missingTypographyFields,
+	parseTypographyBaseFontSize,
 	TYPOGRAPHY_FIELDS,
 	type TypographySchemaPhase,
 	typographyDefaultsFromExtensions,
@@ -396,6 +398,7 @@ function validateTypographyToken(
 	tokenPath: string,
 	phase: TypographySchemaPhase,
 	defaults: TypographyDefaults | undefined,
+	_typographyBaseFontSize: number | undefined,
 	issues: ThemeSchemaIssue[],
 ): void {
 	const tokenValue = validateTypographyFields(
@@ -437,7 +440,7 @@ function validateTypographyGroupExtension(
 		return undefined;
 	}
 	for (const key of Object.keys(extension)) {
-		if (key !== 'defaults') {
+		if (key !== 'defaults' && key !== 'baseFontSize') {
 			issues.push({
 				path: `${extensionPath}.${key}`,
 				level: 'error',
@@ -466,6 +469,28 @@ function validateTypographyGroupExtension(
 		});
 		return undefined;
 	}
+	if ('baseFontSize' in extension) {
+		const basePath = `${extensionPath}.baseFontSize`;
+		const baseFontSize = extension.baseFontSize;
+		const mayDeferReference =
+			phase === 'raw' && isTypographyReference(baseFontSize);
+		if (groupPath !== 'theme.font') {
+			issues.push({
+				path: basePath,
+				level: 'error',
+				message: 'typography.baseFontSize is only supported on theme.font',
+			});
+		} else if (
+			!mayDeferReference &&
+			parseTypographyBaseFontSize(extensions) === undefined
+		) {
+			issues.push({
+				path: basePath,
+				level: 'error',
+				message: 'typography.baseFontSize must be a finite positive number',
+			});
+		}
+	}
 	const defaults = validateTypographyFields(
 		extension.defaults,
 		`${extensionPath}.defaults`,
@@ -483,6 +508,7 @@ function validateToken(
 	inheritedType?: string,
 	phase: TypographySchemaPhase = 'raw',
 	typographyDefaults?: TypographyDefaults,
+	typographyBaseFontSize?: number,
 ): void {
 	const value = token.$value;
 	if (value !== undefined) {
@@ -528,6 +554,7 @@ function validateToken(
 			tokenPath,
 			phase,
 			typographyDefaults,
+			typographyBaseFontSize,
 			issues,
 		);
 	}
@@ -665,6 +692,7 @@ function walkNode(
 	inheritedType?: string,
 	phase: TypographySchemaPhase = 'raw',
 	inheritedTypographyDefaults?: TypographyDefaults,
+	inheritedTypographyBaseFontSize?: number,
 ): void {
 	if (node === null || node === undefined) return;
 
@@ -680,6 +708,7 @@ function walkNode(
 				inheritedType,
 				phase,
 				inheritedTypographyDefaults,
+				inheritedTypographyBaseFontSize,
 			);
 			return;
 		}
@@ -687,6 +716,7 @@ function walkNode(
 		// Group node — validate $extends and recurse into non-meta children
 		validateExtends(obj, path, issues);
 		let localTypographyDefaults: TypographyDefaults | undefined;
+		let localTypographyBaseFontSize: number | undefined;
 		if ('$extensions' in obj) {
 			const extensions = obj.$extensions;
 			if (
@@ -709,6 +739,11 @@ function walkNode(
 					phase,
 					issues,
 				);
+				if (path === 'theme.font') {
+					localTypographyBaseFontSize = parseTypographyBaseFontSize(
+						extensions as Record<string, unknown>,
+					);
+				}
 			}
 		}
 		validateComposite(obj, path, issues);
@@ -722,6 +757,10 @@ function walkNode(
 							),
 					)
 				: undefined;
+		const typographyBaseFontSize =
+			nodeType === 'typography'
+				? (localTypographyBaseFontSize ?? inheritedTypographyBaseFontSize)
+				: undefined;
 
 		for (const [key, child] of Object.entries(obj)) {
 			if (key.startsWith('$')) continue;
@@ -732,6 +771,7 @@ function walkNode(
 				nodeType,
 				phase,
 				typographyDefaults,
+				typographyBaseFontSize,
 			);
 		}
 	}

@@ -77,6 +77,179 @@ describe('theme schema', () => {
 		expect(result.issues).toEqual([]);
 	});
 
+	test('accepts rem typography dimensions with a theme.font baseFontSize', () => {
+		const result = validateThemeSchema(
+			{
+				theme: {
+					font: {
+						$type: 'typography',
+						$extensions: {
+							typography: {
+								baseFontSize: 14,
+								defaults: {
+									fontFamily: 'Inter',
+									fontWeight: 400,
+									letterSpacing: 0,
+								},
+							},
+						},
+						body: {
+							$value: {
+								fontSize: { value: 0.875, unit: 'rem' },
+								lineHeight: { value: 1.5, unit: 'rem' },
+								letterSpacing: { value: 0.1, unit: 'rem' },
+							},
+						},
+					},
+				},
+			},
+			'resolved',
+		);
+
+		expect(result.valid).toBe(true);
+	});
+
+	test('allows direct and default rem dimensions without an explicit baseFontSize', () => {
+		const typography = {
+			fontFamily: 'Inter',
+			fontSize: { value: 0.875, unit: 'rem' },
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+		};
+		const direct = validateThemeSchema(
+			{
+				theme: {
+					font: { $type: 'typography', body: { $value: typography } },
+				},
+			},
+			'resolved',
+		);
+		expect(direct.valid).toBe(true);
+
+		const defaults = {
+			fontFamily: 'Inter',
+			fontSize: { value: 0.875, unit: 'rem' },
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+		};
+		const withoutBase = validateThemeSchema(
+			{
+				theme: {
+					font: {
+						$type: 'typography',
+						$extensions: { typography: { defaults } },
+						body: { $value: {} },
+					},
+				},
+			},
+			'resolved',
+		);
+		expect(withoutBase.valid).toBe(true);
+
+		const withBase = validateThemeSchema(
+			{
+				theme: {
+					font: {
+						$type: 'typography',
+						$extensions: { typography: { baseFontSize: 14, defaults } },
+						body: { $value: {} },
+					},
+				},
+			},
+			'resolved',
+		);
+		expect(withBase.valid).toBe(true);
+	});
+
+	test('limits baseFontSize to a finite positive theme.font value', () => {
+		for (const baseFontSize of [0, -1, '14', { value: 14, unit: 'px' }]) {
+			const result = validateThemeSchema(
+				{
+					theme: {
+						font: {
+							$type: 'typography',
+							$extensions: {
+								typography: {
+									baseFontSize,
+									defaults: { fontFamily: 'Inter' },
+								},
+							},
+						},
+					},
+				},
+				'resolved',
+			);
+			expect(result.valid, JSON.stringify(baseFontSize)).toBe(false);
+		}
+
+		const nested = validateThemeSchema(
+			{
+				theme: {
+					font: {
+						$type: 'typography',
+						body: {
+							$extensions: {
+								typography: {
+									baseFontSize: 14,
+									defaults: { fontFamily: 'Inter' },
+								},
+							},
+						},
+					},
+				},
+			},
+			'resolved',
+		);
+		expect(nested.valid).toBe(false);
+		expect(nested.issues).toContainEqual(
+			expect.objectContaining({
+				path: 'theme.font.body.$extensions.typography.baseFontSize',
+			}),
+		);
+	});
+
+	test('defers raw baseFontSize references and requires resolved numeric values', () => {
+		for (const baseFontSize of [
+			'{theme.number.base}',
+			{ $ref: '#/theme/number/base/$value' },
+		]) {
+			const raw = validateThemeSchema({
+				theme: {
+					number: { base: { $value: 14, $type: 'number' } },
+					font: {
+						$type: 'typography',
+						$extensions: {
+							typography: { baseFontSize, defaults: { fontFamily: 'Inter' } },
+						},
+					},
+				},
+			});
+			expect(raw.valid, JSON.stringify(baseFontSize)).toBe(true);
+		}
+
+		for (const baseFontSize of [
+			'{theme.number.base}',
+			{ $ref: '#/theme/number/base/$value' },
+		]) {
+			const resolved = validateThemeSchema(
+				{
+					theme: {
+						font: {
+							$type: 'typography',
+							$extensions: {
+								typography: { baseFontSize, defaults: { fontFamily: 'Inter' } },
+							},
+						},
+					},
+				},
+				'resolved',
+			);
+			expect(resolved.valid, JSON.stringify(baseFontSize)).toBe(false);
+		}
+	});
+
 	test('rejects unknown defaults and typography value fields', () => {
 		const result = validateThemeSchema(
 			{
@@ -195,7 +368,7 @@ describe('theme schema', () => {
 			['fontFamily', 'Bad\nFamily'],
 			['fontSize', '+14'],
 			['fontWeight', '1e2'],
-			['lineHeight', { value: 20, unit: 'rem' }],
+			['lineHeight', { value: 20, unit: 'em' }],
 			['letterSpacing', Number.NaN],
 		] as const) {
 			const typography = {

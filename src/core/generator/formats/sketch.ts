@@ -6,6 +6,7 @@ import type {
 import { REFERENCE_PATTERN } from '../../resolver/reference-utils.ts';
 import {
 	normalizeFontFamilyMember,
+	type ParsedTypographyDimension,
 	parseTypographyDimension,
 	parseTypographyLineHeight,
 	parseTypographyNumber,
@@ -61,6 +62,27 @@ function cleanValue(val: number | string): number | string {
 
 function tokenPathLabel(token: WaveToken): string {
 	return token.path.join('.');
+}
+
+function roundTo(value: number, places: number): number {
+	const factor = 10 ** places;
+	return Math.round(value * factor) / factor;
+}
+
+function toSketchTypographyLength(
+	dimension: ParsedTypographyDimension,
+	token: WaveToken,
+): number {
+	if (dimension.unit !== 'rem') return dimension.value;
+	const baseFontSize = token._typographyBaseFontSize;
+	if (
+		baseFontSize === undefined ||
+		!Number.isFinite(baseFontSize) ||
+		baseFontSize <= 0
+	) {
+		throw new Error('rem dimensions require typography baseFontSize');
+	}
+	return roundTo(dimension.value * baseFontSize, 3);
 }
 
 function assertHexColor(color: string, token: WaveToken): void {
@@ -289,7 +311,8 @@ function formatSketchTypography(
 		if (fontSize === undefined || fontSize.value <= 0) {
 			throw new Error('fontSize is invalid');
 		}
-		textStyle.fontSize = fontSize.value;
+		const sketchFontSize = toSketchTypographyLength(fontSize, token);
+		textStyle.fontSize = sketchFontSize;
 
 		const fontWeight = parseTypographyNumber(obj.fontWeight);
 		if (fontWeight === undefined || fontWeight <= 0) {
@@ -301,15 +324,17 @@ function formatSketchTypography(
 		if (lineHeight === undefined || lineHeight.value <= 0) {
 			throw new Error('lineHeight is invalid');
 		}
-		textStyle.lineHeight = lineHeight.unit
-			? lineHeight.value
-			: Math.ceil(fontSize.value * lineHeight.value);
+		textStyle.lineHeight = Math.ceil(
+			lineHeight.unit
+				? toSketchTypographyLength(lineHeight, token)
+				: sketchFontSize * lineHeight.value,
+		);
 
 		const letterSpacing = parseTypographyDimension(obj.letterSpacing);
 		if (letterSpacing === undefined) {
 			throw new Error('letterSpacing is invalid');
 		}
-		textStyle.kerning = letterSpacing.value;
+		textStyle.kerning = toSketchTypographyLength(letterSpacing, token);
 
 		if (token._typographyColor !== undefined) {
 			textStyle.textColor = formatSketchColorSlot(

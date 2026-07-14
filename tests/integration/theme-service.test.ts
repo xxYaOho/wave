@@ -181,6 +181,237 @@ describe('Theme Service Integration', () => {
 		});
 	});
 
+	describe('typography rem baseline', () => {
+		async function writeTypographyTheme(
+			themeDir: string,
+			baseFontSize?: number,
+		): Promise<void> {
+			await fs.writeFile(
+				path.join(themeDir, 'main.yaml'),
+				`$config:
+  theme: typography-rem
+  resource:
+    palette: [tailwindcss]
+    dimension: [wave]
+  parameter:
+    platform: [json, jsonc, css, sketch]
+    filterLayer: 1
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "#2563eb"
+  font:
+    $type: typography
+    $extensions:
+      typography:
+${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}        defaults:
+          fontFamily: Inter
+          fontWeight: 400
+    body:
+      $value:
+        fontSize: { value: 0.875, unit: rem }
+        lineHeight: { value: 1.5, unit: rem }
+        letterSpacing: { value: 0.1, unit: rem }
+`,
+				'utf-8',
+			);
+		}
+
+		test('preserves rem in CSS and flat output while Sketch uses the shared base', async () => {
+			const themeDir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-typography-rem-'),
+			);
+			const outputDir = path.join(themeDir, 'out');
+
+			try {
+				await writeTypographyTheme(themeDir, 14);
+				const result = await generateTheme({
+					themeName: 'typography-rem',
+					themePath: path.join(themeDir, 'main.yaml'),
+					cliOutput: outputDir,
+					generateOptions: { night: false },
+				});
+
+				expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+				if (!result.ok) return;
+				expect(result.generatedFiles).toEqual(
+					expect.arrayContaining([
+						'typography-rem.json',
+						'typography-rem.jsonc',
+						'typography-rem.css',
+						'typography-rem2sketch.json',
+					]),
+				);
+
+				const css = await fs.readFile(
+					path.join(outputDir, 'typography-rem.css'),
+					'utf-8',
+				);
+				const sketch = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'typography-rem2sketch.json'),
+						'utf-8',
+					),
+				);
+				const json = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'typography-rem.json'),
+						'utf-8',
+					),
+				);
+				const jsonc = await fs.readFile(
+					path.join(outputDir, 'typography-rem.jsonc'),
+					'utf-8',
+				);
+
+				expect(css).toContain(':root {\n  font-size: 14px;');
+				expect(css).toContain('--font-body-size: 0.875rem;');
+				expect(css).toContain('--font-body-line-height: 1.5rem;');
+				expect(css).toContain('--font-body-letter-spacing: 0.1rem;');
+				expect(sketch['font-body'].textStyle).toMatchObject({
+					fontSize: 12.25,
+					lineHeight: 21,
+					kerning: 1.4,
+				});
+				expect(json['font-body']).toMatchObject({
+					fontSize: { value: 0.875, unit: 'rem' },
+					lineHeight: { value: 1.5, unit: 'rem' },
+					letterSpacing: { value: 0.1, unit: 'rem' },
+				});
+				expect(JSON.stringify(json)).not.toContain('baseFontSize');
+				expect(jsonc).not.toContain('baseFontSize');
+			} finally {
+				await fs.rm(themeDir, { recursive: true, force: true });
+			}
+		});
+
+		test('uses a standalone profile base and carries it into its night build', async () => {
+			const themeDir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-typography-rem-profile-'),
+			);
+			const outputDir = path.join(themeDir, 'out');
+
+			try {
+				await writeTypographyTheme(themeDir, 14);
+				await fs.mkdir(path.join(themeDir, 'profiles'), { recursive: true });
+				await fs.writeFile(
+					path.join(themeDir, 'profiles', 'compact.yaml'),
+					`theme:
+  color:
+    $type: color
+    primary:
+      $value: "#0f766e"
+  font:
+    $type: typography
+    $extensions:
+      typography:
+        baseFontSize: 16
+        defaults:
+          fontFamily: Inter
+          fontWeight: 400
+    body:
+      $value:
+        fontSize: { value: 0.875, unit: rem }
+        lineHeight: { value: 1.5, unit: rem }
+        letterSpacing: { value: 0.1, unit: rem }
+`,
+					'utf-8',
+				);
+				await fs.writeFile(
+					path.join(themeDir, 'profiles', 'compact@night.yaml'),
+					`theme:
+  color:
+    primary:
+      $value: "#5eead4"
+`,
+					'utf-8',
+				);
+
+				const result = await generateTheme({
+					themeName: 'typography-rem',
+					themePath: path.join(themeDir, 'main.yaml'),
+					cliOutput: outputDir,
+					generateOptions: { night: true, profile: 'compact' },
+				});
+
+				expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+				if (!result.ok) return;
+				expect(result.generatedFiles).toEqual(
+					expect.arrayContaining([
+						'typography-rem-compact.css',
+						'typography-rem-compact2sketch.json',
+						'typography-rem-compact-night.css',
+						'typography-rem-compact-night2sketch.json',
+					]),
+				);
+
+				for (const suffix of ['', '-night']) {
+					const css = await fs.readFile(
+						path.join(outputDir, `typography-rem-compact${suffix}.css`),
+						'utf-8',
+					);
+					const sketch = JSON.parse(
+						await fs.readFile(
+							path.join(
+								outputDir,
+								`typography-rem-compact${suffix}2sketch.json`,
+							),
+							'utf-8',
+						),
+					);
+
+					expect(css).toContain(':root {\n  font-size: 16px;');
+					expect(sketch['font-body'].textStyle).toMatchObject({
+						fontSize: 14,
+						lineHeight: 24,
+						kerning: 1.6,
+					});
+				}
+			} finally {
+				await fs.rm(themeDir, { recursive: true, force: true });
+			}
+		});
+
+		test('uses the default 16px base when rem typography omits an override', async () => {
+			const themeDir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-typography-rem-default-'),
+			);
+			const outputDir = path.join(themeDir, 'out');
+
+			try {
+				await writeTypographyTheme(themeDir);
+				const result = await generateTheme({
+					themeName: 'typography-rem',
+					themePath: path.join(themeDir, 'main.yaml'),
+					cliOutput: outputDir,
+					generateOptions: { night: false },
+				});
+				expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+				if (!result.ok) return;
+
+				const css = await fs.readFile(
+					path.join(outputDir, 'typography-rem.css'),
+					'utf-8',
+				);
+				const sketch = JSON.parse(
+					await fs.readFile(
+						path.join(outputDir, 'typography-rem2sketch.json'),
+						'utf-8',
+					),
+				);
+				expect(css).toContain(':root {\n  font-size: 16px;');
+				expect(sketch['font-body'].textStyle).toMatchObject({
+					fontSize: 14,
+					lineHeight: 24,
+					kerning: 1.6,
+				});
+			} finally {
+				await fs.rm(themeDir, { recursive: true, force: true });
+			}
+		});
+	});
+
 	describe('profile model generation', () => {
 		test('default build generates only main profile', async () => {
 			const outputDir = createTempOutputDir();

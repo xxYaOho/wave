@@ -255,6 +255,70 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		);
 	});
 
+	test('emits the shared typography base font size and preserves rem values', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-font-body',
+				path: ['theme', 'font', 'body'],
+				type: 'typography',
+				value: {
+					fontFamily: 'Inter',
+					fontSize: '0.875rem',
+					fontWeight: 400,
+					lineHeight: '1.5rem',
+					letterSpacing: '0.1rem',
+				},
+				_typographyBaseFontSize: 14,
+				_order: 0,
+			},
+		];
+
+		const out = cssVariablesFormat(tokens, {
+			includeRootKeys: ['font'],
+			filterLayer: 1,
+		});
+
+		expect(out).toContain(':root {\n  font-size: 14px;');
+		expect(out).toContain('--font-body-size: 0.875rem;');
+		expect(out).toContain('--font-body-line-height: 1.5rem;');
+		expect(out).toContain('--font-body-letter-spacing: 0.1rem;');
+	});
+
+	test('rejects conflicting typography base font sizes and ignores color-only selections', () => {
+		const typography = (name: string, baseFontSize: number): WaveToken => ({
+			name,
+			path: ['theme', 'font', name],
+			type: 'typography',
+			value: {
+				fontFamily: 'Inter',
+				fontSize: '1rem',
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+			},
+			_typographyBaseFontSize: baseFontSize,
+			_order: baseFontSize,
+		});
+
+		expect(() =>
+			cssVariablesFormat([typography('body', 14), typography('heading', 16)]),
+		).toThrow('baseFontSize conflicts');
+
+		const colorOnly = cssVariablesFormat(
+			[
+				{
+					name: 'theme-color-primary',
+					path: ['theme', 'color', 'primary'],
+					type: 'color',
+					value: '#112233',
+					_order: 0,
+				},
+			],
+			{ includeRootKeys: ['color'] },
+		);
+		expect(colorOnly).not.toContain('font-size:');
+	});
+
 	test('formats typography arrays, units, and resolved color', () => {
 		const tokens: WaveToken[] = [
 			{

@@ -12,7 +12,8 @@ export type TypographyField = (typeof TYPOGRAPHY_FIELDS)[number];
 export type TypographySchemaPhase = 'raw' | 'resolved';
 
 export const TYPOGRAPHY_NUMERIC_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/;
-const TYPOGRAPHY_DIMENSION_PATTERN = /^(-?(?:0|[1-9]\d*)(?:\.\d+)?)(px|pt)$/;
+const TYPOGRAPHY_DIMENSION_PATTERN =
+	/^(-?(?:0|[1-9]\d*)(?:\.\d+)?)(px|pt|rem)$/;
 
 function hasControlCharacter(value: string): boolean {
 	for (const character of value) {
@@ -29,7 +30,7 @@ function hasControlCharacter(value: string): boolean {
 
 export interface ParsedTypographyDimension {
 	value: number;
-	unit?: 'px' | 'pt';
+	unit?: 'px' | 'pt' | 'rem';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -65,7 +66,7 @@ export function parseTypographyDimension(
 		if (!match) return undefined;
 		const parsed = Number(match[1]);
 		if (!Number.isFinite(parsed)) return undefined;
-		return { value: parsed, unit: match[2] as 'px' | 'pt' };
+		return { value: parsed, unit: match[2] as 'px' | 'pt' | 'rem' };
 	}
 
 	if (!isRecord(value)) return undefined;
@@ -74,7 +75,9 @@ export function parseTypographyDimension(
 	const parsedValue = parseTypographyNumber(value.value);
 	if (parsedValue === undefined) return undefined;
 	if (value.unit === undefined) return { value: parsedValue };
-	if (value.unit !== 'px' && value.unit !== 'pt') return undefined;
+	if (value.unit !== 'px' && value.unit !== 'pt' && value.unit !== 'rem') {
+		return undefined;
+	}
 	return { value: parsedValue, unit: value.unit };
 }
 
@@ -142,10 +145,29 @@ export function validateTypographyField(
 			? parseTypographyLineHeight(value)
 			: parseTypographyDimension(value);
 	if (parsed === undefined) {
-		return 'must be a finite number or dimension using only px or pt';
+		return 'must be a finite number or dimension using only px, pt, or rem';
 	}
 	if (field === 'letterSpacing') return undefined;
 	return parsed.value > 0 ? undefined : 'must be greater than 0';
+}
+
+export function parseTypographyBaseFontSize(
+	extensions: Record<string, unknown> | undefined,
+): number | undefined {
+	if (!extensions || !isRecord(extensions.typography)) return undefined;
+	const baseFontSize = extensions.typography.baseFontSize;
+	return typeof baseFontSize === 'number' &&
+		Number.isFinite(baseFontSize) &&
+		baseFontSize > 0
+		? baseFontSize
+		: undefined;
+}
+
+export function hasTypographyRemDimension(value: unknown): boolean {
+	if (!isRecord(value)) return false;
+	return ['fontSize', 'lineHeight', 'letterSpacing'].some(
+		(field) => parseTypographyDimension(value[field])?.unit === 'rem',
+	);
 }
 
 export function typographyDefaultsFromExtensions(

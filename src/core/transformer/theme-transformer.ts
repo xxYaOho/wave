@@ -9,9 +9,11 @@ import {
 	type WaveToken,
 } from '../../types/index.ts';
 import {
+	hasTypographyRemDimension,
 	materializeTypographyValue,
 	mergeTypographyDefaults,
 	missingTypographyFields,
+	parseTypographyBaseFontSize,
 	typographyDefaultsFromExtensions,
 } from '../typography-value.ts';
 import { formatColorOutput, isDtcgColorSpaceValue } from './color-space.ts';
@@ -25,6 +27,7 @@ interface InheritedExtensions {
 	sketchPath?: string;
 	sketchSkip?: boolean;
 	typographyDefaults?: TypographyDefaults;
+	typographyBaseFontSize?: number;
 }
 
 function isLegacyColorObject(value: unknown): value is Record<string, unknown> {
@@ -483,6 +486,7 @@ function transformToken(
 	const typeValue = token.$type ?? parentType;
 	let sourceValue: DtcgValue = token.$value;
 	let typographyColor: string | undefined;
+	let typographyUsesRem = false;
 	const sketchColorReference =
 		typeValue === 'typography' || typeValue === 'border'
 			? token._sketchColorReference
@@ -499,6 +503,7 @@ function transformToken(
 			);
 		}
 		sourceValue = materialized as DtcgValue;
+		typographyUsesRem = hasTypographyRemDimension(materialized);
 		const color = materialized?.color;
 		if (color !== undefined) {
 			typographyColor = normalizeColorValue(
@@ -675,6 +680,11 @@ function transformToken(
 			_sketchColorReference: sketchColorReference,
 		}),
 		...(typographyColor !== undefined && { _typographyColor: typographyColor }),
+		...(typeValue === 'typography' &&
+			typographyUsesRem && {
+				_typographyBaseFontSize:
+					inheritedExtensions.typographyBaseFontSize ?? 16,
+			}),
 		...(mergedSketchExtension !== undefined && {
 			_sketch: mergedSketchExtension,
 		}),
@@ -740,6 +750,10 @@ export function transformToWaveTokens(
 			groupType === 'typography'
 				? typographyDefaultsFromExtensions(group.$extensions)
 				: undefined;
+		const localTypographyBaseFontSize =
+			path.join('.') === 'theme.font'
+				? parseTypographyBaseFontSize(group.$extensions)
+				: undefined;
 		const childInheritedExtensions: InheritedExtensions = {
 			...inheritedExtensions,
 			...(groupSketchExtension?.path !== undefined && {
@@ -756,6 +770,13 @@ export function transformToWaveTokens(
 						),
 					}
 				: { typographyDefaults: undefined }),
+			...(groupType === 'typography'
+				? {
+						typographyBaseFontSize:
+							localTypographyBaseFontSize ??
+							inheritedExtensions.typographyBaseFontSize,
+					}
+				: { typographyBaseFontSize: undefined }),
 		};
 
 		if (group.$description !== undefined && path.length > 0) {
@@ -806,6 +827,12 @@ export function transformToWaveTokens(
 								),
 							}
 						: { typographyDefaults: undefined }),
+					...(compositeType === 'typography'
+						? {
+								typographyBaseFontSize:
+									childInheritedExtensions.typographyBaseFontSize,
+							}
+						: { typographyBaseFontSize: undefined }),
 				};
 				for (const propKey of Object.keys(child)) {
 					if (propKey.startsWith('$')) continue;

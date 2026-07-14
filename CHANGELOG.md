@@ -1,5 +1,12 @@
 # wave
 
+## 0.18.0
+
+### Minor Changes
+
+- Add rem typography dimensions with a configurable `theme.font.$extensions.typography.baseFontSize` for CSS and Sketch output.
+- Round all final Sketch typography line heights up to whole pixels.
+
 ## 0.17.0
 
 ### Minor Changes

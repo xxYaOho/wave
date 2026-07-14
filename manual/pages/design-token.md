@@ -260,17 +260,20 @@ inverse:
 
 `typography` group 可以用 `$extensions.typography.defaults` 为后代 token 提供公共字段。`defaults` 只能写在有效 `$type` 为 `typography` 的 group 上，只接受 `fontFamily`、`fontSize`、`fontWeight`、`lineHeight` 和 `letterSpacing`。子 group 按字段覆盖祖先 defaults，token 自己的 `$value` 最后覆盖 defaults；合并后每个 typography token 必须包含这五个字段。可选 `color` 保留在 token `$value` 和 JSON/JSONC 输出中；CSS 额外输出 `--<token>-color`，直接引用已输出的 `theme.color.*` 时仍保留为 `var(--<color-token>)`。
 
+typography 的 `rem` 默认以 `16px` 为基准。需要覆盖时，只能在 `theme.font.$extensions.typography.baseFontSize` 声明根字号；它是大于 0 的无单位 CSS px 数值，不属于 `defaults`，也不会输出到 JSON 或 JSONC。使用 rem 时，CSS 在 `:root` 写入有效的 `font-size`，并保留 token 的 rem 值；Sketch 用 `rem × 有效基准` 换算 `fontSize`、绝对 `lineHeight` 和 `letterSpacing`。fontSize 与 letterSpacing 保留最多三位小数；最终 lineHeight 始终向上取整为整数。
+
 ```yaml
 theme:
   font:
     $type: typography
     $extensions:
       typography:
+        baseFontSize: 14
         defaults:
           fontFamily: "{wave.dimension.fontFamily}"
           fontSize:
-            value: 14
-            unit: pt
+            value: 0.875
+            unit: rem
           fontWeight: 400
           letterSpacing: 0
     body:
@@ -285,7 +288,7 @@ theme:
 
 `fontFamily` 可以是一个字符串，也可以是非空字符串数组。CSS 把数组输出为合法 font stack：简单 CSS identifier 不加引号；其他名称会去掉一层已有配对引号，再用双引号包裹并转义。`inherit`、`initial`、`unset`、`revert` 和 `revert-layer` 始终加引号。若已有输出的 `fontFamily` token 与 typography 的 font stack 等值，CSS shorthand 直接引用该全局变量，不再为每个 typography token 重复输出完整 family；没有等值 token 时仍输出局部 `--<token>-family`。Sketch 不解析系统别名；数组含 `PingFang SC` 时优先使用它，否则选择第一个具体字体。`system`、`system-ui`、`-apple-system`、`BlinkMacSystemFont` 和 CSS generic family 不属于具体字体；数组只有这些值时，Sketch 不输出 `fontFamily`。字符串值保持原有行为。
 
-`lineHeight` 必须大于 0。无单位 number 或纯数字字符串表示倍率；`{ value }` 不表示倍率，必须带单位。CSS 保留倍率；Sketch 用合并后的 `fontSize` 乘以倍率，并将计算结果向上取整。带 `px` 或 `pt` 的字符串或 `{ value, unit }` 表示绝对行高：CSS 保留单位，Sketch 原样输出数值部分，不取整。Wave 不接受其他 typography 单位，也不换算 `px` 和 `pt`。
+`lineHeight` 必须大于 0。无单位 number 或纯数字字符串表示倍率；`{ value }` 不表示倍率，必须带单位。CSS 保留倍率和绝对单位；Sketch 的最终 lineHeight 无论倍率、`px`、`pt` 还是 `rem` 都向上取整为整数。`fontSize`、绝对 `lineHeight` 和 `letterSpacing` 使用 rem 时默认使用 16，也可由 `theme.font.$extensions.typography.baseFontSize` 覆盖。Wave 不换算 px 和 pt。
 
 ### Sketch 颜色引用
 
@@ -659,6 +662,8 @@ profiles/mobile@night.yaml
 ```
 
 缺失或无效的 Night Mode 不会阻断 day build。Wave 会输出 `Night Mode unavailable/invalid and skipped`，并跳过对应 night 文件。
+
+每个 named profile 是独立主题，可在自己的 `theme.font.$extensions.typography.baseFontSize` 使用不同根字号。Night Mode 只覆盖 `theme.color` 和 `theme.state`，因此会继承对应 day profile 的根字号。
 
 `variants/`、`--variant`、`--variants` 和 `--no-variants` 不再支持。旧项目需要把 variant 拆成 `profiles/<name>.yaml`。
 
