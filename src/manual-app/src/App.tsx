@@ -120,33 +120,165 @@ function ManualHtml({ html }: { html: string }) {
 	);
 }
 
+interface TocHeading {
+	id: string;
+	depth: 2 | 3;
+	text: string;
+}
+
+function OnThisPage({ html }: { html: string }) {
+	const headings = useMemo<TocHeading[]>(() => {
+		const doc = new window.DOMParser().parseFromString(html, 'text/html');
+		const seen = new Map<string, number>();
+		const items: TocHeading[] = [];
+
+		for (const heading of doc.querySelectorAll('h2, h3')) {
+			const text = heading.textContent?.trim() ?? '';
+			if (!text) continue;
+			const count = seen.get(text) ?? 0;
+			seen.set(text, count + 1);
+			items.push({
+				id: count > 0 ? `${text} (${count})` : text,
+				depth: heading.tagName === 'H3' ? 3 : 2,
+				text,
+			});
+		}
+
+		return items;
+	}, [html]);
+
+	if (headings.length === 0) return null;
+
+	const scrollToHeading = (text: string) => {
+		const article = document.querySelector('.article');
+		if (!article) return;
+
+		for (const heading of article.querySelectorAll('h2, h3')) {
+			if (heading.textContent?.trim() === text) {
+				heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				return;
+			}
+		}
+	};
+
+	return (
+		<nav className="toc" data-testid="manual-toc" aria-label="本页内容">
+			<p className="tocTitle">本页内容</p>
+			{headings.map((heading) => (
+				<button
+					key={heading.id}
+					type="button"
+					className={heading.depth === 3 ? 'tocLink tocLinkNested' : 'tocLink'}
+					onClick={() => scrollToHeading(heading.text)}
+				>
+					{heading.text}
+				</button>
+			))}
+		</nav>
+	);
+}
+
+function PagePager({
+	pages,
+	page,
+}: {
+	pages: ManualDataPage[];
+	page: ManualDataPage;
+}) {
+	const index = pages.findIndex((item) => item.href === page.href);
+	const previous = index > 0 ? pages[index - 1] : undefined;
+	const next =
+		index >= 0 && index < pages.length - 1 ? pages[index + 1] : undefined;
+
+	if (!previous && !next) return null;
+
+	return (
+		<nav className="pagePager" data-testid="manual-pager" aria-label="上下页">
+			{previous ? (
+				<button
+					type="button"
+					className="pagerLink"
+					onClick={() => navigate(previous.href)}
+				>
+					<span className="pagerLabel">上一页</span>
+					<span className="pagerTitle">{previous.title}</span>
+				</button>
+			) : null}
+			{next ? (
+				<button
+					type="button"
+					className="pagerLink pagerNext"
+					onClick={() => navigate(next.href)}
+				>
+					<span className="pagerLabel">下一页</span>
+					<span className="pagerTitle">{next.title}</span>
+				</button>
+			) : null}
+		</nav>
+	);
+}
+
 function Home({ data }: { data: ManualData }) {
 	return (
 		<main className="content">
-			<p className="eyebrow">Wave Manual</p>
-			<h1>{data.site.title}</h1>
-			<p className="lede">{data.site.description}</p>
+			<header className="hero">
+				<p className="eyebrow">Wave Manual</p>
+				<h1>{data.site.title}</h1>
+				<p className="lede">{data.site.description}</p>
+			</header>
 			<div className="homeGrid">
 				{data.home.cards.map((card) => (
 					<HomeCard key={card.href} card={card} />
 				))}
 			</div>
+			<section className="directory" data-testid="manual-directory">
+				<h2 className="directoryTitle">目录</h2>
+				<div className="directoryGrid">
+					{data.sections.map((section) => (
+						<div key={section.title} className="directorySection">
+							<p className="directorySectionTitle">{section.title}</p>
+							{section.pages.map((page) => (
+								<button
+									key={page.href}
+									type="button"
+									className="directoryLink"
+									onClick={() => navigate(page.href)}
+								>
+									{page.title}
+								</button>
+							))}
+						</div>
+					))}
+				</div>
+			</section>
 		</main>
 	);
 }
 
-function PageView({ page }: { page: ManualDataPage }) {
+function PageView({
+	pages,
+	page,
+}: {
+	pages: ManualDataPage[];
+	page: ManualDataPage;
+}) {
 	return (
-		<main className="content">
-			<p className="eyebrow">{page.category}</p>
-			<h1 data-testid="manual-page-title">{page.title}</h1>
-			<p className="lede">{page.description}</p>
-			<div className="commandRow">
-				{page.commands.map((command) => (
-					<CommandCode key={command} value={command} />
-				))}
+		<main className="pageBody">
+			<div className="pageMain">
+				<header className="pageHeader">
+					<p className="eyebrow">{page.category}</p>
+					<h1 data-testid="manual-page-title">{page.title}</h1>
+					<p className="lede">{page.description}</p>
+					<div className="commandRow">
+						{page.commands.map((command) => (
+							<CommandCode key={command} value={command} />
+						))}
+					</div>
+				</header>
+				<ManualHtml html={page.html} />
+				<PagePager pages={pages} page={page} />
 			</div>
-			<ManualHtml html={page.html} />
+			<OnThisPage html={page.html} />
 		</main>
 	);
 }
@@ -195,6 +327,7 @@ function Sidebar({ data, path }: { data: ManualData; path: string }) {
 					</div>
 				))}
 			</nav>
+			<footer className="sidebarFooter">{data.site.title}</footer>
 		</aside>
 	);
 }
@@ -305,7 +438,7 @@ export function App() {
 				{path === '/' ? (
 					<Home data={data} />
 				) : page ? (
-					<PageView page={page} />
+					<PageView pages={data.pages} page={page} />
 				) : (
 					<NotFound data={data} />
 				)}

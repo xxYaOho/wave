@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
+import {
+	cleanup,
+	fireEvent,
+	render,
+	waitFor,
+	within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Window } from 'happy-dom';
 import React from 'react';
@@ -22,6 +28,19 @@ const page = {
 	searchText: 'Design Token Build token output wave dt doctor',
 };
 
+const compressPage = {
+	title: '素材压缩',
+	description: 'Compress local assets.',
+	category: '素材',
+	commands: ['wave compress'],
+	appliesTo: ['Local CLI'],
+	href: '/compress',
+	source: 'pages/compress.md',
+	body: '## Compress',
+	html: '<h2>Compress</h2><p>Compress local assets.</p>',
+	searchText: '素材压缩 Compress local assets wave compress',
+};
+
 const manualData: ManualData = {
 	site: {
 		title: 'Wave Manual',
@@ -38,11 +57,15 @@ const manualData: ManualData = {
 			},
 		],
 	},
-	pages: [page],
+	pages: [page, compressPage],
 	sections: [
 		{
 			title: '能力',
 			pages: [page],
+		},
+		{
+			title: '素材',
+			pages: [compressPage],
 		},
 	],
 };
@@ -110,6 +133,11 @@ describe('manual app', () => {
 		expect(view.getAllByText('Wave Manual').length).toBeGreaterThanOrEqual(1);
 		expect(view.getAllByTestId('manual-home-card')).toHaveLength(1);
 		expect(view.getByText('wave dt doctor')).toBeTruthy();
+
+		const directory = view.getByTestId('manual-directory');
+		expect(within(directory).getByText('目录')).toBeTruthy();
+		expect(within(directory).getByText('能力')).toBeTruthy();
+		expect(within(directory).getByText('素材')).toBeTruthy();
 	});
 
 	test('renders a page route from manual data', async () => {
@@ -119,6 +147,14 @@ describe('manual app', () => {
 			'Design Token',
 		);
 		expect(view.getByText('Build token output.')).toBeTruthy();
+
+		const toc = view.getByTestId('manual-toc');
+		expect(within(toc).getByText('本页内容')).toBeTruthy();
+		expect(within(toc).getByText('Usage')).toBeTruthy();
+
+		const pager = view.getByTestId('manual-pager');
+		expect(within(pager).getByText('下一页')).toBeTruthy();
+		expect(within(pager).queryByText('上一页')).toBeNull();
 	});
 
 	test('copies code blocks from manual pages', async () => {
@@ -189,6 +225,10 @@ describe('manual app', () => {
 			'/quickstart',
 			'/toolchain',
 			'/design-token',
+			'/design-token/main-yaml',
+			'/design-token/color-typography',
+			'/design-token/extensions-output',
+			'/design-token/quality-theming',
 			'/compress',
 			'/motion',
 			'/workspace',
@@ -214,12 +254,13 @@ describe('manual app', () => {
 		expect(pageByHref.get('/command-index')?.searchText).toContain(
 			'wave --help',
 		);
-		expect(pageByHref.get('/design-token')?.searchText).toContain(
-			'$extensions',
-		);
-		expect(pageByHref.get('/design-token')?.searchText).toContain(
-			'sketch.property',
-		);
+		expect(pageByHref.get('/design-token')?.searchText).toContain('themefile');
+		expect(
+			pageByHref.get('/design-token/extensions-output')?.searchText,
+		).toContain('$extensions');
+		expect(
+			pageByHref.get('/design-token/extensions-output')?.searchText,
+		).toContain('sketch.property');
 		expect(text).not.toContain('SWISS_KNIFE_REFACTOR');
 		expect(text).not.toContain('graphify');
 		expect(text).not.toContain('agent 必读');
