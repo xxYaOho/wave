@@ -1,7 +1,7 @@
 ---
 title: 内置资源
 description: 浏览和更新 Wave 的 design-token 资源。
-category: 能力
+category: Design Token
 commands:
   - wave dt show
   - wave dt status

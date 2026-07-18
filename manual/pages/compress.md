@@ -1,7 +1,7 @@
 ---
 title: 素材压缩
 description: 压缩 PNG、JPG、SVG 和 GIF，支持预览、递归扫描和 SVG 图标清洗。
-category: 能力
+category: 素材
 commands:
   - wave compress --help
   - wave compress doctor

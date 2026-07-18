@@ -1,7 +1,7 @@
 ---
 title: 工作区创建
 description: 按配置创建本地设计项目目录。
-category: 能力
+category: 工作区
 commands:
   - wave workspace --help
 appliesTo:

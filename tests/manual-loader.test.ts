@@ -66,7 +66,7 @@ describe('manual loader', () => {
 
 		expect(manual.site.title).toBe('Wave Manual');
 		expect(manual.sections.length).toBeGreaterThan(0);
-		expect(manual.pages.length).toBe(10);
+		expect(manual.pages.length).toBe(14);
 		expect(manual.pages.map((page) => page.href)).toContain('/quickstart');
 		expect(manual.home.cards.every((card) => card.href.startsWith('/'))).toBe(
 			true,

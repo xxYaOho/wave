@@ -31,20 +31,36 @@ nav:
       - title: 安装与工具链
         href: /toolchain
         source: pages/toolchain.md
-  - title: 能力
+  - title: Design Token
     pages:
-      - title: Design Token
+      - title: Design Token 概览
         href: /design-token
         source: pages/design-token.md
+      - title: main.yaml 写法
+        href: /design-token/main-yaml
+        source: pages/design-token-main-yaml.md
+      - title: 颜色与字体
+        href: /design-token/color-typography
+        source: pages/design-token-color-typography.md
+      - title: 扩展与输出
+        href: /design-token/extensions-output
+        source: pages/design-token-extensions-output.md
+      - title: WCAG 与主题模式
+        href: /design-token/quality-theming
+        source: pages/design-token-quality-theming.md
       - title: 内置资源
         href: /resources
         source: pages/resources.md
+  - title: 素材
+    pages:
       - title: 素材压缩
         href: /compress
         source: pages/compress.md
       - title: 动效生成
         href: /motion
         source: pages/motion.md
+  - title: 工作区
+    pages:
       - title: 工作区创建
         href: /workspace
         source: pages/workspace.md

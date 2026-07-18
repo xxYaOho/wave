@@ -61,26 +61,27 @@ appliesTo:
 
 ## 导航
 
-导航保持小而稳定：
+导航保持小而稳定，按能力域分五组：
 
 - `开始`：上手和安装。
-- `能力`：用户任务和主要模块。
+- `Design Token`：design-token 概览、写法参考子页和内置资源。
+- `素材`：素材压缩和动效生成。
+- `工作区`：工作区创建。
 - `参考`：命令索引、路径、排障和参考页。
 
 只有内容足够独立时才新增页面。如果只是现有主题的一个小节，扩展现有页面。
 
 ## Design Token 文档
 
-`pages/design-token.md` 是 design-token 用户参考的唯一真源，覆盖：
+design-token 用户参考拆分为五个文件，共同构成唯一真源：
 
-- `themefile`
-- `main.yaml` 中的 `$config`
-- token 结构
-- `$extensions`
-- `doctor.wcagPairs`
-- 输出格式
+- `pages/design-token.md`：概览，覆盖用途、入口选择、文件职责、旧 themefile 入口。
+- `pages/design-token-main-yaml.md`：`main.yaml` 的 `$config`、GROUP、token 结构、theme 顶级 key、兼容字段。
+- `pages/design-token-color-typography.md`：颜色和 alpha、Typography、虚线 border。
+- `pages/design-token-extensions-output.md`：输出格式、`$extensions` 全部扩展字段。
+- `pages/design-token-quality-theming.md`：`doctor.wcagPairs`、Profile 和 Night Mode、常见错误。
 
-新增或修改 design-token 行为时，必须在同一变更中更新这个页面。除非有明确导航拆分方案，不要创建第二份 design-token 参考。
+新增或修改 design-token 行为时，必须在同一变更中更新对应子页，不要新建第六个 design-token 文件。
 
 `$extensions` 只记录 `src/core/schema/theme.ts` 和 transformer 测试支持的字段。`currentColor`、`sketchMap` 这类兼容字段只能标为 legacy 或 deprecated，不能作为新写法推广。
 

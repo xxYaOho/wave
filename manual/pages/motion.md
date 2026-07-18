@@ -1,7 +1,7 @@
 ---
 title: 动效生成
 description: 从 PNG 帧目录生成 GIF 或 APNG。
-category: 能力
+category: 素材
 commands:
   - wave motion --help
   - wave motion doctor
