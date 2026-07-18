@@ -1,5 +1,11 @@
 # wave
 
+## 0.19.0
+
+### Minor Changes
+
+- Redesign `wave manual` with a blueprint visual system: deep-sea blue palette, serif display type, hairline rules, and a Departure Mono / Maple Mono code font stack. Restructure the manual content by splitting the design-token reference into five focused pages and regrouping navigation into 开始 / Design Token / 素材 / 工作区 / 参考. Docs pages gain an On This Page outline and prev/next pager, and the home page becomes a hero plus full directory.
+
 ## 0.18.0
 
 ### Minor Changes
