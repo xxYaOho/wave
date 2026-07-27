@@ -38,6 +38,46 @@ async function exists(filePath: string): Promise<boolean> {
 	}
 }
 
+function decodeJsonPointerSegment(segment: string): string {
+	if (/~(?:[^01]|$)/.test(segment)) {
+		throw new Error(`Invalid JSON Pointer escape in segment "${segment}"`);
+	}
+	return segment.replaceAll('~1', '/').replaceAll('~0', '~');
+}
+
+function collectSketchReferences(
+	value: unknown,
+	result: string[] = [],
+): string[] {
+	if (typeof value === 'string') {
+		if (value.startsWith('@')) result.push(value);
+		return result;
+	}
+	if (Array.isArray(value)) {
+		for (const item of value) collectSketchReferences(item, result);
+		return result;
+	}
+	if (typeof value === 'object' && value !== null) {
+		for (const item of Object.values(value)) {
+			collectSketchReferences(item, result);
+		}
+	}
+	return result;
+}
+
+function resolveJsonPointer(root: unknown, pointer: string): unknown {
+	if (!pointer.startsWith('/')) return undefined;
+	return pointer
+		.slice(1)
+		.split('/')
+		.map(decodeJsonPointerSegment)
+		.reduce<unknown>((current, segment) => {
+			if (typeof current !== 'object' || current === null) return undefined;
+			if (!Object.hasOwn(current, segment)) return undefined;
+			return (current as Record<string, unknown>)[segment];
+		}, root);
+}
+
 function isolatedResourceEnv(tempDir: string): Record<string, string> {
 	return {
 		WAVE_RESOURCE_CACHE_DIR: path.join(tempDir, '.wave-cache'),
@@ -1098,13 +1138,13 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				fontWeight: 400,
 				lineHeight: 21,
 				kerning: 0,
-				textColor: '@text-default',
+				textColor: '@/foundation/color/text-default',
 			});
 			expect(sketch.v2.heading['heading-h1'].textStyle.textColor).toBe(
-				'@text-emphasis',
+				'@/foundation/color/text-emphasis',
 			);
 			expect(sketch.v2.heading['heading-escaped'].textStyle.textColor).toBe(
-				'@text-escaped.key/~color',
+				'@/foundation/color/text-escaped.key~1~0color',
 			);
 			expect(sketch.v2.heading['heading-external'].textStyle.textColor).toBe(
 				'#3695fbff',
@@ -1116,13 +1156,13 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				'#0f172b80',
 			);
 			expect(sketch.v2.display['display-body'].textStyle.textColor).toBe(
-				'@text-default',
+				'@/foundation/color/text-default',
 			);
 			expect(sketch.v2.display['display-footnote'].textStyle.textColor).toBe(
-				'@text-subtlest',
+				'@/foundation/color/text-subtlest',
 			);
 			expect(sketch.v2.display['display-alias'].textStyle.textColor).toBe(
-				'@direct-alias',
+				'@/foundation/color/direct-alias',
 			);
 			expect(sketch.foundation.font.label.textStyle.lineHeight).toBe(20);
 			expect(sketch.foundation.font.internal).toBeUndefined();
@@ -1137,7 +1177,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			expect(css).toContain('--internal-line-height: 1.25;');
 			expect(sketch.foundation.border.antline).toEqual({
 				value: {
-					color: '@primary-main',
+					color: '@/foundation/color/primary-main',
 					width: '1px',
 					style: {
 						dashArray: [
@@ -1148,9 +1188,27 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				},
 			});
 			expect(sketch.foundation.border.outline.shadow).toEqual([
-				{ x: 0, y: 0, blur: 0, spread: 3, color: '@outline-ring' },
+				{
+					x: 0,
+					y: 0,
+					blur: 0,
+					spread: 3,
+					color: '@/foundation/color/outline-ring',
+				},
 				{ x: 0, y: 0, blur: 0, spread: 2, color: '#ffffffff' },
 			]);
+
+			const references = collectSketchReferences(sketch);
+			expect(references.length).toBeGreaterThan(0);
+			for (const reference of references) {
+				expect(reference.startsWith('@/')).toBe(true);
+				const target = resolveJsonPointer(sketch, reference.slice(1));
+				expect(target).toEqual(
+					expect.objectContaining({
+						color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
+					}),
+				);
+			}
 		} finally {
 			restoreResourceEnv(previousEnv);
 			await fs.rm(fixtureDir, { recursive: true, force: true });
@@ -1626,26 +1684,26 @@ theme:
 					'#2563ebff',
 				);
 				expect(sketch['border-outline-token-curly-base'].shadow[0].color).toBe(
-					'@color-base',
+					'@/color-base',
 				);
 				expect(sketch['border-outline-token-curly-alias'].shadow[0].color).toBe(
-					'@color-alias',
+					'@/color-alias',
 				);
 				expect(
 					sketch['border-outline-token-curly-external'].shadow[0].color,
-				).toBe('@color-external');
+				).toBe('@/color-external');
 				expect(sketch['border-outline-pointer-token'].shadow[0].color).toBe(
-					'@color-base',
+					'@/color-base',
 				);
 				expect(sketch['border-outline-pointer-value'].shadow[0].color).toBe(
-					'@color-base',
+					'@/color-base',
 				);
 				expect(
 					sketch['border-outline-pointer-alias-value'].shadow[0].color,
-				).toBe('@color-alias');
+				).toBe('@/color-alias');
 				expect(sketch['border-outline-ref-width'].shadow[0]).toMatchObject({
 					spread: 6,
-					color: '@color-base',
+					color: '@/color-base',
 				});
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });

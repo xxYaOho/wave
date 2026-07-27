@@ -307,6 +307,42 @@ describe('generateTokens (Wave-native)', () => {
 		});
 	});
 
+	test('writes no platform outputs when sketch path preflight fails', async () => {
+		await withTempDir(async (outputDir) => {
+			const tokens: WaveToken[] = [
+				{
+					name: 'theme-radius-foo',
+					path: ['theme', 'radius', 'foo'],
+					value: 4,
+					type: 'dimension',
+					_sketch: { path: 'group' },
+					_order: 0,
+				},
+				{
+					name: 'theme-radius-bar',
+					path: ['theme', 'radius', 'bar'],
+					value: 8,
+					type: 'dimension',
+					_sketch: { path: 'group/foo' },
+					_order: 1,
+				},
+			];
+
+			const result = await generateTokens({
+				themeName: 'atomic',
+				outputDir,
+				tokens,
+				platform: ['json', 'css', 'sketch'],
+				filterLayer: 2,
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.files).toEqual([]);
+			expect(result.error).toContain('Duplicate Sketch output path');
+			expect(await fs.readdir(outputDir)).toEqual([]);
+		});
+	});
+
 	test('returns success:true with no files when no valid platform', async () => {
 		await withTempDir(async (outputDir) => {
 			const result = await generateTokens({
