@@ -583,8 +583,8 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.body.textStyle.textColor).toBe('@text-default');
-		expect(parsed['numeric-reference'].textStyle.textColor).toBe('@2x');
+		expect(parsed.body.textStyle.textColor).toBe('@/text-default');
+		expect(parsed['numeric-reference'].textStyle.textColor).toBe('@/2x');
 	});
 
 	test('maps both JSON Pointer typography color reference forms', () => {
@@ -625,8 +625,99 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.pointer.textStyle.textColor).toBe('@brand-main');
-		expect(parsed['pointer-value'].textStyle.textColor).toBe('@brand-main');
+		expect(parsed.pointer.textStyle.textColor).toBe('@/brand-main');
+		expect(parsed['pointer-value'].textStyle.textColor).toBe('@/brand-main');
+	});
+
+	test('references same-leaf colors through distinct full output paths', () => {
+		const v1Target = {
+			name: 'theme-color-v1-foo',
+			path: ['theme', 'color', 'v1', 'foo'],
+			value: '#112233',
+			type: 'color',
+			_sketch: { path: 'v1/color' },
+			_order: 0,
+		} satisfies WaveToken;
+		const v2Target = {
+			name: 'theme-color-v2-foo',
+			path: ['theme', 'color', 'v2', 'foo'],
+			value: '#445566',
+			type: 'color',
+			_sketch: { path: 'v2/color' },
+			_order: 1,
+		} satisfies WaveToken;
+		const typography = {
+			fontFamily: 'Inter',
+			fontSize: 14,
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+			color: '#112233',
+		};
+		const tokens: WaveToken[] = [
+			v1Target,
+			v2Target,
+			{
+				name: 'theme-font-style-body-v1',
+				path: ['theme', 'font', 'style', 'body-v1'],
+				type: 'typography',
+				value: typography,
+				_typographyColor: '#112233',
+				_sketchColorReference: '{theme.color.v1.foo}',
+				_order: 2,
+			},
+			{
+				name: 'theme-font-style-body-v2',
+				path: ['theme', 'font', 'style', 'body-v2'],
+				type: 'typography',
+				value: { ...typography, color: '#445566' },
+				_typographyColor: '#445566',
+				_sketchColorReference: '{theme.color.v2.foo}',
+				_order: 3,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 3 }));
+
+		expect(parsed.v1.color.foo).toEqual({ color: '#112233ff' });
+		expect(parsed.v2.color.foo).toEqual({ color: '#445566ff' });
+		expect(parsed['body-v1'].textStyle.textColor).toBe('@/v1/color/foo');
+		expect(parsed['body-v2'].textStyle.textColor).toBe('@/v2/color/foo');
+	});
+
+	test('encodes special full-path segments as RFC 6901', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-text-escaped',
+				path: ['theme', 'color', 'text', 'escaped.key/~color'],
+				value: '#112233',
+				type: 'color',
+				_sketch: { path: 'foundation/color' },
+				_order: 0,
+			},
+			{
+				name: 'theme-font-escaped',
+				path: ['theme', 'font', 'escaped'],
+				type: 'typography',
+				value: {
+					fontFamily: 'Inter',
+					fontSize: 14,
+					fontWeight: 400,
+					lineHeight: 1.5,
+					letterSpacing: 0,
+					color: '#112233',
+				},
+				_typographyColor: '#112233',
+				_sketchColorReference: '#/theme/color/text/escaped.key~1~0color',
+				_order: 1,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+
+		expect(parsed.escaped.textStyle.textColor).toBe(
+			'@/foundation/color/text-escaped.key~1~0color',
+		);
 	});
 
 	test('preserves HEX8 typography colors without a matching Sketch reference', () => {
@@ -718,8 +809,8 @@ describe('sketchFormat (Wave-native)', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 		for (const key of ['curly', 'pointer', 'pointer-value']) {
-			expect(parsed[key].value.color).toBe('@text-default');
-			expect(parsed[`outline-${key}`].shadow[0].color).toBe('@text-default');
+			expect(parsed[key].value.color).toBe('@/text-default');
+			expect(parsed[`outline-${key}`].shadow[0].color).toBe('@/text-default');
 			expect(parsed[`outline-${key}`].shadow[1].color).toBe('#ffffffff');
 		}
 	});

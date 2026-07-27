@@ -272,12 +272,12 @@ function selectSketchFontFamily(value: unknown): string | undefined {
 function formatSketchColorSlot(
 	token: WaveToken,
 	color: string,
-	colorReferenceKeys: Map<string, string>,
+	colorReferencePaths: Map<string, string>,
 ): string {
 	const reference = token._sketchColorReference;
 	if (reference !== undefined) {
-		const colorKey = colorReferenceKeys.get(reference);
-		if (colorKey !== undefined) return `@${colorKey}`;
+		const referencePath = colorReferencePaths.get(reference);
+		if (referencePath !== undefined) return `@${referencePath}`;
 		if (isInternalSketchColorReference(reference)) {
 			throw new Error(
 				`Sketch color reference target is not emitted at ${tokenPathLabel(token)}`,
@@ -290,7 +290,7 @@ function formatSketchColorSlot(
 
 function formatSketchTypography(
 	token: WaveToken,
-	colorReferenceKeys: Map<string, string>,
+	colorReferencePaths: Map<string, string>,
 ): unknown {
 	const value = token.value;
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -340,7 +340,7 @@ function formatSketchTypography(
 			textStyle.textColor = formatSketchColorSlot(
 				token,
 				token._typographyColor,
-				colorReferenceKeys,
+				colorReferencePaths,
 			);
 		}
 	} catch (error) {
@@ -480,24 +480,16 @@ function isInternalSketchColorReference(reference: string): boolean {
 	return reference.startsWith('{theme.') || reference.startsWith('#/theme/');
 }
 
-function buildSketchColorReferenceKeys(
-	emissionTokens: WaveToken[],
+function buildSketchColorReferencePaths(
+	writeTokens: WaveToken[],
 	filterLayer: number,
 ): Map<string, string> {
 	const aliases = new Map<string, WaveToken>();
-	const keys = new Map<string, WaveToken>();
-	const colorReferenceKeys = new Map<string, string>();
+	const colorReferencePaths = new Map<string, string>();
 
-	for (const token of emissionTokens) {
-		if (token.type !== 'color' || token.value === undefined) continue;
-		const filteredKey = getFilteredName(token, filterLayer);
-		const keyOwner = keys.get(filteredKey);
-		if (keyOwner !== undefined && keyOwner !== token) {
-			throw new Error(
-				`Duplicate Sketch color variable key "${filteredKey}" at ${tokenPathLabel(token)}`,
-			);
-		}
-		keys.set(filteredKey, token);
+	for (const token of writeTokens) {
+		if (token.type !== 'color') continue;
+		const referencePath = buildSketchReferencePath(token, filterLayer);
 
 		for (const alias of colorReferenceAliases(token)) {
 			const aliasOwner = aliases.get(alias);
@@ -507,11 +499,11 @@ function buildSketchColorReferenceKeys(
 				);
 			}
 			aliases.set(alias, token);
-			colorReferenceKeys.set(alias, filteredKey);
+			colorReferencePaths.set(alias, referencePath);
 		}
 	}
 
-	return colorReferenceKeys;
+	return colorReferencePaths;
 }
 
 function buildOutputPath(token: WaveToken, filterLayer: number): string[] {
@@ -519,6 +511,51 @@ function buildOutputPath(token: WaveToken, filterLayer: number): string[] {
 	const sketchPath = token._sketch?.path;
 	if (!sketchPath) return [leafKey];
 	return [...sketchPath.split('/').filter(Boolean), leafKey];
+}
+
+function buildSketchReferencePath(
+	token: WaveToken,
+	filterLayer: number,
+): string {
+	return `/${buildOutputPath(token, filterLayer)
+		.map(encodeJsonPointerSegment)
+		.join('/')}`;
+}
+
+interface SketchOutputEntry {
+	token: WaveToken;
+	path: string[];
+}
+
+function compareOutputPaths(left: string[], right: string[]): number {
+	const sharedLength = Math.min(left.length, right.length);
+	for (let i = 0; i < sharedLength; i++) {
+		if (left[i] === right[i]) continue;
+		return left[i]! < right[i]! ? -1 : 1;
+	}
+	return left.length - right.length;
+}
+
+function assertUniqueSketchOutputPaths(
+	writeTokens: WaveToken[],
+	filterLayer: number,
+): void {
+	const entries: SketchOutputEntry[] = writeTokens
+		.map((token) => ({ token, path: buildOutputPath(token, filterLayer) }))
+		.sort((left, right) => compareOutputPaths(left.path, right.path));
+
+	for (let i = 1; i < entries.length; i++) {
+		const previous = entries[i - 1]!;
+		const current = entries[i]!;
+		const previousIsPrefix = previous.path.every(
+			(segment, index) => segment === current.path[index],
+		);
+		if (!previousIsPrefix) continue;
+
+		throw new Error(
+			`Duplicate Sketch output path "${previous.path.join('/')}" conflicts with "${current.path.join('/')}" at ${tokenPathLabel(current.token)}`,
+		);
+	}
 }
 
 function shouldIncludeSketchToken(
@@ -565,7 +602,7 @@ function setNestedValue(
 function formatSketchValue(
 	token: WaveToken,
 	allTokens: WaveToken[],
-	colorReferenceKeys: Map<string, string>,
+	colorReferencePaths: Map<string, string>,
 ): unknown {
 	const propertyKey = dimensionPropertyKey(token);
 	if (propertyKey) {
@@ -576,7 +613,7 @@ function formatSketchValue(
 	}
 
 	if (token.type === 'typography') {
-		return formatSketchTypography(token, colorReferenceKeys);
+		return formatSketchTypography(token, colorReferencePaths);
 	}
 
 	if (token.type === 'color' || token.inheritColor === true) {
@@ -607,7 +644,7 @@ function formatSketchValue(
 					y: 0,
 					blur: 0,
 					spread: width + offset,
-					color: formatSketchColorSlot(token, color, colorReferenceKeys),
+					color: formatSketchColorSlot(token, color, colorReferencePaths),
 				},
 				{
 					x: 0,
@@ -633,7 +670,7 @@ function formatSketchValue(
 		return {
 			value: {
 				...value,
-				color: formatSketchColorSlot(token, value.color, colorReferenceKeys),
+				color: formatSketchColorSlot(token, value.color, colorReferencePaths),
 			},
 		};
 	}
@@ -687,20 +724,21 @@ export const sketchFormat: WaveFormatFn = (
 	const allTokens = [...tokens].sort(
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);
-	const emissionTokens = allTokens.filter(
+	const writeTokens = allTokens.filter(
 		(token) =>
 			shouldIncludeSketchToken(token, includeRootKeys) &&
-			token._sketch?.skip !== true,
+			token._sketch?.skip !== true &&
+			token.value !== undefined,
 	);
-	const colorReferenceKeys = buildSketchColorReferenceKeys(
-		emissionTokens,
+	assertUniqueSketchOutputPaths(writeTokens, filterLayer);
+	const colorReferencePaths = buildSketchColorReferencePaths(
+		writeTokens,
 		filterLayer,
 	);
 
-	for (const token of emissionTokens) {
-		if (token.value === undefined) continue;
+	for (const token of writeTokens) {
 		const outputPath = buildOutputPath(token, filterLayer);
-		const value = formatSketchValue(token, allTokens, colorReferenceKeys);
+		const value = formatSketchValue(token, allTokens, colorReferencePaths);
 		setNestedValue(result, outputPath, value, token);
 	}
 

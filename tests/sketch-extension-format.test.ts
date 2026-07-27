@@ -305,7 +305,55 @@ describe('sketch extension format', () => {
 		];
 
 		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
-			'Duplicate Sketch color variable key "primary-main"',
+			'Duplicate Sketch output path',
+		);
+	});
+
+	test('rejects strict-prefix output paths in either token order', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-dimension-foo',
+				path: ['theme', 'dimension', 'foo'],
+				value: 4,
+				type: 'dimension',
+				_sketch: { path: 'group' },
+			}),
+			token({
+				name: 'theme-dimension-bar',
+				path: ['theme', 'dimension', 'bar'],
+				value: 8,
+				type: 'dimension',
+				_sketch: { path: 'group/foo' },
+			}),
+		];
+
+		for (const orderedTokens of [tokens, [...tokens].reverse()]) {
+			expect(() => sketchFormat(orderedTokens, { filterLayer: 2 })).toThrow(
+				'Duplicate Sketch output path',
+			);
+		}
+	});
+
+	test('rejects mixed-type exact output path collisions', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'theme-color-foo',
+				path: ['theme', 'color', 'foo'],
+				value: '#112233',
+				type: 'color',
+				_sketch: { path: 'group' },
+			}),
+			token({
+				name: 'theme-dimension-foo',
+				path: ['theme', 'dimension', 'foo'],
+				value: 4,
+				type: 'dimension',
+				_sketch: { path: 'group' },
+			}),
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
+			'Duplicate Sketch output path',
 		);
 	});
 
@@ -330,6 +378,53 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 		expect(parsed.foundation.color.primary).toEqual({ color: '#1872f0ff' });
+	});
+
+	test('excludes non-writable tokens from output path preflight', () => {
+		const written = token({
+			name: 'theme-color-primary',
+			path: ['theme', 'color', 'primary'],
+			value: '#1872f0',
+			type: 'color',
+			_sketch: { path: 'foundation/color' },
+		});
+		const conflicting = token({
+			name: 'theme-dimension-primary',
+			path: ['theme', 'dimension', 'primary'],
+			value: 8,
+			type: 'dimension',
+			_sketch: { path: 'foundation/color' },
+		});
+
+		const withoutValue = JSON.parse(
+			sketchFormat([{ ...conflicting, value: undefined }, written], {
+				filterLayer: 2,
+			}),
+		);
+		expect(withoutValue.foundation.color.primary).toEqual({
+			color: '#1872f0ff',
+		});
+
+		const skipped = JSON.parse(
+			sketchFormat(
+				[
+					{ ...conflicting, _sketch: { ...conflicting._sketch, skip: true } },
+					written,
+				],
+				{ filterLayer: 2 },
+			),
+		);
+		expect(skipped.foundation.color.primary).toEqual({ color: '#1872f0ff' });
+
+		const rootExcluded = JSON.parse(
+			sketchFormat([conflicting, written], {
+				filterLayer: 2,
+				includeRootKeys: ['color'],
+			}),
+		);
+		expect(rootExcluded.foundation.color.primary).toEqual({
+			color: '#1872f0ff',
+		});
 	});
 
 	test('keeps skipped tokens available to inheritColor sibling lookup', () => {
@@ -449,6 +544,13 @@ describe('sketch extension format', () => {
 				includeRootKeys: ['border'],
 			}),
 		).toThrow('theme.border.focus');
+		const undefinedTarget = { ...target, value: undefined, _sketch: undefined };
+		expect(() => sketchFormat([undefinedTarget, body])).toThrow(
+			'theme.font.body',
+		);
+		expect(() => sketchFormat([undefinedTarget, border])).toThrow(
+			'theme.border.focus',
+		);
 	});
 
 	test('keeps nested and dotted-key JSON Pointer aliases distinct', () => {
@@ -495,11 +597,11 @@ describe('sketch extension format', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.nested.textStyle.textColor).toBe('@a-b');
-		expect(parsed.dotted.textStyle.textColor).toBe('@a.b');
+		expect(parsed.nested.textStyle.textColor).toBe('@/a-b');
+		expect(parsed.dotted.textStyle.textColor).toBe('@/a.b');
 	});
 
-	test('rejects filtered color key collisions regardless of sketch.path', () => {
+	test('allows duplicate filtered color keys under distinct output paths', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-text-default',
@@ -518,8 +620,36 @@ describe('sketch extension format', () => {
 			}),
 		];
 
-		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
-			'Duplicate Sketch color variable key "text-default"',
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+
+		expect(parsed.foundation.color['text-default']).toEqual({
+			color: '#112233ff',
+		});
+		expect(parsed.foundation.state['text-default']).toEqual({
+			color: '#445566ff',
+		});
+	});
+
+	test('rejects duplicate source aliases across distinct output paths', () => {
+		const tokens: WaveToken[] = [
+			token({
+				name: 'first-color',
+				path: ['theme', 'color', 'shared'],
+				value: '#112233',
+				type: 'color',
+				_sketch: { path: 'foundation/color' },
+			}),
+			token({
+				name: 'second-color',
+				path: ['theme', 'color', 'shared'],
+				value: '#445566',
+				type: 'color',
+				_sketch: { path: 'foundation/state' },
+			}),
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 99 })).toThrow(
+			'Duplicate Sketch color reference alias',
 		);
 	});
 });
