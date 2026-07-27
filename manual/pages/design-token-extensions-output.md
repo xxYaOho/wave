@@ -228,6 +228,10 @@ Sketch 输出：
 }
 ```
 
+Sketch 颜色引用使用目标 token 的完整输出路径，因此不同 `sketch.path` 下可以存在相同叶子名，例如 `v1/color/foo` 与 `v2/color/foo`。引用会分别写为 `@/v1/color/foo` 与 `@/v2/color/foo`。
+
+所有实际输出的 Sketch token 必须组成无冲突的对象树。两个 token 的完整输出路径相同，或一个路径是另一个路径的严格前缀时，构建会在写文件前失败。
+
 `sketch.path` 只定义分组路径，叶子名仍使用 `filterLayer` 处理后的 flat-json key。没有 `sketch.path` 时，Sketch 输出保持根级 flat-json。
 
 优先级：

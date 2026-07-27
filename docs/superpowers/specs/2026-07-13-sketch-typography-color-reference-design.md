@@ -1,5 +1,7 @@
 # Sketch Typography Color Reference 设计
 
+> **Superseded:** 本文记录 Wave 0.17.0 的 `@<filtered-key>` 历史合同。当前合同使用 `@/<full-output-path>`；现行行为以 `docs/SPEC.md` 和用户手册为准。
+
 ## 目标
 
 让 Sketch 复合样式保留当前主题文档内可安全表达的 color token 关系。`$value.color` 直接引用当前 `theme.*` 中可输出的 color token 时，typography、普通 border 和 outline ring 的对应颜色字段输出 `@` 前缀的过滤后 key；其他颜色继续输出最终 HEX8。

@@ -74,7 +74,9 @@ theme:
 
 ### Sketch 颜色引用
 
-Sketch color slot 的默认真值是 `#RRGGBBAA`。只有同一份主题中直接引用当前 `theme.color.*` token，且目标会输出到同一份 Sketch JSON 时，Wave 才会在 typography 的 `textStyle.textColor`、普通 border 的 `value.color` 或 outline ring 的第一层 `shadow[0].color` 输出 `@<filterLayer-key>`。key 只由 `filterLayer` 计算，`sketch.path` 只影响输出位置，不影响引用 key。
+Sketch color slot 的默认真值是 `#RRGGBBAA`。只有同一份主题中直接引用当前 `theme.color.*` token，且目标会输出到同一份 Sketch JSON 时，Wave 才会在 typography 的 `textStyle.textColor`、普通 border 的 `value.color` 或 outline ring 的第一层 `shadow[0].color` 输出 `@/<full-output-path>`。
+
+`@` 后的内容是 RFC 6901 JSON Pointer，直接指向 `{ "color": ... }` 所在的 emitted color token node。完整路径同时包含 `sketch.path` 和经 `filterLayer` 处理的叶子 key；`~` 编码为 `~0`，`/` 编码为 `~1`。旧短引用合同不再兼容。
 
 color token 本身、shadow、gradient、`inheritColor`、外部引用、字面量和带 alpha override 的颜色始终输出 HEX8；outline 的 gap 层固定为 `#ffffffff`。直接引用的目标被 `sketch.skip` 跳过或被 root 选择排除时，Sketch 构建会报错，不会自动降级为 HEX8。Sync Token 对 `@` 的导入属于独立后续工作，不影响 Wave 的构建结果。
 

@@ -1093,8 +1093,9 @@ wave dt doctor --contrast --profile mobile --night
   - component token 不再映射为 Sketch component 样式；component 逻辑后续单独设计
   - inheritColor 通过 siblingSlot 查找兄弟 token 颜色，但其输出始终 materialize 为 HEX8
   - `$type: typography` token 生成 text shared style payload；数组 font family 优先选择 `PingFang SC`。rem 的 `fontSize`、绝对 `lineHeight` 和 `letterSpacing` 使用有效基准（默认 16，或 `baseFontSize`）换算；fontSize 与 letterSpacing 最多保留三位小数。Sketch 最终 lineHeight 始终向上取整为整数：倍率使用换算后字号计算，绝对 px/pt/rem 使用数值或换算结果后取整
-  - Sketch composite color-slot 合同：`#RRGGBBAA` 是所有 color slot 的真值和非变量 fallback。仅当值是同文档、直接的 current-theme color reference，且目标 color token 在同一 Sketch emission list 中时，才输出 `@<filterLayer-key>`；支持的 consumer 仅为 typography `textStyle.textColor`、普通 border `value.color` 和 outline ring `shadow[0].color`
-  - `@` 的 key 只由目标 token 的 `filterLayer` 后 flat key 计算，完全不依赖 `sketch.path`；`sketch.path` 只控制对象嵌套位置
+  - Sketch composite color-slot 合同：`#RRGGBBAA` 是所有 color slot 的真值和非变量 fallback。仅当值是同文档、直接的 current-theme color reference，且目标 color token 在同一 Sketch emission list 中时，才输出 `@/<full-output-path>`；支持的 consumer 仅为 typography `textStyle.textColor`、普通 border `value.color` 和 outline ring `shadow[0].color`
+  - `@` 后的 payload 是 RFC 6901 JSON Pointer，直接指向 emitted color token node。路径由目标 token 的 `buildOutputPath()` 生成，包含 `sketch.path` 和 `filterLayer` 后叶子 key；不同完整路径可以使用相同叶子 key
+  - 所有实际可写 Sketch token 在 formatter 写入前统一检查 exact/prefix output path collision；检测与 token 顺序无关，失败时 `generateTokens()` 不写本次 pending outputs
   - color token 自身、shadow、gradient、inheritColor、external reference、literal color 与 alpha override 均输出 HEX8；outline `shadow[1].color` 是固定 gap `#ffffffff`
   - 内部直接 color reference 的 target 若被 `sketch.skip` 跳过，或被 root selection 排除，Sketch build 必须报错，不得以 HEX8 降级；外部 reference 与不符合直接引用条件的值正常 materialize 为 HEX8
   - 普通 DTCG dashed border 保留结构化 `style.dashArray`
