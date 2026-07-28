@@ -1,6 +1,6 @@
 import type { QualityHarnessMode } from '../shared/types.ts';
 
-export type DesignTokenEntryKind = 'main-config' | 'themefile-legacy';
+export type DesignTokenEntryKind = 'main-config';
 
 export type DesignTokenCaseOrigin =
 	| 'synthetic'

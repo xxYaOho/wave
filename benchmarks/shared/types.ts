@@ -1,6 +1,6 @@
 import type { FileArtifact } from './artifacts.ts';
 
-export type QualityHarnessMode = 'smoke' | 'default' | 'stress' | 'legacy';
+export type QualityHarnessMode = 'smoke' | 'default' | 'stress';
 
 export interface ResourceTrace {
 	kind: 'palette' | 'dimension' | 'custom';
@@ -33,7 +33,7 @@ export interface BenchmarkCaseResult {
 	id: string;
 	caseVersion: number;
 	mode: QualityHarnessMode;
-	entryKind: string;
+	entryKind: 'main-config';
 	status: 'success' | 'failure';
 	error?: string;
 	iterations: number;

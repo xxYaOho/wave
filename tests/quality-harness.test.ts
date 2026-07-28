@@ -20,12 +20,20 @@ import { sha256Text } from '../benchmarks/shared/hash.ts';
 import type { BenchmarkSuiteReport } from '../benchmarks/shared/report.ts';
 
 describe('Quality Harness design-token case registry', () => {
-	test('keeps default design-token benchmark cases on the main-config entry', () => {
+	test('keeps every design-token benchmark case on the main-config entry', () => {
 		const defaultCases = getDesignTokenCases('default');
+		const migratedCaseIds = [
+			'standard',
+			'ref-test',
+			'extends-test',
+			'inherit-color',
+		];
 
 		expect(defaultCases.length).toBeGreaterThan(0);
 		expect(
-			defaultCases.every((testCase) => testCase.entryKind === 'main-config'),
+			DESIGN_TOKEN_CASES.every(
+				(testCase) => testCase.entryKind === 'main-config',
+			),
 		).toBe(true);
 		expect(
 			defaultCases.every((testCase) => 'includeProfiles' in testCase),
@@ -39,27 +47,10 @@ describe('Quality Harness design-token case registry', () => {
 		expect(
 			defaultCases.some((testCase) => testCase.id === 'config-group-variants'),
 		).toBe(false);
-		expect(defaultCases.some((testCase) => testCase.id === 'standard')).toBe(
-			false,
-		);
-	});
-
-	test('keeps legacy themefile cases outside default comparison', () => {
-		const legacyCases = getDesignTokenCases('legacy');
-
-		expect(legacyCases.length).toBeGreaterThan(0);
-		expect(
-			legacyCases.every(
-				(testCase) => testCase.entryKind === 'themefile-legacy',
-			),
-		).toBe(true);
-		expect(
-			DESIGN_TOKEN_CASES.filter(
-				(testCase) =>
-					testCase.entryKind === 'themefile-legacy' &&
-					testCase.compareDurations,
-			),
-		).toEqual([]);
+		for (const id of migratedCaseIds) {
+			const testCase = defaultCases.find((candidate) => candidate.id === id);
+			expect(testCase?.caseVersion).toBe(2);
+		}
 	});
 
 	test('registers example-derived cases with traceable source and risks', () => {
@@ -317,7 +308,7 @@ describe('Quality Harness workspace and runner', () => {
 		}
 	});
 
-	test('runs an example-derived design-token case without legacy variant artifacts', async () => {
+	test('runs an example-derived design-token case without variant artifacts', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-qh-'));
 		try {
 			const testCase = getDesignTokenCases('default').find(
@@ -388,7 +379,7 @@ describe('Quality Harness workspace and runner', () => {
 		expect(result.benchmarkFiles).toEqual(result.generateThemeFiles);
 	});
 
-	test('matches generateTheme output hashes without legacy group night outputs', async () => {
+	test('matches generateTheme output hashes without obsolete group night outputs', async () => {
 		const testCase = getDesignTokenCases('default').find(
 			(candidate) => candidate.id === 'config-group-profiles',
 		);
@@ -427,23 +418,35 @@ describe('Quality Harness workspace and runner', () => {
 		).toBe(false);
 	});
 
-	test('runs legacy themefile cases through benchmark fallback', async () => {
-		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-qh-legacy-'));
-		const testCase = getDesignTokenCases('legacy').find(
-			(candidate) => candidate.id === 'standard',
-		);
-		expect(testCase).toBeDefined();
+	test('preserves representative artifacts for migrated fixture cases', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-qh-main-'));
+		const expectedArtifacts = new Map([
+			['standard', 'test-standard.json'],
+			['ref-test', 'test-ref.json'],
+			['extends-test', 'test-extends.json'],
+			['inherit-color', 'inherit-color.json'],
+		]);
 		try {
-			const result = await runDesignTokenBenchmarkCase(testCase!, {
-				mode: 'legacy',
-				runId: 'test-legacy-fallback',
-				iteration: 0,
-				tmpRoot: tempDir,
-			});
+			for (const [id, relativePath] of expectedArtifacts) {
+				const testCase = getDesignTokenCases('default').find(
+					(candidate) => candidate.id === id,
+				);
+				expect(testCase).toBeDefined();
+				const result = await runDesignTokenBenchmarkCase(testCase!, {
+					mode: 'default',
+					runId: 'test-migrated-fixtures',
+					iteration: 0,
+					tmpRoot: tempDir,
+				});
 
-			expect(result.status).toBe('success');
-			expect(result.outputFileNames).toContain('test-standard.json');
-			expect(result.outputFileNames).toContain('test-standard.css');
+				expect(result.status).toBe('success');
+				const artifact = result.files.find(
+					(candidate) => candidate.relativePath === relativePath,
+				);
+				expect(artifact?.relativePath).toBe(relativePath);
+				expect(artifact?.sha256).toMatch(/^[a-f0-9]{64}$/);
+				expect(artifact?.bytes).toBeGreaterThan(0);
+			}
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}

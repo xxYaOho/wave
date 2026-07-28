@@ -10,13 +10,16 @@ import {
 	parseProfileDocument,
 } from '../../src/core/pipeline/profile-resolver.ts';
 import {
-	buildDependencyDictionary,
 	buildGroupPasses,
+	collectDependencyDictionary,
 	type DependencyDict,
-	loadThemefile,
 	processThemeDocument,
 } from '../../src/core/pipeline/theme-pipeline.ts';
-import { ExitCode } from '../../src/types/index.ts';
+import { loadDesignTokenWorkspace } from '../../src/core/pipeline/workspace-loader.ts';
+import {
+	type DesignTokenBuildConfig,
+	ExitCode,
+} from '../../src/types/index.ts';
 import {
 	collectFileArtifacts,
 	commonDirectoryRoot,
@@ -91,6 +94,18 @@ function profileThemeName(
 	return profile.isDefault ? baseThemeName : `${baseThemeName}-${profile.name}`;
 }
 
+function toGroupPassConfig(config: DesignTokenBuildConfig) {
+	return {
+		THEME: config.theme,
+		PARAMETER: config.parameter,
+		resources: config.resources,
+		groups: config.parameterGroups.map((group) => ({
+			name: group.name,
+			PARAMETER: group.parameter,
+		})),
+	};
+}
+
 function failureResult(
 	testCase: DesignTokenCase,
 	options: DesignTokenBenchmarkRunOptions,
@@ -155,118 +170,81 @@ export async function runDesignTokenBenchmarkCase(
 				);
 				phases.prepareMs = prepare.ms;
 
-				const themePath =
-					testCase.entryKind === 'themefile-legacy'
-						? prepare.value.themefilePath
-						: prepare.value.mainYamlPath;
-				if (!themePath) {
-					return fail('Benchmark case has no entry file');
-				}
-
 				pipelineStart = now();
-				const load = await timed(() => loadThemefile(themePath));
+				const load = await timed(() =>
+					loadDesignTokenWorkspace(prepare.value.mainYamlPath),
+				);
 				phases.loadMs = load.ms;
-				if ('error' in load.value) {
-					return fail(load.value.error.message);
+				if (!load.value.ok) {
+					return fail(load.value.message);
 				}
 
-				const { parsed, themeDir, mainYamlPath } = load.value;
-				const resolvedThemeName = parsed.THEME || testCase.id;
+				const { workspace } = load.value;
+				const resolvedThemeName = workspace.config.theme || testCase.id;
 
 				const scopes: GenerateScope[] = [];
-				const profiles = mainYamlPath ? await discoverProfiles(themeDir) : [];
-				if (profiles.length > 0) {
-					const baseProfile = profiles.find((profile) => profile.isDefault);
-					if (!baseProfile) {
-						return fail('No main.yaml found');
-					}
-					const selectedProfiles = testCase.includeProfiles
-						? profiles
-						: [baseProfile];
-					const baseDocument = await parseProfileDocument(baseProfile, {
-						defaultParsed: parsed,
-						baseDir: themeDir,
-					});
+				const profiles = await discoverProfiles(workspace.workspaceDir);
+				const baseProfile = profiles.find((profile) => profile.isDefault);
+				if (!baseProfile) {
+					return fail('No main.yaml found');
+				}
+				const selectedProfiles = testCase.includeProfiles
+					? profiles
+					: [baseProfile];
+				const baseDocument = await parseProfileDocument(baseProfile, {
+					defaultConfig: workspace.config,
+					baseDir: workspace.workspaceDir,
+				});
 
-					for (const profile of selectedProfiles) {
-						const document = profile.isDefault
-							? baseDocument
-							: await parseProfileDocument(profile, {
-									baseParsed: baseDocument.parsed,
-									baseDir: themeDir,
-								});
-						const resource = await timed(() =>
-							buildDependencyDictionary(document.parsed, themeDir),
-						);
-						phases.resourceMs += resource.ms;
-						if ('error' in resource.value) {
-							return fail(resource.value.error.message);
-						}
-						const groupPass = await timed(async () =>
-							buildGroupPasses(document.parsed, document.buildDir),
-						);
-						phases.groupPassMs += groupPass.ms;
-						scopes.push({
-							name: profile.name,
-							themeName: profileThemeName(resolvedThemeName, profile),
-							filePath: profile.path,
-							contentOverride: document.tokenContent,
-							dict: resource.value.dict,
-							passes: groupPass.value,
-						});
-
-						if (!testCase.includeNight || !profile.nightPath) {
-							continue;
-						}
-						const dayTree = parseYamlObject(document.tokenContent);
-						const nightTree = parseYamlObject(
-							await fs.readFile(profile.nightPath, 'utf-8'),
-						);
-						if (!dayTree || !nightTree) {
-							continue;
-						}
-						const mergedNight = mergeNightOverlay(dayTree, nightTree);
-						if (!mergedNight.ok) {
-							continue;
-						}
-						scopes.push({
-							name: `${profile.name}-night`,
-							themeName: `${profileThemeName(resolvedThemeName, profile)}-night`,
-							filePath: profile.nightPath,
-							contentOverride: yaml.dump(mergedNight.tree, { lineWidth: -1 }),
-							dict: resource.value.dict,
-							passes: groupPass.value,
-						});
-					}
-				} else {
+				for (const profile of selectedProfiles) {
+					const document = profile.isDefault
+						? baseDocument
+						: await parseProfileDocument(profile, {
+								baseConfig: baseDocument.config,
+								baseDir: workspace.workspaceDir,
+							});
 					const resource = await timed(() =>
-						buildDependencyDictionary(parsed, themeDir),
+						collectDependencyDictionary(document.config, document.buildDir),
 					);
 					phases.resourceMs += resource.ms;
-					if ('error' in resource.value) {
-						return fail(resource.value.error.message);
-					}
 					const groupPass = await timed(async () =>
-						buildGroupPasses(parsed, themeDir, undefined, undefined),
+						buildGroupPasses(
+							toGroupPassConfig(document.config),
+							document.buildDir,
+						),
 					);
 					phases.groupPassMs += groupPass.ms;
-					const fallbackMainYamlPath = path.join(themeDir, 'main.yaml');
-					try {
-						const stat = await fs.stat(fallbackMainYamlPath);
-						if (stat.isFile()) {
-							scopes.push({
-								name: 'main',
-								themeName: resolvedThemeName,
-								filePath: fallbackMainYamlPath,
-								dict: resource.value.dict,
-								passes: groupPass.value,
-							});
-						}
-					} catch (err) {
-						if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-							throw err;
-						}
+					scopes.push({
+						name: profile.name,
+						themeName: profileThemeName(resolvedThemeName, profile),
+						filePath: profile.path,
+						contentOverride: document.tokenContent,
+						dict: resource.value.dict,
+						passes: groupPass.value,
+					});
+
+					if (!testCase.includeNight || !profile.nightPath) {
+						continue;
 					}
+					const dayTree = parseYamlObject(document.tokenContent);
+					const nightTree = parseYamlObject(
+						await fs.readFile(profile.nightPath, 'utf-8'),
+					);
+					if (!dayTree || !nightTree) {
+						continue;
+					}
+					const mergedNight = mergeNightOverlay(dayTree, nightTree);
+					if (!mergedNight.ok) {
+						continue;
+					}
+					scopes.push({
+						name: `${profile.name}-night`,
+						themeName: `${profileThemeName(resolvedThemeName, profile)}-night`,
+						filePath: profile.nightPath,
+						contentOverride: yaml.dump(mergedNight.tree, { lineWidth: -1 }),
+						dict: resource.value.dict,
+						passes: groupPass.value,
+					});
 				}
 
 				const generatedFiles: string[] = [];
@@ -321,7 +299,7 @@ export async function runDesignTokenBenchmarkCase(
 						scopes.flatMap((scope) =>
 							scope.passes.map((pass) => pass.outputDir),
 						),
-					) ?? path.join(themeDir, parsed.THEME);
+					) ?? path.join(workspace.workspaceDir, workspace.config.theme);
 				const files = await collectFileArtifacts(outputDir);
 				phases.totalWallMs = now() - totalStart;
 

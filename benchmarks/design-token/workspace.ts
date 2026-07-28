@@ -23,8 +23,7 @@ const RESOURCE_SOURCES: Record<
 
 export interface PreparedDesignTokenWorkspace {
 	workspaceDir: string;
-	mainYamlPath?: string;
-	themefilePath?: string;
+	mainYamlPath: string;
 	resources: ResourceTrace[];
 }
 
@@ -55,16 +54,6 @@ function rewriteConfigResources(mainYaml: string): string {
 	config.resource = resource;
 	root.$config = config;
 	return yaml.dump(root, { lineWidth: -1 });
-}
-
-function rewriteThemefileResources(themefile: string): string {
-	return themefile.replace(
-		/^(RESOURCE\s+(palette|dimension)\s+)(tailwindcss|wave)\s*$/gm,
-		(_match, prefix: string, _kind: string, name: string) => {
-			const source = RESOURCE_SOURCES[name];
-			return source ? `${prefix}./resources/${source.workspaceName}` : _match;
-		},
-	);
 }
 
 function toRefList(value: unknown): string[] {
@@ -151,19 +140,6 @@ export async function prepareDesignTokenWorkspace(
 		const mainYamlPath = path.join(workspaceDir, 'main.yaml');
 		const mainYaml = await fs.readFile(mainYamlPath, 'utf-8');
 		await fs.writeFile(mainYamlPath, rewriteConfigResources(mainYaml), 'utf-8');
-		const themefilePath = path.join(workspaceDir, 'themefile');
-		try {
-			const themefile = await fs.readFile(themefilePath, 'utf-8');
-			await fs.writeFile(
-				themefilePath,
-				rewriteThemefileResources(themefile),
-				'utf-8',
-			);
-		} catch (err) {
-			if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-				throw err;
-			}
-		}
 
 		const resources = [
 			...(await copyBenchmarkResources(repoRoot, workspaceDir)),
@@ -172,10 +148,6 @@ export async function prepareDesignTokenWorkspace(
 		return {
 			workspaceDir,
 			mainYamlPath,
-			themefilePath:
-				testCase.entryKind === 'themefile-legacy'
-					? path.join(workspaceDir, 'themefile')
-					: undefined,
 			resources,
 		};
 	}

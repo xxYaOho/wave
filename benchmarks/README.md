@@ -41,12 +41,12 @@ pnpm bench:compare -- benchmarks/.results/base.json benchmarks/.results/current.
 - `tokensCount`：本次处理的 WaveToken 数量。
 - `outputFiles` / `outputBytes`：输出规模。
 - `phases.prepareMs`：准备临时 workspace 和复制资源的时间，不计入 pipeline 对比。
-- `phases.loadMs`：读取并解析 `main.yaml` 或 `themefile`。
+- `phases.loadMs`：读取并解析 `main.yaml`。
 - `phases.resourceMs`：解析 resource 依赖字典。
 - `phases.groupPassMs`：解析输出分组。
 - `phases.processMs`：解析 token、展开继承、解析引用并转换为 WaveToken。
 - `phases.generateMs`：写出目标格式文件。
-- `phases.pipelineDurationMs`：从 `loadThemefile()` 开始到输出写完，不包含 prepare 和 artifact collect。
+- `phases.pipelineDurationMs`：从 `loadDesignTokenWorkspace()` 开始到输出写完，不包含 prepare 和 artifact collect。
 - `stats.meanMs` / `minMs` / `maxMs` / `p95Ms`：多次 iteration 的 pipeline duration 统计。
 
 ## 资源隔离
@@ -55,7 +55,7 @@ design-token suite 不使用用户本机 resource cache。runner 会：
 
 - 把 fixture 复制到 `benchmarks/.tmp/<runId>/<case>/<iteration>/workspace`。
 - 把 repo 内 `src/resources/palettes/tailwindcss.yaml` 和 `src/resources/dimensions/wave.yaml` 复制到 workspace 的 `resources/`。
-- 把 `$config.resource` 和 legacy `themefile` 中的 `tailwindcss` / `wave` 改写为 `./resources/*.yaml`。
+- 把 `$config.resource` 中的 `tailwindcss` / `wave` 改写为 `./resources/*.yaml`。
 - 设置隔离的 `WAVE_RESOURCE_CACHE_DIR`、`WAVE_RESOURCE_STATE_PATH`、`WAVE_RESOURCE_CONFIG_DIR`，并在结束后恢复环境变量。
 
 ## 何时该优化
@@ -91,7 +91,7 @@ design-token suite 不使用用户本机 resource cache。runner 会：
 流程：
 
 1. 记录来源：实例名、原始路径、触发命令、实际问题和期望差异。
-2. 归因风险：标注它覆盖的是 resource、profile、legacy variant 迁移、parameter group、输出格式、Sketch 映射、warning、性能，还是产物语义漂移。
+2. 归因风险：标注它覆盖的是 resource、profile、variant 迁移、parameter group、输出格式、Sketch 映射、warning、性能，还是产物语义漂移。
 3. 提炼 fixture：不要直接依赖用户本机路径；把必要结构提炼到 `tests/fixtures/...`，保留能复现风险的最小真实形态。
 4. 登记 case：在对应模块的 case registry 中把 `origin` 标为 `example-derived`，并填写 `example.sourceName`、`example.reason` 和 `example.risks`。
 5. 加入 suite：默认优先加入 `default`。只有体积很小、能快速证明 harness 正常工作时，才加入 `smoke`。
