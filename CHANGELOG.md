@@ -1,5 +1,11 @@
 # wave
 
+## 0.21.0
+
+### Minor Changes
+
+- df9fda9: Allow self-contained design-token profiles to build without resource declarations, and move declaration-level resource validation from build to `wave dt doctor`.
+
 ## 0.20.0
 
 ### Minor Changes
