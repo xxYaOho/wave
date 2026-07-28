@@ -29,7 +29,7 @@ Wave should keep `theme` as the public API layer.
 
 The intended boundary is:
 
-- `$config.resource`: source declarations used for reference resolution.
+- `$config.resource`: optional source declarations used for reference resolution.
 - `theme`: public consumption API.
 - `profile`: another public API entry inside the same project.
 - `night`: a color-mode overlay for one profile.
@@ -53,7 +53,7 @@ Profiles may have different public APIs. A mobile profile can add mobile-only to
 Extra responsibilities of `main.yaml`:
 
 - `$config.theme` defines the project name.
-- `$config.resource` defines project-level source resources inherited by profiles.
+- `$config.resource`, when present, defines project-level source resources inherited by profiles.
 - `$config.parameter` and `$config.parameterGroup` define default build parameters inherited by profiles.
 
 ## Profile Files
@@ -138,9 +138,45 @@ Path handling:
 
 Resource namespaces:
 
-- Each effective resource namespace after loading must be unique.
+- Build validates the token graph, not every resource declaration.
+- `$config.resource` is optional when the profile is self-contained.
+- Build attempts to load declared resources but does not fail for an invalid,
+  missing, or duplicate declaration unless a token reference depends on it.
+- Every supported reference in the effective profile must resolve uniquely. This
+  includes curly-brace and `$ref` values wherever the existing resolver walks the
+  token document. `$extends` remains document-internal; external resource groups
+  are not valid `$extends` targets.
+- A missing or ambiguous referenced namespace fails the build and reports the
+  reference location.
+- A valid but unused resource may remain declared. Build does not warn about it.
+- Doctor validates every declaration in the inspected default or explicitly
+  selected profile, including existence, readability, schema, kind, custom file
+  extension, and namespace uniqueness. A complete all-profile workspace scan and
+  unused-declaration findings are later Doctor enhancements.
 - A resource namespace may match the filename; this is normal and preferred.
-- If a profile appends a resource whose loaded namespace already exists in inherited resources, the build should fail.
+- If a profile appends a resource whose loaded namespace already exists in
+  inherited resources, references to that namespace are ambiguous and fail the
+  build. Doctor reports the duplicate even when no token references it.
+
+Resource loading for build is tolerant rather than lazy. Custom resource
+namespaces live inside resource files, so Wave cannot map a reference namespace
+to a declaration before reading the file. Build therefore attempts every
+declaration, keeps unique namespaces that pass generic resource loading in the
+dependency dictionary, records load problems internally, and lets reference
+resolution plus resolved token schema validation decide whether those problems
+affect the token graph. Kind-specific resource validity is a Doctor concern when
+the resolved token graph itself remains valid. The build receipt lists only
+resources that entered the dependency dictionary.
+
+Malformed `$config.resource` value shapes that normalize to no declaration are
+outside this iteration's Doctor validation. Config-shape diagnostics belong to
+the later complete workspace health pass.
+
+The legacy no-`main.yaml` fallback remains an exception. That path generates
+output directly from resource contents, so its required palette and dimension
+resources are build inputs rather than optional reference dependencies. This is
+temporary containment, not a renewed compatibility commitment: a separate
+breaking iteration will remove `themefile` and the resource-direct fallback.
 
 `$config.theme`:
 
@@ -399,7 +435,10 @@ theme:
 Current code exploration shows these gaps between this draft and the current implementation:
 
 - `theme-service.ts` automatically detects `main@night.yaml` and files under `variants/`. The draft requires explicit selection: default only, `--profile`, `--profiles all`, and optional `--night`.
-- `theme-pipeline.ts` parses `$config` only from the entry `main.yaml` shape and requires `$config.resource`. A profile resolver will need to merge effective config before parsing profile tokens.
+- `theme-pipeline.ts` still requires `$config.resource` and fails resource loading
+  before reference resolution. A follow-up iteration must make resource
+  declarations optional and separate tolerant build loading from strict Doctor
+  validation.
 - `token-generator.ts` filters CSS output to root keys `color` and `style`. That excludes `theme.shadow`, `theme.gradient`, `theme.border`, `theme.radius`, and `theme.state` even though the CSS formatter can format shadow and gradient values.
 - `css.ts` already has formatter branches for `shadow` and `gradient`, so the CSS dimension-layer output problem is partly a selection and taxonomy problem. Border and outline still need formatter design.
 - `formats/utils.ts` currently strips `px` from shadow lengths, including non-zero values. Before expanding CSS shadow output, decide whether numeric shadow values are acceptable CSS, whether the formatter should append `px`, or whether the output is meant for a non-browser CSS-like consumer.

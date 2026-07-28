@@ -46,6 +46,34 @@ Release closeout:
 - Sketch text shared style output does not control whether color or alignment follows shared style.
 - `$helper` remains documentation-only in this iteration.
 
+## Planned Follow-up: Reference-Gated Resource Loading
+
+Decision recorded: 2026-07-28. This behavior is approved but not implemented.
+
+- `$config.resource` becomes optional for `main.yaml` and named profiles.
+- Build validates the effective token graph. Invalid, missing, or duplicate
+  resource declarations do not fail build unless a token reference depends on
+  them.
+- Every supported curly-brace and `$ref` value must resolve uniquely wherever the
+  existing resolver walks the effective token document. `$extends` remains
+  document-internal and does not target resource groups. Missing or ambiguous
+  referenced namespaces fail build with the reference location.
+- Build attempts declared resources and suppresses declaration-only failures. It
+  does not use a static lazy-load pass because custom namespaces are known only
+  after reading their files.
+- Doctor remains strict for declarations in the inspected default or explicitly
+  selected profile. A later Doctor iteration adds an all-profile workspace scan,
+  malformed `$config.resource` shape diagnostics, unused-declaration findings,
+  and more complete resource health reporting.
+- The legacy no-`main.yaml` fallback still requires the resource inputs from
+  which it generates output.
+- The legacy `themefile` path is scheduled for removal in a separate breaking
+  iteration. Do not extend or add compatibility behavior to it in this resource
+  loading iteration.
+
+Canonical design details are in
+`docs/research/wave-dt-profile-model.md` under `Config Inheritance`.
+
 ## Legacy Themefile Boundary
 
 The approved plan keeps one compatibility guard for existing `themefile + main.yaml` projects:
@@ -55,12 +83,19 @@ The approved plan keeps one compatibility guard for existing `themefile + main.y
 
 This is transitional compatibility, not a renewed product direction. Current usage has largely moved away from legacy `themefile`; the historical debt should be intentionally retired after this wave.
 
-Follow-up deprecation direction:
+Approved follow-up removal direction:
 
-- keep compatibility only where it prevents existing tests or examples from breaking during the profile refactor;
-- do not add new user-facing capability that depends on legacy `themefile`;
-- after the profile model lands, add a separate deprecation/removal plan for legacy `themefile` entry behavior;
-- prefer doctor or migration guidance for remaining users rather than expanding compatibility code.
+- Remove `themefile` support in a separate breaking iteration; do not leave it as
+  a permanent compatibility path.
+- Scope that iteration across every public command and internal parser still
+  using `themefile`, including `wave create`, `wave dt build`, Doctor, init
+  templates, fixtures, manual pages, and the no-`main.yaml` resource-direct
+  fallback.
+- Define the migration and error contract before implementation. `main.yaml`
+  remains the only design-token project entry after the cutover.
+- Until that iteration starts, preserve existing behavior only to avoid mixing
+  two breaking changes. Do not add new user-facing capability that depends on
+  `themefile`.
 
 ## Execution Discipline
 
