@@ -7,11 +7,14 @@ const rootDir = path.resolve(__dirname, '..');
 async function runWaveTheme(
 	args: string[],
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(['bun', 'run', 'src/index.ts', 'create', ...args], {
-		cwd: rootDir,
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
+	const proc = Bun.spawn(
+		['bun', 'run', 'src/index.ts', 'dt', 'build', ...args],
+		{
+			cwd: rootDir,
+			stdout: 'pipe',
+			stderr: 'pipe',
+		},
+	);
 
 	const stdout = await new Response(proc.stdout).text();
 	const stderr = await new Response(proc.stderr).text();
@@ -31,7 +34,7 @@ describe('smoothGradient CLI output', () => {
 
 		const { exitCode } = await runWaveTheme([
 			'-f',
-			path.join(fixtureDir, 'themefile'),
+			path.join(fixtureDir, 'main.yaml'),
 			'-o',
 			outputDir,
 			'--platform',
@@ -73,7 +76,7 @@ describe('smoothGradient CLI output', () => {
 
 		const { exitCode } = await runWaveTheme([
 			'-f',
-			path.join(fixtureDir, 'themefile'),
+			path.join(fixtureDir, 'main.yaml'),
 			'-o',
 			outputDir,
 			'--platform',

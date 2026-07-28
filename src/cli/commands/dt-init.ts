@@ -4,30 +4,16 @@ import { Command } from 'commander';
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 
-const TEMPLATE_THEMEFILE = `THEME example
-RESOURCE palette tailwindcss
-RESOURCE dimension wave
-
-PARAMETER output ./build
-PARAMETER platform json,css
-PARAMETER colorSpace oklch
-`;
-
 const TEMPLATE_MAIN_YAML = `$schema: "https://www.designtokens.org/tr/2025.10/format/"
 
 $config:
   theme: example
   resource:
-    palette:
-      - tailwindcss
-    dimension:
-      - wave
+    palette: [tailwindcss]
+    dimension: [wave]
   parameter:
     outputDir: ./dist
-    platform:
-      - json
-      - css
-      - sketch
+    platform: [json, css, sketch]
     filterLayer: 1
 
 theme:
@@ -92,13 +78,9 @@ theme:
         $type: typography
         $value:
           fontFamily: "{TOKEN}"
-          fontSize:
-            value: "{TOKEN}"
-            unit: px
+          fontSize: { value: "{TOKEN}", unit: px }
           fontWeight: "{TOKEN}"
-          lineHeight:
-            value: "{TOKEN}"
-            unit: px
+          lineHeight: { value: "{TOKEN}", unit: px }
           letterSpacing: "{TOKEN}"
 
 doctor:
@@ -108,34 +90,23 @@ doctor:
       background: "{TOKEN}"
 `;
 
-export function createInitCommand(name = 'init'): Command {
+export function createDesignTokenInitCommand(name = 'init'): Command {
 	return new Command(name)
-		.description('Initialize a new theme workspace')
+		.description('Initialize a new design-token workspace')
 		.action(async () => {
-			const cwd = process.cwd();
-			const themefilePath = path.join(cwd, 'themefile');
-
+			const mainPath = path.join(process.cwd(), 'main.yaml');
 			try {
-				await fs.access(themefilePath);
-				logger.error('A themefile already exists in the current directory');
+				await fs.access(mainPath);
+				logger.error('A main.yaml already exists in the current directory');
 				process.exitCode = ExitCode.GENERAL_ERROR;
 				return;
 			} catch {
-				// File doesn't exist, proceed
+				// The workspace entry is available to create.
 			}
 
-			const files = [
-				{ name: 'themefile', content: TEMPLATE_THEMEFILE },
-				{ name: 'main.yaml', content: TEMPLATE_MAIN_YAML },
-			];
-
 			try {
-				for (const { name, content } of files) {
-					const destPath = path.join(cwd, name);
-					await fs.writeFile(destPath, content, 'utf-8');
-					logger.success(`Created: ${name}`);
-				}
-
+				await fs.writeFile(mainPath, TEMPLATE_MAIN_YAML, 'utf8');
+				logger.success('Created: main.yaml');
 				logger.info('');
 				logger.success('Theme template initialized successfully!');
 				logger.info('');
@@ -148,13 +119,11 @@ export function createInitCommand(name = 'init'): Command {
 				);
 				logger.info('  3. See MANUAL.md for detailed usage');
 				logger.info('  4. Run "wave dt" to generate tokens');
-			} catch (err) {
+			} catch (error) {
 				logger.error(
-					`Failed to initialize template: ${err instanceof Error ? err.message : String(err)}`,
+					`Failed to initialize template: ${error instanceof Error ? error.message : String(error)}`,
 				);
 				process.exitCode = ExitCode.GENERAL_ERROR;
 			}
 		});
 }
-
-export const initCommand = createInitCommand('init');

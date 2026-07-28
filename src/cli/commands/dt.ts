@@ -5,9 +5,9 @@ import {
 	updateTailwind,
 } from '../../core/resources/manager.ts';
 import { ExitCode } from '../../types/index.ts';
-import { createBuildCommand } from './create.ts';
+import { createDesignTokenBuildCommand } from './build.ts';
 import { createDoctorCommand } from './doctor.ts';
-import { createInitCommand } from './init.ts';
+import { createDesignTokenInitCommand } from './dt-init.ts';
 import { createShowCommand } from './show.ts';
 
 const DESIGN_TOKEN_HELP = `Wave Design Token
@@ -38,16 +38,6 @@ const DESIGN_TOKEN_HELP = `Wave Design Token
   For more help on a command:
     wave dt <command> --help`;
 
-const DT_BUILD_CONFIG = {
-	defaultFile: 'main.yaml',
-	fileHelp: 'main.yaml path. Default: ./main.yaml',
-	missingFileHelp: [
-		'Error: No main.yaml found in current directory',
-		'Usage: wave dt [./main.yaml] or wave dt -f ./main.yaml',
-		'Run "wave dt init" to create a design-token workspace',
-	],
-};
-
 function showDesignTokenHelp(): void {
 	console.log(DESIGN_TOKEN_HELP);
 }
@@ -56,7 +46,7 @@ export function createWcagCommand(): Command {
 	return new Command('wcag')
 		.description('Run WCAG contrast checks')
 		.argument('[scope]', 'Theme scope: main or profile name')
-		.option('-f, --file <path>', 'Themefile or main.yaml path to validate')
+		.option('-f, --file <path>', 'main.yaml path to validate')
 		.option('--night', 'Check night profile')
 		.option('--profile <name>', 'Check specific profile by name')
 		.action(
@@ -176,13 +166,13 @@ export function createDesignTokenCommand(name = 'design-token'): Command {
 		.helpOption(false)
 		.addHelpCommand(false)
 		.option('-h, --help', 'Show help')
-		.addCommand(createBuildCommand('build', DT_BUILD_CONFIG))
+		.addCommand(createDesignTokenBuildCommand('build'))
 		.addCommand(createDoctorCommand('doctor', { defaultMainYaml: true }))
 		.addCommand(createWcagCommand())
 		.addCommand(createShowCommand('show'))
 		.addCommand(createUpdateCommand())
 		.addCommand(createStatusCommand())
-		.addCommand(createInitCommand('init'))
+		.addCommand(createDesignTokenInitCommand('init'))
 		.action(showDesignTokenHelp);
 }
 

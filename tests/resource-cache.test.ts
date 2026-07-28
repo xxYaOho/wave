@@ -222,11 +222,6 @@ describe('resource cache and adapters', () => {
 				components: [0.637, 0.237, 25.331],
 			});
 			await fs.writeFile(
-				path.join(tempTheme, 'themefile'),
-				'THEME tailwind-v4\nRESOURCE palette tailwindcss\nRESOURCE dimension wave\n',
-				'utf-8',
-			);
-			await fs.writeFile(
 				path.join(tempTheme, 'main.yaml'),
 				[
 					'$config:',
@@ -254,7 +249,7 @@ describe('resource cache and adapters', () => {
 					'dt',
 					'build',
 					'-f',
-					path.join(tempTheme, 'themefile'),
+					path.join(tempTheme, 'main.yaml'),
 					'-o',
 					outputDir,
 				],

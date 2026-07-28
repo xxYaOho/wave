@@ -74,7 +74,7 @@ describe('compiled wave built-in resources', () => {
 			'dt',
 			'build',
 			'-f',
-			'tests/fixtures/themes/standard/themefile',
+			'tests/fixtures/themes/standard/main.yaml',
 			'--out',
 			tempOut,
 		]);

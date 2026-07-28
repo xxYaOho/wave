@@ -1,13 +1,17 @@
 import { describe, expect, test } from 'bun:test';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 
 const rootDir = path.resolve(import.meta.dir, '..');
+const cliEntry = path.join(rootDir, 'src/index.ts');
 
 async function runWave(
 	args: string[],
+	cwd = rootDir,
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(['bun', 'run', 'src/index.ts', ...args], {
-		cwd: rootDir,
+	const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
+		cwd,
 		stdout: 'pipe',
 		stderr: 'pipe',
 	});
@@ -20,11 +24,51 @@ async function runWave(
 }
 
 describe('wave doctor', () => {
-	test('legacy doctor command runs without crashing', async () => {
+	test('top-level doctor runs toolchain diagnostics without main.yaml', async () => {
 		const { exitCode, stdout } = await runWave(['doctor']);
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Running Wave diagnostics');
 		expect(stdout).toContain('All checks passed!');
+	});
+
+	test('top-level doctor JSON runs without main.yaml', async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-doctor-json-'));
+		try {
+			const result = await runWave(['doctor', '--json'], dir);
+			expect(result.exitCode).toBe(0);
+			expect(JSON.parse(result.stdout)).toHaveProperty('checks');
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	test('top-level status and verbose remain toolchain-only without main.yaml', async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-doctor-tools-'));
+		try {
+			const status = await runWave(['doctor', '--status'], dir);
+			const verbose = await runWave(['doctor', '--verbose'], dir);
+			expect(status.exitCode).toBe(0);
+			expect(status.stdout).toContain('wave: ok');
+			expect(verbose.exitCode).toBe(0);
+			expect(verbose.stdout).toContain('Running Wave diagnostics');
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	test('dt doctor JSON requires main.yaml', async () => {
+		const dir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-dt-doctor-json-'),
+		);
+		try {
+			const result = await runWave(['dt', 'doctor', '--json'], dir);
+			expect(result.exitCode).toBe(10);
+			expect(`${result.stdout}\n${result.stderr}`).toContain(
+				path.join(dir, 'main.yaml'),
+			);
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
 	});
 
 	test('--contrast with pass fixture exits 0 and shows green scores', async () => {
@@ -32,7 +76,7 @@ describe('wave doctor', () => {
 			'doctor',
 			'--contrast',
 			'--file',
-			'tests/fixtures/themes/doctor-contrast-pass/themefile',
+			'tests/fixtures/themes/doctor-contrast-pass/main.yaml',
 		]);
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Contrast Check');
@@ -49,7 +93,7 @@ describe('wave doctor', () => {
 			'doctor',
 			'--contrast',
 			'--file',
-			'tests/fixtures/themes/doctor-contrast-report/themefile',
+			'tests/fixtures/themes/doctor-contrast-report/main.yaml',
 		]);
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Contrast Check');
@@ -64,7 +108,7 @@ describe('wave doctor', () => {
 			'doctor',
 			'--contrast',
 			'--file',
-			'tests/fixtures/themes/doctor-contrast-invalid/themefile',
+			'tests/fixtures/themes/doctor-contrast-invalid/main.yaml',
 		]);
 		expect(exitCode).not.toBe(0);
 		expect(stdout).toContain('✗');
@@ -75,9 +119,69 @@ describe('wave doctor', () => {
 			'doctor',
 			'--contrast',
 			'--file',
-			'tests/fixtures/themes/doctor-contrast-empty/themefile',
+			'tests/fixtures/themes/doctor-contrast-empty/main.yaml',
 		]);
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('No wcagPairs found to evaluate');
+	});
+
+	test('any explicit --file is validated before status, verbose, or JSON rendering', async () => {
+		const rejectedPath = path.join(
+			rootDir,
+			'tests/fixtures/themes/standard/themefile',
+		);
+		for (const renderer of [['--status'], ['--verbose'], ['--json']] as const) {
+			const result = await runWave([
+				'doctor',
+				...renderer,
+				'--file',
+				rejectedPath,
+			]);
+			const message = `${result.stdout}\n${result.stderr}`;
+			expect(result.exitCode).toBe(5);
+			expect(message).toContain(rejectedPath);
+			expect(message).toContain('main.yaml');
+			expect(message).toContain('wave dt init');
+		}
+	});
+
+	test('dt doctor rejects every forbidden workspace entry in JSON mode', async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-doctor-reject-'));
+		const profilesDir = path.join(dir, 'profiles');
+		const directory = path.join(dir, 'nested', 'main.yaml');
+		const marker = path.join(dir, 'existing-output.txt');
+		await fs.mkdir(profilesDir);
+		await fs.mkdir(directory, { recursive: true });
+		const rejectedEntries = [
+			{ path: path.join(dir, 'themefile'), exitCode: 5 },
+			{ path: directory, exitCode: 5 },
+			{ path: path.join(dir, 'palette.yaml'), exitCode: 5 },
+			{ path: path.join(profilesDir, 'mobile.yaml'), exitCode: 5 },
+			{ path: path.join(dir, 'main@night.yaml'), exitCode: 5 },
+			{ path: path.join(dir, 'tokens.yaml'), exitCode: 5 },
+			{ path: path.join(dir, 'missing/main.yaml'), exitCode: 10 },
+		];
+		await fs.writeFile(rejectedEntries[0]!.path, 'THEME legacy\n');
+		for (const { path: filePath } of rejectedEntries.slice(2, -1)) {
+			await fs.writeFile(filePath, '$config:\n  theme: rejected\ntheme: {}\n');
+		}
+		await fs.writeFile(marker, 'preserve-me');
+
+		try {
+			for (const entry of rejectedEntries) {
+				const result = await runWave(
+					['dt', 'doctor', '--json', '--file', entry.path],
+					dir,
+				);
+				const message = `${result.stdout}\n${result.stderr}`;
+				expect(result.exitCode, entry.path).toBe(entry.exitCode);
+				expect(message, entry.path).toContain(entry.path);
+				expect(message, entry.path).toContain('main.yaml');
+				expect(message, entry.path).toContain('wave dt init');
+				expect(await fs.readFile(marker, 'utf8')).toBe('preserve-me');
+			}
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
 	});
 });

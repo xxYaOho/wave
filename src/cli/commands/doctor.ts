@@ -1,4 +1,3 @@
-import * as path from 'node:path';
 import { Command } from 'commander';
 import * as yaml from 'js-yaml';
 import {
@@ -6,31 +5,30 @@ import {
 	renderDimensionMigrationAdvice,
 } from '../../core/doctor/dimension-migration.ts';
 import { runThemeContrastCheck } from '../../core/doctor/registry.ts';
-import {
-	createThemeDoctorContext,
-	createThemeDoctorContextFromContent,
-} from '../../core/doctor/theme-context.ts';
+import { validateDeclaredResources } from '../../core/doctor/resource-validator.ts';
+import { createThemeDoctorContextFromContent } from '../../core/doctor/theme-context.ts';
 import { runToolchainDoctor } from '../../core/doctor/toolchain.ts';
 import {
 	discoverProfiles,
 	mergeNightOverlay,
 	NIGHT_SKIP_MESSAGE,
+	type ProfileDocument,
 	type ProfileEntry,
 	parseProfileDocument,
 	resolveProfilesToBuild,
 } from '../../core/pipeline/profile-resolver.ts';
+import { collectDependencyDictionary } from '../../core/pipeline/theme-pipeline.ts';
 import {
-	buildDependencyDictionary,
-	loadThemefile,
-} from '../../core/pipeline/theme-pipeline.ts';
-import type { DoctorThemeReport } from '../../types/index.ts';
+	type LoadedDesignTokenWorkspace,
+	loadDesignTokenWorkspace,
+} from '../../core/pipeline/workspace-loader.ts';
+import type {
+	DesignTokenBuildConfig,
+	DoctorThemeReport,
+} from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 
 const SEPARATOR = '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~';
-
-async function fileExists(filePath: string): Promise<boolean> {
-	return await Bun.file(filePath).exists();
-}
 
 async function inspectRawDimensionMigration(
 	filePath: string | undefined,
@@ -117,13 +115,71 @@ interface CreateDoctorCommandOptions {
 	defaultMainYaml?: boolean;
 }
 
+function defaultProfileDocument(
+	workspace: LoadedDesignTokenWorkspace,
+	entry: ProfileEntry,
+): ProfileDocument {
+	return {
+		entry,
+		config: workspace.config,
+		parsed: configToParsed(workspace.config),
+		buildDir: workspace.workspaceDir,
+		tokenContent: workspace.tokenContent,
+	};
+}
+
+function configToParsed(
+	config: DesignTokenBuildConfig,
+): ProfileDocument['parsed'] {
+	return {
+		THEME: config.theme,
+		PARAMETER: config.parameter,
+		resources: config.resources,
+		groups: config.parameterGroups.map((group) => ({
+			name: group.name,
+			PARAMETER: group.parameter,
+		})),
+	};
+}
+
+async function selectProfileDocument(
+	workspace: LoadedDesignTokenWorkspace,
+	profile?: string,
+): Promise<{ document: ProfileDocument; entry: ProfileEntry }> {
+	const profiles = await discoverProfiles(workspace.workspaceDir);
+	const baseEntry = profiles.find((entry) => entry.isDefault);
+	if (!baseEntry) throw new Error('No main.yaml found');
+	const baseDocument = defaultProfileDocument(workspace, baseEntry);
+	const entry = resolveProfilesToBuild(profiles, {
+		night: false,
+		...(profile ? { profile } : {}),
+	})[0]!;
+	const document = entry.isDefault
+		? baseDocument
+		: await parseProfileDocument(entry, {
+				baseConfig: baseDocument.config,
+				baseDir: workspace.workspaceDir,
+			});
+	return { document, entry };
+}
+
+function renderWorkspaceLoadFailure(
+	result: Extract<
+		Awaited<ReturnType<typeof loadDesignTokenWorkspace>>,
+		{ ok: false }
+	>,
+): void {
+	console.log(`✗ ${result.message}`);
+	process.exitCode = result.exitCode;
+}
+
 export function createDoctorCommand(
 	name = 'doctor',
 	commandOptions: CreateDoctorCommandOptions = {},
 ): Command {
 	return new Command(name)
 		.description('Run health diagnostics and contrast checks')
-		.option('-f, --file <path>', 'Themefile path to validate')
+		.option('-f, --file <path>', 'main.yaml path to validate')
 		.option('-o, --output <path>', 'Output directory to check')
 		.option('--contrast', 'Run WCAG contrast check on theme colors')
 		.option('--night', 'Check night profile (use with --contrast)')
@@ -148,6 +204,70 @@ export function createDoctorCommand(
 				return;
 			}
 			if (!options.contrast) {
+				let workspaceTheme: string | undefined;
+				if (
+					commandOptions.defaultMainYaml === true ||
+					options.file !== undefined
+				) {
+					const loadResult = await loadDesignTokenWorkspace(options.file);
+					if (!loadResult.ok) {
+						renderWorkspaceLoadFailure(loadResult);
+						return;
+					}
+
+					let selected: Awaited<ReturnType<typeof selectProfileDocument>>;
+					try {
+						selected = await selectProfileDocument(
+							loadResult.workspace,
+							options.profile,
+						);
+					} catch (error) {
+						console.log(
+							`✗ ${error instanceof Error ? error.message : String(error)}`,
+						);
+						process.exitCode = ExitCode.FILE_NOT_FOUND;
+						return;
+					}
+
+					workspaceTheme = selected.document.config.theme;
+					const resourceResult = await validateDeclaredResources(
+						selected.document.config,
+						selected.document.buildDir,
+					);
+					if (!resourceResult.ok) {
+						console.log(`✗ Resources: ${resourceResult.message}`);
+						const findings = await inspectRawDimensionMigration(
+							selected.entry.path,
+						);
+						if (findings.length > 0) {
+							console.log(renderDimensionMigrationAdvice(findings));
+						}
+						process.exitCode = ExitCode.GENERAL_ERROR;
+						return;
+					}
+
+					const contextResult = await createThemeDoctorContextFromContent(
+						selected.entry.path,
+						selected.document.tokenContent,
+						resourceResult.dictionary.dict,
+					);
+					if (!contextResult.ok) {
+						console.log(
+							`✗ Theme: ${contextResult.findings[0]?.message ?? 'Unable to inspect theme'}`,
+						);
+						process.exitCode = contextResult.exitCode;
+						return;
+					}
+					const findings = findDimensionMigrationFindings(
+						contextResult.context.resolvedTree,
+					);
+					if (findings.length > 0) {
+						console.log(renderDimensionMigrationAdvice(findings));
+						process.exitCode = ExitCode.GENERAL_ERROR;
+						return;
+					}
+				}
+
 				const toolchain = await runToolchainDoctor({ module: 'core' });
 				if (options.json) {
 					console.log(JSON.stringify(toolchain, null, 2));
@@ -184,82 +304,13 @@ export function createDoctorCommand(
 					`${icon} Bun Version: ${bunPassed ? `v${currentVersion}` : `v${currentVersion} (requires >= v${minVersion})`}`,
 				);
 
-				let allPassed = bunPassed;
-				let resourcesChecked = false;
-				let resourcesPassed = true;
-				const defaultMainPath = path.resolve(process.cwd(), 'main.yaml');
-				const effectiveFile =
-					options.file ??
-					(commandOptions.defaultMainYaml === true &&
-					(await fileExists(defaultMainPath))
-						? defaultMainPath
-						: undefined);
-
-				if (effectiveFile) {
-					const loadResult = await loadThemefile(effectiveFile);
-					if ('error' in loadResult) {
-						console.log(`✗ Config File: ${loadResult.error.message}`);
-						allPassed = false;
-					} else {
-						console.log(
-							`✓ Config File: Valid (${loadResult.parsed.THEME || 'unknown'})`,
-						);
-						const adjacentMainPath = path.join(
-							loadResult.themeDir,
-							'main.yaml',
-						);
-						const inspectPath =
-							loadResult.mainYamlPath ??
-							((await fileExists(adjacentMainPath))
-								? adjacentMainPath
-								: undefined);
-						const dictResult = await buildDependencyDictionary(
-							loadResult.parsed,
-							loadResult.themeDir,
-						);
-						resourcesChecked = true;
-						if ('error' in dictResult) {
-							console.log(`✗ Resources: ${dictResult.error.message}`);
-							resourcesPassed = false;
-							allPassed = false;
-							const findings = await inspectRawDimensionMigration(inspectPath);
-							if (findings.length > 0) {
-								console.log(renderDimensionMigrationAdvice(findings));
-							}
-						} else {
-							if (!inspectPath) {
-								console.log(
-									'Theme: dimension migration check skipped; no main.yaml token entry found',
-								);
-							} else {
-								const ctxResult = await createThemeDoctorContext(
-									inspectPath,
-									dictResult.dict,
-								);
-								if (ctxResult.ok) {
-									const findings = findDimensionMigrationFindings(
-										ctxResult.context.resolvedTree,
-									);
-									if (findings.length > 0) {
-										console.log(renderDimensionMigrationAdvice(findings));
-										allPassed = false;
-									}
-								} else {
-									console.log(
-										`✗ Theme: ${ctxResult.findings[0]?.message ?? 'Unable to inspect theme'}`,
-									);
-									allPassed = false;
-								}
-							}
-						}
-					}
-				} else {
-					console.log('✓ Config File: No themefile specified');
-				}
-
-				if (!resourcesChecked || resourcesPassed) {
-					console.log('✓ Resources: All built-in resources available');
-				}
+				const allPassed = bunPassed;
+				console.log(
+					workspaceTheme
+						? `✓ Config File: Valid (${workspaceTheme})`
+						: '✓ Config File: No main.yaml specified',
+				);
+				console.log('✓ Resources: All declared resources valid');
 				console.log('✓ Output Directory: OK');
 				if (options.verbose || toolchain.issues.length > 0) {
 					for (const check of toolchain.checks) {
@@ -280,28 +331,17 @@ export function createDoctorCommand(
 			}
 
 			// --contrast mode
-			const loadResult = await loadThemefile(options.file);
-			if ('error' in loadResult) {
-				console.log(`✗ ${loadResult.error.message}`);
-				process.exitCode = ExitCode.FILE_NOT_FOUND;
+			const loadResult = await loadDesignTokenWorkspace(options.file);
+			if (!loadResult.ok) {
+				renderWorkspaceLoadFailure(loadResult);
 				return;
 			}
 
-			const { parsed, themeDir } = loadResult;
-			const themeName = parsed.THEME || 'unknown';
-			const profiles = await discoverProfiles(themeDir);
-			if (profiles.length === 0) {
-				console.log('No theme files found.');
-				process.exitCode = ExitCode.SUCCESS;
-				return;
-			}
-
-			let selectedEntries: ProfileEntry[];
+			const { workspace } = loadResult;
+			const themeName = workspace.config.theme;
+			let selected: Awaited<ReturnType<typeof selectProfileDocument>>;
 			try {
-				selectedEntries = resolveProfilesToBuild(profiles, {
-					night: !!options.night,
-					...(options.profile && { profile: options.profile }),
-				});
+				selected = await selectProfileDocument(workspace, options.profile);
 			} catch (error) {
 				console.log(
 					`✗ ${error instanceof Error ? error.message : String(error)}`,
@@ -309,33 +349,12 @@ export function createDoctorCommand(
 				process.exitCode = ExitCode.FILE_NOT_FOUND;
 				return;
 			}
-
-			const baseProfile = profiles.find((profile) => profile.isDefault);
-			if (!baseProfile) {
-				console.log('✗ No main theme file found');
-				process.exitCode = ExitCode.FILE_NOT_FOUND;
-				return;
-			}
-			const baseDocument = await parseProfileDocument(baseProfile, {
-				defaultParsed: parsed,
-				baseDir: themeDir,
-			});
-			const selectedEntry = selectedEntries[0]!;
-			const selectedDocument = selectedEntry.isDefault
-				? baseDocument
-				: await parseProfileDocument(selectedEntry, {
-						baseParsed: baseDocument.parsed,
-						baseDir: themeDir,
-					});
-			const profileDictResult = await buildDependencyDictionary(
-				selectedDocument.parsed,
-				themeDir,
+			const selectedEntry = selected.entry;
+			const selectedDocument = selected.document;
+			const profileDictResult = await collectDependencyDictionary(
+				selectedDocument.config,
+				selectedDocument.buildDir,
 			);
-			if ('error' in profileDictResult) {
-				console.log(`✗ ${profileDictResult.error.message}`);
-				process.exitCode = ExitCode.GENERAL_ERROR;
-				return;
-			}
 
 			let contextPath = selectedEntry.path;
 			let contextContent = selectedDocument.tokenContent;

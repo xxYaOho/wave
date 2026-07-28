@@ -34,6 +34,34 @@ function isolatedResourceEnv(tempDir: string): Record<string, string> {
 	};
 }
 
+async function makeRejectedWorkspace(): Promise<{
+	dir: string;
+	paths: Record<string, string>;
+}> {
+	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-rejected-entry-'));
+	const profilesDir = path.join(dir, 'profiles');
+	await fs.mkdir(profilesDir);
+	const paths = {
+		themefile: path.join(dir, 'themefile'),
+		directory: path.join(dir, 'nested', 'main.yaml'),
+		resource: path.join(dir, 'palette.yaml'),
+		profile: path.join(profilesDir, 'mobile.yaml'),
+		night: path.join(dir, 'main@night.yaml'),
+		arbitrary: path.join(dir, 'tokens.yaml'),
+	};
+	await fs.writeFile(paths.themefile, 'THEME legacy\n');
+	await fs.mkdir(paths.directory, { recursive: true });
+	for (const filePath of [
+		paths.resource,
+		paths.profile,
+		paths.night,
+		paths.arbitrary,
+	]) {
+		await fs.writeFile(filePath, '$config:\n  theme: rejected\ntheme: {}\n');
+	}
+	return { dir, paths };
+}
+
 async function copyFixtureWorkspace(
 	relativePath: string,
 ): Promise<{ dir: string; env: Record<string, string> }> {
@@ -48,10 +76,169 @@ async function copyFixtureWorkspace(
 			return !['.DS_Store', '.tmp', 'theme', 'dist', 'build'].includes(name);
 		},
 	});
+	const mainPath = path.join(workspaceDir, 'main.yaml');
+	if (await Bun.file(mainPath).exists()) {
+		const document = yaml.load(await fs.readFile(mainPath, 'utf8')) as {
+			$config?: { parameter?: Record<string, unknown> };
+		};
+		if (document.$config?.parameter) {
+			delete document.$config.parameter.night;
+			await fs.writeFile(mainPath, yaml.dump(document, { lineWidth: -1 }));
+		}
+	}
 	return { dir: workspaceDir, env: isolatedResourceEnv(workspaceDir) };
 }
 
 describe('wave dt', () => {
+	test('top-level create and init are removed while show remains available', async () => {
+		for (const command of ['create', 'init']) {
+			const result = await runWave([command]);
+			expect(result.exitCode).not.toBe(0);
+			expect(`${result.stdout}\n${result.stderr}`).toContain(
+				`unknown command '${command}'`,
+			);
+		}
+		const show = await runWave(['show']);
+		expect(show.exitCode).toBe(0);
+		expect(show.stdout).toContain('Palettes:');
+	});
+
+	test('dt and design-token stay equivalent across build, failure, doctor, WCAG, and help', async () => {
+		const fixture = await copyFixtureWorkspace(
+			'tests/fixtures/themes/standard',
+		);
+		const emptyDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-alias-empty-'),
+		);
+		const profileMain = path.join(
+			rootDir,
+			'tests/fixtures/themes/profile-model/main.yaml',
+		);
+		const doctorMain = path.join(
+			rootDir,
+			'tests/fixtures/themes/doctor-contrast-pass/main.yaml',
+		);
+		const themefile = path.join(fixture.dir, 'themefile');
+		const normalize = (value: string): string =>
+			value
+				.replaceAll('design-token', 'dt')
+				.replace(/"durationMs": [0-9.]+/g, '"durationMs": <elapsed>');
+
+		try {
+			const scenarios = [
+				{ args: [], cwd: fixture.dir, env: fixture.env },
+				{ args: [], cwd: emptyDir, env: isolatedResourceEnv(emptyDir) },
+				{
+					args: ['build', '--file', themefile],
+					cwd: fixture.dir,
+					env: fixture.env,
+				},
+				{
+					args: ['doctor', '--json', '--file', doctorMain],
+					cwd: rootDir,
+					env: fixture.env,
+				},
+				{
+					args: ['wcag', 'mobile', '--file', profileMain],
+					cwd: rootDir,
+					env: fixture.env,
+				},
+				{ args: ['--help'], cwd: rootDir, env: fixture.env },
+				{ args: ['build', '--help'], cwd: rootDir, env: fixture.env },
+			] as const;
+
+			for (const scenario of scenarios) {
+				const dt = await runWave(
+					['dt', ...scenario.args],
+					scenario.cwd,
+					scenario.env,
+				);
+				const designToken = await runWave(
+					['design-token', ...scenario.args],
+					scenario.cwd,
+					scenario.env,
+				);
+				expect(designToken.exitCode, scenario.args.join(' ')).toBe(dt.exitCode);
+				expect(normalize(designToken.stdout)).toBe(normalize(dt.stdout));
+				expect(normalize(designToken.stderr)).toBe(normalize(dt.stderr));
+			}
+		} finally {
+			await fs.rm(fixture.dir, { recursive: true, force: true });
+			await fs.rm(emptyDir, { recursive: true, force: true });
+		}
+	});
+
+	test('dt build applies the complete main-only rejection matrix without touching artifacts', async () => {
+		const fixture = await makeRejectedWorkspace();
+		const outputDir = path.join(fixture.dir, 'dist');
+		const marker = path.join(outputDir, 'existing.txt');
+		await fs.mkdir(outputDir);
+		await fs.writeFile(marker, 'preserve-me');
+
+		try {
+			const cases: Array<{
+				name: string;
+				args: string[];
+				rejectedPath: string;
+				exitCode: number;
+			}> = [
+				{
+					name: 'cwd without main',
+					args: ['dt', 'build', '--out', outputDir],
+					rejectedPath: path.join(fixture.dir, 'main.yaml'),
+					exitCode: 10,
+				},
+				{
+					name: 'explicit missing main',
+					args: [
+						'dt',
+						'build',
+						'--file',
+						path.join(fixture.dir, 'missing/main.yaml'),
+						'--out',
+						outputDir,
+					],
+					rejectedPath: path.join(fixture.dir, 'missing/main.yaml'),
+					exitCode: 10,
+				},
+				...Object.entries(fixture.paths).map(([name, rejectedPath]) => ({
+					name,
+					args: ['dt', 'build', '--file', rejectedPath, '--out', outputDir],
+					rejectedPath,
+					exitCode: 5,
+				})),
+			];
+
+			for (const entry of cases) {
+				const result = await runWave(entry.args, fixture.dir);
+				const message = `${result.stdout}\n${result.stderr}`;
+				expect(result.exitCode, entry.name).toBe(entry.exitCode);
+				expect(message, entry.name).toContain(entry.rejectedPath);
+				expect(message, entry.name).toContain('main.yaml');
+				expect(message, entry.name).toContain('wave dt init');
+				expect(await fs.readFile(marker, 'utf8'), entry.name).toBe(
+					'preserve-me',
+				);
+			}
+
+			const validMain = path.join(
+				rootDir,
+				'tests/fixtures/themes/standard/main.yaml',
+			);
+			const conflict = await runWave(
+				['dt', 'build', validMain, '--file', validMain, '--out', outputDir],
+				fixture.dir,
+			);
+			const conflictMessage = `${conflict.stdout}\n${conflict.stderr}`;
+			expect(conflict.exitCode).toBe(5);
+			expect(conflictMessage).toContain(validMain);
+			expect(conflictMessage).toContain('main.yaml');
+			expect(conflictMessage).toContain('wave dt init');
+			expect(await fs.readFile(marker, 'utf8')).toBe('preserve-me');
+		} finally {
+			await fs.rm(fixture.dir, { recursive: true, force: true });
+		}
+	});
 	test('top-level help shows actionable command overview', async () => {
 		const bare = await runWave([]);
 		const help = await runWave(['-h']);
@@ -110,7 +297,7 @@ describe('wave dt', () => {
 			'dt',
 			'build',
 			'-f',
-			path.join(fixtureDir, 'themefile'),
+			path.join(fixtureDir, 'main.yaml'),
 			'--variant',
 			'dark',
 		]);
@@ -188,7 +375,6 @@ describe('wave dt', () => {
 		const { exitCode, stdout, stderr } = await runWave([
 			'dt',
 			'wcag',
-			'--profile',
 			'mobile',
 			'--file',
 			fixture,
@@ -199,6 +385,39 @@ describe('wave dt', () => {
 		expect(stdout).toContain('profile-model-mobile');
 		expect(stdout).toContain('primary');
 		expect(stdout).toMatch(/\d+\.\d{2}:1/);
+	});
+
+	test('dt wcag applies the same forbidden workspace entry matrix', async () => {
+		const fixture = await makeRejectedWorkspace();
+		const marker = path.join(fixture.dir, 'existing-output.txt');
+		await fs.writeFile(marker, 'preserve-me');
+
+		try {
+			const cases = [
+				...Object.values(fixture.paths).map((rejectedPath) => ({
+					rejectedPath,
+					exitCode: 5,
+				})),
+				{
+					rejectedPath: path.join(fixture.dir, 'missing/main.yaml'),
+					exitCode: 10,
+				},
+			];
+			for (const { rejectedPath, exitCode } of cases) {
+				const result = await runWave(
+					['dt', 'wcag', '--file', rejectedPath],
+					fixture.dir,
+				);
+				const message = `${result.stdout}\n${result.stderr}`;
+				expect(result.exitCode, rejectedPath).toBe(exitCode);
+				expect(message, rejectedPath).toContain(rejectedPath);
+				expect(message, rejectedPath).toContain('main.yaml');
+				expect(message, rejectedPath).toContain('wave dt init');
+				expect(await fs.readFile(marker, 'utf8')).toBe('preserve-me');
+			}
+		} finally {
+			await fs.rm(fixture.dir, { recursive: true, force: true });
+		}
 	});
 
 	test('dt doctor rejects removed variants option', async () => {
@@ -221,7 +440,7 @@ describe('wave dt', () => {
 			'dt',
 			'doctor',
 			'-f',
-			'tests/fixtures/themes/standard/themefile',
+			'tests/fixtures/themes/standard/main.yaml',
 		]);
 
 		expect(exitCode).not.toBe(0);
@@ -237,7 +456,7 @@ describe('wave dt', () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-dt-help-'));
 
 		try {
-			const legacyInit = await runWave(['init', '--help'], tempDir);
+			const removedInit = await runWave(['init', '--help'], tempDir);
 			const init = await runWave(['dt', 'init', '--help'], tempDir);
 			const designTokenInit = await runWave(
 				['design-token', 'init', '--help'],
@@ -247,9 +466,10 @@ describe('wave dt', () => {
 			const status = await runWave(['dt', 'status', '--help'], tempDir);
 			const wcag = await runWave(['dt', 'wcag', '--help'], tempDir);
 
-			expect(legacyInit.exitCode).toBe(0);
-			expect(legacyInit.stdout).toContain('Usage: wave init');
-			expect(legacyInit.stdout).not.toContain('Theme template initialized');
+			expect(removedInit.exitCode).not.toBe(0);
+			expect(`${removedInit.stdout}\n${removedInit.stderr}`).toContain(
+				"unknown command 'init'",
+			);
 			expect(init.exitCode).toBe(0);
 			expect(init.stdout).toContain('Usage: wave dt init');
 			expect(init.stdout).not.toContain('Theme template initialized');
@@ -332,7 +552,7 @@ describe('wave dt', () => {
 				'dt',
 				'build',
 				'-f',
-				path.join(fixtureDir, 'themefile'),
+				path.join(fixtureDir, 'main.yaml'),
 				'-o',
 				outputDir,
 			],
@@ -358,19 +578,16 @@ describe('wave dt', () => {
 
 		try {
 			await fs.writeFile(
-				path.join(tempDir, 'themefile'),
-				[
-					'THEME dtcg-color-object',
-					'RESOURCE palette tailwindcss',
-					'RESOURCE dimension wave',
-					'PARAMETER platform json',
-					'PARAMETER colorSpace hex',
-					'',
-				].join('\n'),
-			);
-			await fs.writeFile(
 				path.join(tempDir, 'main.yaml'),
 				[
+					'$config:',
+					'  theme: dtcg-color-object',
+					'  resource:',
+					'    palette: tailwindcss',
+					'    dimension: wave',
+					'  parameter:',
+					'    platform: [json]',
+					'    colorSpace: hex',
 					'theme:',
 					'  color:',
 					'    inverse:',
@@ -384,7 +601,7 @@ describe('wave dt', () => {
 			);
 
 			const { exitCode, stderr } = await runWave(
-				['dt', 'build', '-f', path.join(tempDir, 'themefile'), '-o', outputDir],
+				['dt', 'build', '-f', path.join(tempDir, 'main.yaml'), '-o', outputDir],
 				rootDir,
 				isolatedResourceEnv(tempDir),
 			);
@@ -412,7 +629,7 @@ describe('wave dt', () => {
 		await fs.rm(outputDir, { recursive: true, force: true });
 
 		const { exitCode } = await runWave(
-			['dt', '-f', path.join(fixtureDir, 'themefile'), '-o', outputDir],
+			['dt', '-f', path.join(fixtureDir, 'main.yaml'), '-o', outputDir],
 			rootDir,
 			env,
 		);
@@ -436,7 +653,7 @@ describe('wave dt', () => {
 			[
 				'design-token',
 				'-f',
-				path.join(fixtureDir, 'themefile'),
+				path.join(fixtureDir, 'main.yaml'),
 				'-o',
 				outputDir,
 			],
@@ -553,7 +770,6 @@ describe('wave dt', () => {
 			);
 
 			expect(exitCode).toBe(0);
-			expect(stdout).toContain('THEME');
 			expect(stdout).toContain('RESOURCES');
 			expect(stdout).toContain('tailwindcss');
 			expect(stdout).toContain('dimension');
@@ -619,7 +835,7 @@ describe('wave dt', () => {
 		]);
 
 		expect(exitCode).toBe(12);
-		expect(stdout).toContain('Missing required $config in main.yaml entry');
+		expect(stdout).toContain('missing required $config');
 		expect(stdout).not.toContain('themefile load');
 	});
 
@@ -628,19 +844,15 @@ describe('wave dt', () => {
 		valueLines: string[],
 	): Promise<void> {
 		await fs.writeFile(
-			path.join(tempDir, 'themefile'),
-			[
-				'THEME invalid-dtcg-color',
-				'RESOURCE palette tailwindcss',
-				'RESOURCE dimension wave',
-				'PARAMETER platform css',
-				'',
-			].join('\n'),
-			'utf-8',
-		);
-		await fs.writeFile(
 			path.join(tempDir, 'main.yaml'),
 			[
+				'$config:',
+				'  theme: invalid-dtcg-color',
+				'  resource:',
+				'    palette: tailwindcss',
+				'    dimension: wave',
+				'  parameter:',
+				'    platform: [css]',
 				'theme:',
 				'  color:',
 				'    $type: color',
@@ -667,7 +879,7 @@ describe('wave dt', () => {
 					'dt',
 					'build',
 					'-f',
-					path.join(tempDir, 'themefile'),
+					path.join(tempDir, 'main.yaml'),
 					'-o',
 					path.join(tempDir, 'dist'),
 				],
@@ -731,7 +943,7 @@ describe('wave dt', () => {
 			'dt',
 			'wcag',
 			'--file',
-			'tests/fixtures/themes/doctor-contrast-pass/themefile',
+			'tests/fixtures/themes/doctor-contrast-pass/main.yaml',
 		]);
 
 		expect(exitCode).toBe(0);
@@ -779,7 +991,7 @@ describe('wave dt', () => {
 			expect(exitCode).toBe(0);
 			expect(stdout).toContain('Theme template initialized successfully');
 			expect(await Bun.file(path.join(tempDir, 'themefile')).exists()).toBe(
-				true,
+				false,
 			);
 			expect(await Bun.file(path.join(tempDir, 'main.yaml')).exists()).toBe(
 				true,

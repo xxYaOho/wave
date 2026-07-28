@@ -1,9 +1,7 @@
 import type { Command } from 'commander';
 import { compressCommand } from './commands/compress.ts';
-import { createCommand } from './commands/create.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { designTokenCommand, dtCommand } from './commands/dt.ts';
-import { initCommand } from './commands/init.ts';
 import { installCommand } from './commands/install.ts';
 import { manualCommand } from './commands/manual.ts';
 import { mgCommand, motionCommand } from './commands/motion.ts';
@@ -22,7 +20,6 @@ export interface CommandDefinition {
 	name: string;
 	category: CommandCategory;
 	command: Command;
-	legacy?: boolean;
 }
 
 export const commandRegistry: CommandDefinition[] = [
@@ -62,22 +59,9 @@ export const commandRegistry: CommandDefinition[] = [
 		command: mgCommand,
 	},
 	{
-		name: 'init',
-		category: 'design-token',
-		command: initCommand,
-		legacy: true,
-	},
-	{
-		name: 'create',
-		category: 'design-token',
-		command: createCommand,
-		legacy: true,
-	},
-	{
 		name: 'doctor',
 		category: 'core',
 		command: doctorCommand,
-		legacy: true,
 	},
 	{
 		name: 'install',
@@ -88,7 +72,6 @@ export const commandRegistry: CommandDefinition[] = [
 		name: 'show',
 		category: 'design-token',
 		command: showCommand,
-		legacy: true,
 	},
 ];
 

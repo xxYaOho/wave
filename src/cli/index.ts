@@ -1,10 +1,10 @@
 import { Command, CommanderError } from 'commander';
 import { VERSION } from '../config/index.ts';
 import { ExitCode } from '../types/index.ts';
-import { createBuildCommand } from './commands/create.ts';
+import { createDesignTokenBuildCommand } from './commands/build.ts';
 import { createDoctorCommand } from './commands/doctor.ts';
 import { createStatusCommand, createWcagCommand } from './commands/dt.ts';
-import { createInitCommand } from './commands/init.ts';
+import { createDesignTokenInitCommand } from './commands/dt-init.ts';
 import { createShowCommand } from './commands/show.ts';
 import { registerCommands } from './registry.ts';
 
@@ -95,15 +95,7 @@ function isDesignTokenSubcommandHelp(argv: string[]): boolean {
 }
 
 function createDesignTokenBuildHelpCommand(argv: string[]): Command {
-	const command = createBuildCommand('build', {
-		defaultFile: 'main.yaml',
-		fileHelp: 'main.yaml path. Default: ./main.yaml',
-		missingFileHelp: [
-			'Error: No main.yaml found in current directory',
-			'Usage: wave dt [./main.yaml] or wave dt -f ./main.yaml',
-			'Run "wave dt init" to create a design-token workspace',
-		],
-	});
+	const command = createDesignTokenBuildCommand('build');
 	command.name(`wave ${argv[2]} build`);
 	return command;
 }
@@ -128,7 +120,7 @@ function showDesignTokenSubcommandHelp(argv: string[]): void {
 				: commandName === 'show'
 					? createShowCommand('show')
 					: commandName === 'init'
-						? createInitCommand('init')
+						? createDesignTokenInitCommand('init')
 						: commandName === 'wcag'
 							? createWcagCommand()
 							: commandName === 'status'
@@ -222,14 +214,13 @@ program
 
 registerCommands(program);
 
-// Legacy command migration hints
 program
 	.command('theme')
-	.description('(deprecated) Use "wave create" instead')
+	.description('(deprecated) Use "wave dt" instead')
 	.action(() => {
-		console.error('Command "wave theme" has been renamed to "wave create".');
-		console.error('  wave create          Generate design token output');
-		console.error('  wave create --help   Show available options');
+		console.error('Command "wave theme" has been replaced by "wave dt".');
+		console.error('  wave dt          Generate design token output');
+		console.error('  wave dt --help   Show available options');
 		process.exitCode = ExitCode.INVALID_COMMAND;
 	});
 

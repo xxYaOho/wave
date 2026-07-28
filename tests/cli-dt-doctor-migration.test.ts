@@ -83,8 +83,8 @@ theme:
 `);
 		const result = await runWave(['dt', 'doctor'], { cwd: dir });
 
-		expect(result.exitCode).not.toBe(0);
-		expect(result.stdout).toContain('Unsupported resource kind: future');
+		expect(result.exitCode).toBe(12);
+		expect(result.stdout).toContain('resource: Unrecognized key: "future"');
 	});
 
 	test('rejects an invalid custom resource extension', async () => {
@@ -164,9 +164,40 @@ theme:
 
 		const { exitCode, stdout } = await runWave(['dt', 'doctor'], { cwd: dir });
 
-		expect(exitCode).toBe(0);
+		expect(exitCode, stdout).toBe(0);
 		expect(stdout).toContain('Config File: Valid (doctor-default)');
 		expect(stdout).not.toContain('No themefile specified');
+	});
+
+	test('strict resource validation is scoped to the selected profile', async () => {
+		const dir = await makeTheme(`
+$config:
+  theme: doctor-profile-scope
+theme:
+  color:
+    base: { $type: color, $value: "#2563eb" }
+`);
+		await fs.mkdir(path.join(dir, 'profiles'));
+		await fs.writeFile(
+			path.join(dir, 'profiles/mobile.yaml'),
+			`$config:
+  resource:
+    custom: [./missing.yaml]
+theme:
+  color:
+    base: { $type: color, $value: "#2563eb" }
+`,
+		);
+
+		const defaultResult = await runWave(['dt', 'doctor'], { cwd: dir });
+		const mobileResult = await runWave(
+			['dt', 'doctor', '--profile', 'mobile'],
+			{ cwd: dir },
+		);
+
+		expect(defaultResult.exitCode).toBe(0);
+		expect(mobileResult.exitCode).toBe(1);
+		expect(mobileResult.stdout).toContain('Resource not found');
 	});
 
 	test('top-level doctor does not default to ./main.yaml', async () => {
@@ -186,8 +217,8 @@ theme:
 
 		const { exitCode, stdout } = await runWave(['doctor'], { cwd: dir });
 
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('Config File: No themefile specified');
+		expect(exitCode, stdout).toBe(0);
+		expect(stdout).toContain('Config File: No main.yaml specified');
 		expect(stdout).not.toContain('Config File: Valid (top-level-doctor)');
 	});
 
