@@ -35,8 +35,10 @@ import {
 import {
 	buildDependencyDictionary,
 	buildGroupPasses,
+	collectDependencyDictionary,
 	type DependencyDict,
 	type DependencyDictionary,
+	type LoadedDependency,
 	loadThemefile,
 	processThemeDocument,
 } from './theme-pipeline.ts';
@@ -85,6 +87,25 @@ function profileThemeName(
 	return profile.entry.isDefault
 		? baseThemeName
 		: `${baseThemeName}-${profile.entry.name}`;
+}
+
+function recordLoadedResources(
+	ctx: BuildContext | undefined,
+	loaded: LoadedDependency[],
+	recorded: Set<string>,
+): void {
+	for (const entry of loaded) {
+		const key = `${entry.kind}\0${entry.ref}\0${entry.source}`;
+		if (recorded.has(key)) continue;
+		recorded.add(key);
+		if (ctx) {
+			ctx.addResource(entry.kind, entry.ref, entry.source);
+		} else {
+			logger.success(
+				`Resource [${entry.kind}]: ${entry.ref} (${entry.source})`,
+			);
+		}
+	}
 }
 
 async function generatePass(
@@ -172,14 +193,26 @@ async function generatePass(
 	} else {
 		// No main.yaml — generate from palette + dimension directly
 		warnLegacyFallback?.();
-		const result = await generateThemeTokens(
-			resolvedThemeName,
-			outputDir,
-			depResult,
-			platforms,
-			filterLayer,
-			colorSpace as ColorSpaceFormat | undefined,
+		const palette = depResult.loaded.find((entry) => entry.kind === 'palette');
+		const dimension = depResult.loaded.find(
+			(entry) => entry.kind === 'dimension',
 		);
+		const result =
+			palette && dimension
+				? await generateThemeTokens(
+						resolvedThemeName,
+						outputDir,
+						palette,
+						dimension,
+						platforms,
+						filterLayer,
+						colorSpace as ColorSpaceFormat | undefined,
+					)
+				: {
+						success: false,
+						files: [],
+						error: 'Missing required palette or dimension resource',
+					};
 
 		if (!result.success) {
 			const msg = result.error || 'Failed to generate tokens';
@@ -265,35 +298,8 @@ export async function generateTheme(
 
 	const { parsed, themeDir, mainYamlPath, mainYamlContent } = loadResult;
 	const resolvedThemeName = parsed.THEME || themeName;
-
-	// Step 2: Build dependency dictionary (once)
-	const depResult = await buildDependencyDictionary(parsed, themeDir);
-	if ('error' in depResult) {
-		const errMsg = depResult.error.message;
-		ctx?.markFailed('resource', errMsg, { phase: 'resource resolve' });
-		return {
-			ok: false,
-			exitCode: errMsg.includes('schema error')
-				? ExitCode.INVALID_RESOURCE
-				: ExitCode.FILE_NOT_FOUND,
-			message: errMsg,
-		};
-	}
-
-	const { dict } = depResult;
-
-	// Collect resources
-	for (const { kind, ref } of parsed.resources) {
-		const loaded = Object.values(dict).find((e) => e.kind === kind);
-		const source = loaded?.source ?? 'user';
-		ctx?.addResource(kind, ref, source);
-		if (!ctx) {
-			logger.success(`Resource [${kind}]: ${ref} (${source})`);
-		}
-	}
-
 	const generatedFiles: string[] = [];
-
+	const recordedResources = new Set<string>();
 	const profiles = await discoverProfiles(themeDir);
 	if (profiles.length === 0) {
 		if (generateOptions.profile || generateOptions.profiles) {
@@ -301,6 +307,41 @@ export async function generateTheme(
 			ctx?.markFailed('load', message, { phase: 'profile resolve' });
 			return { ok: false, exitCode: ExitCode.FILE_NOT_FOUND, message };
 		}
+
+		const hasMainDocument =
+			mainYamlPath !== undefined || profiles.some((entry) => entry.isDefault);
+		const depResult = hasMainDocument
+			? await collectDependencyDictionary(parsed, themeDir)
+			: await buildDependencyDictionary(parsed, themeDir);
+		if ('error' in depResult) {
+			const message = depResult.error.message;
+			ctx?.markFailed('resource', message, { phase: 'resource resolve' });
+			return {
+				ok: false,
+				exitCode: message.includes('schema error')
+					? ExitCode.INVALID_RESOURCE
+					: ExitCode.FILE_NOT_FOUND,
+				message,
+			};
+		}
+		if (!hasMainDocument) {
+			const palette = depResult.loaded.find(
+				(entry) => entry.kind === 'palette',
+			);
+			const dimension = depResult.loaded.find(
+				(entry) => entry.kind === 'dimension',
+			);
+			if (!palette || !dimension) {
+				const message = 'Missing required palette or dimension resource';
+				ctx?.markFailed('resource', message, { phase: 'resource resolve' });
+				return {
+					ok: false,
+					exitCode: ExitCode.FILE_NOT_FOUND,
+					message,
+				};
+			}
+		}
+		recordLoadedResources(ctx, depResult.loaded, recordedResources);
 
 		ctx?.setProfiles('default', 1, ['main']);
 		const passes = buildGroupPasses(
@@ -316,7 +357,7 @@ export async function generateTheme(
 				resolvedThemeName,
 				themeDir,
 				pass.outputDir,
-				dict,
+				depResult.dict,
 				depResult,
 				pass.platforms,
 				pass.filterLayer,
@@ -369,6 +410,7 @@ export async function generateTheme(
 		defaultParsed: parsed,
 		baseDir: themeDir,
 	});
+	const effectiveThemeName = baseDocument.parsed.THEME || resolvedThemeName;
 	const baseDayTree = parseYamlObject(baseDocument.tokenContent);
 	const firstPass = buildGroupPasses(
 		baseDocument.parsed,
@@ -388,17 +430,11 @@ export async function generateTheme(
 		const dayTree = entry.isDefault
 			? baseDayTree
 			: parseYamlObject(document.tokenContent);
-		const profileDepResult = await buildDependencyDictionary(
+		const profileDepResult = await collectDependencyDictionary(
 			document.parsed,
-			themeDir,
+			document.buildDir,
 		);
-		if ('error' in profileDepResult) {
-			const message = profileDepResult.error.message;
-			ctx?.markFailed('resource', message, {
-				phase: `${entry.name} resource resolve`,
-			});
-			return { ok: false, exitCode: ExitCode.FILE_NOT_FOUND, message };
-		}
+		recordLoadedResources(ctx, profileDepResult.loaded, recordedResources);
 		const profilePasses = buildGroupPasses(
 			document.parsed,
 			document.buildDir,
@@ -407,7 +443,7 @@ export async function generateTheme(
 		);
 		for (const pass of profilePasses) {
 			const result = await generatePass(
-				profileThemeName(resolvedThemeName, document),
+				profileThemeName(effectiveThemeName, document),
 				path.dirname(entry.path),
 				pass.outputDir,
 				profileDepResult.dict,
@@ -457,7 +493,7 @@ export async function generateTheme(
 		const nightContent = yaml.dump(mergedNight.tree, { lineWidth: -1 });
 		for (const pass of profilePasses) {
 			const result = await generatePass(
-				`${profileThemeName(resolvedThemeName, document)}-night`,
+				`${profileThemeName(effectiveThemeName, document)}-night`,
 				path.dirname(entry.path),
 				pass.outputDir,
 				profileDepResult.dict,
@@ -484,7 +520,7 @@ export async function generateTheme(
 
 	return {
 		ok: true,
-		themeName: resolvedThemeName,
+		themeName: effectiveThemeName,
 		outputDir: firstPass.outputDir,
 		generatedFiles,
 	};
@@ -495,78 +531,72 @@ export async function generateTheme(
 async function generateThemeTokens(
 	themeName: string,
 	outputDir: string,
-	depResult: DependencyDictionary,
+	paletteDependency: LoadedDependency,
+	dimensionDependency: LoadedDependency,
 	platforms?: string[],
 	filterLayer?: number,
 	colorSpace?: ColorSpaceFormat,
 ): Promise<GeneratorResult> {
-	const paletteDependency = depResult.loaded.find(
-		(entry) => entry.kind === 'palette',
-	);
-	const dimensionDependency = depResult.loaded.find(
-		(entry) => entry.kind === 'dimension',
-	);
-	if (!paletteDependency || !dimensionDependency) {
+	try {
+		const { content: paletteContent, path: palettePath } = paletteDependency;
+		const { content: dimensionContent, path: dimensionPath } =
+			dimensionDependency;
+
+		const paletteSchemaError = await validatePaletteSchema(
+			paletteContent,
+			palettePath,
+		);
+		if (paletteSchemaError) {
+			throw new Error(`Palette schema error: ${paletteSchemaError.message}`);
+		}
+
+		const dimensionSchemaError = await validateDimensionSchema(
+			dimensionContent,
+			dimensionPath,
+		);
+		if (dimensionSchemaError) {
+			throw new Error(
+				`Dimension schema error: ${dimensionSchemaError.message}`,
+			);
+		}
+
+		const palette = parsePalette(paletteContent);
+		if (palette && 'line' in palette && 'message' in palette) {
+			throw new Error(
+				`Palette parse error at line ${palette.line}: ${palette.message}`,
+			);
+		}
+
+		const dimension = parseDimension(dimensionContent);
+		if (dimension && 'line' in dimension && 'message' in dimension) {
+			throw new Error(`Dimension parse error: ${dimension.message}`);
+		}
+
+		const syntheticTree = {
+			color: (palette as { color: unknown }).color,
+			dimension: (dimension as { dimension: unknown }).dimension,
+		} as unknown as ResolvedTokenGroup;
+		const transformResult = transformToWaveTokens(
+			syntheticTree,
+			undefined,
+			colorSpace,
+		);
+
+		await fs.mkdir(outputDir, { recursive: true });
+		return generateTokens({
+			themeName,
+			outputDir,
+			tokens: transformResult.tokens,
+			resolved: syntheticTree,
+			colorSpace,
+			platform: platforms,
+			filterLayer,
+		});
+	} catch (error) {
 		return {
 			success: false,
 			files: [],
-			error: 'Missing required palette or dimension resource',
+			error: error instanceof Error ? error.message : String(error),
 		};
 	}
-	const { content: paletteContent, path: palettePath } = paletteDependency;
-	const { content: dimensionContent, path: dimensionPath } =
-		dimensionDependency;
-
-	const paletteSchemaError = await validatePaletteSchema(
-		paletteContent,
-		palettePath,
-	);
-	if (paletteSchemaError) {
-		throw new Error(`Palette schema error: ${paletteSchemaError.message}`);
-	}
-
-	const dimensionSchemaError = await validateDimensionSchema(
-		dimensionContent,
-		dimensionPath,
-	);
-	if (dimensionSchemaError) {
-		throw new Error(`Dimension schema error: ${dimensionSchemaError.message}`);
-	}
-
-	const palette = parsePalette(paletteContent);
-	if (palette && 'line' in palette && 'message' in palette) {
-		throw new Error(
-			`Palette parse error at line ${palette.line}: ${palette.message}`,
-		);
-	}
-
-	const dimension = parseDimension(dimensionContent);
-	if (dimension && 'line' in dimension && 'message' in dimension) {
-		throw new Error(`Dimension parse error: ${dimension.message}`);
-	}
-
-	// Wrap palette + dimension in a synthetic resolved theme tree so the same
-	// transformer can produce WaveToken[] for the no-main.yaml fallback path.
-	const syntheticTree = {
-		color: (palette as { color: unknown }).color,
-		dimension: (dimension as { dimension: unknown }).dimension,
-	} as unknown as ResolvedTokenGroup;
-
-	const transformResult = transformToWaveTokens(
-		syntheticTree,
-		undefined,
-		colorSpace,
-	);
-
-	await fs.mkdir(outputDir, { recursive: true });
-
-	return generateTokens({
-		themeName,
-		outputDir,
-		tokens: transformResult.tokens,
-		resolved: syntheticTree,
-		colorSpace,
-		platform: platforms,
-		filterLayer,
-	});
 }

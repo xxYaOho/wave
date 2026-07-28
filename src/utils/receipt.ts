@@ -174,6 +174,14 @@ export class BuildContext {
 	failedAt?: string;
 
 	addResource(kind: string, ref: string, source: ResourceSource): void {
+		if (
+			this.resources.some(
+				(entry) =>
+					entry.kind === kind && entry.ref === ref && entry.source === source,
+			)
+		) {
+			return;
+		}
 		this.resources.push({ kind, ref, source });
 	}
 

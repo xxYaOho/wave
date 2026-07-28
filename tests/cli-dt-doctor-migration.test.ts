@@ -39,6 +39,114 @@ afterEach(async () => {
 });
 
 describe('dt doctor migration guidance', () => {
+	test('accepts a self-contained profile without resource declarations', async () => {
+		const dir = await makeTheme(`
+$config:
+  theme: doctor-self-contained
+theme:
+  color:
+    base: { $type: color, $value: "#2563eb" }
+`);
+		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain(
+			'Config File: Valid (doctor-self-contained)',
+		);
+	});
+
+	test('rejects an unused missing resource declaration', async () => {
+		const dir = await makeTheme(`
+$config:
+  theme: doctor-missing-unused
+  resource:
+    custom: [./missing.yaml]
+theme:
+  color:
+    base: { $type: color, $value: "#2563eb" }
+`);
+		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+
+		expect(result.exitCode).not.toBe(0);
+		expect(result.stdout).toContain('Resource not found');
+	});
+
+	test('rejects an unknown resource kind', async () => {
+		const dir = await makeTheme(`
+$config:
+  theme: doctor-unknown-kind
+  resource:
+    future: [./missing.yaml]
+theme:
+  color:
+    base: { $type: color, $value: "#2563eb" }
+`);
+		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+
+		expect(result.exitCode).not.toBe(0);
+		expect(result.stdout).toContain('Unsupported resource kind: future');
+	});
+
+	test('rejects an invalid custom resource extension', async () => {
+		const dir = await makeTheme(`
+$config:
+  theme: doctor-invalid-extension
+  resource:
+    custom: [./tokens.txt]
+theme:
+  color:
+    base: { $type: color, $value: "#2563eb" }
+`);
+		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+
+		expect(result.exitCode).not.toBe(0);
+		expect(result.stdout).toContain('Unsupported custom resource format');
+	});
+
+	test('rejects an invalid palette schema', async () => {
+		const dir = await makeTheme(`
+$config:
+  theme: doctor-invalid-palette
+  resource:
+    palette: [./palette.yaml]
+theme:
+  color:
+    base: { $type: color, $value: "#2563eb" }
+`);
+		await fs.writeFile(
+			path.join(dir, 'palette.yaml'),
+			'invalid:\n  token: value\n',
+		);
+		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+
+		expect(result.exitCode).not.toBe(0);
+		expect(result.stdout).toContain('Palette schema error:');
+	});
+
+	test('rejects duplicate unused resource namespaces', async () => {
+		const dir = await makeTheme(`
+$config:
+  theme: doctor-duplicate-unused
+  resource:
+    custom: [./first.yaml, ./second.yaml]
+theme:
+  color:
+    base: { $type: color, $value: "#2563eb" }
+`);
+		await fs.writeFile(
+			path.join(dir, 'first.yaml'),
+			'shared:\n  token: value\n',
+		);
+		await fs.writeFile(
+			path.join(dir, 'second.yaml'),
+			'shared:\n  token: value\n',
+		);
+		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+
+		expect(result.exitCode).not.toBe(0);
+		expect(result.stdout).toContain('Duplicate namespace "shared"');
+	});
+
 	test('defaults to ./main.yaml when present', async () => {
 		const dir = await makeTheme(`
 $schema: "https://www.designtokens.org/tr/2025.10/format/"

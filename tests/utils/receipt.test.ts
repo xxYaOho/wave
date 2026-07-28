@@ -8,6 +8,16 @@ import {
 } from '../../src/utils/receipt.ts';
 
 describe('renderReceipt', () => {
+	test('deduplicates identical resource entries', () => {
+		const ctx = new BuildContext();
+		ctx.addResource('palette', 'tailwindcss', 'builtin');
+		ctx.addResource('palette', 'tailwindcss', 'builtin');
+
+		expect(ctx.resources).toEqual([
+			{ kind: 'palette', ref: 'tailwindcss', source: 'builtin' },
+		]);
+	});
+
 	test('renders success receipt with all sections', () => {
 		const ctx = new BuildContext();
 		ctx.themeName = 'orca';

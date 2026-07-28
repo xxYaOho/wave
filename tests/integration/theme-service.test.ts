@@ -12,6 +12,7 @@ import {
 	generateTheme,
 	type ThemeGenerationInput,
 } from '../../src/core/pipeline/theme-service.ts';
+import { ExitCode } from '../../src/types/index.ts';
 import { BuildContext } from '../../src/utils/receipt.ts';
 import {
 	cleanupTempTheme,
@@ -187,6 +188,305 @@ theme:
 		} finally {
 			await fs.rm(dir, { recursive: true, force: true });
 		}
+	});
+
+	describe('reference-gated resource loading', () => {
+		const cases = [
+			{
+				name: 'missing unused resource',
+				kind: 'custom',
+				refs: ['./missing.yaml'],
+				reference: undefined,
+				succeeds: true,
+			},
+			{
+				name: 'malformed unused resource',
+				kind: 'custom',
+				refs: ['./malformed.yaml'],
+				files: { 'malformed.yaml': 'broken: [' },
+				reference: undefined,
+				succeeds: true,
+			},
+			{
+				name: 'duplicate unused namespace',
+				kind: 'custom',
+				refs: ['./first.yaml', './second.yaml'],
+				files: {
+					'first.yaml':
+						'shared:\n  color:\n    blue:\n      $value: "#2563eb"\n',
+					'second.yaml':
+						'shared:\n  color:\n    blue:\n      $value: "#1d4ed8"\n',
+				},
+				reference: undefined,
+				succeeds: true,
+			},
+			{
+				name: 'missing referenced resource',
+				kind: 'custom',
+				refs: ['./missing.yaml'],
+				reference: '{missing.color.blue}',
+				succeeds: false,
+			},
+			{
+				name: 'malformed referenced resource',
+				kind: 'custom',
+				refs: ['./malformed.yaml'],
+				files: { 'malformed.yaml': 'broken: [' },
+				reference: '{broken.color.blue}',
+				succeeds: false,
+			},
+			{
+				name: 'duplicate referenced namespace',
+				kind: 'custom',
+				refs: ['./first.yaml', './second.yaml'],
+				files: {
+					'first.yaml':
+						'shared:\n  color:\n    blue:\n      $value: "#2563eb"\n',
+					'second.yaml':
+						'shared:\n  color:\n    blue:\n      $value: "#1d4ed8"\n',
+				},
+				reference: '{shared.color.blue}',
+				succeeds: false,
+			},
+			{
+				name: 'kind-invalid but generically loadable referenced resource',
+				kind: 'future',
+				refs: ['./external.yaml'],
+				files: {
+					'external.yaml':
+						'external:\n  color:\n    blue:\n      $value: "#2563eb"\n',
+				},
+				reference: '{external.color.blue}',
+				succeeds: true,
+			},
+		] as const;
+
+		for (const testCase of cases) {
+			test(testCase.name, async () => {
+				const dir = await fs.mkdtemp(
+					path.join(os.tmpdir(), 'wave-resource-gate-'),
+				);
+				try {
+					const files = 'files' in testCase ? testCase.files : {};
+					for (const [name, content] of Object.entries(
+						files as Record<string, string>,
+					)) {
+						await fs.writeFile(path.join(dir, name), content);
+					}
+					const refs = testCase.refs.map((ref) => `      - ${ref}`).join('\n');
+					await fs.writeFile(
+						path.join(dir, 'main.yaml'),
+						`$config:
+  theme: resource-gate
+  resource:
+    ${testCase.kind}:
+${refs}
+  parameter:
+    outputDir: ./out
+    platform: json
+theme:
+  color:
+    external:
+      $type: color
+      $value: "${testCase.reference ?? '#2563eb'}"
+`,
+					);
+
+					const ctx = new BuildContext();
+					const result = await generateTheme(
+						{
+							themeName: 'resource-gate',
+							themePath: path.join(dir, 'main.yaml'),
+							generateOptions: { night: false },
+						},
+						ctx,
+					);
+
+					expect(result.ok).toBe(testCase.succeeds);
+					expect(ctx.warnings).toEqual([]);
+					if (testCase.succeeds) {
+						if (testCase.kind === 'future') {
+							expect(ctx.resources).toEqual([
+								{
+									kind: 'future',
+									ref: path.join(dir, 'external.yaml'),
+									source: 'user',
+								},
+							]);
+						} else {
+							expect(ctx.resources).toEqual([]);
+						}
+					} else {
+						if (result.ok) return;
+						expect(result.exitCode).toBe(ExitCode.INVALID_PARAMETER);
+						expect(result.message).toContain(
+							'Unresolved theme references found',
+						);
+						expect(result.message).toContain('at theme.color.external');
+						expect(ctx.resources).toEqual([]);
+					}
+				} finally {
+					await fs.rm(dir, { recursive: true, force: true });
+				}
+			});
+		}
+
+		for (const reference of [
+			'{external.color.blue}',
+			'{ $ref: "#/external/color/blue/$value" }',
+		]) {
+			test(`resolves external value ${reference}`, async () => {
+				const dir = await fs.mkdtemp(
+					path.join(os.tmpdir(), 'wave-external-ref-'),
+				);
+				try {
+					await fs.writeFile(
+						path.join(dir, 'external.yaml'),
+						'external:\n  color:\n    blue:\n      $value: "#2563eb"\n',
+					);
+					await fs.writeFile(
+						path.join(dir, 'main.yaml'),
+						`$config:
+  theme: external-ref
+  resource:
+    custom: [./external.yaml]
+  parameter: { outputDir: ./out, platform: json }
+theme:
+  color:
+    external:
+      $type: color
+      $value: ${reference}
+`,
+					);
+					const ctx = new BuildContext();
+					const result = await generateTheme(
+						{
+							themeName: 'external-ref',
+							themePath: path.join(dir, 'main.yaml'),
+							generateOptions: { night: false },
+						},
+						ctx,
+					);
+
+					expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+					expect(ctx.resources).toEqual([
+						{
+							kind: 'custom',
+							ref: path.join(dir, 'external.yaml'),
+							source: 'user',
+						},
+					]);
+				} finally {
+					await fs.rm(dir, { recursive: true, force: true });
+				}
+			});
+		}
+
+		test('resolves a resource reference nested in smoothShadow extensions', async () => {
+			const dir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-extension-ref-'),
+			);
+			try {
+				await fs.writeFile(
+					path.join(dir, 'motion.yaml'),
+					'motion:\n  easing:\n    ease:\n      $value: [0.33, 1, 0.68, 1]\n',
+				);
+				await fs.writeFile(
+					path.join(dir, 'main.yaml'),
+					`$config:
+  theme: extension-ref
+  resource:
+    custom: [./motion.yaml]
+  parameter: { outputDir: ./out, platform: json }
+theme:
+  shadow:
+    raised:
+      $type: shadow
+      $value: { color: "#000000", offsetX: 0, offsetY: 1, blur: 2, spread: 0 }
+      $extensions:
+        smoothShadow:
+          cubicBezier: "{motion.easing.ease}"
+          step: 2
+          target: { alpha: 0.2, offsetX: 0, offsetY: 2, blur: 4, spread: 0 }
+`,
+				);
+				const result = await generateTheme({
+					themeName: 'extension-ref',
+					themePath: path.join(dir, 'main.yaml'),
+					generateOptions: { night: false },
+				});
+
+				expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+			} finally {
+				await fs.rm(dir, { recursive: true, force: true });
+			}
+		});
+
+		test('does not leak themefile resources into an adjacent configured main', async () => {
+			const dir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-config-precedence-'),
+			);
+			try {
+				await fs.writeFile(
+					path.join(dir, 'themefile'),
+					'THEME precedence\nRESOURCE custom ./missing.yaml\n',
+				);
+				await fs.writeFile(
+					path.join(dir, 'main.yaml'),
+					`$config:
+  theme: precedence
+  parameter: { outputDir: ./out, platform: json }
+theme:
+  color:
+    base: { $type: color, $value: "#2563eb" }
+`,
+				);
+				const ctx = new BuildContext();
+				const result = await generateTheme(
+					{
+						themeName: 'precedence',
+						themePath: path.join(dir, 'themefile'),
+						generateOptions: { night: false },
+					},
+					ctx,
+				);
+
+				expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+				expect(ctx.resources).toEqual([]);
+			} finally {
+				await fs.rm(dir, { recursive: true, force: true });
+			}
+		});
+
+		test('legacy fallback returns a structured missing resource-pair failure', async () => {
+			const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-legacy-pair-'));
+			try {
+				await fs.writeFile(
+					path.join(dir, 'palette.yaml'),
+					'custom:\n  color:\n    primary:\n      $value: "#2563eb"\n',
+				);
+				await fs.writeFile(
+					path.join(dir, 'themefile'),
+					'THEME legacy\nRESOURCE palette ./palette.yaml\nPARAMETER output ./out\n',
+				);
+
+				const result = await generateTheme({
+					themeName: 'legacy',
+					themePath: path.join(dir, 'themefile'),
+					generateOptions: { night: false },
+				});
+
+				expect(result.ok).toBe(false);
+				if (!result.ok) {
+					expect(result.exitCode).toBe(ExitCode.FILE_NOT_FOUND);
+					expect(result.message).toBe(
+						'Missing required palette or dimension resource',
+					);
+				}
+			} finally {
+				await fs.rm(dir, { recursive: true, force: true });
+			}
+		});
 	});
 
 	describe('标准主题生成', () => {
@@ -564,18 +864,34 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				'tests/fixtures/themes/profile-model/main.yaml',
 			);
 
-			const result = await generateTheme({
-				themeName: 'profile-model',
-				themePath,
-				cliOutput: outputDir,
-				generateOptions: { night: false, profiles: 'all' },
-			});
+			const ctx = new BuildContext();
+			const result = await generateTheme(
+				{
+					themeName: 'profile-model',
+					themePath,
+					cliOutput: outputDir,
+					generateOptions: { night: false, profiles: 'all' },
+				},
+				ctx,
+			);
 
 			expect(result.ok).toBe(true);
 			if (result.ok) {
 				expect(result.generatedFiles).toContain('profile-model.json');
 				expect(result.generatedFiles).toContain('profile-model.css');
 				expect(result.generatedFiles).toContain('profile-model-mobile.json');
+				expect(ctx.resources).toEqual([
+					{ kind: 'palette', ref: 'tailwindcss', source: 'builtin' },
+					{ kind: 'dimension', ref: 'wave', source: 'builtin' },
+					{
+						kind: 'custom',
+						ref: path.join(
+							process.cwd(),
+							'tests/fixtures/themes/profile-model/resources/mobile-resource.yaml',
+						),
+						source: 'user',
+					},
+				]);
 			}
 			await fs.rm(outputDir, { recursive: true, force: true });
 		});
