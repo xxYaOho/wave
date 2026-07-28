@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import {
 	type ColorSpaceFormat,
+	type DesignTokenBuildConfig,
 	ExitCode,
 	type ParameterSet,
 	type ParsedThemefile,
@@ -258,7 +259,7 @@ export async function loadThemefile(
 }
 
 export async function collectDependencyDictionary(
-	parsed: ParsedThemefile,
+	config: Pick<DesignTokenBuildConfig, 'resources'>,
 	themeDir: string,
 ): Promise<DependencyDictionary> {
 	const dict = Object.create(null) as DependencyDict;
@@ -266,7 +267,7 @@ export async function collectDependencyDictionary(
 	const issues: DependencyLoadIssue[] = [];
 	const ambiguous = new Set<string>();
 
-	for (const declaration of parsed.resources) {
+	for (const declaration of config.resources) {
 		const resource = await loadResource(
 			declaration.kind,
 			declaration.ref,
