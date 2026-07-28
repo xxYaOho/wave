@@ -261,7 +261,7 @@ export function resolveParameters(
 	// platforms: CLI overrides all
 	const platformRaw = cliPlatform ?? params.platform;
 	let platforms: string[];
-	if (!platformRaw || platformRaw === 'general') {
+	if (platformRaw === undefined || platformRaw === 'general') {
 		if (platformRaw === 'general') {
 			logger.warn(
 				'PARAMETER platform "general" is deprecated, use "json,jsonc" instead',
