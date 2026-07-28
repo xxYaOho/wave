@@ -2,20 +2,17 @@ import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import {
 	type ColorSpaceFormat,
-	type DimensionResult,
 	ExitCode,
-	type PaletteResult,
 	type ParameterSet,
 	type ParsedThemefile,
 	type ParseError,
 	type ReferenceDataSources,
 	type ResolvedGroupParameters,
+	type ResourceDeclaration,
 	type ThemeDocumentResult,
 } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 import {
-	parseDimension,
-	parsePalette,
 	validateDimensionSchema,
 	validatePaletteSchema,
 } from '../parser/index.ts';
@@ -29,6 +26,7 @@ import {
 	UnresolvedReferenceError,
 } from '../resolver/index.ts';
 import { loadResource } from '../resolver/resource-loader.ts';
+import { validateCustomResourceExtension } from '../schema/resource.ts';
 import { validateThemeSchema } from '../schema/theme.ts';
 import { ColorValueError } from '../transformer/color-value.ts';
 import { transformToWaveTokens } from '../transformer/index.ts';
@@ -53,12 +51,25 @@ export interface DependencyDict {
 
 export interface DependencyDictionary {
 	dict: DependencyDict;
-	palette: PaletteResult;
-	dimension: DimensionResult;
-	paletteContent: string;
-	dimensionContent: string;
-	palettePath: string;
-	dimensionPath: string;
+	loaded: LoadedDependency[];
+	issues: DependencyLoadIssue[];
+}
+
+export interface LoadedDependency {
+	kind: string;
+	ref: string;
+	namespace: string;
+	data: Record<string, unknown>;
+	content: string;
+	path: string;
+	source: 'builtin' | 'cache' | 'user';
+}
+
+export interface DependencyLoadIssue {
+	kind: string;
+	ref: string;
+	message: string;
+	namespace?: string;
 }
 
 function expandHomePath(filePath: string): string {
@@ -163,13 +174,6 @@ function parseMainConfig(
 			}
 		}
 	}
-	if (resources.length === 0) {
-		return {
-			line: 1,
-			message: 'Missing required $config.resource declarations',
-		};
-	}
-
 	const parameter = normalizeParameterSet(configObj.parameter);
 	const groups = [] as ParsedThemefile['groups'];
 	const parameterGroup = configObj.parameterGroup;
@@ -253,109 +257,107 @@ export async function loadThemefile(
 	return { parsed, themeDir, themefilePath, themefileContent };
 }
 
+export async function collectDependencyDictionary(
+	parsed: ParsedThemefile,
+	themeDir: string,
+): Promise<DependencyDictionary> {
+	const dict = Object.create(null) as DependencyDict;
+	let loaded: LoadedDependency[] = [];
+	const issues: DependencyLoadIssue[] = [];
+	const ambiguous = new Set<string>();
+
+	for (const declaration of parsed.resources) {
+		const resource = await loadResource(
+			declaration.kind,
+			declaration.ref,
+			themeDir,
+		);
+		if ('line' in resource) {
+			issues.push({ ...declaration, message: resource.message });
+			continue;
+		}
+
+		if (ambiguous.has(resource.namespace)) {
+			issues.push({
+				...declaration,
+				namespace: resource.namespace,
+				message: `Duplicate namespace "${resource.namespace}"`,
+			});
+			continue;
+		}
+		if (dict[resource.namespace]) {
+			delete dict[resource.namespace];
+			loaded = loaded.filter((entry) => entry.namespace !== resource.namespace);
+			ambiguous.add(resource.namespace);
+			issues.push({
+				...declaration,
+				namespace: resource.namespace,
+				message: `Duplicate namespace "${resource.namespace}"`,
+			});
+			continue;
+		}
+
+		const entry = { ...declaration, ...resource };
+		dict[resource.namespace] = {
+			data: resource.data,
+			path: resource.path,
+			kind: declaration.kind,
+			source: resource.source,
+		};
+		loaded.push(entry);
+	}
+
+	return { dict, loaded, issues };
+}
+
+const RESOURCE_KINDS = new Set(['palette', 'dimension', 'custom']);
+
+function validateResourceDeclaration(
+	declaration: ResourceDeclaration,
+): string | undefined {
+	if (!RESOURCE_KINDS.has(declaration.kind)) {
+		return `Unsupported resource kind: ${declaration.kind}`;
+	}
+	if (declaration.kind === 'custom') {
+		return validateCustomResourceExtension(declaration.ref)?.message;
+	}
+	return undefined;
+}
+
+async function validateLoadedResourceKind(
+	entry: LoadedDependency,
+): Promise<string | undefined> {
+	if (entry.kind === 'palette') {
+		const error = await validatePaletteSchema(entry.content, entry.path);
+		return error ? `Palette schema error: ${error.message}` : undefined;
+	}
+	if (entry.kind === 'dimension') {
+		const error = await validateDimensionSchema(entry.content, entry.path);
+		return error ? `Dimension schema error: ${error.message}` : undefined;
+	}
+	return undefined;
+}
+
 export async function buildDependencyDictionary(
 	parsed: ParsedThemefile,
 	themeDir: string,
 ): Promise<DependencyDictionary | { error: Error }> {
-	const resources = parsed.resources;
-
-	if (resources.length === 0) {
-		return { error: new Error('No resources declared in themefile') };
+	for (const declaration of parsed.resources) {
+		const declarationError = validateResourceDeclaration(declaration);
+		if (declarationError) return { error: new Error(declarationError) };
 	}
 
-	const dict: DependencyDict = {};
-	const namespaces = new Set<string>();
-
-	let paletteResult: PaletteResult | undefined;
-	let dimensionResult: DimensionResult | undefined;
-	let paletteContent = '';
-	let dimensionContent = '';
-	let palettePath = '';
-	let dimensionPath = '';
-
-	for (const { kind, ref } of resources) {
-		const loaded = await loadResource(kind, ref, themeDir);
-		if ('line' in loaded) {
-			return { error: new Error(loaded.message) };
-		}
-
-		if (namespaces.has(loaded.namespace)) {
-			return {
-				error: new Error(
-					`Duplicate namespace "${loaded.namespace}" declared by ${kind} ${ref} (${loaded.path})`,
-				),
-			};
-		}
-		namespaces.add(loaded.namespace);
-
-		dict[loaded.namespace] = {
-			data: loaded.data,
-			path: loaded.path,
-			kind,
-			source: loaded.source,
-		};
-
-		// Backward compatibility: extract first palette and dimension for the old resolver
-		if (kind === 'palette' && !paletteResult) {
-			palettePath = loaded.path;
-			paletteContent = loaded.content;
-			const schemaError = await validatePaletteSchema(
-				paletteContent,
-				palettePath,
-			);
-			if (schemaError) {
-				return {
-					error: new Error(`Palette schema error: ${schemaError.message}`),
-				};
-			}
-			const parsedPalette = parsePalette(paletteContent);
-			if (isParseError(parsedPalette)) {
-				return {
-					error: new Error(
-						`Palette parse error at line ${parsedPalette.line}: ${parsedPalette.message}`,
-					),
-				};
-			}
-			paletteResult = parsedPalette;
-		}
-
-		if (kind === 'dimension' && !dimensionResult) {
-			dimensionPath = loaded.path;
-			dimensionContent = loaded.content;
-			const schemaError = await validateDimensionSchema(
-				dimensionContent,
-				dimensionPath,
-			);
-			if (schemaError) {
-				return {
-					error: new Error(`Dimension schema error: ${schemaError.message}`),
-				};
-			}
-			const parsedDim = parseDimension(dimensionContent);
-			if (isParseError(parsedDim)) {
-				return {
-					error: new Error(`Dimension parse error: ${parsedDim.message}`),
-				};
-			}
-			dimensionResult = parsedDim;
-		}
+	const result = await collectDependencyDictionary(parsed, themeDir);
+	if (result.issues.length > 0) {
+		return { error: new Error(result.issues[0]!.message) };
 	}
 
-	if (!paletteResult || !dimensionResult) {
-		return {
-			error: new Error('Missing required palette or dimension resource'),
-		};
+	for (const entry of result.loaded) {
+		const schemaError = await validateLoadedResourceKind(entry);
+		if (schemaError) return { error: new Error(schemaError) };
 	}
 
-	return {
-		dict,
-		palette: paletteResult,
-		dimension: dimensionResult,
-		paletteContent,
-		dimensionContent,
-		palettePath,
-		dimensionPath,
-	};
+	return result;
 }
 
 export async function processThemeDocument(

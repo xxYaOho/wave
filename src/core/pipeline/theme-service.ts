@@ -500,8 +500,22 @@ async function generateThemeTokens(
 	filterLayer?: number,
 	colorSpace?: ColorSpaceFormat,
 ): Promise<GeneratorResult> {
-	const { paletteContent, dimensionContent, palettePath, dimensionPath } =
-		depResult;
+	const paletteDependency = depResult.loaded.find(
+		(entry) => entry.kind === 'palette',
+	);
+	const dimensionDependency = depResult.loaded.find(
+		(entry) => entry.kind === 'dimension',
+	);
+	if (!paletteDependency || !dimensionDependency) {
+		return {
+			success: false,
+			files: [],
+			error: 'Missing required palette or dimension resource',
+		};
+	}
+	const { content: paletteContent, path: palettePath } = paletteDependency;
+	const { content: dimensionContent, path: dimensionPath } =
+		dimensionDependency;
 
 	const paletteSchemaError = await validatePaletteSchema(
 		paletteContent,

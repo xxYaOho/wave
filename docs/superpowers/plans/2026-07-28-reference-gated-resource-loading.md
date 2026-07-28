@@ -58,7 +58,10 @@ Files:
 
 ## Milestones And Review Gates
 
-1. **Dependency model:** Tasks 1-2. Run focused tests and `pnpm typecheck`, then dispatch `critic-gate` against the approved design in `docs/research/wave-dt-profile-model.md`.
+1. **Dependency model:** Tasks 1-2 plus the minimal legacy consumer type
+   migration from Task 3. Run focused tests and `pnpm typecheck`, then dispatch
+   `critic-gate` against the approved design in
+   `docs/research/wave-dt-profile-model.md`.
 2. **Command behavior:** Tasks 3-4. Run focused integration and Doctor tests, then dispatch `critic-gate` for build/Doctor/legacy contract fidelity.
 3. **Release readiness:** Task 5. Run the full repository gates and a final `critic-gate` over the complete diff.
 
@@ -160,6 +163,8 @@ and commits the parser and collector as one working contract.
 **Files:**
 
 - Modify: `src/core/pipeline/theme-pipeline.ts:45-360`
+- Modify: `src/core/pipeline/theme-service.ts:495-540` only to consume the new
+  `loaded` entries without changing main/profile build loading mode
 - Test: `tests/resource-merge.test.ts`
 
 - [ ] **Step 1: Replace old resource-pair tests with the new collection matrix**
@@ -261,7 +266,7 @@ export async function collectDependencyDictionary(
 	parsed: ParsedThemefile,
 	themeDir: string,
 ): Promise<DependencyDictionary> {
-	const dict: DependencyDict = {};
+	const dict = Object.create(null) as DependencyDict;
 	let loaded: LoadedDependency[] = [];
 	const issues: DependencyLoadIssue[] = [];
 	const ambiguous = new Set<string>();
@@ -312,6 +317,10 @@ export async function collectDependencyDictionary(
 	return { dict, loaded, issues };
 }
 ```
+
+Use a null-prototype dictionary so valid namespaces such as `constructor` or
+`__proto__` cannot collide with inherited object properties. Add a regression
+that loads `constructor` as a real namespace and resolves it as an own key.
 
 When a third declaration repeats an already ambiguous namespace, record another strict-mode issue with its kind/ref instead of silently losing Doctor evidence.
 
@@ -377,6 +386,11 @@ graph is valid, build may use the namespace; Doctor must still reject the
 declaration.
 
 - [ ] **Step 6: Run unit tests and typecheck**
+
+Before typecheck, update the legacy `generateThemeTokens()` consumer to locate
+its palette and dimension from `depResult.loaded`. Missing pairs must return a
+failed `GeneratorResult`, not throw. Task 3 still owns tolerant main/profile
+loading, receipt behavior, and final legacy exit-code integration.
 
 ```bash
 bun test tests/resource-merge.test.ts

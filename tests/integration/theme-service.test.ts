@@ -154,6 +154,41 @@ describe('Theme Service Integration', () => {
 		previousResourceEnv = applyResourceEnv(isolatedResourceEnv(tempDir));
 	});
 
+	test('builds a self-contained main.yaml without $config.resource', async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-no-resource-'));
+		try {
+			await fs.writeFile(
+				path.join(dir, 'main.yaml'),
+				`$config:
+  theme: no-resource
+  parameter:
+    outputDir: ./out
+    platform: json
+theme:
+  color:
+    $type: color
+    base:
+      $value: "#2563eb"
+    alias:
+      $value: "{theme.color.base}"
+`,
+			);
+
+			const result = await generateTheme({
+				themeName: 'no-resource',
+				themePath: path.join(dir, 'main.yaml'),
+				generateOptions: { night: false },
+			});
+
+			expect(result.ok).toBe(true);
+			expect(
+				await Bun.file(path.join(dir, 'out', 'no-resource.json')).exists(),
+			).toBe(true);
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	describe('标准主题生成', () => {
 		let theme: TestTheme;
 
