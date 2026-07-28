@@ -1,3 +1,11 @@
+$config:
+  theme: doctor-contrast-invalid
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+
 theme:
   color:
     surface:

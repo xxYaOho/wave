@@ -1,3 +1,18 @@
+$config:
+  theme: inherit-color
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+      - css
+      - sketch
+    colorSpace: hex
+
 theme:
   color:
     # 基础颜色（非 inheritColor）
@@ -56,9 +71,3 @@ theme:
         $extensions:
           inheritColor:
             siblingSlot: 'nonexistent'
-
-themefile:
-  name: inherit-color
-  resources: []
-  generate:
-    platforms: [json, css, sketch]

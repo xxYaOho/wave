@@ -1,3 +1,17 @@
+$config:
+  theme: test-extends
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+      - css
+      - sketch
+
 theme:
   component:
     button:

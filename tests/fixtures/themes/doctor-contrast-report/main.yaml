@@ -1,3 +1,11 @@
+$config:
+  theme: doctor-contrast-report
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+
 theme:
   color:
     primary:

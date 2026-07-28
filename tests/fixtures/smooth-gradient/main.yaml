@@ -1,3 +1,14 @@
+$config:
+  theme: smooth-gradient
+  resource:
+    palette:
+      - leonardo
+    dimension:
+      - wave
+  parameter:
+    platform:
+      - css
+
 theme:
   gradient:
     $type: gradient

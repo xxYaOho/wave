@@ -1,3 +1,17 @@
+$config:
+  theme: test-standard
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+      - css
+    colorSpace: hex
+
 theme:
   color:
     $type: color
