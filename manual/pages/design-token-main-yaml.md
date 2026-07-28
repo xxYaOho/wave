@@ -1,6 +1,6 @@
 ---
 title: main.yaml 写法
-description: main.yaml 的 $config、GROUP、token 结构与 theme 顶级 key 写法参考。
+description: main.yaml 的 $config、parameterGroup、token 结构与 theme 顶级 key 写法参考。
 category: Design Token
 commands:
   - wave dt build
@@ -62,43 +62,45 @@ theme:
 | 字段 | 说明 |
 | --- | --- |
 | `theme` | 主题名，也是输出文件名前缀 |
-| `resource.palette[]` | 可选；色板资源，例如 `tailwindcss` |
-| `resource.dimension[]` | 可选；尺寸资源，例如 `wave` |
-| `resource.custom[]` | 可选；自定义资源文件 |
-| `parameter.outputDir` | 输出目录 |
-| `parameter.platform[]` | 输出格式 |
-| `parameter.filterLayer` | 输出 key 时跳过前 N 层路径 |
-| `parameter.colorSpace` | 颜色输出格式 |
+| `resource.palette` | 可选；色板资源，使用非空字符串或非空字符串数组 |
+| `resource.dimension` | 可选；尺寸资源，使用非空字符串或非空字符串数组 |
+| `resource.custom` | 可选；自定义资源文件，使用非空字符串或非空字符串数组 |
+| `parameter.outputDir` | 非空输出目录 |
+| `parameter.platform` | 非空数组；支持 `json`、`jsonc`、`css`、`sketch` |
+| `parameter.filterLayer` | 大于等于 0 的整数；输出 key 时跳过前 N 层路径 |
+| `parameter.colorSpace` | 支持 `hex`、`oklch`、`srgb`、`hsl` |
 | `parameterGroup.<name>` | 多组输出参数，字段同 `parameter` |
+
+`$config` 是闭合结构。未知字段、错误类型、空字符串或无效枚举值会导致 build 失败，并在错误中显示字段路径。
 
 build 只要求 token 图中的全部引用能够唯一解析。未被引用的缺失、损坏或重复 resource 声明不会阻塞 build；`wave dt doctor` 会严格检查当前目标中的全部声明。
 
-## GROUP
+## parameterGroup
 
-`GROUP` 用来一次构建多组输出。全局 `PARAMETER` 是默认值，组内 `PARAMETER` 覆盖同名参数。
+`parameterGroup` 用来一次构建多组输出。`parameter` 提供默认值，每个 group 覆盖同名字段。每个 group 可使用的字段与 `parameter` 相同。
 
-```text
-THEME example
-RESOURCE palette tailwindcss
-RESOURCE dimension wave
-
-PARAMETER output ./build
-PARAMETER colorSpace hex
-
-GROUP "css" {
-  PARAMETER platform css
-  PARAMETER filterLayer 2
-  PARAMETER output ./build/css
-}
-
-GROUP "sketch" {
-  PARAMETER platform sketch
-  PARAMETER filterLayer 2
-  PARAMETER output ./build/sketch
-}
+```yaml
+$config:
+  theme: example
+  resource:
+    palette: tailwindcss
+    dimension: wave
+  parameter:
+    colorSpace: hex
+    filterLayer: 1
+  parameterGroup:
+    css:
+      outputDir: ./build/css
+      platform: [css]
+    sketch:
+      outputDir: ./build/sketch
+      platform: [sketch]
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "{tailwindcss.color.indigo.600}"
 ```
-
-`GROUP` 块内只接受 `PARAMETER`、注释和空行。
 
 ## token 写法
 

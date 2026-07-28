@@ -75,8 +75,8 @@ appliesTo:
 
 design-token 用户参考拆分为五个文件，共同构成唯一真源：
 
-- `pages/design-token.md`：概览，覆盖用途、入口选择、文件职责、旧 themefile 入口。
-- `pages/design-token-main-yaml.md`：`main.yaml` 的 `$config`、GROUP、token 结构、theme 顶级 key、兼容字段。
+- `pages/design-token.md`：概览，覆盖用途、main-only 入口和文件职责。
+- `pages/design-token-main-yaml.md`：`main.yaml` 的 `$config`、`parameterGroup`、token 结构、theme 顶级 key、兼容字段。
 - `pages/design-token-color-typography.md`：颜色和 alpha、Typography、虚线 border。
 - `pages/design-token-extensions-output.md`：输出格式、`$extensions` 全部扩展字段。
 - `pages/design-token-quality-theming.md`：`doctor.wcagPairs`、Profile 和 Night Mode、常见错误。
@@ -92,7 +92,7 @@ design-token 用户参考拆分为五个文件，共同构成唯一真源：
 推荐：
 
 ```bash
-wave dt build -f ./themefile --platform json,css
+wave dt build -f ./main.yaml --platform json,css
 wave compress ./assets --dry-run
 wave motion gif ./frames --fps 24 --out loading.gif
 ```
@@ -100,7 +100,7 @@ wave motion gif ./frames --fps 24 --out loading.gif
 避免：
 
 ```bash
-wave dt build -f ./main.yaml
+wave dt build ./main.yaml -f ./main.yaml
 wave compress ./assets --yes
 wave motion gif
 ```

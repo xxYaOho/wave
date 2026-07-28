@@ -19,6 +19,7 @@ wave --help
 wave --version
 wave doctor
 wave install --check
+wave show
 ```
 
 ## Design Token
@@ -79,13 +80,3 @@ wave motion install --check
 wave workspace --help
 WAVE_WORKSPACE_CONFIG=/path/to/workspace.yaml wave workspace
 ```
-
-## 旧入口
-
-```bash
-wave create
-wave init
-wave show
-```
-
-旧入口仍可使用。新脚本优先使用模块化入口。

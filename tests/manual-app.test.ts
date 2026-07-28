@@ -24,7 +24,7 @@ const page = {
 	href: '/design-token',
 	source: 'pages/design-token.md',
 	body: '## Usage',
-	html: '<h2>Usage</h2><p>Build token output.</p><pre><code>wave dt build -f ./themefile</code></pre>',
+	html: '<h2>Usage</h2><p>Build token output.</p><pre><code>wave dt build -f ./main.yaml</code></pre>',
 	searchText: 'Design Token Build token output wave dt doctor',
 };
 
@@ -174,7 +174,7 @@ describe('manual app', () => {
 		const copyButton = await view.findByRole('button', { name: '复制代码' });
 		await user.click(copyButton);
 
-		expect(copied).toEqual(['wave dt build -f ./themefile']);
+		expect(copied).toEqual(['wave dt build -f ./main.yaml']);
 		expect(copyButton.textContent).toBe('已复制');
 	});
 
@@ -254,7 +254,10 @@ describe('manual app', () => {
 		expect(pageByHref.get('/command-index')?.searchText).toContain(
 			'wave --help',
 		);
-		expect(pageByHref.get('/design-token')?.searchText).toContain('themefile');
+		expect(pageByHref.get('/design-token')?.searchText).toContain('main.yaml');
+		expect(pageByHref.get('/design-token')?.searchText).not.toContain(
+			'themefile',
+		);
 		expect(
 			pageByHref.get('/design-token/extensions-output')?.searchText,
 		).toContain('$extensions');

@@ -9,7 +9,7 @@ tests/
 │   │   ├── profile-model/         # main.yaml + $config 主路径
 │   │   ├── config-group-profiles/ # benchmark profile/group 覆盖
 │   │   ├── config-group-variants/ # legacy variants 负覆盖
-│   │   ├── standard/              # legacy themefile 兼容覆盖
+│   │   ├── standard/              # main.yaml 标准构建覆盖
 │   │   ├── ref-test/              # $ref 引用测试主题
 │   │   ├── inherit-color/         # inheritColor 扩展测试主题
 │   │   └── sketch-extensions/     # Sketch 扩展测试主题
@@ -54,7 +54,7 @@ Quality Harness 的 profile/group 正向覆盖。用于验证 benchmark runner �
 
 只用于验证 `variants/` 不再被自动发现，不能作为 benchmark 正向覆盖。
 
-### Legacy Themefile Fixture (fixtures/themes/standard/)
+### Standard Main Workspace (fixtures/themes/standard/)
 
 包含完整的主题结构：
 - 颜色令牌（含 $description）
@@ -66,7 +66,7 @@ Quality Harness 的 profile/group 正向覆盖。用于验证 benchmark runner �
 
 专门测试引用系统：
 - 内部引用（同一文件）
-- 外部引用（RESOURCE）
+- 外部 resource 引用（通过 `$config.resource` 声明）
 - 属性合并（$ref + alpha）
 - 链式引用
 
@@ -106,7 +106,7 @@ Quality Harness 的 profile/group 正向覆盖。用于验证 benchmark runner �
 
 ```typescript
 const theme = await loadTestTheme('standard');
-// theme.themefile, theme.mainYaml, theme.dir
+// theme.mainYaml, theme.dir
 ```
 
 ### createTempTheme(config)

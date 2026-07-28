@@ -375,3 +375,17 @@ Verified:
 - border outline color references resolve consistently for CSS and Sketch;
 - `theme.radius.*` can use `sketch.property.cornerRadius`;
 - real `/Users/teatao/Projects/my-color/orca` packaged-binary smoke builds CSS and Sketch output without `[object Object]`, `1px solid currentColor`, or Sketch outline black fallback.
+
+## Design Token Legacy Cutover Closeout
+
+Recorded at: 2026-07-29
+Target release: Wave 0.22.0
+
+The 0.22.0 cutover makes `main.yaml::$config` the only design-token workspace entry. It removes the deprecated `themefile` entry, direct RESOURCE token generation, and the top-level `wave create` and `wave init` commands. `wave dt` and `wave design-token` remain equivalent; new workspaces start with `wave dt init`.
+
+Build, design-token Doctor, and WCAG now share the main-only input classification and failure semantics. Profile and Night files remain selectable scopes, but they cannot serve as workspace entries.
+
+Current sources of truth:
+
+- Approved design: [`docs/superpowers/specs/2026-07-28-design-token-legacy-cutover-design.md`](../superpowers/specs/2026-07-28-design-token-legacy-cutover-design.md)
+- Current behavior: [`docs/SPEC.md`](../SPEC.md)

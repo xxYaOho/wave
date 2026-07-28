@@ -28,10 +28,10 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - `$config.resource`：可选的外部引用依赖声明，不直接输出 token
 - build：只以有效 token 图能否完整解析和生成作为 resource 相关成功条件；未被引用的缺失、损坏或重复声明不阻塞 build
 - Doctor：严格检查当前检查目标中的全部 resource 声明，即使声明未被 token 引用
-- themefile：旧项目兼容入口，不作为新项目推荐结构
-- 无 `main.yaml` 时从 RESOURCE 直接生成 token 仅作为 legacy fallback 保留，会在 receipt 中输出弃用 warning；新项目必须迁移到 `main.yaml`
+- design-token workspace：只以文件名为 `main.yaml` 且根包含有效 `$config` 的文件作为入口；不从 resource、profile 或目录推断入口
+- RESOURCE：只提供引用解析数据，不直接生成 token
 - colorSpace 转换发生在输出阶段，不影响引用解析过程
-- dt：当前是 design-token 模块入口，默认读取当前目录 `main.yaml`，内部仍复用 token 生成主链路
+- dt：design-token 模块入口，默认读取当前目录 `main.yaml`
 - compress：只处理已有 PNG/JPG/SVG/GIF 素材压缩，不从帧生成动效
 - motion/mg：只从 PNG 帧目录生成 GIF/APNG
 - workspace：按 `~/.config/wave/workspace.yaml` 或内置默认配置创建本地设计项目目录
@@ -54,16 +54,13 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - ❌ 不要新增或扩大绕过 main.yaml 直接从资源生成 token 的路径
 - ❌ 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
 - ❌ 不要把 compress 和 motion 的外部工具判断各写一套；应复用 `ToolResolver` / `CommandRunner`
-- ❌ 不要把旧 `themefile` 兼容路径重新写成新项目推荐入口；`create` 仍以 `themefile` 为默认入口，但新脚本优先使用 `wave dt`
+- ❌ 不要新增其他 design-token workspace 入口或恢复已移除的 `themefile` 兼容路径
 - ❌ 不要把 Quality Harness 当作单次跑分结论；它提供趋势和阶段定位参考
 
 ---
 
 ## CLI 命令
 
-- `wave create`：读取当前目录 `themefile` 文件生成 token
-- `wave create [path]`：指定 themefile 路径生成
-- `wave create -f <path>`：使用 `-f` 指定 themefile 文件
 - `wave design-token`：design-token 模块入口，默认等价于 `wave design-token build`
 - `wave design-token build`：生成 design token 输出，默认读取当前目录 `main.yaml`
 - `wave dt`：`wave design-token` 的 alias，默认等价于 `wave dt build`
@@ -72,7 +69,7 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - `wave dt show`：浏览内置资源
 - `wave dt update [name]`：显式更新本地 design-token resource cache
 - `wave dt status`：查看本地 resource cache/state 状态
-- `wave dt doctor`：design-token 健康检查入口，当前复用 `wave doctor`
+- `wave dt doctor`：design-token workspace 健康检查入口
 - `wave dt wcag`：运行 WCAG 对比度检查
 - `wave doctor`：核心运行环境和本地工具链健康检查
 - `wave doctor --contrast`：WCAG 对比度检查
@@ -90,18 +87,17 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - `wave workspace create`：按配置创建本地设计项目工作区
 - `wave manual`：启动本地用户手册页面服务，服务 `dist/manual-app/` 构建产物
 - `wave show`：浏览内置资源
-- `wave init`：初始化主题工作区
 - `wave` / `wave -h` / `wave help`：显示顶层帮助
 - `wave --version`：显示版本号
 
 ### dt 命令
 
-`design-token` 是 design-token 能力域入口，`dt` 是 alias。当前版本已经支持以含 `$config` 的 `main.yaml` 作为 design-token 入口；`create` 仍保留 `themefile` 默认入口。
+`design-token` 是 design-token 能力域入口，`dt` 是 alias。两者只接受含有效 `$config` 的 `main.yaml` 作为 workspace 入口。
 
 - `wave dt`：内部归一化为 `wave dt build`，默认使用 `./main.yaml`
 - `wave design-token`：内部归一化为 `wave design-token build`，默认使用 `./main.yaml`
-- `wave dt build [path]`：生成 design token 输出；`path` 可为 `main.yaml` 或兼容的 `themefile`
-- `wave dt build -f <path>`：指定 `main.yaml` 或兼容的 `themefile`
+- `wave dt build [path]`：生成 design token 输出；`path` 必须指向 `main.yaml`
+- `wave dt build -f <path>`：显式指定 `main.yaml`
 - `wave dt init`：创建以 `main.yaml + $config` 为入口的 profile model 模板
 - `wave dt show [category] [name]`：浏览内置资源
 - `wave dt doctor`：运行 design-token 健康检查
@@ -114,6 +110,45 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - 其他 scope 视作 profile 名称
 - `--night` 检查 night 版本
 - `--profile <name>` 可显式指定 profile，优先于 scope 推断
+
+### Workspace 输入合同
+
+无显式文件时，design-token 命令只读取 `<cwd>/main.yaml`。显式文件通过 `dt build` 位置参数或 `-f, --file` 传入，且必须满足：
+
+- 路径指向普通文件，文件名为 `main.yaml`。
+- YAML 根为 object，且包含有效的 `$config` object。
+- 名为 `main.yaml` 且最终指向普通文件的 symlink 可以作为入口。resource 和输出相对路径仍以用户传入的 symlink 所在目录为 workspace 基准。
+- `dt build` 的位置参数与 `--file` 不能同时出现；同时出现时返回 `INVALID_PARAMETER`。
+
+named profile 和 Night overlay 只能通过 `--profile`、`--profiles all` 和 `--night` 选择，不能充当 workspace 入口。`dt wcag [scope]` 的 `scope` 选择 profile，不是文件位置参数；`dt wcag mobile --file ./main.yaml` 合法。
+
+**拒绝矩阵：**
+
+| 输入 | 结果 |
+| --- | --- |
+| 省略输入且 `<cwd>/main.yaml` 不存在 | `FILE_NOT_FOUND` |
+| 显式路径不存在 | `FILE_NOT_FOUND` |
+| 已移除的 `themefile` 入口 | `INVALID_PARAMETER` |
+| 目录 | `INVALID_PARAMETER` |
+| resource 文件 | `INVALID_PARAMETER` |
+| `profiles/<name>.yaml` | `INVALID_PARAMETER` |
+| `main@night.yaml` 或 profile Night 文件 | `INVALID_PARAMETER` |
+| 文件名不是 `main.yaml` 的任意 YAML | `INVALID_PARAMETER` |
+| `main.yaml` 无法读取且不是不存在 | `GENERAL_ERROR` |
+| `main.yaml` YAML 语法错误 | `FORMAT_ERROR` |
+| `main.yaml` 缺少或包含无效 `$config` | `FORMAT_ERROR` |
+| 位置参数与 `--file` 同时提供 | `INVALID_PARAMETER` |
+
+错误信息包含被拒绝路径、失败原因和现代入口提示。旧入口提示统一指向 `main.yaml` 和 `wave dt init`。入口拒绝或 `main.yaml` 解析失败不创建或覆盖生成产物，已有输出文件保持字节不变。
+
+### Doctor Scope
+
+- `wave doctor`、`wave doctor --json`、`wave doctor --status` 和 `wave doctor --verbose` 只运行通用工具链诊断，不要求当前目录存在 `main.yaml`。
+- `wave doctor --file <path>` 在通用诊断之外检查指定 workspace；文件必须符合 main-only 输入合同。
+- `wave doctor --contrast` 进入 design-token contrast 检查；没有 `--file` 时使用 `<cwd>/main.yaml`。
+- `wave dt doctor` 默认检查 `<cwd>/main.yaml`；`--file` 只能指定合法 `main.yaml`。
+- `wave dt doctor` 和 `wave doctor --file` 默认只严格检查 default profile 的 resource 声明；`--profile <name>` 只检查显式选择的 profile，不扫描所有 profile。
+- 任意显式 `--file` 都先执行入口校验，再选择 text、JSON、status 或 verbose renderer。`wave dt doctor --json` 在 cwd 缺少 `main.yaml` 时返回 `FILE_NOT_FOUND`，不会退化为通用工具链诊断。
 
 ### Profile Model
 
@@ -134,8 +169,7 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - 未被引用的缺失、损坏或重复 resource 声明不阻塞 build，也不产生 build warning。
 - 被引用的 namespace 必须唯一且可解析；缺失或重复导致歧义时，build 会报告引用所在的 token 路径并失败。
 - `wave dt doctor` 严格检查当前检查目标中的全部 resource 声明，包括未被 token 引用的声明。
-- 无 `main.yaml` 的 legacy resource-direct fallback 仍要求有效的 palette 和 dimension；该路径只为旧项目临时保留。
-- 完整移除 `themefile` 支持属于后续 breaking 迭代，不在当前版本执行。
+- 无 `main.yaml` 时返回 `FILE_NOT_FOUND`，不从 resource 生成 token。
 
 ### Public Theme Roots
 
@@ -153,7 +187,7 @@ CSS 输出包含 `theme.color`、`theme.state`、`theme.shadow`、`theme.gradien
   - `--format json`：嵌套 JSON 格式
   - `--format yaml`：原始 YAML 文件内容
 
-**create 命令参数选项：**
+**dt build 命令参数选项：**
 
 - `--profile <name>`：构建一个 named profile
 - `--profiles <mode>`：构建 profile 集合；当前支持 `all`
@@ -200,108 +234,61 @@ Wave 不捆绑 `oxipng`、`pngquant`、`svgo`、`gifsicle`、`gifski`、`apngasm
 
 ---
 
-## Themefile 配置
+## Design Token Workspace 配置
 
-**必需字段：**
+`main.yaml` 同时包含 `$config` 和 default profile token。YAML 根必须是 object，且 `$config` 必须通过闭合 schema 校验；未知字段、错误类型、空字符串和混合类型数组返回 `FORMAT_ERROR`，错误包含字段路径。
 
-- `THEME`：主题名称
+**`$config` 字段：**
 
-**资源声明（推荐）：**
+- `theme`：必填，trim 后必须是非空字符串。
+- `resource`：可选 object，只允许 `palette`、`dimension`、`custom`；每项是非空字符串或非空字符串数组。
+- `parameter`：可选 object，只允许 `outputDir`、`platform`、`filterLayer`、`colorSpace`。
+- `parameterGroup`：可选 object；key 是 group name，value 使用同一闭合 parameter schema。
 
-```
-RESOURCE <kind> <ref>
-```
+**parameter 字段：**
 
-- `kind`：资源类型，支持 `palette`、`dimension`、`custom`
-- `ref`：资源引用，内置资源写名称，自定义资源写相对或绝对路径
-
-**示例：**
-
-```
-THEME my-theme
-RESOURCE palette leonardo
-RESOURCE dimension wave
-RESOURCE custom ./tokens/brand.yml
-```
-
-**旧语法（兼容但已弃用）：**
-
-- `PALETTE`：调色板引用
-- `DIMENSION`：尺寸引用
-
-旧语法会在内部自动转换为对应的 `RESOURCE` 声明。一旦使用 `RESOURCE`，禁止混用旧语法。
-
-**可选参数 (PARAMETER)：**
-
-- `platform`：输出格式，`json`（默认）、`jsonc`、`css`、`sketch`，支持逗号分隔多平台（如 `json,css,sketch`）
-- `filterLayer`：过滤层级（数字），输出扁平化 KV 结构
-- `output`：输出目录路径
-- `night`：Night 模式，`auto`（默认）或 `false`
-- `brand`：品牌名
-- `colorSpace`：全局输出色彩空间，`hex`（默认）、`oklch`、`srgb`、`hsl`
+- `outputDir`：非空字符串。
+- `platform`：非空数组，成员只能是 `json`、`jsonc`、`css`、`sketch`。
+- `filterLayer`：大于等于 0 的整数。
+- `colorSpace`：只能是 `hex`、`oklch`、`srgb`、`hsl`。
 
 **完整示例：**
 
-```
-THEME my-theme
-RESOURCE palette leonardo
-RESOURCE dimension wave
-RESOURCE custom ./brand-colors.yml
+```yaml
+$schema: "https://www.designtokens.org/tr/2025.10/format/"
 
-PARAMETER platform json
-PARAMETER colorSpace oklch
-PARAMETER filterLayer 1
-PARAMETER output ./dist
-```
+$config:
+  theme: my-theme
+  resource:
+    palette:
+      - leonardo
+    dimension:
+      - wave
+    custom:
+      - ./tokens/brand.yaml
+  parameter:
+    outputDir: ./build
+    colorSpace: hex
+  parameterGroup:
+    css:
+      platform:
+        - css
+      filterLayer: 3
+      outputDir: ./build/css
+    sketch:
+      platform:
+        - sketch
+      filterLayer: 2
+      outputDir: ./build/sketch
 
-### GROUP 指令（v0.14.0+）
-
-GROUP 允许定义参数组，每组覆盖全局 PARAMETER，系统对每组分别执行一次独立构建。
-
-**语法：**
-
-```
-GROUP "name" {
-  PARAMETER key value
-  ...
-}
-```
-
-- `"name"` 可选（`GROUP {` 合法），用于日志标识
-- 块内只接受 `PARAMETER`、注释、空行
-- 全局 PARAMETER 为所有 GROUP 提供默认值
-- GROUP 内任意 PARAMETER 覆盖全局同名参数，所有 key 平等对待
-- 每个 GROUP 产生一次独立构建，输出到各自的 `output` 目录
-- 无 GROUP 时行为完全向后兼容（单次构建）
-
-**优先级：** `CLI --platform/-o` > `GROUP PARAMETER` > 全局 `PARAMETER`
-
-**示例：**
-
-```
-THEME my-theme
-RESOURCE palette leonardo
-RESOURCE dimension wave
-
-PARAMETER output ./build
-PARAMETER colorSpace hex
-
-GROUP "css" {
-  PARAMETER platform css
-  PARAMETER filterLayer 3
-  PARAMETER output ./build/css
-}
-
-GROUP "sketch" {
-  PARAMETER platform sketch
-  PARAMETER filterLayer 2
-  PARAMETER output ./build/sketch
-}
+theme:
+  color:
+    primary:
+      $type: color
+      $value: "{leonardo.color.blue.600}"
 ```
 
-上述配置会产生两次构建：css 组输出到 `./build/css`，sketch 组输出到 `./build/sketch`，两组均继承全局 `colorSpace hex`。
-
-**冲突检测：** 多个 GROUP 产生相同的 `(outputDir, platform)` 组合时，系统输出 warning。
+每个 `parameterGroup` 产生一个独立 build pass。group 字段覆盖 `$config.parameter` 的同名字段；CLI `--platform` 和 `--out` 再覆盖所有 pass。优先级为 CLI > `parameterGroup` > `parameter`。
 
 ---
 
@@ -453,7 +440,7 @@ Missing format in non-interactive mode. Use wave motion apng or wave motion gif.
 
 ## Workspace 行为
 
-`workspace` 创建本地设计项目目录。它不修改 design token 数据，不读取 `themefile` 或 `main.yaml`。
+`workspace` 创建本地设计项目目录。它不修改或读取 design-token workspace 数据。
 
 ### 命令形态
 
@@ -536,16 +523,15 @@ wave workspace create
 **解析规则：**
 
 1. `$config.resource` 可省略；省略时使用空依赖字典
-2. 新项目按 `main.yaml` 中 `$config.resource` 声明顺序尝试读取资源
-3. 兼容项目可继续按 `themefile` 中 `RESOURCE` 声明顺序读取
-4. 每个成功加载的资源文件解析后得到 `{ namespace, data }`
-5. 重复 namespace 不进入 build 依赖字典；仅在 token 引用该 namespace 时阻塞 build
-6. Doctor 对当前检查目标中的缺失、损坏、类型不合法或 namespace 重复声明进行严格检查
-7. 成功进入依赖字典的资源保留来源元数据（用于 receipt 和错误定位）
+2. 按 `main.yaml` 中 `$config.resource` 声明顺序尝试读取资源
+3. 每个成功加载的资源文件解析后得到 `{ namespace, data }`
+4. 重复 namespace 不进入 build 依赖字典；仅在 token 引用该 namespace 时阻塞 build
+5. Doctor 对当前检查目标中的缺失、损坏、类型不合法或 namespace 重复声明进行严格检查
+6. 成功进入依赖字典的资源保留来源元数据（用于 receipt 和错误定位）
 
 **引用查找顺序：**
 
-1. 显式项目路径：相对路径或绝对路径。`$config.resource` 中的相对路径以当前 `main.yaml` / profile 文件所在目录为基准；legacy `themefile RESOURCE` 中的相对路径以 themefile 目录为基准
+1. 显式项目路径：相对路径或绝对路径。`$config.resource` 中的相对路径以当前 `main.yaml` / profile 文件所在目录为基准
 2. 用户本地 cache：`~/.cache/wave/resources/<name>.yaml`
 3. 内置资源名：`src/resources/<kind>/<name>.yaml`
 
@@ -553,7 +539,7 @@ wave workspace create
 
 ### Resource Update / Status
 
-`build/create/show` 不会主动解析 latest，也不隐式刷新资源版本。资源更新只发生在显式命令：
+`build/show` 不会主动解析 latest，也不隐式刷新资源版本。资源更新只发生在显式命令：
 
 ```bash
 wave dt update
@@ -600,7 +586,6 @@ wave dt status
 - `BUILTIN_THEMES` 已清空为 `{}`
 - `isBuiltinTheme()` 恒返回 `false`
 - token 需要外部依赖时，通过 `main.yaml` 的 `$config.resource` 指定资源；自包含 token 图无需声明资源
-- legacy `themefile RESOURCE` 仅作为旧项目兼容入口保留
 
 ---
 
@@ -1061,23 +1046,20 @@ doctor:
 **使用方式：**
 
 ```bash
-# 默认读取当前目录 main.yaml
-wave dt doctor --contrast
+# 默认读取当前目录 main.yaml，检查 default profile
+wave dt wcag
 
 # 显式指定 main.yaml 路径
-wave dt doctor --contrast --file ./my-theme/main.yaml
-
-# 兼容旧 themefile 路径
-wave dt doctor --contrast --file ./my-theme/themefile
+wave dt wcag --file ./my-theme/main.yaml
 
 # 检查 night profile
-wave dt doctor --contrast --night
+wave dt wcag --night
 
 # 检查指定 profile
-wave dt doctor --contrast --profile mobile
+wave dt wcag --profile mobile
 
 # 检查 profile 的 night overlay
-wave dt doctor --contrast --profile mobile --night
+wave dt wcag --profile mobile --night
 ```
 
 ---
@@ -1227,7 +1209,7 @@ test("应处理 xxx", async () => {
 
 ## 范围边界（明确不做）
 
-- 内置主题：已移除，不再支持 `wave create beluga`
+- 内置主题：已移除，`wave dt build` 不接受内置主题名作为 workspace 输入
 - Windows/Linux 平台：未测试
 - 嵌套引用条件判断：`{theme.x ? a : b}` 格式不支持
 - 跨 profile 引用：Profile A 不能引用 Profile B 的 token

@@ -36,6 +36,17 @@ wave dt wcag mobile --night
 wave dt wcag --profile mobile
 ```
 
+## Doctor 检查范围
+
+`wave dt doctor` 默认检查 `main.yaml` 中 default profile 声明的全部 resource。使用 `--profile` 时，只检查指定 profile：
+
+```bash
+wave dt doctor
+wave dt doctor --profile mobile
+```
+
+顶层 `wave doctor` 只检查通用工具链，不要求当前目录存在 `main.yaml`。使用 `--file` 或 `--contrast` 时，入口必须是有效的 `main.yaml`。
+
 ## Profile 和 Night Mode
 
 默认构建只构建 `main.yaml`：
@@ -85,9 +96,8 @@ profiles/mobile@night.yaml
 | --- | --- |
 | 找不到 `main.yaml` | 在 token 项目目录执行命令，或先运行 `wave dt init` |
 | `main.yaml` 缺少 `$config` | 补齐 `$config`；如需检查 dimension 迁移，再运行 `wave dt doctor` |
-| 出现 `Direct RESOURCE token generation is deprecated` | 当前目录缺少 `main.yaml`，Wave 正在使用旧兼容路径；运行 `wave dt init` 后把 token 内容迁移到 `main.yaml` |
-| 引用无法解析 | 检查 `RESOURCE` 是否声明，或 token 路径是否正确 |
+| 入口不是名为 `main.yaml` 的文件 | 改用项目根目录的 `main.yaml`，或运行 `wave dt init` 创建入口 |
+| 引用无法解析 | 检查 `$config.resource` 是否声明对应 namespace，以及 token 路径是否正确 |
 | Sketch opacity 不输出 | 确认 token 在 `theme.state.*` 下，且 `$type` 是 `number` |
 | 仍在使用 `theme.dimension` 输出 | 迁移到 `theme.state`、`theme.shadow`、`theme.gradient` 或 `theme.radius`；运行 `wave dt doctor` 查看建议 |
 | WCAG 无检查项 | 确认存在 `doctor.wcagPairs` |
-
