@@ -14,7 +14,7 @@ wave 是面向 UI/UX 设计师的本地 CLI 工具集。当前已包含 design t
 main.yaml（$config + default profile token 内容，DTCG 格式）
     + profiles/<name>.yaml（named profile，可选）
     ↓
-引用解析（$config.resource 声明的数据源作为依赖字典）
+引用解析（$config.resource 可选；未声明时使用空依赖字典）
     ↓
 颜色转换（colorSpace 在输出阶段介入）
     ↓
@@ -25,7 +25,9 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 
 - main.yaml：default profile、token 内容和 `$config` 来源
 - profiles/<name>.yaml：named profile 的独立 token 内容；不与 main token 内容合并
-- $config.resource：只提供引用解析数据，不直接输出
+- `$config.resource`：可选的外部引用依赖声明，不直接输出 token
+- build：只以有效 token 图能否完整解析和生成作为 resource 相关成功条件；未被引用的缺失、损坏或重复声明不阻塞 build
+- Doctor：严格检查当前检查目标中的全部 resource 声明，即使声明未被 token 引用
 - themefile：旧项目兼容入口，不作为新项目推荐结构
 - 无 `main.yaml` 时从 RESOURCE 直接生成 token 仅作为 legacy fallback 保留，会在 receipt 中输出弃用 warning；新项目必须迁移到 `main.yaml`
 - colorSpace 转换发生在输出阶段，不影响引用解析过程
@@ -124,6 +126,16 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - named profile 可定义自己的 `theme.font.$extensions.typography.baseFontSize`；night overlay 只可写 `theme.color`、`theme.state`，因此继承 day profile 的字号基线。
 - 缺失或无效的 Night Mode 输出 `Night Mode unavailable/invalid and skipped`，跳过 night 输出，并保持 day build 成功。
 - `variants/`、`--variant` 和 `--variants` 不支持。
+
+### Resource Validation
+
+- `$config.resource` 可省略；完全自包含的 `main.yaml` 或 named profile 可直接构建。
+- build 会尝试收集已声明的外部依赖，但只以有效 token 图能否完整解析和生成作为 resource 相关成功条件。
+- 未被引用的缺失、损坏或重复 resource 声明不阻塞 build，也不产生 build warning。
+- 被引用的 namespace 必须唯一且可解析；缺失或重复导致歧义时，build 会报告引用所在的 token 路径并失败。
+- `wave dt doctor` 严格检查当前检查目标中的全部 resource 声明，包括未被 token 引用的声明。
+- 无 `main.yaml` 的 legacy resource-direct fallback 仍要求有效的 palette 和 dimension；该路径只为旧项目临时保留。
+- 完整移除 `themefile` 支持属于后续 breaking 迭代，不在当前版本执行。
 
 ### Public Theme Roots
 
@@ -523,11 +535,13 @@ wave workspace create
 
 **解析规则：**
 
-1. 新项目按 `main.yaml` 中 `$config.resource` 声明顺序读取资源
-2. 兼容项目可继续按 `themefile` 中 `RESOURCE` 声明顺序读取
-3. 每个资源文件解析后得到 `{ namespace, data }`
-4. 拒绝重复 namespace（直接报错，不覆盖）
-5. 资源来源元数据保留（用于错误定位）
+1. `$config.resource` 可省略；省略时使用空依赖字典
+2. 新项目按 `main.yaml` 中 `$config.resource` 声明顺序尝试读取资源
+3. 兼容项目可继续按 `themefile` 中 `RESOURCE` 声明顺序读取
+4. 每个成功加载的资源文件解析后得到 `{ namespace, data }`
+5. 重复 namespace 不进入 build 依赖字典；仅在 token 引用该 namespace 时阻塞 build
+6. Doctor 对当前检查目标中的缺失、损坏、类型不合法或 namespace 重复声明进行严格检查
+7. 成功进入依赖字典的资源保留来源元数据（用于 receipt 和错误定位）
 
 **引用查找顺序：**
 
@@ -585,7 +599,8 @@ wave dt status
 
 - `BUILTIN_THEMES` 已清空为 `{}`
 - `isBuiltinTheme()` 恒返回 `false`
-- 用户必须通过 `main.yaml` 的 `$config.resource` 指定资源；legacy `themefile RESOURCE` 仅作为旧项目兼容入口保留
+- token 需要外部依赖时，通过 `main.yaml` 的 `$config.resource` 指定资源；自包含 token 图无需声明资源
+- legacy `themefile RESOURCE` 仅作为旧项目兼容入口保留
 
 ---
 

@@ -49,11 +49,13 @@ wave dt build -f ./main.yaml
 | `profiles/<name>@night.yaml` | named profile 的 Night Mode 覆盖文件，可选 |
 | `themefile` | 旧项目兼容入口，可选 |
 
-`$config.resource` 只提供引用解析数据，不直接决定输出内容。
+`$config.resource` 是可选的外部引用依赖声明，只提供引用解析数据，不直接决定输出内容。自包含的 token 图无需声明 resource。
+
+build 以 token 图能否完整解析和生成作为成功条件。未被引用的缺失、损坏或重复 resource 声明不会阻塞 build；`wave dt doctor` 会严格检查当前检查目标中的全部声明。
 
 ## 旧 themefile 入口
 
-`themefile` 只为旧项目保留兼容，不作为新项目推荐结构。
+`themefile` 只为旧项目临时保留兼容，不作为新项目推荐结构，后续 breaking 迭代将完整移除该入口。
 
 最小示例：
 
@@ -101,3 +103,4 @@ wave dt build --platform json,css -o ./dist
 
 `wave create` 仍可用于旧项目，默认读取 `themefile`。新脚本优先使用 `wave dt`。
 
+无 `main.yaml` 时，legacy resource-direct fallback 仍要求有效的 palette 和 dimension；该行为不会扩展到新项目。

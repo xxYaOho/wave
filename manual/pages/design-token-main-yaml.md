@@ -10,7 +10,22 @@ appliesTo:
 
 ## main.yaml
 
-`main.yaml` 同时声明 `$config` 和 token 内容：
+`main.yaml` 同时声明 `$config` 和 token 内容。完全自包含的 token 不需要声明 resource：
+
+```yaml
+$config:
+  theme: example
+  parameter:
+    outputDir: ./build
+    platform: [json, css]
+theme:
+  color:
+    primary:
+      $type: color
+      $value: "#2563eb"
+```
+
+需要引用外部 token 时，再通过 `$config.resource` 声明依赖：
 
 ```yaml
 $schema: "https://www.designtokens.org/tr/2025.10/format/"
@@ -47,14 +62,16 @@ theme:
 | 字段 | 说明 |
 | --- | --- |
 | `theme` | 主题名，也是输出文件名前缀 |
-| `resource.palette[]` | 色板资源，例如 `tailwindcss` |
-| `resource.dimension[]` | 尺寸资源，例如 `wave` |
-| `resource.custom[]` | 自定义资源文件 |
+| `resource.palette[]` | 可选；色板资源，例如 `tailwindcss` |
+| `resource.dimension[]` | 可选；尺寸资源，例如 `wave` |
+| `resource.custom[]` | 可选；自定义资源文件 |
 | `parameter.outputDir` | 输出目录 |
 | `parameter.platform[]` | 输出格式 |
 | `parameter.filterLayer` | 输出 key 时跳过前 N 层路径 |
 | `parameter.colorSpace` | 颜色输出格式 |
 | `parameterGroup.<name>` | 多组输出参数，字段同 `parameter` |
+
+build 只要求 token 图中的全部引用能够唯一解析。未被引用的缺失、损坏或重复 resource 声明不会阻塞 build；`wave dt doctor` 会严格检查当前目标中的全部声明。
 
 ## GROUP
 
@@ -144,4 +161,3 @@ secondary:
 | `currentColor` | deprecated | `inheritColor` |
 
 新文档和新项目不要继续使用兼容字段。
-
