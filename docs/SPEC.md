@@ -292,6 +292,10 @@ theme:
 
 输出平台在 formatter 执行和输出目录创建前统一 trim 并按首次出现顺序去重。未知 platform 使整个 build 失败，错误会列出受支持的 `json`、`jsonc`、`css`、`sketch`；空 platform 列表同样失败，不会返回 `success: true` 且没有产物。校验失败时不会改写已有产物，也不会创建新产物。
 
+所有选中的 default、named profile 与有效 night scope 必须先完成 token processing，再按最终输出文件路径做一次全局规划；规划成功后才允许执行任一 formatter、创建输出目录或写文件。无效 night 仍按既有规则 warning + skip，不进入规划集合。任意两个 pass 产生相同最终路径时，build 返回 `GENERAL_ERROR`，错误为 `Output path collision: "<absolute-path>" is produced by passes "<id1>" and "<id2>"`；在失败前不会改写已有产物，也不会生成其他平台文件。GROUP 的 platform 集合部分重叠、default/profile/night 跨 scope 重叠均使用同一合同。
+
+最终路径由 generator 的平台命名规则产生，并用 `path.resolve()` 做 lexical absolute normalization，因此 `a/../b` 等 dot segment 会归一。当前合同不解析 symlink alias，也不对大小写或 Unicode 做 filesystem-aware canonicalization；这些物理同一文件场景不在 collision planner 保证范围内。
+
 ---
 
 ## Compress 行为

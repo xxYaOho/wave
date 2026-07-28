@@ -102,6 +102,8 @@ theme:
       $value: "{tailwindcss.color.indigo.600}"
 ```
 
+Wave 会在写入前统一检查本次 build 的全部输出路径，包括 default、named profile、有效 night 和各个 parameter group。若两个 pass 最终写向同一文件，build 会直接失败，并保持已有文件不变；例如一个 group 输出 `[json, css]`、另一个 group 在相同目录输出 `[json]`，两者会因 JSON 路径重叠而失败。无效 night 仍会提示并跳过，不参与路径检查。
+
 ## token 写法
 
 Wave 使用 DTCG 风格结构：

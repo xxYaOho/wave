@@ -3,6 +3,11 @@ import * as path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import * as yaml from 'js-yaml';
 import { generateTokens } from '../../src/core/generator/index.ts';
+import { planBuildOutputs } from '../../src/core/pipeline/output-plan.ts';
+import {
+	type PreparedBuildPass,
+	prepareBuildPass,
+} from '../../src/core/pipeline/pass-preparer.ts';
 import {
 	discoverProfiles,
 	mergeNightOverlay,
@@ -13,7 +18,6 @@ import {
 	buildGroupPasses,
 	collectDependencyDictionary,
 	type DependencyDict,
-	processThemeDocument,
 } from '../../src/core/pipeline/theme-pipeline.ts';
 import { loadDesignTokenWorkspace } from '../../src/core/pipeline/workspace-loader.ts';
 import { ExitCode } from '../../src/types/index.ts';
@@ -48,9 +52,10 @@ interface GenerateScope {
 	name: string;
 	themeName: string;
 	filePath: string;
-	contentOverride?: string;
+	contentOverride: string;
 	dict: DependencyDict;
 	passes: ReturnType<typeof buildGroupPasses>;
+	isNight: boolean;
 }
 
 function now(): number {
@@ -203,6 +208,7 @@ export async function runDesignTokenBenchmarkCase(
 						contentOverride: document.tokenContent,
 						dict: resource.value.dict,
 						passes: groupPass.value,
+						isNight: false,
 					});
 
 					if (!testCase.includeNight || !profile.nightPath) {
@@ -226,49 +232,86 @@ export async function runDesignTokenBenchmarkCase(
 						contentOverride: yaml.dump(mergedNight.tree, { lineWidth: -1 }),
 						dict: resource.value.dict,
 						passes: groupPass.value,
+						isNight: true,
 					});
 				}
 
 				const generatedFiles: string[] = [];
 				let tokensCount = 0;
+				const preparedPasses: Array<{
+					scope: GenerateScope;
+					prepared: PreparedBuildPass;
+				}> = [];
 				for (const scope of scopes) {
-					for (const pass of scope.passes) {
+					const preparedScope: typeof preparedPasses = [];
+					let validScope = true;
+					for (const [passIndex, pass] of scope.passes.entries()) {
 						const process = await timed(() =>
-							processThemeDocument(
-								scope.filePath,
-								scope.dict,
-								pass.colorSpace,
-								scope.contentOverride,
-							),
+							prepareBuildPass({
+								id: `${scope.name}:${pass.groupName ?? `pass-${passIndex + 1}`}`,
+								themeName: scope.themeName,
+								yamlPath: scope.filePath,
+								yamlContent: scope.contentOverride,
+								dict: scope.dict,
+								pass,
+							}),
 						);
 						phases.processMs += process.ms;
 						const processResult = process.value;
 						if (!processResult.ok) {
+							if (scope.isNight) {
+								validScope = false;
+								break;
+							}
 							const line = processResult.line
 								? ` at line ${processResult.line}`
 								: '';
 							return fail(`${scope.name}: ${processResult.message}${line}`);
 						}
-						tokensCount += processResult.tree.length;
-
-						const generate = await timed(() =>
-							generateTokens({
-								themeName: scope.themeName,
-								outputDir: pass.outputDir,
-								tokens: processResult.tree,
-								platform: pass.platforms,
-								filterLayer: pass.filterLayer,
-								groupComments: processResult.groupComments,
-							}),
-						);
-						phases.generateMs += generate.ms;
-						if (!generate.value.success) {
-							return fail(
-								generate.value.error ?? `Failed to generate ${scope.name}`,
-							);
-						}
-						generatedFiles.push(...generate.value.files);
+						preparedScope.push({
+							scope,
+							prepared: processResult.prepared,
+						});
 					}
+					if (validScope) {
+						preparedPasses.push(...preparedScope);
+						tokensCount += preparedScope.reduce(
+							(total, item) => total + item.prepared.document.tree.length,
+							0,
+						);
+					}
+				}
+
+				const outputPlan = planBuildOutputs(
+					preparedPasses.map(({ prepared }) => ({
+						id: prepared.id,
+						themeName: prepared.themeName,
+						outputDir: prepared.outputDir,
+						platforms: prepared.platforms,
+					})),
+				);
+				if (!outputPlan.ok) return fail(outputPlan.error);
+
+				for (const { scope, prepared } of preparedPasses) {
+					const generate = await timed(() =>
+						generateTokens({
+							themeName: prepared.themeName,
+							outputDir: prepared.outputDir,
+							tokens: prepared.document.tree,
+							platform: prepared.platforms,
+							filterLayer: prepared.filterLayer,
+							groupComments: prepared.document.groupComments,
+							resolved: prepared.document.resolved,
+							colorSpace: prepared.colorSpace,
+						}),
+					);
+					phases.generateMs += generate.ms;
+					if (!generate.value.success) {
+						return fail(
+							generate.value.error ?? `Failed to generate ${scope.name}`,
+						);
+					}
+					generatedFiles.push(...generate.value.files);
 				}
 
 				if (generatedFiles.length === 0) {

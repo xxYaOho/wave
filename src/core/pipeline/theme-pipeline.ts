@@ -328,7 +328,6 @@ export function buildGroupPasses(
 	}
 
 	const passes: ResolvedGroupParameters[] = [];
-	const seen = new Map<string, string>(); // key: "outputDir|platforms", value: group name
 
 	for (const group of config.parameterGroups) {
 		const merged = mergeParameters(config.parameter, group.parameter);
@@ -340,19 +339,7 @@ export function buildGroupPasses(
 		);
 		if (!resolved.outputDir) resolved.outputDir = defaultOutputDir;
 
-		// Conflict detection: duplicate (outputDir, platform) combinations
-		const comboKey = `${resolved.outputDir}|${resolved.platforms.join(',')}`;
-		const prev = seen.get(comboKey);
-		if (prev) {
-			const label = group.name ? `"${group.name}"` : '(anonymous)';
-			logger.warn(
-				`Duplicate (outputDir, platform) combination in GROUP ${label} (same as GROUP ${prev})`,
-			);
-		} else {
-			seen.set(comboKey, group.name ? `"${group.name}"` : '(anonymous)');
-		}
-
-		passes.push(resolved);
+		passes.push({ ...resolved, groupName: group.name });
 	}
 
 	return passes;

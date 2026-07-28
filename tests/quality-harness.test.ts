@@ -12,6 +12,7 @@ import {
 	createSyntheticMainYaml,
 	SYNTHETIC_MIXED_1000,
 } from '../benchmarks/design-token/synthetic.ts';
+import type { DesignTokenCase } from '../benchmarks/design-token/types.ts';
 import { prepareDesignTokenWorkspace } from '../benchmarks/design-token/workspace.ts';
 import { collectFileArtifacts } from '../benchmarks/shared/artifacts.ts';
 import { compareSuiteReports } from '../benchmarks/shared/compare.ts';
@@ -304,6 +305,58 @@ describe('Quality Harness workspace and runner', () => {
 				result.phases.loadMs,
 			);
 		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('plans all benchmark passes before generation', async () => {
+		const fixtureDir = await fs.mkdtemp(
+			path.join(process.cwd(), 'tests/.tmp-output-plan-'),
+		);
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-qh-'));
+		try {
+			await fs.writeFile(
+				path.join(fixtureDir, 'main.yaml'),
+				`$config:
+  theme: benchmark-collision
+  parameterGroup:
+    all: { outputDir: ./out, platform: [json, css] }
+    json: { outputDir: ./out, platform: [json] }
+theme:
+  color:
+    primary: { $type: color, $value: "#336699" }
+`,
+			);
+			const testCase: DesignTokenCase = {
+				id: 'benchmark-output-plan',
+				caseVersion: 1,
+				suites: ['smoke'],
+				entryKind: 'main-config',
+				origin: 'internal-fixture',
+				source: {
+					kind: 'fixture',
+					path: path.relative(process.cwd(), fixtureDir),
+				},
+				platforms: ['json', 'css'],
+				filterLayer: 0,
+				includeNight: false,
+				includeProfiles: false,
+				compareDurations: false,
+			};
+
+			const result = await runDesignTokenBenchmarkCase(testCase, {
+				mode: 'smoke',
+				runId: 'test-output-plan',
+				iteration: 0,
+				tmpRoot: tempDir,
+			});
+
+			expect(result.status).toBe('failure');
+			expect(result.error).toContain('Output path collision:');
+			expect(result.phases.generateMs).toBe(0);
+			expect(result.outputFiles).toBe(0);
+		} finally {
+			await fs.rm(fixtureDir, { recursive: true, force: true });
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
 	});

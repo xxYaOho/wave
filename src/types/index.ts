@@ -27,6 +27,7 @@ export interface ParameterSet {
 
 /** 合并全局参数与组参数后，解析出的构建参数 */
 export interface ResolvedGroupParameters {
+	groupName?: string;
 	platforms: string[];
 	filterLayer: number | undefined;
 	colorSpace: ColorSpaceFormat | undefined;

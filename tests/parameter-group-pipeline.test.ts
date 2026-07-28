@@ -130,8 +130,10 @@ describe('buildGroupPasses', () => {
 		const passes = buildGroupPasses(config, '/theme');
 		expect(passes).toHaveLength(2);
 		expect(passes[0]!.outputDir).toBe('/theme/build/css');
+		expect(passes[0]!.groupName).toBe('css');
 		expect(passes[0]!.platforms).toEqual(['css']);
 		expect(passes[1]!.outputDir).toBe('/theme/build/sketch');
+		expect(passes[1]!.groupName).toBe('sketch');
 		expect(passes[1]!.platforms).toEqual(['sketch']);
 	});
 

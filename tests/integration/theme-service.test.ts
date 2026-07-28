@@ -164,6 +164,124 @@ let tempDir: string;
 let previousResourceEnv: Record<string, string | undefined>;
 
 describe('Theme Service Integration', () => {
+	describe('global output planning', () => {
+		const tokenYaml = `theme:
+  color:
+    primary:
+      $type: color
+      $value: "#336699"
+`;
+
+		test('rejects partial GROUP platform overlap before changing artifacts', async () => {
+			const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-plan-group-'));
+			const outputDir = path.join(dir, 'out');
+			const markerPath = path.join(outputDir, 'group-collision.json');
+			const marker = Buffer.from('existing-json\n');
+			try {
+				await fs.mkdir(outputDir);
+				await fs.writeFile(markerPath, marker);
+				await fs.writeFile(
+					path.join(dir, 'main.yaml'),
+					`$config:
+  theme: group-collision
+  parameterGroup:
+    all: { outputDir: ./out, platform: [json, css] }
+    json: { outputDir: ./out, platform: [json] }
+${tokenYaml}`,
+				);
+
+				const result = await generateTheme({
+					workspacePath: path.join(dir, 'main.yaml'),
+					generateOptions: { night: false },
+				});
+
+				expect(result).toMatchObject({
+					ok: false,
+					exitCode: ExitCode.GENERAL_ERROR,
+				});
+				if (!result.ok) {
+					expect(result.message).toContain('Output path collision:');
+				}
+				expect(await fs.readFile(markerPath)).toEqual(marker);
+				expect(await fs.readdir(outputDir)).toEqual(['group-collision.json']);
+			} finally {
+				await fs.rm(dir, { recursive: true, force: true });
+			}
+		});
+
+		async function writeNightProfileWorkspace(
+			dir: string,
+			nightValue: string,
+		): Promise<void> {
+			await fs.mkdir(path.join(dir, 'profiles'), { recursive: true });
+			await fs.writeFile(
+				path.join(dir, 'main.yaml'),
+				`$config:
+  theme: demo
+  parameter: { outputDir: ./out, platform: [json] }
+${tokenYaml}`,
+			);
+			await fs.writeFile(
+				path.join(dir, 'main@night.yaml'),
+				`theme:
+  color:
+    primary:
+      $type: color
+      $value: ${nightValue}
+`,
+			);
+			await fs.writeFile(path.join(dir, 'profiles', 'night.yaml'), tokenYaml);
+		}
+
+		test('rejects default night colliding with a profile named night day output', async () => {
+			const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-plan-night-'));
+			const outputDir = path.join(dir, 'out');
+			const markerPath = path.join(outputDir, 'demo-night.json');
+			const marker = Buffer.from('existing-night\n');
+			try {
+				await writeNightProfileWorkspace(dir, '"#111111"');
+				await fs.mkdir(outputDir);
+				await fs.writeFile(markerPath, marker);
+
+				const result = await generateTheme({
+					workspacePath: path.join(dir, 'main.yaml'),
+					generateOptions: { night: true, profiles: 'all' },
+				});
+
+				expect(result).toMatchObject({
+					ok: false,
+					exitCode: ExitCode.GENERAL_ERROR,
+				});
+				expect(await fs.readFile(markerPath)).toEqual(marker);
+				expect(await fs.readdir(outputDir)).toEqual(['demo-night.json']);
+			} finally {
+				await fs.rm(dir, { recursive: true, force: true });
+			}
+		});
+
+		test('filters an invalid night before planning profile day outputs', async () => {
+			const dir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-plan-invalid-night-'),
+			);
+			try {
+				await writeNightProfileWorkspace(dir, '"{theme.color.missing}"');
+
+				const result = await generateTheme({
+					workspacePath: path.join(dir, 'main.yaml'),
+					generateOptions: { night: true, profiles: 'all' },
+				});
+
+				expect(result.ok).toBe(true);
+				if (result.ok) {
+					expect(result.generatedFiles).toContain('demo.json');
+					expect(result.generatedFiles).toContain('demo-night.json');
+				}
+			} finally {
+				await fs.rm(dir, { recursive: true, force: true });
+			}
+		});
+	});
+
 	afterAll(async () => {
 		restoreResourceEnv(previousResourceEnv);
 		await fs.rm(tempDir, { recursive: true, force: true });

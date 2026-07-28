@@ -1,11 +1,7 @@
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import { generateTokens } from '../../core/generator/index.ts';
-import type {
-	ColorSpaceFormat,
-	ExitCodeType,
-	GenerateOptions,
-} from '../../types/index.ts';
+import type { ExitCodeType, GenerateOptions } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 import type { BuildContext } from '../../utils/receipt.ts';
@@ -13,6 +9,8 @@ import {
 	DIMENSION_BUILD_WARNING,
 	findPublicDimensionRoots,
 } from '../doctor/dimension-migration.ts';
+import { planBuildOutputs } from './output-plan.ts';
+import { type PreparedBuildPass, prepareBuildPass } from './pass-preparer.ts';
 import {
 	discoverProfiles,
 	mergeNightOverlay,
@@ -25,9 +23,7 @@ import {
 import {
 	buildGroupPasses,
 	collectDependencyDictionary,
-	type DependencyDict,
 	type LoadedDependency,
-	processThemeDocument,
 } from './theme-pipeline.ts';
 import { loadDesignTokenWorkspace } from './workspace-loader.ts';
 
@@ -92,61 +88,29 @@ function recordLoadedResources(
 	}
 }
 
-async function generatePass(
-	resolvedThemeName: string,
-	outputDir: string,
-	dict: DependencyDict,
-	platforms: string[],
-	filterLayer: number | undefined,
-	colorSpace: string | undefined,
-	mainYamlPath: string,
-	mainYamlContent: string,
+interface PreparedServicePass {
+	prepared: PreparedBuildPass;
+	profileName: string;
+	outputScope: 'main' | 'profile' | 'night';
+	outputLabel?: string;
+	fatal: boolean;
+}
+
+async function generatePreparedPass(
+	servicePass: PreparedServicePass,
 	ctx?: BuildContext,
-	outputScope: 'main' | 'profile' | 'night' = 'main',
-	outputLabel?: string,
-	fatal: boolean = true,
 ): Promise<{ files: string[] } | ThemeGenerationFailure> {
-	const files: string[] = [];
-	if (!ctx) logger.info('Found main.yaml, parsing theme tokens...');
-	const parseResult = await processThemeDocument(
-		mainYamlPath,
-		dict,
-		colorSpace as ColorSpaceFormat | undefined,
-		mainYamlContent,
-	);
-
-	if (!parseResult.ok) {
-		const msg = parseResult.line
-			? `${parseResult.message} at line ${parseResult.line}`
-			: parseResult.message;
-		if (fatal) ctx?.markFailed('parse', msg, { phase: 'main parse' });
-		return {
-			ok: false,
-			exitCode: parseResult.exitCode,
-			message: msg,
-		};
-	}
-
-	if (findPublicDimensionRoots(parseResult.resolved).length > 0) {
-		if (
-			!ctx?.warnings.some(
-				(warning) => warning.message === DIMENSION_BUILD_WARNING,
-			)
-		) {
-			ctx?.addWarning('dimension', DIMENSION_BUILD_WARNING);
-		}
-		if (!ctx) logger.warn(DIMENSION_BUILD_WARNING);
-	}
+	const { prepared, fatal, outputScope, outputLabel } = servicePass;
 
 	const mainResult = await generateTokens({
-		themeName: resolvedThemeName,
-		outputDir,
-		tokens: parseResult.tree,
-		platform: platforms,
-		filterLayer,
-		groupComments: parseResult.groupComments,
-		resolved: parseResult.resolved,
-		colorSpace: colorSpace as ColorSpaceFormat | undefined,
+		themeName: prepared.themeName,
+		outputDir: prepared.outputDir,
+		tokens: prepared.document.tree,
+		platform: prepared.platforms,
+		filterLayer: prepared.filterLayer,
+		groupComments: prepared.document.groupComments,
+		resolved: prepared.document.resolved,
+		colorSpace: prepared.colorSpace,
 	});
 
 	if (!mainResult.success) {
@@ -159,11 +123,10 @@ async function generatePass(
 		};
 	}
 
-	files.push(...mainResult.files);
 	ctx?.addOutput(outputScope, mainResult.files, outputLabel);
 	if (!ctx) logger.success(`Generated main: ${mainResult.files.join(', ')}`);
 
-	return { files };
+	return { files: mainResult.files };
 }
 
 export async function generateTheme(
@@ -201,6 +164,7 @@ export async function generateTheme(
 
 	const { workspace } = loadResult;
 	const generatedFiles: string[] = [];
+	const preparedPasses: PreparedServicePass[] = [];
 	const recordedResources = new Set<string>();
 	const profiles = await discoverProfiles(workspace.workspaceDir);
 
@@ -245,6 +209,8 @@ export async function generateTheme(
 		cliPlatform,
 	)[0]!;
 	if (ctx) ctx.outputDir = firstPass.outputDir;
+	if (!ctx) logger.info('Found main.yaml, parsing theme tokens...');
+	let hasPublicDimensions = false;
 
 	for (const entry of selectedProfiles) {
 		const document = entry.isDefault
@@ -267,22 +233,33 @@ export async function generateTheme(
 			resolvedCliOutput,
 			cliPlatform,
 		);
-		for (const pass of profilePasses) {
-			const result = await generatePass(
-				profileThemeName(effectiveThemeName, document),
-				pass.outputDir,
-				profileDepResult.dict,
-				pass.platforms,
-				pass.filterLayer,
-				pass.colorSpace,
-				entry.path,
-				document.tokenContent,
-				ctx,
-				entry.isDefault ? 'main' : 'profile',
-				entry.isDefault ? undefined : entry.name,
-			);
-			if (!('files' in result)) return result;
-			generatedFiles.push(...result.files);
+		const profileId = entry.isDefault ? 'default' : `profile:${entry.name}`;
+		for (const [passIndex, pass] of profilePasses.entries()) {
+			const prepared = await prepareBuildPass({
+				id: `${profileId}:day:${pass.groupName ?? `pass-${passIndex + 1}`}`,
+				themeName: profileThemeName(effectiveThemeName, document),
+				yamlPath: entry.path,
+				yamlContent: document.tokenContent,
+				dict: profileDepResult.dict,
+				pass,
+			});
+			if (!prepared.ok) {
+				const message = prepared.line
+					? `${prepared.message} at line ${prepared.line}`
+					: prepared.message;
+				ctx?.markFailed('parse', message, { phase: 'main parse' });
+				return { ok: false, exitCode: prepared.exitCode, message };
+			}
+			hasPublicDimensions ||=
+				findPublicDimensionRoots(prepared.prepared.document.resolved).length >
+				0;
+			preparedPasses.push({
+				prepared: prepared.prepared,
+				profileName: entry.name,
+				outputScope: entry.isDefault ? 'main' : 'profile',
+				outputLabel: entry.isDefault ? undefined : entry.name,
+				fatal: true,
+			});
 		}
 
 		if (!generateOptions.night) {
@@ -311,29 +288,83 @@ export async function generateTheme(
 			continue;
 		}
 
-		ctx?.setNight('enabled');
 		const nightContent = yaml.dump(mergedNight.tree, { lineWidth: -1 });
-		for (const pass of profilePasses) {
-			const result = await generatePass(
-				`${profileThemeName(effectiveThemeName, document)}-night`,
-				pass.outputDir,
-				profileDepResult.dict,
-				pass.platforms,
-				pass.filterLayer,
-				pass.colorSpace,
-				entry.nightPath,
-				nightContent,
-				ctx,
-				'night',
-				entry.isDefault ? undefined : entry.name,
-				false,
-			);
-			if (!('files' in result)) {
+		const nightPasses: PreparedServicePass[] = [];
+		for (const [passIndex, pass] of profilePasses.entries()) {
+			const prepared = await prepareBuildPass({
+				id: `${profileId}:night:${pass.groupName ?? `pass-${passIndex + 1}`}`,
+				themeName: `${profileThemeName(effectiveThemeName, document)}-night`,
+				yamlPath: entry.nightPath,
+				yamlContent: nightContent,
+				dict: profileDepResult.dict,
+				pass,
+			});
+			if (!prepared.ok) {
 				warnNightSkipped(entry.name);
+				nightPasses.length = 0;
 				break;
 			}
-			generatedFiles.push(...result.files);
+			hasPublicDimensions ||=
+				findPublicDimensionRoots(prepared.prepared.document.resolved).length >
+				0;
+			nightPasses.push({
+				prepared: prepared.prepared,
+				profileName: entry.name,
+				outputScope: 'night',
+				outputLabel: entry.isDefault ? undefined : entry.name,
+				fatal: false,
+			});
 		}
+		if (nightPasses.length > 0) {
+			ctx?.setNight('enabled');
+			preparedPasses.push(...nightPasses);
+		}
+	}
+
+	if (hasPublicDimensions) {
+		if (
+			!ctx?.warnings.some(
+				(warning) => warning.message === DIMENSION_BUILD_WARNING,
+			)
+		) {
+			ctx?.addWarning('dimension', DIMENSION_BUILD_WARNING);
+		}
+		if (!ctx) logger.warn(DIMENSION_BUILD_WARNING);
+	}
+
+	const outputPlan = planBuildOutputs(
+		preparedPasses.map(({ prepared }) => ({
+			id: prepared.id,
+			themeName: prepared.themeName,
+			outputDir: prepared.outputDir,
+			platforms: prepared.platforms,
+		})),
+	);
+	if (!outputPlan.ok) {
+		ctx?.markFailed('generate', outputPlan.error, { phase: 'output plan' });
+		return {
+			ok: false,
+			exitCode: ExitCode.GENERAL_ERROR,
+			message: outputPlan.error,
+		};
+	}
+
+	const failedNightProfiles = new Set<string>();
+	for (const servicePass of preparedPasses) {
+		if (
+			!servicePass.fatal &&
+			failedNightProfiles.has(servicePass.profileName)
+		) {
+			continue;
+		}
+		const result = await generatePreparedPass(servicePass, ctx);
+		if (!('files' in result)) {
+			if (servicePass.fatal) return result;
+			failedNightProfiles.add(servicePass.profileName);
+			warnNightSkipped(servicePass.profileName);
+			continue;
+		}
+		generatedFiles.push(...result.files);
 	}
 
 	return {
