@@ -39,7 +39,7 @@ describe('profile resolver', () => {
 
 		await expect(
 			parseProfileDocument(mobile, {
-				baseParsed: base.parsed,
+				baseConfig: base.config,
 				baseDir: invalidDir,
 			}),
 		).rejects.toThrow('$config.theme is only supported in main.yaml');
@@ -109,49 +109,49 @@ describe('profile resolver', () => {
 	test('default profile with local config does not duplicate loaded resources', async () => {
 		const profiles = await discoverProfiles(fixtureDir);
 		const main = profiles.find((profile) => profile.name === 'main')!;
-		const loadedThemefileConfig = {
-			THEME: 'profile-model',
-			PARAMETER: {},
+		const defaultConfig = {
+			theme: 'profile-model',
+			parameter: {},
 			resources: [
 				{ kind: 'palette', ref: 'tailwindcss' },
 				{ kind: 'dimension', ref: 'wave' },
 			],
-			groups: [],
+			parameterGroups: [],
 		};
 
 		const document = await parseProfileDocument(main, {
-			defaultParsed: loadedThemefileConfig,
+			defaultConfig,
 			baseDir: fixtureDir,
 		});
 
-		expect(document.parsed.resources).toEqual([
+		expect(document.config.resources).toEqual([
 			{ kind: 'palette', ref: 'tailwindcss' },
 			{ kind: 'dimension', ref: 'wave' },
 		]);
 	});
 
-	test('default profile without local config inherits defaultParsed', async () => {
+	test('default profile without local config uses defaultConfig', async () => {
 		const noConfigDir = path.join(fixtureDir, 'no-config-main');
 		const profiles = await discoverProfiles(noConfigDir);
 		const main = profiles.find((profile) => profile.name === 'main')!;
-		const loadedThemefileConfig = {
-			THEME: 'legacy-owner',
-			PARAMETER: { platform: 'json', output: './dist' },
+		const defaultConfig = {
+			theme: 'config-owner',
+			parameter: { platform: 'json', output: './dist' },
 			resources: [
 				{ kind: 'palette', ref: 'tailwindcss' },
 				{ kind: 'dimension', ref: 'wave' },
 			],
-			groups: [],
+			parameterGroups: [],
 		};
 
 		const document = await parseProfileDocument(main, {
-			defaultParsed: loadedThemefileConfig,
+			defaultConfig,
 			baseDir: noConfigDir,
 		});
 
-		expect(document.parsed.THEME).toBe('legacy-owner');
-		expect(document.parsed.PARAMETER.platform).toBe('json');
-		expect(document.parsed.resources).toEqual(loadedThemefileConfig.resources);
+		expect(document.config.theme).toBe('config-owner');
+		expect(document.config.parameter.platform).toBe('json');
+		expect(document.config.resources).toEqual(defaultConfig.resources);
 	});
 
 	test('profile-local custom resources are normalized to absolute refs', async () => {
@@ -160,12 +160,12 @@ describe('profile resolver', () => {
 		const mobile = profiles.find((profile) => profile.name === 'mobile')!;
 		const base = await parseProfileDocument(main, { baseDir: fixtureDir });
 		const document = await parseProfileDocument(mobile, {
-			baseParsed: base.parsed,
+			baseConfig: base.config,
 			baseDir: fixtureDir,
 		});
 
 		expect(
-			document.parsed.resources.some(
+			document.config.resources.some(
 				(resource) =>
 					resource.kind === 'custom' &&
 					path.isAbsolute(resource.ref) &&
@@ -183,12 +183,12 @@ describe('profile resolver', () => {
 			baseDir: absoluteFixtureDir,
 		});
 		const document = await parseProfileDocument(mobile, {
-			baseParsed: base.parsed,
+			baseConfig: base.config,
 			baseDir: absoluteFixtureDir,
 		});
 
 		expect(
-			document.parsed.resources.some(
+			document.config.resources.some(
 				(resource) =>
 					resource.kind === 'palette' &&
 					path.isAbsolute(resource.ref) &&
@@ -204,18 +204,18 @@ describe('profile resolver', () => {
 		const mobile = profiles.find((profile) => profile.name === 'mobile')!;
 		const base = await parseProfileDocument(main, { baseDir: groupFixtureDir });
 		const document = await parseProfileDocument(mobile, {
-			baseParsed: base.parsed,
+			baseConfig: base.config,
 			baseDir: groupFixtureDir,
 		});
 
-		expect(document.parsed.groups).toHaveLength(1);
-		expect(document.parsed.groups[0]).toMatchObject({
+		expect(document.config.parameterGroups).toHaveLength(1);
+		expect(document.config.parameterGroups[0]).toMatchObject({
 			name: 'css',
-			PARAMETER: {
+			parameter: {
 				platform: 'css',
 			},
 		});
-		expect(document.parsed.groups[0]!.PARAMETER.output).toContain(
+		expect(document.config.parameterGroups[0]!.parameter.output).toContain(
 			'profiles/mobile-css-dist',
 		);
 	});

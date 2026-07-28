@@ -1,7 +1,0 @@
-THEME inherit-color
-RESOURCE palette tailwindcss
-RESOURCE dimension wave
-
-PARAMETER output ./dist
-PARAMETER platform json,css,sketch
-PARAMETER colorSpace hex

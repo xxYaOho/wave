@@ -5,7 +5,6 @@ import {
 	type DtcgTokenGroup,
 	ExitCode,
 	type ExitCodeType,
-	type ParsedThemefile,
 	type ReferenceDataSources,
 	type ResolvedTokenGroup,
 } from '../../types/index.ts';
@@ -18,9 +17,6 @@ import {
 import { validateThemeSchema } from '../schema/theme.ts';
 
 export interface ThemeDoctorContext {
-	themeDir: string;
-	themefilePath: string;
-	parsed: ParsedThemefile;
 	dict: DependencyDict;
 	expandedTree: DtcgTokenGroup;
 	resolvedTree: ResolvedTokenGroup;
@@ -132,7 +128,7 @@ export async function createThemeDoctorContextFromContent(
 }
 
 async function createThemeDoctorContextFromParsedContent(
-	yamlPath: string,
+	_yamlPath: string,
 	content: string,
 	dict: DependencyDict,
 ): Promise<ThemeDoctorContextResult> {
@@ -221,9 +217,6 @@ async function createThemeDoctorContextFromParsedContent(
 		return {
 			ok: true,
 			context: {
-				themeDir: path.dirname(yamlPath),
-				themefilePath: yamlPath,
-				parsed: { THEME: '', PARAMETER: {}, resources: [], groups: [] },
 				dict,
 				expandedTree: expanded,
 				resolvedTree: resolved,

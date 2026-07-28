@@ -32,7 +32,7 @@ export function isBareName(reference: string): boolean {
 export function resolveResource(
 	reference: string,
 	type: ResourceType,
-	themefileDir: string,
+	workspaceDir: string,
 ): ResolvedResource {
 	let resolvedPath: string;
 	let isBuiltin: boolean;
@@ -55,7 +55,7 @@ export function resolveResource(
 		resolvedPath = path.join(getResourcesDir(), typeDir, `${reference}.yaml`);
 		isBuiltin = true;
 	} else {
-		resolvedPath = path.resolve(themefileDir, reference);
+		resolvedPath = path.resolve(workspaceDir, reference);
 		isBuiltin = false;
 	}
 

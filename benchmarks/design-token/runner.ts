@@ -16,10 +16,7 @@ import {
 	processThemeDocument,
 } from '../../src/core/pipeline/theme-pipeline.ts';
 import { loadDesignTokenWorkspace } from '../../src/core/pipeline/workspace-loader.ts';
-import {
-	type DesignTokenBuildConfig,
-	ExitCode,
-} from '../../src/types/index.ts';
+import { ExitCode } from '../../src/types/index.ts';
 import {
 	collectFileArtifacts,
 	commonDirectoryRoot,
@@ -92,18 +89,6 @@ function profileThemeName(
 	profile: ProfileEntry,
 ): string {
 	return profile.isDefault ? baseThemeName : `${baseThemeName}-${profile.name}`;
-}
-
-function toGroupPassConfig(config: DesignTokenBuildConfig) {
-	return {
-		THEME: config.theme,
-		PARAMETER: config.parameter,
-		resources: config.resources,
-		groups: config.parameterGroups.map((group) => ({
-			name: group.name,
-			PARAMETER: group.parameter,
-		})),
-	};
 }
 
 function failureResult(
@@ -208,10 +193,7 @@ export async function runDesignTokenBenchmarkCase(
 					);
 					phases.resourceMs += resource.ms;
 					const groupPass = await timed(async () =>
-						buildGroupPasses(
-							toGroupPassConfig(document.config),
-							document.buildDir,
-						),
+						buildGroupPasses(document.config, document.buildDir),
 					);
 					phases.groupPassMs += groupPass.ms;
 					scopes.push({

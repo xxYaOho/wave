@@ -4,8 +4,8 @@ import * as yaml from 'js-yaml';
 import type {
 	DesignTokenBuildConfig,
 	GenerateOptions,
+	ParameterGroup,
 	ParameterSet,
-	ParsedThemefile,
 } from '../../types/index.ts';
 
 export interface ProfileEntry {
@@ -18,8 +18,6 @@ export interface ProfileEntry {
 export interface ProfileDocument {
 	entry: ProfileEntry;
 	config: DesignTokenBuildConfig;
-	/** Temporary compatibility view until the legacy consumers migrate. */
-	parsed: ParsedThemefile;
 	buildDir: string;
 	tokenContent: string;
 }
@@ -27,10 +25,6 @@ export interface ProfileDocument {
 export interface ProfileParseOptions {
 	defaultConfig?: DesignTokenBuildConfig;
 	baseConfig?: DesignTokenBuildConfig;
-	/** Temporary compatibility option until the legacy consumers migrate. */
-	defaultParsed?: ParsedThemefile;
-	/** Temporary compatibility option until the legacy consumers migrate. */
-	baseParsed?: ParsedThemefile;
 	baseDir: string;
 }
 
@@ -97,9 +91,9 @@ function mergeParams(base: ParameterSet, next: ParameterSet): ParameterSet {
 }
 
 function mergeGroups(
-	baseGroups: ParsedThemefile['groups'],
-	localGroups: ParsedThemefile['groups'],
-): ParsedThemefile['groups'] {
+	baseGroups: ParameterGroup[],
+	localGroups: ParameterGroup[],
+): ParameterGroup[] {
 	const output = [...baseGroups];
 	const namedIndex = new Map<string, number>();
 	output.forEach((group, index) => {
@@ -112,7 +106,7 @@ function mergeGroups(
 			const existing = output[index]!;
 			output[index] = {
 				name: existing.name,
-				PARAMETER: mergeParams(existing.PARAMETER, group.PARAMETER),
+				parameter: mergeParams(existing.parameter, group.parameter),
 			};
 		} else {
 			if (group.name) namedIndex.set(group.name, output.length);
@@ -121,30 +115,6 @@ function mergeGroups(
 	}
 
 	return output;
-}
-
-function configToParsed(config: DesignTokenBuildConfig): ParsedThemefile {
-	return {
-		THEME: config.theme,
-		PARAMETER: { ...config.parameter },
-		resources: config.resources.map((resource) => ({ ...resource })),
-		groups: config.parameterGroups.map((group) => ({
-			name: group.name,
-			PARAMETER: { ...group.parameter },
-		})),
-	};
-}
-
-function parsedToConfig(parsed: ParsedThemefile): DesignTokenBuildConfig {
-	return {
-		theme: parsed.THEME,
-		parameter: { ...parsed.PARAMETER },
-		resources: parsed.resources.map((resource) => ({ ...resource })),
-		parameterGroups: parsed.groups.map((group) => ({
-			name: group.name ?? '',
-			parameter: { ...group.PARAMETER },
-		})),
-	};
 }
 
 function cloneJson<T>(value: T): T {
@@ -343,32 +313,15 @@ export async function parseProfileDocument(
 		return {
 			entry,
 			config: options.defaultConfig,
-			parsed: configToParsed(options.defaultConfig),
 			buildDir: options.baseDir,
 			tokenContent: yaml.dump(tokenRoot, { lineWidth: -1 }),
 		};
 	}
 
-	const defaultConfig = entry.isDefault
-		? (options.defaultConfig ??
-			(options.defaultParsed
-				? parsedToConfig(options.defaultParsed)
-				: undefined))
-		: undefined;
-	const defaultParsed = defaultConfig
-		? configToParsed(defaultConfig)
-		: undefined;
-	const hasLocalConfig = config !== undefined;
-	const inheritedDefaultParsed = hasLocalConfig ? undefined : defaultParsed;
-	const baseConfig =
-		options.baseConfig ??
-		(options.baseParsed ? parsedToConfig(options.baseParsed) : undefined);
-	const baseParsed = baseConfig
-		? configToParsed(baseConfig)
-		: inheritedDefaultParsed;
+	const baseConfig = options.baseConfig;
 	const resources = entry.isDefault
-		? [...(inheritedDefaultParsed?.resources ?? [])]
-		: [...(baseParsed?.resources ?? [])];
+		? [...(options.defaultConfig?.resources ?? [])]
+		: [...(baseConfig?.resources ?? [])];
 
 	const resourceConfig = configObj.resource;
 	if (
@@ -396,9 +349,9 @@ export async function parseProfileDocument(
 		normalizeParameterSet(configObj.parameter),
 		profileDir,
 	);
-	const parameter = mergeParams(baseParsed?.PARAMETER ?? {}, localParameter);
+	const parameter = mergeParams(baseConfig?.parameter ?? {}, localParameter);
 
-	const localGroups: ParsedThemefile['groups'] = [];
+	const localGroups: ParameterGroup[] = [];
 	const parameterGroup = configObj.parameterGroup;
 	if (
 		parameterGroup &&
@@ -410,34 +363,36 @@ export async function parseProfileDocument(
 		)) {
 			localGroups.push({
 				name,
-				PARAMETER: resolveLocalParameterPaths(
+				parameter: resolveLocalParameterPaths(
 					normalizeParameterSet(groupParams),
 					profileDir,
 				),
 			});
 		}
 	}
-	const groups = mergeGroups(baseParsed?.groups ?? [], localGroups);
+	const parameterGroups = mergeGroups(
+		baseConfig?.parameterGroups ?? [],
+		localGroups,
+	);
 
 	const tokenRoot = { ...root };
 	delete tokenRoot.$config;
 
 	const buildDir = options.baseDir;
 
-	const parsed: ParsedThemefile = {
-		THEME:
-			baseParsed?.THEME ??
+	const resolvedConfig: DesignTokenBuildConfig = {
+		theme:
+			baseConfig?.theme ??
 			String(configObj.theme ?? path.basename(path.dirname(entry.path))),
-		PARAMETER: parameter,
+		parameter,
 		resources,
-		groups,
+		parameterGroups,
 	};
 
 	return {
 		entry,
 		buildDir,
-		config: parsedToConfig(parsed),
-		parsed,
+		config: resolvedConfig,
 		tokenContent: yaml.dump(tokenRoot, { lineWidth: -1 }),
 	};
 }

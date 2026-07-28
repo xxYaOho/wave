@@ -4,10 +4,8 @@ import * as yaml from 'js-yaml';
 import { generateTokens } from '../../core/generator/index.ts';
 import type {
 	ColorSpaceFormat,
-	DesignTokenBuildConfig,
 	ExitCodeType,
 	GenerateOptions,
-	ParsedThemefile,
 } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
@@ -44,25 +42,9 @@ function parseYamlObject(content: string): Record<string, unknown> | undefined {
 
 export interface ThemeGenerationInput {
 	workspacePath?: string;
-	/** Temporary compatibility until Task 7. */
-	themeName?: string;
-	/** Temporary compatibility until Task 7. */
-	themePath?: string;
 	cliOutput?: string;
 	cliPlatform?: string;
 	generateOptions: GenerateOptions;
-}
-
-function configToParsed(config: DesignTokenBuildConfig): ParsedThemefile {
-	return {
-		THEME: config.theme,
-		PARAMETER: config.parameter,
-		resources: config.resources,
-		groups: config.parameterGroups.map((group) => ({
-			name: group.name,
-			PARAMETER: group.parameter,
-		})),
-	};
 }
 
 export interface ThemeGenerationSuccess {
@@ -190,8 +172,7 @@ export async function generateTheme(
 	input: ThemeGenerationInput,
 	ctx?: BuildContext,
 ): Promise<ThemeGenerationResult> {
-	const { workspacePath, themePath, cliOutput, cliPlatform, generateOptions } =
-		input;
+	const { workspacePath, cliOutput, cliPlatform, generateOptions } = input;
 	const resolvedCliOutput =
 		cliOutput && !path.isAbsolute(cliOutput)
 			? path.resolve(process.cwd(), cliOutput)
@@ -207,7 +188,7 @@ export async function generateTheme(
 		if (!ctx) logger.warn(NIGHT_SKIP_MESSAGE);
 	};
 
-	const loadResult = await loadDesignTokenWorkspace(workspacePath ?? themePath);
+	const loadResult = await loadDesignTokenWorkspace(workspacePath);
 	if (!loadResult.ok) {
 		ctx?.markFailed('load', loadResult.message, {
 			phase: 'workspace load',
@@ -254,14 +235,13 @@ export async function generateTheme(
 	const baseDocument: ProfileDocument = {
 		entry: baseProfile,
 		config: workspace.config,
-		parsed: configToParsed(workspace.config),
 		buildDir: workspace.workspaceDir,
 		tokenContent: workspace.tokenContent,
 	};
 	const effectiveThemeName = baseDocument.config.theme;
 	const baseDayTree = parseYamlObject(baseDocument.tokenContent);
 	const firstPass = buildGroupPasses(
-		configToParsed(baseDocument.config),
+		baseDocument.config,
 		baseDocument.buildDir,
 		resolvedCliOutput,
 		cliPlatform,
@@ -284,7 +264,7 @@ export async function generateTheme(
 		);
 		recordLoadedResources(ctx, profileDepResult.loaded, recordedResources);
 		const profilePasses = buildGroupPasses(
-			configToParsed(document.config),
+			document.config,
 			document.buildDir,
 			resolvedCliOutput,
 			cliPlatform,

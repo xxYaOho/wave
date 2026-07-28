@@ -1,8 +1,4 @@
 export {
-	checkBuiltinResources,
-	checkOutputDir,
-	createConfigCheck,
-	type ThemeValidationOptions,
-	type ValidationResult,
-	validateThemefile,
-} from './config.ts';
+	type MainConfigValidationResult,
+	validateMainConfig,
+} from './design-token-config.ts';

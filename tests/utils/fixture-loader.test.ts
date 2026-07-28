@@ -18,7 +18,6 @@ describe('Fixture Loader', () => {
 			const theme = await loadTestTheme('standard');
 
 			expect(theme.name).toBe('standard');
-			expect(theme.themefile).toContain('themefile');
 			expect(theme.mainYaml).toContain('main.yaml');
 		});
 
@@ -52,11 +51,9 @@ describe('Fixture Loader', () => {
 			});
 
 			// 验证文件已创建
-			const themefileContent = await fs.readFile(theme.themefile, 'utf-8');
-			expect(themefileContent).toContain('THEME test-create');
-			expect(themefileContent).toContain('tailwindcss');
-
 			const mainYamlContent = await fs.readFile(theme.mainYaml, 'utf-8');
+			expect(mainYamlContent).toContain('theme: test-create');
+			expect(mainYamlContent).toContain('palette: tailwindcss');
 			expect(mainYamlContent).toContain('color:');
 			expect(mainYamlContent).toContain('#0066cc');
 		});
@@ -68,8 +65,9 @@ describe('Fixture Loader', () => {
 				tokens: {},
 			});
 
-			const themefileContent = await fs.readFile(theme.themefile, 'utf-8');
-			expect(themefileContent).toContain('json,css');
+			const mainYamlContent = await fs.readFile(theme.mainYaml, 'utf-8');
+			expect(mainYamlContent).toContain('      - json');
+			expect(mainYamlContent).toContain('      - css');
 		});
 
 		test('应支持嵌套 tokens', async () => {

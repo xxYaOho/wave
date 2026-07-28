@@ -6,25 +6,25 @@ import {
 	detectThemeFiles,
 } from '../src/core/doctor/theme-context.ts';
 import {
-	buildDependencyDictionary,
-	loadThemefile,
+	collectDependencyDictionary,
 	processThemeDocument,
 } from '../src/core/pipeline/theme-pipeline.ts';
+import { loadDesignTokenWorkspace } from '../src/core/pipeline/workspace-loader.ts';
 import { loadTestTheme } from './utils/fixture-loader.ts';
 
 describe('doctor theme context', () => {
 	test('loads valid theme and exposes resolvedTree and doctorConfig', async () => {
 		const theme = await loadTestTheme('doctor-contrast-pass');
-		const loadResult = await loadThemefile(theme.themefile);
-		expect('parsed' in loadResult).toBe(true);
-		if (!('parsed' in loadResult)) return;
+		const loadResult = await loadDesignTokenWorkspace(theme.mainYaml);
+		expect(loadResult.ok).toBe(true);
+		if (!loadResult.ok) return;
+		const { workspace } = loadResult;
+		const dictResult = await collectDependencyDictionary(
+			workspace.config,
+			workspace.workspaceDir,
+		);
 
-		const { parsed, themeDir } = loadResult;
-		const dictResult = await buildDependencyDictionary(parsed, themeDir);
-		expect('dict' in dictResult).toBe(true);
-		if (!('dict' in dictResult)) return;
-
-		const yamlPath = `${themeDir}/main.yaml`;
+		const yamlPath = workspace.path;
 		const ctxResult = await createThemeDoctorContext(yamlPath, dictResult.dict);
 		expect(ctxResult.ok).toBe(true);
 		if (!ctxResult.ok) return;
@@ -36,16 +36,16 @@ describe('doctor theme context', () => {
 
 	test('strips doctor key from resolved tree', async () => {
 		const theme = await loadTestTheme('doctor-contrast-pass');
-		const loadResult = await loadThemefile(theme.themefile);
-		expect('parsed' in loadResult).toBe(true);
-		if (!('parsed' in loadResult)) return;
+		const loadResult = await loadDesignTokenWorkspace(theme.mainYaml);
+		expect(loadResult.ok).toBe(true);
+		if (!loadResult.ok) return;
+		const { workspace } = loadResult;
+		const dictResult = await collectDependencyDictionary(
+			workspace.config,
+			workspace.workspaceDir,
+		);
 
-		const { parsed, themeDir } = loadResult;
-		const dictResult = await buildDependencyDictionary(parsed, themeDir);
-		expect('dict' in dictResult).toBe(true);
-		if (!('dict' in dictResult)) return;
-
-		const yamlPath = `${themeDir}/main.yaml`;
+		const yamlPath = workspace.path;
 		const ctxResult = await createThemeDoctorContext(yamlPath, dictResult.dict);
 		expect(ctxResult.ok).toBe(true);
 		if (!ctxResult.ok) return;
@@ -57,16 +57,16 @@ describe('doctor theme context', () => {
 
 	test('doctorConfig is undefined when no doctor key exists', async () => {
 		const theme = await loadTestTheme('doctor-contrast-empty');
-		const loadResult = await loadThemefile(theme.themefile);
-		expect('parsed' in loadResult).toBe(true);
-		if (!('parsed' in loadResult)) return;
+		const loadResult = await loadDesignTokenWorkspace(theme.mainYaml);
+		expect(loadResult.ok).toBe(true);
+		if (!loadResult.ok) return;
+		const { workspace } = loadResult;
+		const dictResult = await collectDependencyDictionary(
+			workspace.config,
+			workspace.workspaceDir,
+		);
 
-		const { parsed, themeDir } = loadResult;
-		const dictResult = await buildDependencyDictionary(parsed, themeDir);
-		expect('dict' in dictResult).toBe(true);
-		if (!('dict' in dictResult)) return;
-
-		const yamlPath = `${themeDir}/main.yaml`;
+		const yamlPath = workspace.path;
 		const ctxResult = await createThemeDoctorContext(yamlPath, dictResult.dict);
 		expect(ctxResult.ok).toBe(true);
 		if (!ctxResult.ok) return;
@@ -76,16 +76,16 @@ describe('doctor theme context', () => {
 
 	test('extractDoctorPairs reports errors for unresolved references', async () => {
 		const theme = await loadTestTheme('doctor-contrast-invalid');
-		const loadResult = await loadThemefile(theme.themefile);
-		expect('parsed' in loadResult).toBe(true);
-		if (!('parsed' in loadResult)) return;
+		const loadResult = await loadDesignTokenWorkspace(theme.mainYaml);
+		expect(loadResult.ok).toBe(true);
+		if (!loadResult.ok) return;
+		const { workspace } = loadResult;
+		const dictResult = await collectDependencyDictionary(
+			workspace.config,
+			workspace.workspaceDir,
+		);
 
-		const { parsed, themeDir } = loadResult;
-		const dictResult = await buildDependencyDictionary(parsed, themeDir);
-		expect('dict' in dictResult).toBe(true);
-		if (!('dict' in dictResult)) return;
-
-		const yamlPath = `${themeDir}/main.yaml`;
+		const yamlPath = workspace.path;
 		const ctxResult = await createThemeDoctorContext(yamlPath, dictResult.dict);
 		expect(ctxResult.ok).toBe(true);
 		if (!ctxResult.ok) return;

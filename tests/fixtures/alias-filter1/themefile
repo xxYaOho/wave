@@ -1,4 +1,0 @@
-THEME alias-filter1
-RESOURCE palette ../alias/palettes/test.yaml
-RESOURCE dimension wave
-PARAMETER filterLayer 1

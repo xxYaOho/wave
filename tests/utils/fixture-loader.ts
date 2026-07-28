@@ -11,7 +11,6 @@ import * as path from 'node:path';
 export interface TestTheme {
 	name: string;
 	dir: string;
-	themefile: string;
 	mainYaml: string;
 	nightYaml?: string;
 	variantsDir?: string;
@@ -41,19 +40,15 @@ export async function loadTestTheme(name: string): Promise<TestTheme> {
 		throw new Error(`Test theme not found: ${name} at ${themeDir}`);
 	}
 
-	const themefile = path.join(themeDir, 'themefile');
 	const mainYaml = path.join(themeDir, 'main.yaml');
 	const nightYaml = path.join(themeDir, 'main@night.yaml');
 	const variantsDir = path.join(themeDir, 'variants');
 
 	// 验证必要文件
 	try {
-		await fs.access(themefile);
 		await fs.access(mainYaml);
 	} catch {
-		throw new Error(
-			`Test theme ${name} missing required files (themefile or main.yaml)`,
-		);
+		throw new Error(`Test theme ${name} missing required file main.yaml`);
 	}
 
 	// 检查可选文件
@@ -69,7 +64,6 @@ export async function loadTestTheme(name: string): Promise<TestTheme> {
 	return {
 		name,
 		dir: themeDir,
-		themefile,
 		mainYaml,
 		...(hasNight && { nightYaml }),
 		...(hasVariants && { variantsDir }),
@@ -82,31 +76,31 @@ export async function loadTestTheme(name: string): Promise<TestTheme> {
 export async function createTempTheme(config: ThemeConfig): Promise<TestTheme> {
 	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-test-'));
 
-	// 构建 themefile
-	const themefileContent = [
-		`THEME ${config.name}`,
-		`RESOURCE palette ${config.palette ?? 'tailwindcss'}`,
-		`RESOURCE dimension ${config.dimension ?? 'wave'}`,
+	// 构建 main.yaml
+	const parameterLines = [
 		...(config.platform
-			? [`PARAMETER platform ${config.platform.join(',')}`]
+			? ['    platform:', ...config.platform.map((item) => `      - ${item}`)]
 			: []),
-		...(config.colorSpace ? [`PARAMETER colorSpace ${config.colorSpace}`] : []),
+		...(config.colorSpace
+			? [`    colorSpace: ${renderScalar(config.colorSpace)}`]
+			: []),
+	];
+	const mainYamlContent = [
+		'$config:',
+		`  theme: ${renderScalar(config.name)}`,
+		'  resource:',
+		`    palette: ${renderScalar(config.palette ?? 'tailwindcss')}`,
+		`    dimension: ${renderScalar(config.dimension ?? 'wave')}`,
+		...(parameterLines.length > 0 ? ['  parameter:', ...parameterLines] : []),
+		'theme:',
+		renderTokens(config.tokens, 2),
 	].join('\n');
 
-	// 构建 main.yaml
-	const mainYamlContent = `theme:\n${renderTokens(config.tokens, 2)}`;
-
-	await fs.writeFile(
-		path.join(tempDir, 'themefile'),
-		themefileContent,
-		'utf-8',
-	);
 	await fs.writeFile(path.join(tempDir, 'main.yaml'), mainYamlContent, 'utf-8');
 
 	return {
 		name: config.name,
 		dir: tempDir,
-		themefile: path.join(tempDir, 'themefile'),
 		mainYaml: path.join(tempDir, 'main.yaml'),
 	};
 }

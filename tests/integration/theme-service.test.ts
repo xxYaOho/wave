@@ -1194,8 +1194,6 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					},
 				},
 			});
-			await addMainConfig(theme, ['json']);
-
 			const result = await generateTheme(
 				makeInput({
 					workspacePath: theme.mainYaml,
@@ -2040,8 +2038,6 @@ theme:
 					},
 				},
 			});
-			await addMainConfig(theme);
-
 			const result = await generateTheme(
 				makeInput({
 					workspacePath: theme.mainYaml,

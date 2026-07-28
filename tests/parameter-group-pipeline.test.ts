@@ -4,17 +4,19 @@ import {
 	mergeParameters,
 	resolveParameters,
 } from '../src/core/pipeline/theme-pipeline.ts';
-import type { ParsedThemefile } from '../src/types/index.ts';
+import type { DesignTokenBuildConfig } from '../src/types/index.ts';
 
-function makeParsed(overrides?: Partial<ParsedThemefile>): ParsedThemefile {
+function makeConfig(
+	overrides?: Partial<DesignTokenBuildConfig>,
+): DesignTokenBuildConfig {
 	return {
-		THEME: 'test-theme',
-		PARAMETER: {},
+		theme: 'test-theme',
+		parameter: {},
 		resources: [
 			{ kind: 'palette', ref: 'leonardo' },
 			{ kind: 'dimension', ref: 'wave' },
 		],
-		groups: [],
+		parameterGroups: [],
 		...overrides,
 	};
 }
@@ -97,35 +99,35 @@ describe('resolveParameters', () => {
 
 describe('buildGroupPasses', () => {
 	test('empty groups → single pass from global params', () => {
-		const parsed = makeParsed({
-			PARAMETER: { output: './build', platform: 'css' },
+		const config = makeConfig({
+			parameter: { output: './build', platform: 'css' },
 		});
-		const passes = buildGroupPasses(parsed, '/theme');
+		const passes = buildGroupPasses(config, '/theme');
 		expect(passes).toHaveLength(1);
 		expect(passes[0]!.platforms).toEqual(['css']);
 		expect(passes[0]!.outputDir).toBe('/theme/build');
 	});
 
 	test('no groups (backward compat) → single pass with default outputDir', () => {
-		const parsed = makeParsed();
-		const passes = buildGroupPasses(parsed, '/theme');
+		const config = makeConfig();
+		const passes = buildGroupPasses(config, '/theme');
 		expect(passes).toHaveLength(1);
 		expect(passes[0]!.outputDir).toBe('/theme/test-theme');
 		expect(passes[0]!.platforms).toEqual(['json']);
 	});
 
 	test('multiple groups → one pass per group', () => {
-		const parsed = makeParsed({
-			PARAMETER: { output: './build' },
-			groups: [
-				{ name: 'css', PARAMETER: { platform: 'css', output: './build/css' } },
+		const config = makeConfig({
+			parameter: { output: './build' },
+			parameterGroups: [
+				{ name: 'css', parameter: { platform: 'css', output: './build/css' } },
 				{
 					name: 'sketch',
-					PARAMETER: { platform: 'sketch', output: './build/sketch' },
+					parameter: { platform: 'sketch', output: './build/sketch' },
 				},
 			],
 		});
-		const passes = buildGroupPasses(parsed, '/theme');
+		const passes = buildGroupPasses(config, '/theme');
 		expect(passes).toHaveLength(2);
 		expect(passes[0]!.outputDir).toBe('/theme/build/css');
 		expect(passes[0]!.platforms).toEqual(['css']);
@@ -134,48 +136,48 @@ describe('buildGroupPasses', () => {
 	});
 
 	test('group inherits global params', () => {
-		const parsed = makeParsed({
-			PARAMETER: { colorSpace: 'oklch' },
-			groups: [{ name: 'css', PARAMETER: { platform: 'css' } }],
+		const config = makeConfig({
+			parameter: { colorSpace: 'oklch' },
+			parameterGroups: [{ name: 'css', parameter: { platform: 'css' } }],
 		});
-		const passes = buildGroupPasses(parsed, '/theme');
+		const passes = buildGroupPasses(config, '/theme');
 		expect(passes).toHaveLength(1);
 		expect(passes[0]!.colorSpace).toBe('oklch');
 		expect(passes[0]!.platforms).toEqual(['css']);
 	});
 
 	test('mixed sketch and css platform group remains supported', () => {
-		const parsed = makeParsed({
-			PARAMETER: { colorSpace: 'oklch', platform: 'css,sketch' },
+		const config = makeConfig({
+			parameter: { colorSpace: 'oklch', platform: 'css,sketch' },
 		});
 
-		const passes = buildGroupPasses(parsed, '/theme');
+		const passes = buildGroupPasses(config, '/theme');
 		expect(passes).toHaveLength(1);
 		expect(passes[0]!.platforms).toEqual(['css', 'sketch']);
 		expect(passes[0]!.colorSpace).toBe('oklch');
 	});
 
 	test('CLI output overrides all groups', () => {
-		const parsed = makeParsed({
-			groups: [
-				{ name: 'css', PARAMETER: { output: './build/css' } },
-				{ name: 'sketch', PARAMETER: { output: './build/sketch' } },
+		const config = makeConfig({
+			parameterGroups: [
+				{ name: 'css', parameter: { output: './build/css' } },
+				{ name: 'sketch', parameter: { output: './build/sketch' } },
 			],
 		});
-		const passes = buildGroupPasses(parsed, '/theme', '/cli/out');
+		const passes = buildGroupPasses(config, '/theme', '/cli/out');
 		expect(passes).toHaveLength(2);
 		expect(passes[0]!.outputDir).toBe('/cli/out');
 		expect(passes[1]!.outputDir).toBe('/cli/out');
 	});
 
 	test('CLI platform overrides all groups', () => {
-		const parsed = makeParsed({
-			groups: [
-				{ name: 'css', PARAMETER: { platform: 'css' } },
-				{ name: 'sketch', PARAMETER: { platform: 'sketch' } },
+		const config = makeConfig({
+			parameterGroups: [
+				{ name: 'css', parameter: { platform: 'css' } },
+				{ name: 'sketch', parameter: { platform: 'sketch' } },
 			],
 		});
-		const passes = buildGroupPasses(parsed, '/theme', undefined, 'json');
+		const passes = buildGroupPasses(config, '/theme', undefined, 'json');
 		expect(passes).toHaveLength(2);
 		expect(passes[0]!.platforms).toEqual(['json']);
 		expect(passes[1]!.platforms).toEqual(['json']);

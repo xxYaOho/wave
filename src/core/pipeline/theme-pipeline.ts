@@ -1,24 +1,16 @@
 import * as path from 'node:path';
-import * as yaml from 'js-yaml';
 import {
 	type ColorSpaceFormat,
 	type DesignTokenBuildConfig,
 	ExitCode,
 	type ParameterSet,
-	type ParsedThemefile,
 	type ParseError,
 	type ReferenceDataSources,
 	type ResolvedGroupParameters,
-	type ResourceDeclaration,
 	type ThemeDocumentResult,
 } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
-import {
-	validateDimensionSchema,
-	validatePaletteSchema,
-} from '../parser/index.ts';
 import { parseThemeYaml } from '../parser/theme-yaml.ts';
-import { parseThemefile } from '../parser/themefile.ts';
 import {
 	CircularReferenceError,
 	ExtendsCycleError,
@@ -27,19 +19,9 @@ import {
 	UnresolvedReferenceError,
 } from '../resolver/index.ts';
 import { loadResource } from '../resolver/resource-loader.ts';
-import { validateCustomResourceExtension } from '../schema/resource.ts';
 import { validateThemeSchema } from '../schema/theme.ts';
 import { ColorValueError } from '../transformer/color-value.ts';
 import { transformToWaveTokens } from '../transformer/index.ts';
-
-export interface ThemefileLoadResult {
-	parsed: ParsedThemefile;
-	themeDir: string;
-	themefilePath: string;
-	themefileContent: string;
-	mainYamlPath?: string;
-	mainYamlContent?: string;
-}
 
 export interface DependencyDict {
 	[namespace: string]: {
@@ -73,136 +55,6 @@ export interface DependencyLoadIssue {
 	namespace?: string;
 }
 
-function expandHomePath(filePath: string): string {
-	if (filePath.startsWith('~/')) {
-		return path.join(process.env.HOME || '', filePath.slice(2));
-	}
-	if (filePath.startsWith('${HOME}/')) {
-		return path.join(process.env.HOME || '', filePath.slice(7));
-	}
-	return filePath;
-}
-
-async function loadYamlFile(filePath: string): Promise<string> {
-	const file = Bun.file(filePath);
-	if (!(await file.exists())) {
-		throw new Error(`File not found: ${filePath}`);
-	}
-	return await file.text();
-}
-
-function toStringList(value: unknown): string[] {
-	if (Array.isArray(value)) {
-		return value.filter((item): item is string => typeof item === 'string');
-	}
-	if (typeof value === 'string') return [value];
-	return [];
-}
-
-function normalizeParameterValue(value: unknown): string | undefined {
-	if (Array.isArray(value)) {
-		return value
-			.filter((item): item is string => typeof item === 'string')
-			.join(',');
-	}
-	if (typeof value === 'string') return value;
-	if (typeof value === 'number') return String(value);
-	if (typeof value === 'boolean') return String(value);
-	return undefined;
-}
-
-function normalizeParameterSet(value: unknown): ParameterSet {
-	const params: ParameterSet = {};
-	if (!value || typeof value !== 'object' || Array.isArray(value))
-		return params;
-	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
-		const normalized = normalizeParameterValue(raw);
-		if (normalized !== undefined) {
-			const mappedKey = key === 'outputDir' ? 'output' : key;
-			params[mappedKey] = normalized;
-		}
-	}
-	return params;
-}
-
-function parseMainConfig(
-	content: string,
-	mainPath: string,
-): { parsed: ParsedThemefile; tokenContent: string } | ParseError {
-	let loaded: unknown;
-	try {
-		loaded = yaml.load(content);
-	} catch (err) {
-		if (err instanceof yaml.YAMLException) {
-			return {
-				line: err.mark?.line ? err.mark.line + 1 : 1,
-				message: `YAML 语法错误: ${err.message}`,
-			};
-		}
-		return {
-			line: 1,
-			message: `解析错误: ${err instanceof Error ? err.message : String(err)}`,
-		};
-	}
-
-	if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded)) {
-		return { line: 1, message: 'main.yaml root must be an object' };
-	}
-
-	const root = loaded as Record<string, unknown>;
-	const config = root.$config;
-	if (!config || typeof config !== 'object' || Array.isArray(config)) {
-		return { line: 1, message: 'Missing required $config in main.yaml entry' };
-	}
-
-	const configObj = config as Record<string, unknown>;
-	const theme =
-		typeof configObj.theme === 'string'
-			? configObj.theme
-			: path.basename(path.dirname(mainPath));
-	const resources: { kind: string; ref: string }[] = [];
-	const resourceConfig = configObj.resource;
-	if (
-		resourceConfig &&
-		typeof resourceConfig === 'object' &&
-		!Array.isArray(resourceConfig)
-	) {
-		for (const [kind, refs] of Object.entries(
-			resourceConfig as Record<string, unknown>,
-		)) {
-			for (const ref of toStringList(refs)) {
-				resources.push({ kind, ref });
-			}
-		}
-	}
-	const parameter = normalizeParameterSet(configObj.parameter);
-	const groups = [] as ParsedThemefile['groups'];
-	const parameterGroup = configObj.parameterGroup;
-	if (
-		parameterGroup &&
-		typeof parameterGroup === 'object' &&
-		!Array.isArray(parameterGroup)
-	) {
-		for (const [name, groupParams] of Object.entries(
-			parameterGroup as Record<string, unknown>,
-		)) {
-			groups.push({ name, PARAMETER: normalizeParameterSet(groupParams) });
-		}
-	}
-
-	const tokenRoot = { ...root };
-	delete tokenRoot.$config;
-	return {
-		parsed: {
-			THEME: theme,
-			PARAMETER: parameter,
-			resources,
-			groups,
-		},
-		tokenContent: yaml.dump(tokenRoot, { lineWidth: -1 }),
-	};
-}
-
 function isParseError(result: unknown): result is ParseError {
 	return (
 		typeof result === 'object' &&
@@ -210,52 +62,6 @@ function isParseError(result: unknown): result is ParseError {
 		'line' in result &&
 		'message' in result
 	);
-}
-
-export async function loadThemefile(
-	themePath?: string,
-): Promise<ThemefileLoadResult | { error: ParseError | Error }> {
-	const expandedThemePath = themePath ? expandHomePath(themePath) : undefined;
-	const themeDir = expandedThemePath
-		? path.dirname(expandedThemePath)
-		: process.cwd();
-
-	if (expandedThemePath && /\.ya?ml$/i.test(expandedThemePath)) {
-		let mainYamlContent: string;
-		try {
-			mainYamlContent = await loadYamlFile(expandedThemePath);
-		} catch (err) {
-			return { error: err instanceof Error ? err : new Error(String(err)) };
-		}
-		const configResult = parseMainConfig(mainYamlContent, expandedThemePath);
-		if (isParseError(configResult)) {
-			return { error: configResult };
-		}
-		return {
-			parsed: configResult.parsed,
-			themeDir,
-			themefilePath: expandedThemePath,
-			themefileContent: mainYamlContent,
-			mainYamlPath: expandedThemePath,
-			mainYamlContent: configResult.tokenContent,
-		};
-	}
-
-	const themefilePath = expandedThemePath ?? path.join(themeDir, 'themefile');
-
-	let themefileContent: string;
-	try {
-		themefileContent = await loadYamlFile(themefilePath);
-	} catch (err) {
-		return { error: err instanceof Error ? err : new Error(String(err)) };
-	}
-
-	const parsed = parseThemefile(themefileContent);
-	if (isParseError(parsed)) {
-		return { error: parsed };
-	}
-
-	return { parsed, themeDir, themefilePath, themefileContent };
 }
 
 export async function collectDependencyDictionary(
@@ -309,56 +115,6 @@ export async function collectDependencyDictionary(
 	}
 
 	return { dict, loaded, issues };
-}
-
-const RESOURCE_KINDS = new Set(['palette', 'dimension', 'custom']);
-
-function validateResourceDeclaration(
-	declaration: ResourceDeclaration,
-): string | undefined {
-	if (!RESOURCE_KINDS.has(declaration.kind)) {
-		return `Unsupported resource kind: ${declaration.kind}`;
-	}
-	if (declaration.kind === 'custom') {
-		return validateCustomResourceExtension(declaration.ref)?.message;
-	}
-	return undefined;
-}
-
-async function validateLoadedResourceKind(
-	entry: LoadedDependency,
-): Promise<string | undefined> {
-	if (entry.kind === 'palette') {
-		const error = await validatePaletteSchema(entry.content, entry.path);
-		return error ? `Palette schema error: ${error.message}` : undefined;
-	}
-	if (entry.kind === 'dimension') {
-		const error = await validateDimensionSchema(entry.content, entry.path);
-		return error ? `Dimension schema error: ${error.message}` : undefined;
-	}
-	return undefined;
-}
-
-export async function buildDependencyDictionary(
-	parsed: ParsedThemefile,
-	themeDir: string,
-): Promise<DependencyDictionary | { error: Error }> {
-	for (const declaration of parsed.resources) {
-		const declarationError = validateResourceDeclaration(declaration);
-		if (declarationError) return { error: new Error(declarationError) };
-	}
-
-	const result = await collectDependencyDictionary(parsed, themeDir);
-	if (result.issues.length > 0) {
-		return { error: new Error(result.issues[0]!.message) };
-	}
-
-	for (const entry of result.loaded) {
-		const schemaError = await validateLoadedResourceKind(entry);
-		if (schemaError) return { error: new Error(schemaError) };
-	}
-
-	return result;
 }
 
 export async function processThemeDocument(
@@ -553,17 +309,16 @@ export function resolveParameters(
 }
 
 export function buildGroupPasses(
-	parsed: ParsedThemefile,
+	config: DesignTokenBuildConfig,
 	themeDir: string,
 	cliOutput?: string,
 	cliPlatform?: string,
 ): ResolvedGroupParameters[] {
-	const defaultOutputDir = path.join(themeDir, parsed.THEME);
+	const defaultOutputDir = path.join(themeDir, config.theme);
 
-	if (!parsed.groups || parsed.groups.length === 0) {
-		// Backward compatible: single pass from global parameters
+	if (config.parameterGroups.length === 0) {
 		const resolved = resolveParameters(
-			parsed.PARAMETER,
+			config.parameter,
 			themeDir,
 			cliOutput,
 			cliPlatform,
@@ -575,8 +330,8 @@ export function buildGroupPasses(
 	const passes: ResolvedGroupParameters[] = [];
 	const seen = new Map<string, string>(); // key: "outputDir|platforms", value: group name
 
-	for (const group of parsed.groups) {
-		const merged = mergeParameters(parsed.PARAMETER, group.PARAMETER);
+	for (const group of config.parameterGroups) {
+		const merged = mergeParameters(config.parameter, group.parameter);
 		const resolved = resolveParameters(
 			merged,
 			themeDir,
@@ -602,5 +357,3 @@ export function buildGroupPasses(
 
 	return passes;
 }
-
-export { expandHomePath };

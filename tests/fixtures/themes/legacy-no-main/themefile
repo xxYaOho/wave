@@ -1,6 +1,0 @@
-THEME legacy-no-main
-RESOURCE palette tailwindcss
-RESOURCE dimension wave
-
-PARAMETER platform json
-PARAMETER output ./dist

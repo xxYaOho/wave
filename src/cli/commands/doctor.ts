@@ -22,10 +22,7 @@ import {
 	type LoadedDesignTokenWorkspace,
 	loadDesignTokenWorkspace,
 } from '../../core/pipeline/workspace-loader.ts';
-import type {
-	DesignTokenBuildConfig,
-	DoctorThemeReport,
-} from '../../types/index.ts';
+import type { DoctorThemeReport } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 
 const SEPARATOR = '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~';
@@ -122,23 +119,8 @@ function defaultProfileDocument(
 	return {
 		entry,
 		config: workspace.config,
-		parsed: configToParsed(workspace.config),
 		buildDir: workspace.workspaceDir,
 		tokenContent: workspace.tokenContent,
-	};
-}
-
-function configToParsed(
-	config: DesignTokenBuildConfig,
-): ProfileDocument['parsed'] {
-	return {
-		THEME: config.theme,
-		PARAMETER: config.parameter,
-		resources: config.resources,
-		groups: config.parameterGroups.map((group) => ({
-			name: group.name,
-			PARAMETER: group.parameter,
-		})),
 	};
 }
 

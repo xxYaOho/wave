@@ -25,25 +25,12 @@ export interface ParameterSet {
 	[key: string]: string | undefined;
 }
 
-/** GROUP 指令块 */
-export interface GroupBlock {
-	name?: string;
-	PARAMETER: ParameterSet;
-}
-
 /** 合并全局参数与组参数后，解析出的构建参数 */
 export interface ResolvedGroupParameters {
 	platforms: string[];
 	filterLayer: number | undefined;
 	colorSpace: ColorSpaceFormat | undefined;
 	outputDir: string;
-}
-
-export interface ParsedThemefile {
-	THEME: string;
-	PARAMETER: ParameterSet;
-	resources: ResourceDeclaration[];
-	groups: GroupBlock[];
 }
 
 export interface DesignTokenBuildConfig {

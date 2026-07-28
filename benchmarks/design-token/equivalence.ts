@@ -2,7 +2,6 @@ import * as path from 'node:path';
 import { buildGroupPasses } from '../../src/core/pipeline/theme-pipeline.ts';
 import { generateTheme } from '../../src/core/pipeline/theme-service.ts';
 import { loadDesignTokenWorkspace } from '../../src/core/pipeline/workspace-loader.ts';
-import type { DesignTokenBuildConfig } from '../../src/types/index.ts';
 import {
 	collectFileArtifacts,
 	commonDirectoryRoot,
@@ -53,18 +52,6 @@ function compareArtifacts(
 	}
 
 	return issues;
-}
-
-function toGroupPassConfig(config: DesignTokenBuildConfig) {
-	return {
-		THEME: config.theme,
-		PARAMETER: config.parameter,
-		resources: config.resources,
-		groups: config.parameterGroups.map((group) => ({
-			name: group.name,
-			PARAMETER: group.parameter,
-		})),
-	};
 }
 
 export async function checkDesignTokenGenerateThemeEquivalence(
@@ -137,7 +124,7 @@ export async function checkDesignTokenGenerateThemeEquivalence(
 	const generateOutputDir = loadResult.ok
 		? commonDirectoryRoot(
 				buildGroupPasses(
-					toGroupPassConfig(loadResult.workspace.config),
+					loadResult.workspace.config,
 					loadResult.workspace.workspaceDir,
 				).map((pass) => pass.outputDir),
 			)
