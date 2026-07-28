@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import type {
+	DesignTokenBuildConfig,
 	GenerateOptions,
 	ParameterSet,
 	ParsedThemefile,
@@ -16,13 +17,19 @@ export interface ProfileEntry {
 
 export interface ProfileDocument {
 	entry: ProfileEntry;
+	config: DesignTokenBuildConfig;
+	/** Temporary compatibility view until the legacy consumers migrate. */
 	parsed: ParsedThemefile;
 	buildDir: string;
 	tokenContent: string;
 }
 
-interface ProfileParseOptions {
+export interface ProfileParseOptions {
+	defaultConfig?: DesignTokenBuildConfig;
+	baseConfig?: DesignTokenBuildConfig;
+	/** Temporary compatibility option until the legacy consumers migrate. */
 	defaultParsed?: ParsedThemefile;
+	/** Temporary compatibility option until the legacy consumers migrate. */
 	baseParsed?: ParsedThemefile;
 	baseDir: string;
 }
@@ -114,6 +121,30 @@ function mergeGroups(
 	}
 
 	return output;
+}
+
+function configToParsed(config: DesignTokenBuildConfig): ParsedThemefile {
+	return {
+		THEME: config.theme,
+		PARAMETER: { ...config.parameter },
+		resources: config.resources.map((resource) => ({ ...resource })),
+		groups: config.parameterGroups.map((group) => ({
+			name: group.name,
+			PARAMETER: { ...group.parameter },
+		})),
+	};
+}
+
+function parsedToConfig(parsed: ParsedThemefile): DesignTokenBuildConfig {
+	return {
+		theme: parsed.THEME,
+		parameter: { ...parsed.PARAMETER },
+		resources: parsed.resources.map((resource) => ({ ...resource })),
+		parameterGroups: parsed.groups.map((group) => ({
+			name: group.name ?? '',
+			parameter: { ...group.PARAMETER },
+		})),
+	};
 }
 
 function cloneJson<T>(value: T): T {
@@ -306,11 +337,35 @@ export async function parseProfileDocument(
 	if (!entry.isDefault && configObj.theme !== undefined) {
 		throw new Error('$config.theme is only supported in main.yaml');
 	}
+	if (entry.isDefault && options.defaultConfig) {
+		const tokenRoot = { ...root };
+		delete tokenRoot.$config;
+		return {
+			entry,
+			config: options.defaultConfig,
+			parsed: configToParsed(options.defaultConfig),
+			buildDir: options.baseDir,
+			tokenContent: yaml.dump(tokenRoot, { lineWidth: -1 }),
+		};
+	}
 
-	const defaultParsed = entry.isDefault ? options.defaultParsed : undefined;
+	const defaultConfig = entry.isDefault
+		? (options.defaultConfig ??
+			(options.defaultParsed
+				? parsedToConfig(options.defaultParsed)
+				: undefined))
+		: undefined;
+	const defaultParsed = defaultConfig
+		? configToParsed(defaultConfig)
+		: undefined;
 	const hasLocalConfig = config !== undefined;
 	const inheritedDefaultParsed = hasLocalConfig ? undefined : defaultParsed;
-	const baseParsed = options.baseParsed ?? inheritedDefaultParsed;
+	const baseConfig =
+		options.baseConfig ??
+		(options.baseParsed ? parsedToConfig(options.baseParsed) : undefined);
+	const baseParsed = baseConfig
+		? configToParsed(baseConfig)
+		: inheritedDefaultParsed;
 	const resources = entry.isDefault
 		? [...(inheritedDefaultParsed?.resources ?? [])]
 		: [...(baseParsed?.resources ?? [])];
@@ -369,17 +424,20 @@ export async function parseProfileDocument(
 
 	const buildDir = entry.isDefault ? options.baseDir : profileDir;
 
+	const parsed: ParsedThemefile = {
+		THEME:
+			baseParsed?.THEME ??
+			String(configObj.theme ?? path.basename(path.dirname(entry.path))),
+		PARAMETER: parameter,
+		resources,
+		groups,
+	};
+
 	return {
 		entry,
 		buildDir,
-		parsed: {
-			THEME:
-				baseParsed?.THEME ??
-				String(configObj.theme ?? path.basename(path.dirname(entry.path))),
-			PARAMETER: parameter,
-			resources,
-			groups,
-		},
+		config: parsedToConfig(parsed),
+		parsed,
 		tokenContent: yaml.dump(tokenRoot, { lineWidth: -1 }),
 	};
 }

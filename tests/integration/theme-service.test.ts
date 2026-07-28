@@ -130,8 +130,7 @@ async function copyFixtureWorkspace(
 
 function makeInput(
 	overrides: Partial<ThemeGenerationInput> & {
-		themeName: string;
-		themePath: string;
+		workspacePath: string;
 	},
 ): ThemeGenerationInput {
 	return {
@@ -139,6 +138,26 @@ function makeInput(
 		generateOptions: { night: false },
 		...overrides,
 	};
+}
+
+async function addMainConfig(
+	theme: TestTheme,
+	platforms: string[] = ['json', 'css', 'sketch'],
+): Promise<void> {
+	const tokenContent = await fs.readFile(theme.mainYaml, 'utf8');
+	await fs.writeFile(
+		theme.mainYaml,
+		`$config:
+  theme: ${theme.name}
+  resource:
+    palette: [tailwindcss]
+    dimension: [wave]
+  parameter:
+    platform: [${platforms.join(', ')}]
+
+${tokenContent}`,
+		'utf8',
+	);
 }
 
 let tempDir: string;
@@ -164,7 +183,7 @@ describe('Theme Service Integration', () => {
   theme: no-resource
   parameter:
     outputDir: ./out
-    platform: json
+    platform: [json]
 theme:
   color:
     $type: color
@@ -176,8 +195,7 @@ theme:
 			);
 
 			const result = await generateTheme({
-				themeName: 'no-resource',
-				themePath: path.join(dir, 'main.yaml'),
+				workspacePath: path.join(dir, 'main.yaml'),
 				generateOptions: { night: false },
 			});
 
@@ -248,17 +266,6 @@ theme:
 				reference: '{shared.color.blue}',
 				succeeds: false,
 			},
-			{
-				name: 'kind-invalid but generically loadable referenced resource',
-				kind: 'future',
-				refs: ['./external.yaml'],
-				files: {
-					'external.yaml':
-						'external:\n  color:\n    blue:\n      $value: "#2563eb"\n',
-				},
-				reference: '{external.color.blue}',
-				succeeds: true,
-			},
 		] as const;
 
 		for (const testCase of cases) {
@@ -283,7 +290,7 @@ theme:
 ${refs}
   parameter:
     outputDir: ./out
-    platform: json
+    platform: [json]
 theme:
   color:
     external:
@@ -295,8 +302,7 @@ theme:
 					const ctx = new BuildContext();
 					const result = await generateTheme(
 						{
-							themeName: 'resource-gate',
-							themePath: path.join(dir, 'main.yaml'),
+							workspacePath: path.join(dir, 'main.yaml'),
 							generateOptions: { night: false },
 						},
 						ctx,
@@ -305,17 +311,7 @@ theme:
 					expect(result.ok).toBe(testCase.succeeds);
 					expect(ctx.warnings).toEqual([]);
 					if (testCase.succeeds) {
-						if (testCase.kind === 'future') {
-							expect(ctx.resources).toEqual([
-								{
-									kind: 'future',
-									ref: path.join(dir, 'external.yaml'),
-									source: 'user',
-								},
-							]);
-						} else {
-							expect(ctx.resources).toEqual([]);
-						}
+						expect(ctx.resources).toEqual([]);
 					} else {
 						if (result.ok) return;
 						expect(result.exitCode).toBe(ExitCode.INVALID_PARAMETER);
@@ -350,7 +346,7 @@ theme:
   theme: external-ref
   resource:
     custom: [./external.yaml]
-  parameter: { outputDir: ./out, platform: json }
+  parameter: { outputDir: ./out, platform: [json] }
 theme:
   color:
     external:
@@ -361,8 +357,7 @@ theme:
 					const ctx = new BuildContext();
 					const result = await generateTheme(
 						{
-							themeName: 'external-ref',
-							themePath: path.join(dir, 'main.yaml'),
+							workspacePath: path.join(dir, 'main.yaml'),
 							generateOptions: { night: false },
 						},
 						ctx,
@@ -372,7 +367,7 @@ theme:
 					expect(ctx.resources).toEqual([
 						{
 							kind: 'custom',
-							ref: path.join(dir, 'external.yaml'),
+							ref: './external.yaml',
 							source: 'user',
 						},
 					]);
@@ -397,7 +392,7 @@ theme:
   theme: extension-ref
   resource:
     custom: [./motion.yaml]
-  parameter: { outputDir: ./out, platform: json }
+  parameter: { outputDir: ./out, platform: [json] }
 theme:
   shadow:
     raised:
@@ -411,8 +406,7 @@ theme:
 `,
 				);
 				const result = await generateTheme({
-					themeName: 'extension-ref',
-					themePath: path.join(dir, 'main.yaml'),
+					workspacePath: path.join(dir, 'main.yaml'),
 					generateOptions: { night: false },
 				});
 
@@ -435,7 +429,7 @@ theme:
 					path.join(dir, 'main.yaml'),
 					`$config:
   theme: precedence
-  parameter: { outputDir: ./out, platform: json }
+  parameter: { outputDir: ./out, platform: [json] }
 theme:
   color:
     base: { $type: color, $value: "#2563eb" }
@@ -444,8 +438,7 @@ theme:
 				const ctx = new BuildContext();
 				const result = await generateTheme(
 					{
-						themeName: 'precedence',
-						themePath: path.join(dir, 'themefile'),
+						workspacePath: path.join(dir, 'main.yaml'),
 						generateOptions: { night: false },
 					},
 					ctx,
@@ -458,30 +451,46 @@ theme:
 			}
 		});
 
-		test('legacy fallback returns a structured missing resource-pair failure', async () => {
-			const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-legacy-pair-'));
+		test('legacy input is rejected without touching existing artifacts', async () => {
+			const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-main-only-'));
+			const outputDir = path.join(dir, 'out');
+			const markerPath = path.join(outputDir, 'existing.json');
+			const marker = Buffer.from([0, 1, 2, 255, 10, 13]);
 			try {
-				await fs.writeFile(
-					path.join(dir, 'palette.yaml'),
-					'custom:\n  color:\n    primary:\n      $value: "#2563eb"\n',
-				);
-				await fs.writeFile(
-					path.join(dir, 'themefile'),
-					'THEME legacy\nRESOURCE palette ./palette.yaml\nPARAMETER output ./out\n',
-				);
+				await fs.mkdir(outputDir);
+				await fs.writeFile(markerPath, marker);
+				await fs.writeFile(path.join(dir, 'themefile'), 'THEME legacy\n');
+				await fs.writeFile(path.join(dir, 'tokens.yaml'), 'theme: {}\n');
 
-				const result = await generateTheme({
-					themeName: 'legacy',
-					themePath: path.join(dir, 'themefile'),
-					generateOptions: { night: false },
-				});
+				for (const testCase of [
+					{
+						input: path.join(dir, 'themefile'),
+						exitCode: ExitCode.INVALID_PARAMETER,
+					},
+					{
+						input: path.join(dir, 'tokens.yaml'),
+						exitCode: ExitCode.INVALID_PARAMETER,
+					},
+					{
+						input: path.join(dir, 'missing', 'main.yaml'),
+						exitCode: ExitCode.FILE_NOT_FOUND,
+					},
+				]) {
+					const result = await generateTheme({
+						workspacePath: testCase.input,
+						cliOutput: outputDir,
+						generateOptions: { night: false },
+					});
 
-				expect(result.ok).toBe(false);
-				if (!result.ok) {
-					expect(result.exitCode).toBe(ExitCode.FILE_NOT_FOUND);
-					expect(result.message).toBe(
-						'Missing required palette or dimension resource',
-					);
+					expect(result.ok).toBe(false);
+					if (!result.ok) {
+						expect(result.exitCode).toBe(testCase.exitCode);
+						expect(result.message).toContain(testCase.input);
+						expect(result.message).toContain('main.yaml');
+						expect(result.message).toContain('wave dt init');
+					}
+					expect(await fs.readFile(markerPath)).toEqual(marker);
+					expect(await fs.readdir(outputDir)).toEqual(['existing.json']);
 				}
 			} finally {
 				await fs.rm(dir, { recursive: true, force: true });
@@ -498,7 +507,7 @@ theme:
 
 		test('应成功生成主题', async () => {
 			const result = await generateTheme(
-				makeInput({ themeName: 'test-standard', themePath: theme.themefile }),
+				makeInput({ workspacePath: theme.mainYaml }),
 			);
 
 			expect(result.ok).toBe(true);
@@ -509,7 +518,7 @@ theme:
 
 		test('应生成 JSON 和 CSS 文件', async () => {
 			const result = await generateTheme(
-				makeInput({ themeName: 'test-standard', themePath: theme.themefile }),
+				makeInput({ workspacePath: theme.mainYaml }),
 			);
 
 			expect(result.ok).toBe(true);
@@ -523,7 +532,7 @@ theme:
 
 		test('锁定标准 DTCG 输出内容', async () => {
 			const result = await generateTheme(
-				makeInput({ themeName: 'test-standard', themePath: theme.themefile }),
+				makeInput({ workspacePath: theme.mainYaml }),
 			);
 
 			expect(result.ok).toBe(true);
@@ -602,8 +611,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			try {
 				await writeTypographyTheme(themeDir, 14);
 				const result = await generateTheme({
-					themeName: 'typography-rem',
-					themePath: path.join(themeDir, 'main.yaml'),
+					workspacePath: path.join(themeDir, 'main.yaml'),
 					cliOutput: outputDir,
 					generateOptions: { night: false },
 				});
@@ -704,8 +712,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				);
 
 				const result = await generateTheme({
-					themeName: 'typography-rem',
-					themePath: path.join(themeDir, 'main.yaml'),
+					workspacePath: path.join(themeDir, 'main.yaml'),
 					cliOutput: outputDir,
 					generateOptions: { night: true, profile: 'compact' },
 				});
@@ -757,8 +764,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			try {
 				await writeTypographyTheme(themeDir);
 				const result = await generateTheme({
-					themeName: 'typography-rem',
-					themePath: path.join(themeDir, 'main.yaml'),
+					workspacePath: path.join(themeDir, 'main.yaml'),
 					cliOutput: outputDir,
 					generateOptions: { night: false },
 				});
@@ -796,8 +802,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			);
 
 			const result = await generateTheme({
-				themeName: 'profile-model',
-				themePath,
+				workspacePath: themePath,
 				cliOutput: outputDir,
 				generateOptions: { night: false },
 			});
@@ -843,8 +848,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			);
 
 			const result = await generateTheme({
-				themeName: 'profile-model',
-				themePath,
+				workspacePath: themePath,
 				cliOutput: outputDir,
 				generateOptions: { night: false, profile: 'mobile' },
 			});
@@ -867,8 +871,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			const ctx = new BuildContext();
 			const result = await generateTheme(
 				{
-					themeName: 'profile-model',
-					themePath,
+					workspacePath: themePath,
 					cliOutput: outputDir,
 					generateOptions: { night: false, profiles: 'all' },
 				},
@@ -909,8 +912,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				await fs.rm(absoluteOutputDir, { recursive: true, force: true });
 
 				const result = await generateTheme({
-					themeName: 'profile-model',
-					themePath,
+					workspacePath: themePath,
 					cliOutput: outputDir,
 					generateOptions: { night: true, profiles: 'all' },
 				});
@@ -946,46 +948,6 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			}
 		});
 
-		test('legacy themefile without main yaml still uses fallback when no profile is requested', async () => {
-			const outputDir = createTempOutputDir();
-			const legacyThemefile = path.join(
-				process.cwd(),
-				'tests/fixtures/themes/legacy-no-main/themefile',
-			);
-
-			const result = await generateTheme({
-				themeName: 'legacy-fallback',
-				themePath: legacyThemefile,
-				cliOutput: outputDir,
-				generateOptions: { night: false },
-			});
-
-			expect(result.ok).toBe(true);
-			await fs.rm(outputDir, { recursive: true, force: true });
-		});
-
-		test('legacy themefile config is kept when main yaml has no config', async () => {
-			const outputDir = createTempOutputDir();
-			const themePath = path.join(
-				process.cwd(),
-				'tests/fixtures/themes/standard/themefile',
-			);
-
-			const result = await generateTheme({
-				themeName: 'test-standard',
-				themePath,
-				cliOutput: outputDir,
-				generateOptions: { night: false },
-			});
-
-			expect(result.ok).toBe(true);
-			if (result.ok) {
-				expect(result.generatedFiles).toContain('test-standard.json');
-				expect(result.generatedFiles).toContain('test-standard.css');
-			}
-			await fs.rm(outputDir, { recursive: true, force: true });
-		});
-
 		test('invalid night mode is skipped without failing day profile build', async () => {
 			const outputDir = createTempOutputDir();
 			const themePath = path.join(
@@ -996,8 +958,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 
 			const result = await generateTheme(
 				{
-					themeName: 'profile-model',
-					themePath,
+					workspacePath: themePath,
 					cliOutput: outputDir,
 					generateOptions: { night: true, profile: 'mobile' },
 				},
@@ -1030,8 +991,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 
 			const result = await generateTheme(
 				{
-					themeName: 'profile-model',
-					themePath,
+					workspacePath: themePath,
 					cliOutput: outputDir,
 					generateOptions: { night: true, profile: 'missing-night' },
 				},
@@ -1066,8 +1026,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 
 			const result = await generateTheme(
 				{
-					themeName: 'profile-model',
-					themePath,
+					workspacePath: themePath,
 					cliOutput: outputDir,
 					generateOptions: { night: true, profile: 'bad-ref' },
 				},
@@ -1100,8 +1059,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 
 			const result = await generateTheme(
 				{
-					themeName: 'profile-model',
-					themePath,
+					workspacePath: themePath,
 					cliOutput: outputDir,
 					generateOptions: { night: true, profiles: 'all' },
 				},
@@ -1136,7 +1094,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 
 		test('应正确解析内部引用', async () => {
 			const result = await generateTheme(
-				makeInput({ themeName: 'test-ref', themePath: theme.themefile }),
+				makeInput({ workspacePath: theme.mainYaml }),
 			);
 
 			expect(result.ok).toBe(true);
@@ -1144,7 +1102,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 
 		test('应正确解析外部引用', async () => {
 			const result = await generateTheme(
-				makeInput({ themeName: 'test-ref', themePath: theme.themefile }),
+				makeInput({ workspacePath: theme.mainYaml }),
 			);
 
 			expect(result.ok).toBe(true);
@@ -1161,8 +1119,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 		test('应正确生成继承色主题的所有平台文件', async () => {
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'test-inherit-color',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
@@ -1182,8 +1139,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 		test('CSS 输出应包含 currentColor 或 color-mix', async () => {
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'test-inherit-color',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
@@ -1199,8 +1155,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 		test('JSON 输出应包含 $COLOR_FOREGROUND 哨兵值', async () => {
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'test-inherit-color',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
@@ -1239,11 +1194,11 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					},
 				},
 			});
+			await addMainConfig(theme, ['json']);
 
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'temp-test',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
@@ -1264,8 +1219,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 		test('应成功生成包含 $extends 继承的主题', async () => {
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'test-extends',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
@@ -1278,8 +1232,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 		test('应生成 JSON、CSS 和 Sketch 文件', async () => {
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'test-extends',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
@@ -1301,8 +1254,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 		test('继承后的 token 应在 JSON 输出中包含正确值', async () => {
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'test-extends',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
@@ -1317,33 +1269,26 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 	});
 
 	describe('Sketch extensions 集成输出', () => {
-		const themeDir = path.join(
-			import.meta.dir,
-			'..',
-			'fixtures',
-			'themes',
-			'sketch-extensions',
-		);
-
-		afterAll(async () => {
-			await fs.rm(path.join(themeDir, 'theme'), {
-				recursive: true,
-				force: true,
-			});
-		});
-
 		test('应在真实生成链路中锁定 sketch.path、property 和 filterLayer 合同', async () => {
-			const outputDir = path.join(themeDir, 'theme');
-			await fs.rm(outputDir, { recursive: true, force: true });
+			const fixture = await copyFixtureWorkspace(
+				'fixtures/themes/sketch-extensions',
+			);
+			const outputDir = path.join(fixture.dir, 'theme');
+			const mainPath = path.join(fixture.dir, 'main.yaml');
+			const mainContent = await fs.readFile(mainPath, 'utf8');
+			await fs.writeFile(
+				mainPath,
+				mainContent.replace('    night: false\n', ''),
+			);
 
-			const result = await generateTheme({
-				themeName: 'sketch-extensions',
-				themePath: path.join(themeDir, 'main.yaml'),
-				generateOptions: { night: true },
-			});
+			try {
+				const result = await generateTheme({
+					workspacePath: mainPath,
+					generateOptions: { night: true },
+				});
 
-			expect(result.ok).toBe(true);
-			if (result.ok) {
+				expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+				if (!result.ok) return;
 				expect(result.generatedFiles).toContain('sketch-extensions.json');
 				expect(result.generatedFiles).toContain('sketch-extensions.css');
 				expect(result.generatedFiles).toContain(
@@ -1375,6 +1320,8 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				expect(sketch.component).toBeUndefined();
 				expect(json['color-primary-main']).toBe('#1872f0');
 				expect(JSON.stringify(json)).not.toContain('_sketch');
+			} finally {
+				await fs.rm(fixture.dir, { recursive: true, force: true });
 			}
 		});
 	});
@@ -1389,8 +1336,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 
 		try {
 			const result = await generateTheme({
-				themeName: 'orca-realistic',
-				themePath: path.join(fixtureDir, 'main.yaml'),
+				workspacePath: path.join(fixtureDir, 'main.yaml'),
 				generateOptions: { night: false },
 			});
 
@@ -1567,7 +1513,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 	});
 
 	describe('DTCG colorSpace mixed platform', () => {
-		test('no-main fallback renders sketch from hex tokens in mixed colorSpace pass', async () => {
+		test('main config renders sketch from hex tokens in mixed colorSpace pass', async () => {
 			const tempThemeDir = await fs.mkdtemp(
 				path.join(os.tmpdir(), 'wave-no-main-'),
 			);
@@ -1602,44 +1548,51 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					'utf-8',
 				);
 				await fs.writeFile(
-					path.join(tempThemeDir, 'themefile'),
+					path.join(tempThemeDir, 'main.yaml'),
 					[
-						'THEME no-main-mixed',
-						'RESOURCE palette ./palette.yaml',
-						'RESOURCE dimension ./dimension.yaml',
-						'PARAMETER output ./out',
-						'PARAMETER platform css,sketch',
-						'PARAMETER colorSpace oklch',
+						'$config:',
+						'  theme: main-mixed',
+						'  resource:',
+						'    palette: [./palette.yaml]',
+						'    dimension: [./dimension.yaml]',
+						'  parameter:',
+						'    outputDir: ./out',
+						'    platform: [css, sketch]',
+						'    colorSpace: oklch',
+						'theme:',
+						'  color:',
+						'    primary:',
+						'      $type: color',
+						'      $value: "{custom.color.primary}"',
 						'',
 					].join('\n'),
 					'utf-8',
 				);
 
 				const result = await generateTheme({
-					themeName: 'no-main-mixed',
-					themePath: path.join(tempThemeDir, 'themefile'),
+					workspacePath: path.join(tempThemeDir, 'main.yaml'),
 					generateOptions: { night: true },
 				});
 
 				if (!result.ok) throw new Error(result.message);
 				const css = await fs.readFile(
-					path.join(outputDir, 'no-main-mixed.css'),
+					path.join(outputDir, 'main-mixed.css'),
 					'utf-8',
 				);
 				const sketch = JSON.parse(
 					await fs.readFile(
-						path.join(outputDir, 'no-main-mixed2sketch.json'),
+						path.join(outputDir, 'main-mixed2sketch.json'),
 						'utf-8',
 					),
 				);
 				expect(css).toContain('oklch(');
-				expect(sketch['color-primary']).toEqual({ color: '#fb2c36ff' });
+				expect(sketch['theme-color-primary']).toEqual({ color: '#fb2c36ff' });
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });
 			}
 		});
 
-		test('no-main fallback records a deprecation warning in receipt context', async () => {
+		test('main build does not record a legacy fallback warning', async () => {
 			const tempThemeDir = await fs.mkdtemp(
 				path.join(os.tmpdir(), 'wave-no-main-warning-'),
 			);
@@ -1670,13 +1623,17 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					'utf-8',
 				);
 				await fs.writeFile(
-					path.join(tempThemeDir, 'themefile'),
+					path.join(tempThemeDir, 'main.yaml'),
 					[
-						'THEME no-main-warning',
-						'RESOURCE palette ./palette.yaml',
-						'RESOURCE dimension ./dimension.yaml',
-						'PARAMETER output ./out',
-						'PARAMETER platform json',
+						'$config:',
+						'  theme: main-warning',
+						'  resource:',
+						'    palette: [./palette.yaml]',
+						'    dimension: [./dimension.yaml]',
+						'  parameter: { outputDir: ./out, platform: [json] }',
+						'theme:',
+						'  color:',
+						'    primary: { $type: color, $value: "{custom.color.primary}" }',
 						'',
 					].join('\n'),
 					'utf-8',
@@ -1685,27 +1642,20 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				const ctx = new BuildContext();
 				const result = await generateTheme(
 					{
-						themeName: 'no-main-warning',
-						themePath: path.join(tempThemeDir, 'themefile'),
+						workspacePath: path.join(tempThemeDir, 'main.yaml'),
 						generateOptions: { night: false },
 					},
 					ctx,
 				);
 
 				expect(result.ok).toBe(true);
-				expect(ctx.warnings).toEqual([
-					{
-						phase: 'main',
-						message:
-							'No main.yaml found. Direct RESOURCE token generation is deprecated and will be removed; create main.yaml with wave dt init.',
-					},
-				]);
+				expect(ctx.warnings).toEqual([]);
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });
 			}
 		});
 
-		test('no-main fallback warns once across multiple group passes', async () => {
+		test('main parameter groups do not record legacy fallback warnings', async () => {
 			const tempThemeDir = await fs.mkdtemp(
 				path.join(os.tmpdir(), 'wave-no-main-groups-'),
 			);
@@ -1736,19 +1686,19 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					'utf-8',
 				);
 				await fs.writeFile(
-					path.join(tempThemeDir, 'themefile'),
+					path.join(tempThemeDir, 'main.yaml'),
 					[
-						'THEME no-main-groups',
-						'RESOURCE palette ./palette.yaml',
-						'RESOURCE dimension ./dimension.yaml',
-						'GROUP "json" {',
-						'  PARAMETER output ./json',
-						'  PARAMETER platform json',
-						'}',
-						'GROUP "css" {',
-						'  PARAMETER output ./css',
-						'  PARAMETER platform css',
-						'}',
+						'$config:',
+						'  theme: main-groups',
+						'  resource:',
+						'    palette: [./palette.yaml]',
+						'    dimension: [./dimension.yaml]',
+						'  parameterGroup:',
+						'    json: { outputDir: ./json, platform: [json] }',
+						'    css: { outputDir: ./css, platform: [css] }',
+						'theme:',
+						'  color:',
+						'    primary: { $type: color, $value: "{custom.color.primary}" }',
 						'',
 					].join('\n'),
 					'utf-8',
@@ -1757,16 +1707,14 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				const ctx = new BuildContext();
 				const result = await generateTheme(
 					{
-						themeName: 'no-main-groups',
-						themePath: path.join(tempThemeDir, 'themefile'),
+						workspacePath: path.join(tempThemeDir, 'main.yaml'),
 						generateOptions: { night: false },
 					},
 					ctx,
 				);
 
 				expect(result.ok).toBe(true);
-				expect(ctx.warnings).toHaveLength(1);
-				expect(ctx.warnings[0]?.phase).toBe('main');
+				expect(ctx.warnings).toEqual([]);
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });
 			}
@@ -1817,28 +1765,31 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			}
 
 			try {
+				const mainPath = path.join(tempThemeDir, 'main.yaml');
+				await writeThemeYaml(mainPath, '#fb2c36');
+				const tokenContent = await fs.readFile(mainPath, 'utf8');
 				await fs.writeFile(
-					path.join(tempThemeDir, 'themefile'),
-					[
-						'THEME mixed-branches',
-						'RESOURCE palette tailwindcss',
-						'RESOURCE dimension wave',
-						'PARAMETER output ./out',
-						'PARAMETER platform css,sketch',
-						'PARAMETER colorSpace oklch',
-						'',
-					].join('\n'),
-					'utf-8',
+					mainPath,
+					`$config:
+  theme: mixed-branches
+  resource:
+    palette: [tailwindcss]
+    dimension: [wave]
+  parameter:
+    outputDir: ./out
+    platform: [css, sketch]
+    colorSpace: oklch
+
+${tokenContent}`,
+					'utf8',
 				);
-				await writeThemeYaml(path.join(tempThemeDir, 'main.yaml'), '#fb2c36');
 				await writeThemeYaml(
 					path.join(tempThemeDir, 'main@night.yaml'),
 					'#0052f5',
 				);
 				for (const run of [1, 2]) {
 					const result = await generateTheme({
-						themeName: 'mixed-branches',
-						themePath: path.join(tempThemeDir, 'themefile'),
+						workspacePath: mainPath,
 						generateOptions: { night: true },
 					});
 					expect(result.ok).toBe(true);
@@ -1984,8 +1935,7 @@ theme:
 
 			try {
 				const result = await generateTheme({
-					themeName: 'root-matrix',
-					themePath,
+					workspacePath: themePath,
 					cliOutput: outputDir,
 					cliPlatform: 'css,sketch',
 					generateOptions: { night: false },
@@ -2063,10 +2013,9 @@ theme:
 	});
 
 	describe('错误处理', () => {
-		test('应在 themefile 不存在时返回错误', async () => {
+		test('应在 main.yaml 不存在时返回错误', async () => {
 			const result = await generateTheme({
-				themeName: 'nonexistent',
-				themePath: '/nonexistent/themefile',
+				workspacePath: '/nonexistent/main.yaml',
 				generateOptions: { night: false },
 			});
 
@@ -2091,11 +2040,11 @@ theme:
 					},
 				},
 			});
+			await addMainConfig(theme);
 
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'circular-test',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
@@ -2130,11 +2079,11 @@ theme:
 `,
 				'utf8',
 			);
+			await addMainConfig(theme);
 
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'typography-resolved-invalid',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
@@ -2174,11 +2123,11 @@ theme:
 `,
 				'utf8',
 			);
+			await addMainConfig(theme);
 
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'border-dash-resolved-invalid',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
@@ -2222,11 +2171,11 @@ theme:
 `,
 				'utf8',
 			);
+			await addMainConfig(theme, ['css']);
 
 			const result = await generateTheme(
 				makeInput({
-					themeName: 'border-dash-ref-valid',
-					themePath: theme.themefile,
+					workspacePath: theme.mainYaml,
 				}),
 			);
 
