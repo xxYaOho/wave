@@ -422,7 +422,7 @@ export async function parseProfileDocument(
 	const tokenRoot = { ...root };
 	delete tokenRoot.$config;
 
-	const buildDir = entry.isDefault ? options.baseDir : profileDir;
+	const buildDir = options.baseDir;
 
 	const parsed: ParsedThemefile = {
 		THEME:
