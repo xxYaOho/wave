@@ -208,6 +208,49 @@ theme:
 		}
 	});
 
+	test('rejects an unknown CLI platform before changing output artifacts', async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-platform-'));
+		const outputDir = path.join(dir, 'out');
+		const jsonPath = path.join(outputDir, 'platform-check.json');
+		const marker = Buffer.from('existing-json\n');
+		try {
+			await fs.mkdir(outputDir, { recursive: true });
+			await fs.writeFile(jsonPath, marker);
+			await fs.writeFile(
+				path.join(dir, 'main.yaml'),
+				`$config:
+  theme: platform-check
+  parameter:
+    outputDir: ./out
+    platform: [css]
+theme:
+  color:
+    primary:
+      $type: color
+      $value: "#2563eb"
+`,
+			);
+
+			const result = await generateTheme({
+				workspacePath: path.join(dir, 'main.yaml'),
+				cliOutput: outputDir,
+				cliPlatform: 'json,unknown',
+				generateOptions: { night: false },
+			});
+
+			expect(result).toMatchObject({
+				ok: false,
+				exitCode: ExitCode.GENERAL_ERROR,
+				message:
+					'Unknown platform "unknown". Supported platforms: json, jsonc, css, sketch',
+			});
+			expect(await fs.readFile(jsonPath)).toEqual(marker);
+			expect(await fs.readdir(outputDir)).toEqual(['platform-check.json']);
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	describe('reference-gated resource loading', () => {
 		const cases = [
 			{

@@ -343,17 +343,58 @@ describe('generateTokens (Wave-native)', () => {
 		});
 	});
 
-	test('returns success:true with no files when no valid platform', async () => {
+	test('rejects an unknown platform before writing known outputs', async () => {
+		await withTempDir(async (outputDir) => {
+			const jsonPath = path.join(outputDir, 'demo.json');
+			await fs.writeFile(jsonPath, 'existing-json');
+			const result = await generateTokens({
+				themeName: 'demo',
+				outputDir,
+				tokens: [],
+				platform: ['json', 'unknown'],
+			});
+
+			expect(result).toMatchObject({
+				success: false,
+				files: [],
+				error:
+					'Unknown platform "unknown". Supported platforms: json, jsonc, css, sketch',
+			});
+			expect(await fs.readFile(jsonPath, 'utf8')).toBe('existing-json');
+			expect(await fs.readdir(outputDir)).toEqual(['demo.json']);
+		});
+	});
+
+	test('rejects an empty platform list', async () => {
 		await withTempDir(async (outputDir) => {
 			const result = await generateTokens({
 				themeName: 'demo',
 				outputDir,
 				tokens: [],
-				platform: ['unknown'],
+				platform: [],
+			});
+
+			expect(result).toEqual({
+				success: false,
+				files: [],
+				error: 'At least one output platform is required',
+			});
+			expect(await fs.readdir(outputDir)).toEqual([]);
+		});
+	});
+
+	test('normalizes and deduplicates platforms', async () => {
+		await withTempDir(async (outputDir) => {
+			const result = await generateTokens({
+				themeName: 'demo',
+				outputDir,
+				tokens: [],
+				platform: [' json ', 'json'],
 			});
 
 			expect(result.success).toBe(true);
-			expect(result.files).toEqual([]);
+			expect(result.files).toEqual(['demo.json']);
+			expect(await fs.readdir(outputDir)).toEqual(['demo.json']);
 		});
 	});
 

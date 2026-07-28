@@ -6,7 +6,6 @@ import type {
 	WaveFormatFn,
 	WaveToken,
 } from '../../types/index.ts';
-import { logger } from '../../utils/logger.ts';
 import { transformToWaveTokens } from '../transformer/theme-transformer.ts';
 import { cssVariablesFormat } from './formats/css.ts';
 import { flatJsoncFormat, flatJsonFormat } from './formats/flat.ts';
@@ -34,6 +33,17 @@ interface PlatformDefinition {
 	filename: (themeName: string) => string;
 	extra?: Record<string, unknown>;
 }
+
+export interface PlannedTokenOutput {
+	platform: string;
+	filePath: string;
+	format: WaveFormatFn;
+	extra?: Record<string, unknown>;
+}
+
+export type TokenOutputPlanResult =
+	| { ok: true; outputs: PlannedTokenOutput[] }
+	| { ok: false; error: string };
 
 const PLATFORMS: Record<string, PlatformDefinition> = {
 	json: {
@@ -76,6 +86,43 @@ const PLATFORMS: Record<string, PlatformDefinition> = {
 	},
 };
 
+export function planTokenOutputs(options: {
+	themeName: string;
+	outputDir: string;
+	platform?: string[];
+}): TokenOutputPlanResult {
+	const normalizedPlatforms = [
+		...new Set(
+			(options.platform ?? ['json']).map((platform) => platform.trim()),
+		),
+	];
+	if (normalizedPlatforms.length === 0) {
+		return { ok: false, error: 'At least one output platform is required' };
+	}
+
+	const outputs: PlannedTokenOutput[] = [];
+	for (const platform of normalizedPlatforms) {
+		const definition = PLATFORMS[platform];
+		if (!definition) {
+			return {
+				ok: false,
+				error: `Unknown platform "${platform}". Supported platforms: ${Object.keys(PLATFORMS).join(', ')}`,
+			};
+		}
+		outputs.push({
+			platform,
+			filePath: path.resolve(
+				options.outputDir,
+				definition.filename(options.themeName),
+			),
+			format: definition.format,
+			extra: definition.extra,
+		});
+	}
+
+	return { ok: true, outputs };
+}
+
 function tokensForPlatform(
 	platform: string,
 	tokens: WaveToken[],
@@ -101,40 +148,33 @@ export async function generateTokens(
 		colorSpace,
 	} = options;
 	const generatedFiles: string[] = [];
-	const targetPlatforms = platform ?? ['json'];
+	const plan = planTokenOutputs({ themeName, outputDir, platform });
+	if (!plan.ok) {
+		return { success: false, files: [], error: plan.error };
+	}
 
 	try {
-		const pendingOutputs: Array<{ filename: string; out: string }> = [];
-		for (const p of targetPlatforms) {
-			const normalized = p.trim();
-			const def = PLATFORMS[normalized];
-			if (!def) {
-				logger.warn(`Unknown platform "${normalized}", skipping`);
-				continue;
-			}
-
+		const pendingOutputs: Array<{ filePath: string; out: string }> = [];
+		for (const output of plan.outputs) {
 			const formatOptions: Record<string, unknown> = {
-				...(def.extra ?? {}),
+				...(output.extra ?? {}),
 			};
 			if (filterLayer !== undefined) formatOptions.filterLayer = filterLayer;
 			if (groupComments !== undefined) {
 				formatOptions.groupComments = groupComments;
 			}
 
-			const filename = def.filename(themeName);
-			const out = def.format(
-				tokensForPlatform(normalized, tokens, resolved, colorSpace),
+			const out = output.format(
+				tokensForPlatform(output.platform, tokens, resolved, colorSpace),
 				formatOptions,
 			);
-			pendingOutputs.push({ filename, out });
+			pendingOutputs.push({ filePath: output.filePath, out });
 		}
 
-		if (pendingOutputs.length > 0) {
-			await fs.mkdir(outputDir, { recursive: true });
-		}
-		for (const { filename, out } of pendingOutputs) {
-			await Bun.write(path.join(outputDir, filename), out);
-			generatedFiles.push(filename);
+		await fs.mkdir(outputDir, { recursive: true });
+		for (const { filePath, out } of pendingOutputs) {
+			await Bun.write(filePath, out);
+			generatedFiles.push(path.basename(filePath));
 		}
 
 		return { success: true, files: generatedFiles };

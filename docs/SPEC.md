@@ -290,6 +290,8 @@ theme:
 
 每个 `parameterGroup` 产生一个独立 build pass。group 字段覆盖 `$config.parameter` 的同名字段；CLI `--platform` 和 `--out` 再覆盖所有 pass。优先级为 CLI > `parameterGroup` > `parameter`。
 
+输出平台在 formatter 执行和输出目录创建前统一 trim 并按首次出现顺序去重。未知 platform 使整个 build 失败，错误会列出受支持的 `json`、`jsonc`、`css`、`sketch`；空 platform 列表同样失败，不会返回 `success: true` 且没有产物。校验失败时不会改写已有产物，也不会创建新产物。
+
 ---
 
 ## Compress 行为

@@ -1,4 +1,3 @@
-import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import { generateTokens } from '../../core/generator/index.ts';
@@ -139,7 +138,6 @@ async function generatePass(
 		if (!ctx) logger.warn(DIMENSION_BUILD_WARNING);
 	}
 
-	await fs.mkdir(outputDir, { recursive: true });
 	const mainResult = await generateTokens({
 		themeName: resolvedThemeName,
 		outputDir,
