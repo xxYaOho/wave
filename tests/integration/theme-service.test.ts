@@ -1092,20 +1092,32 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			theme = await loadTestTheme('ref-test');
 		});
 
-		test('应正确解析内部引用', async () => {
+		test('应解析内部引用链与带 alpha 的外部引用，并输出稳定 artifact', async () => {
 			const result = await generateTheme(
 				makeInput({ workspacePath: theme.mainYaml }),
 			);
 
-			expect(result.ok).toBe(true);
-		});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+			if (!result.ok) return;
+			expect(result.generatedFiles).toEqual(['test-ref.json']);
 
-		test('应正确解析外部引用', async () => {
-			const result = await generateTheme(
-				makeInput({ workspacePath: theme.mainYaml }),
+			const json = JSON.parse(
+				await fs.readFile(path.join(tempDir, 'test-ref.json'), 'utf8'),
 			);
-
-			expect(result.ok).toBe(true);
+			expect(json['theme-color-base']).toBe('#0066cc');
+			expect(json['theme-color-hover']).toBe('#0066cc');
+			expect(json['theme-color-semi-transparent']).toBe('#0066cc80');
+			expect(json['theme-color-derived']).toBe('#0066cc');
+			expect(json['theme-style-shadow-elevated']).toEqual([
+				{
+					color: '#4f39f633',
+					offsetX: 0,
+					offsetY: 8,
+					blur: 16,
+					spread: 0,
+				},
+			]);
+			expect(JSON.stringify(json)).not.toContain('$ref');
 		});
 	});
 
@@ -1116,59 +1128,65 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			theme = await loadTestTheme('inherit-color');
 		});
 
-		test('应正确生成继承色主题的所有平台文件', async () => {
+		test('应在 JSON、CSS 和 Sketch 输出中保留 inheritColor 语义', async () => {
 			const result = await generateTheme(
 				makeInput({
 					workspacePath: theme.mainYaml,
 				}),
 			);
 
-			expect(result.ok).toBe(true);
-			if (result.ok) {
-				const hasJson = result.generatedFiles.some((f) => f.endsWith('.json'));
-				const hasCss = result.generatedFiles.some((f) => f.endsWith('.css'));
-				const hasSketch = result.generatedFiles.some(
-					(f) => f.endsWith('.json') && f.includes('sketch'),
-				);
-				expect(hasJson).toBe(true);
-				expect(hasCss).toBe(true);
-				expect(hasSketch).toBe(true);
-			}
-		});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+			if (!result.ok) return;
+			expect(result.generatedFiles).toEqual([
+				'inherit-color.json',
+				'inherit-color.css',
+				'inherit-color2sketch.json',
+			]);
 
-		test('CSS 输出应包含 currentColor 或 color-mix', async () => {
-			const result = await generateTheme(
-				makeInput({
-					workspacePath: theme.mainYaml,
-				}),
+			const json = JSON.parse(
+				await fs.readFile(path.join(tempDir, 'inherit-color.json'), 'utf8'),
+			);
+			const css = await fs.readFile(
+				path.join(tempDir, 'inherit-color.css'),
+				'utf8',
+			);
+			const sketch = JSON.parse(
+				await fs.readFile(
+					path.join(tempDir, 'inherit-color2sketch.json'),
+					'utf8',
+				),
 			);
 
-			expect(result.ok).toBe(true);
-			if (result.ok) {
-				const cssFile = result.generatedFiles.find(
-					(f) => f.endsWith('.css') && !f.includes('night'),
-				);
-				expect(cssFile).toBeDefined();
-			}
-		});
-
-		test('JSON 输出应包含 $COLOR_FOREGROUND 哨兵值', async () => {
-			const result = await generateTheme(
-				makeInput({
-					workspacePath: theme.mainYaml,
-				}),
+			expect(json['theme-color-interaction-inheritplain']).toBe(
+				'$COLOR_FOREGROUND',
 			);
-
-			expect(result.ok).toBe(true);
-			if (result.ok) {
-				const jsonFile = result.generatedFiles.find(
-					(f) =>
-						f.endsWith('.json') &&
-						!f.includes('sketch') &&
-						!f.includes('night'),
-				);
-				expect(jsonFile).toBeDefined();
-			}
+			expect(json['theme-color-interaction-inheritwithopacity']).toEqual({
+				color: '$COLOR_FOREGROUND',
+				opacity: 0.5,
+			});
+			expect(json['theme-color-interaction-inheritfull']).toEqual({
+				color: '$COLOR_FOREGROUND',
+				opacity: 0.3,
+			});
+			expect(css).toContain(
+				'--theme-color-interaction-inheritplain: currentColor;',
+			);
+			expect(css).toContain(
+				'--theme-color-interaction-inheritwithopacity: color-mix(in srgb, currentColor 50%, transparent);',
+			);
+			expect(css).toContain(
+				'--theme-color-interaction-inheritfull: color-mix(in srgb, currentColor 30%, transparent);',
+			);
+			expect(sketch['theme-color-interaction-inheritwithsibling']).toEqual({
+				color: '#00cc00ff',
+			});
+			expect(sketch['theme-color-interaction-inheritfull']).toEqual({
+				color: '#00cc00ff',
+				opacity: 0.3,
+			});
+			expect(sketch['theme-color-interaction-inheritmissingsibling']).toEqual({
+				color: '#ff00ffff',
+			});
 		});
 	});
 
@@ -1214,55 +1232,50 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			theme = await loadTestTheme('extends-test');
 		});
 
-		test('应成功生成包含 $extends 继承的主题', async () => {
+		test('应在三平台 artifact 中锁定 $extends 继承与 public-root 合同', async () => {
 			const result = await generateTheme(
 				makeInput({
 					workspacePath: theme.mainYaml,
 				}),
 			);
 
-			expect(result.ok).toBe(true);
-			if (result.ok) {
-				expect(result.generatedFiles.length).toBeGreaterThan(0);
-			}
-		});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+			if (!result.ok) return;
+			expect(result.generatedFiles).toEqual([
+				'test-extends.json',
+				'test-extends.css',
+				'test-extends2sketch.json',
+			]);
 
-		test('应生成 JSON、CSS 和 Sketch 文件', async () => {
-			const result = await generateTheme(
-				makeInput({
-					workspacePath: theme.mainYaml,
-				}),
+			const json = JSON.parse(
+				await fs.readFile(path.join(tempDir, 'test-extends.json'), 'utf8'),
+			);
+			const css = await fs.readFile(
+				path.join(tempDir, 'test-extends.css'),
+				'utf8',
+			);
+			const sketch = JSON.parse(
+				await fs.readFile(
+					path.join(tempDir, 'test-extends2sketch.json'),
+					'utf8',
+				),
 			);
 
-			expect(result.ok).toBe(true);
-			if (result.ok) {
-				const hasJson = result.generatedFiles.some(
-					(f) => f.endsWith('.json') && !f.includes('sketch'),
-				);
-				const hasCss = result.generatedFiles.some((f) => f.endsWith('.css'));
-				const hasSketch = result.generatedFiles.some((f) =>
-					f.includes('sketch'),
-				);
-				expect(hasJson).toBe(true);
-				expect(hasCss).toBe(true);
-				expect(hasSketch).toBe(true);
-			}
-		});
-
-		test('继承后的 token 应在 JSON 输出中包含正确值', async () => {
-			const result = await generateTheme(
-				makeInput({
-					workspacePath: theme.mainYaml,
-				}),
+			expect(json['theme-component-button-outline-primary-fill']).toBe(
+				'#ffffff',
 			);
-
-			expect(result.ok).toBe(true);
-			if (result.ok) {
-				const jsonFile = result.generatedFiles.find(
-					(f) => f.endsWith('.json') && !f.includes('sketch'),
-				);
-				expect(jsonFile).toBeDefined();
-			}
+			expect(json['theme-component-button-outline-primary-border']).toBe(
+				'#615fff',
+			);
+			expect(json['theme-component-button-outline-primary-radius']).toBe('4px');
+			expect(json['theme-component-button-filled-secondary-text']).toBe(
+				'#ffffff',
+			);
+			expect(json['theme-component-button-filled-secondary-radius']).toBe(
+				'4px',
+			);
+			expect(css).toBe(':root {\n}');
+			expect(sketch).toEqual({});
 		});
 	});
 
