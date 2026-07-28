@@ -268,8 +268,6 @@ export function createSyntheticMainYaml(
 				outputDir: './theme',
 				platform: options.platforms,
 				filterLayer: options.filterLayer,
-				night: options.includeNight,
-				profiles: options.includeProfiles ? 'all' : 'main',
 			},
 		},
 		theme: {

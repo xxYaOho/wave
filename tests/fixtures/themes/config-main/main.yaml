@@ -9,7 +9,6 @@ $config:
       - wave
   parameter:
     outputDir: ./theme
-    night: false
   parameterGroup:
     css:
       platform:
