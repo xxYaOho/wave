@@ -46,6 +46,18 @@ export interface ParsedThemefile {
 	groups: GroupBlock[];
 }
 
+export interface DesignTokenBuildConfig {
+	theme: string;
+	parameter: ParameterSet;
+	resources: ResourceDeclaration[];
+	parameterGroups: ParameterGroup[];
+}
+
+export interface ParameterGroup {
+	name: string;
+	parameter: ParameterSet;
+}
+
 export type ResourceType = 'palette' | 'dimension' | 'brand';
 
 export interface ResolvedResource {
