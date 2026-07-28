@@ -1,5 +1,11 @@
 # wave
 
+## 0.22.0
+
+### Minor Changes
+
+- 59146f3: Remove the deprecated `themefile` entry, direct RESOURCE generation, and top-level `create`/`init` commands. Use `main.yaml` and `wave dt init` for design-token workspaces.
+
 ## 0.21.0
 
 ### Minor Changes
