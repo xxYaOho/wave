@@ -1,0 +1,28 @@
+$schema: "https://www.designtokens.org/tr/2025.10/format/"
+
+$config:
+  theme: stock-style-invalid
+  parameter:
+    outputDir: ./theme
+    filterLayer: 1
+    platform:
+      - json
+      - css
+      - sketch
+
+theme:
+  border:
+    antline:
+      $type: stockStyle
+      $value:
+        color: "#336699"
+        width:
+          value: 1
+          unit: px
+        style:
+          dashArray:
+            - value: 4
+              unit: px
+            - value: 8
+              unit: px
+          lineCap: butt

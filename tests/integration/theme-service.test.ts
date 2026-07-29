@@ -1711,6 +1711,40 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 		}
 	});
 
+	test('rejects stockStyle composite builds without changing output artifacts', async () => {
+		const fixture = await copyFixtureWorkspace(
+			'fixtures/themes/stock-style-invalid',
+		);
+		const outputDir = path.join(fixture.dir, 'theme');
+		const sentinelPath = path.join(outputDir, 'stock-style-invalid.json');
+		const sentinel = Buffer.from('existing-json-artifact\n');
+		const previousEnv = applyResourceEnv(fixture.env);
+
+		try {
+			await fs.mkdir(outputDir);
+			await fs.writeFile(sentinelPath, sentinel);
+
+			const result = await generateTheme({
+				workspacePath: path.join(fixture.dir, 'main.yaml'),
+				generateOptions: { night: false },
+			});
+
+			expect(result).toMatchObject({
+				ok: false,
+				exitCode: ExitCode.GENERAL_ERROR,
+			});
+			if (!result.ok) {
+				expect(result.message).toContain('theme.border.antline');
+				expect(result.message).toContain('stockStyle');
+			}
+			expect(await fs.readFile(sentinelPath)).toEqual(sentinel);
+			expect(await fs.readdir(outputDir)).toEqual(['stock-style-invalid.json']);
+		} finally {
+			restoreResourceEnv(previousEnv);
+			await fs.rm(fixture.dir, { recursive: true, force: true });
+		}
+	});
+
 	test('orca-realistic materializes typography and preserves platform output contracts', async () => {
 		const fixture = await copyFixtureWorkspace(
 			'fixtures/themes/orca-realistic',
@@ -1762,6 +1796,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			expect(css).toContain('--label-line-height: 20px;');
 			expect(css).toContain('--antline: 1px dashed #0052f5;');
 			expect(css).toContain('--antline-dash-array: 4px 8px;');
+			expect(css).toContain('--antline-line-cap: butt;');
 			expect(css).not.toContain('[object Object]');
 
 			expect(json['font-body']).toEqual({
