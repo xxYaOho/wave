@@ -21,6 +21,30 @@ CSS 输出包含 `color`、`state`、`shadow`、`gradient`、`border`、`radius`
 
 Typography token 会在 CSS 中输出字段变量和 shorthand 变量，在 Sketch 中输出 text shared style payload。带 `outline` extension 的 border token 会在 CSS 中输出 outline value 和 offset companion，在 Sketch 中用两层 shadow 模拟 outline。
 
+### 标准类型的平台输出
+
+JSON 和 JSONC 输出扁平 key/value；dimension 和 composite 内的 dimension 字段保留单位字符串。CSS 输出可直接消费的值。Sketch 对 color、shadow、gradient 和 typography 使用原生 payload；其他标准类型使用 `{ value }` 保存规范化值。
+
+| `$type` | JSON / JSONC | CSS | Sketch |
+| --- | --- | --- | --- |
+| `color` | 目标色彩空间字符串，或 clean DTCG color object | CSS Color 4 value | `{ color: "#rrggbbaa" }` |
+| `dimension` | `"8px"` | `8px` | `{ value: "8px" }`；原生数值属性输出 number |
+| `fontFamily` | string 或 string array | font stack | `{ value: ... }` |
+| `fontWeight` | number | number | `{ value: number }` |
+| `duration` | `"200ms"` | `200ms` | `{ value: "200ms" }` |
+| `cubicBezier` | number array | `cubic-bezier(...)` | `{ value: [...] }` |
+| `number` | number | number | `{ value: number }` |
+| `strokeStyle` | string 或 `{ dashArray, lineCap }` | 主变量与 dash/line-cap companion | `{ value: ... }` |
+| `border` | `{ color, width, style }` | border shorthand 与必要 companion | `{ value: ... }` |
+| `transition` | `{ duration, delay, timingFunction }` | transition value | `{ value: ... }` |
+| `shadow` | 单层 object 或 layer array | box-shadow value | `{ shadow: [...] }` |
+| `gradient` | stop array | linear-gradient value | `{ gradient: [...] }` |
+| `typography` | 五个标准字段与可选 Wave `color` | 字段变量与 shorthand | `{ textStyle: ... }` |
+
+Sketch 的 generic `{ value }` 是 Wave generator 合同，不代表 Sync Token 已消费对应类型。
+
+平台不能表达输入时，Wave 会停止构建，并报告 token path、type 和失败原因。典型失败包括：CSS 或 Sketch 无法转换且没有 `hex` fallback 的 color、CSS 的空 font family 和负或全零 dash pattern，以及 Sketch 原生数值属性无法表示的相对单位。CSS 对未知自定义 `$type` 只接受 scalar；object 或 array 会明确失败，禁止输出 `[object Object]`。
+
 当前目录存在 `main.yaml` 时，`wave dt doctor` 会默认检查它；也可以用 `wave dt doctor -f ./main.yaml` 显式指定。
 
 多平台用逗号分隔：
@@ -283,4 +307,3 @@ component:
 - composite group 的直接子节点必须都是 token，不能再嵌套 group。
 - JSON/JSONC 输出会合并为对象。
 - Sketch 输出不再把 composite 映射为组件样式字段；component 逻辑后续单独设计。
-

@@ -177,6 +177,74 @@ CSS 输出包含 `theme.color`、`theme.state`、`theme.shadow`、`theme.gradien
 
 `theme.dimension` 不是 public output root。迁移阶段 build 会警告一次，`wave dt doctor` 输出迁移建议。
 
+### DTCG 标准类型合同
+
+Wave 识别 DTCG Format Module 2025.10 的全部标准 `$type`：
+
+| `$type` | 标准值合同 | 归一化结果 |
+| --- | --- | --- |
+| `color` | `{ colorSpace, components, alpha?, hex? }` | 按目标色彩空间输出；无法转换且无 fallback 时按平台失败或保留标准对象 |
+| `dimension` | `{ value: number, unit: "px" | "rem" }` | 带单位字符串 |
+| `fontFamily` | string 或 string array | 保留字体列表语义 |
+| `fontWeight` | `1..1000` 或标准命名 weight | 数字 weight |
+| `duration` | `{ value: number, unit: "ms" | "s" }` | 带单位字符串 |
+| `cubicBezier` | 四个有限 number，两个 x 坐标位于 `[0, 1]` | 四元素 number array |
+| `number` | 有限 JSON number | number |
+| `strokeStyle` | 标准字符串，或 `{ dashArray, lineCap }` | 标准字符串或规范化 object |
+| `border` | `{ color, width, style }` | 递归规范化 composite |
+| `transition` | `{ duration, delay, timingFunction }` | 递归规范化 composite |
+| `shadow` | 单层 object 或 layer array | 递归规范化 layer |
+| `gradient` | stop array | clamp position，并物化缺失的 `0`、`1` 端点 |
+| `typography` | `{ fontFamily, fontSize, fontWeight, letterSpacing, lineHeight }` | 递归规范化 composite |
+
+`opacity` 不是 DTCG 标准 `$type`。它作为 token type 时按未知自定义类型处理；`inheritColor.property.opacity` 和 `$extensions.sketch.property.opacity` 仍是有效 Wave extension。
+
+标准 composite 是闭合结构。缺少必需字段、出现未声明字段或引用到不兼容类型时，schema/resolved validation 失败。有效类型可以来自 token `$type`、最近父 group `$type` 或完整 token alias 的目标类型。
+
+Wave 支持 DTCG complete-token reference 和 JSON Pointer `$ref`：
+
+```yaml
+theme:
+  color:
+    primary:
+      $type: color
+      $value: "#1872f0"
+  radius:
+    small:
+      $type: dimension
+      $value: 4
+  border:
+    style:
+      $type: strokeStyle
+      $value: dashed
+    control:
+      $type: border
+      $value:
+        color: "{theme.color.primary}"
+        width: "{theme.radius.small}"
+        style: "{theme.border.style}"
+    controlAlias:
+      $value: "{theme.border.control}"
+```
+
+complete-token alias 继承目标的 effective type。composite 子字段引用必须指向对应类型，例如 `border.width` 只接受 `dimension` 引用，`border.style` 只接受 `strokeStyle` 引用。shadow 和 gradient 数组中的引用保留单元素语义，不展开为嵌套数组。
+
+#### Wave dimension 方言
+
+标准 DTCG dimension 只接受 `{ value, unit }`，标准单位为 `px` 和 `rem`。Wave 额外接受有限 number、十进制 numeric string、带 `px | rem | pt | em | %` 的 length string、`{ value }`，以及使用扩展单位的 `{ value, unit }`。这些输入形式适用于 standalone dimension 和 border、strokeStyle、shadow、typography 的 dimension 子字段。
+
+无单位值在 JSON、JSONC 和 CSS 输出中默认补为 `px`，例如 `8` 输出为 `"8px"`。Sketch 原生数值属性只接受可无损投影的单位；typography `rem` 按 `baseFontSize` 转换，其余不可表达的 `em | rem | %` 明确失败。typography `lineHeight` 的标准值为 number；Wave 方言另接受 `px | pt | rem`，不接受 `em | %`。
+
+#### 平台投影与失败语义
+
+JSON 和 JSONC 使用 flat platform output。dimension 子值保留单位，standard composite 保留规范化结构。含 `"none"` 的 DTCG color 无法转换且无 `hex` fallback 时，保留只含标准字段的 clean color object。
+
+CSS 为每种标准类型提供专用 formatter。`fontFamily` 输出合法 font stack；`duration`、`cubicBezier`、`transition` 输出可直接消费的 CSS value；object `strokeStyle` 和使用它的 `border` 输出 `dash-array`、`line-cap` companion variables。gradient 使用规范化端点，shadow 保留 `inset`。CSS 无法表达的 color、空 font family、负或全零 dash pattern，以及未知自定义 object/array 会显示 token path、type 和 value shape 后失败，禁止输出 `[object Object]`。
+
+Sketch 对 color、shadow、gradient 和 typography 使用既有原生 payload。没有原生语义的标准值使用 `{ value }`：generic dimension 保留单位字符串，primitive 保留规范化值，strokeStyle、border 和 transition 保留完整结构。该 shape 只承诺 Wave generator 输出，不代表下游 Sync Token 已支持这些 payload。不可转换且无 fallback 的 color，以及无法投影到原生数值属性的单位会明确失败。
+
+未知自定义 `$type` 继续产生 warning。JSON/JSONC 保留其值，CSS 只接受 scalar，Sketch 使用 `{ value: ... }` 保存可表示值。该兼容行为不属于 DTCG 标准类型支持。
+
 ### show 命令
 
 - `wave show`：列出所有内置调色板（palettes）和尺寸系统（dimensions）

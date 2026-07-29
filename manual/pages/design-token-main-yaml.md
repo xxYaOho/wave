@@ -130,7 +130,78 @@ theme:
 | `$extends` | group | 继承另一个 group，格式 `{theme.group.path}` |
 | `$extensions` | group 或 token | Wave 扩展字段 |
 
-支持的 `$type` 包括 `color`、`shadow`、`gradient`、`border`、`typography`、`opacity`、`dimension`、`number`、`fontFamily`、`cubicBezier`。
+Wave 支持 DTCG 2025.10 的全部标准 `$type`：
+
+| 类别 | `$type` |
+| --- | --- |
+| 基础值 | `color`、`dimension`、`fontFamily`、`fontWeight`、`duration`、`cubicBezier`、`number`、`strokeStyle` |
+| 复合值 | `border`、`transition`、`shadow`、`gradient`、`typography` |
+
+`opacity` 不是标准 `$type`。透明度使用 `number` token；`inheritColor.property.opacity` 和 `$extensions.sketch.property.opacity` 是 Wave 扩展字段，写法见“扩展与输出”。未知自定义 `$type` 会产生 warning；JSON/JSONC 保留其值，CSS 只输出 scalar，自定义 object 或 array 会在 CSS 构建时失败。
+
+## Dimension 写法
+
+DTCG 标准 dimension 使用 object，单位只允许 `px` 或 `rem`：
+
+```yaml
+space:
+  $type: dimension
+  $value:
+    value: 8
+    unit: px
+```
+
+Wave 也接受以下简写：
+
+```yaml
+spaceNumber:
+  $type: dimension
+  $value: 8
+spaceString:
+  $type: dimension
+  $value: "8"
+spaceLength:
+  $type: dimension
+  $value: "0.5rem"
+spaceObject:
+  $type: dimension
+  $value:
+    value: 8
+```
+
+简写还支持 `pt`、`em` 和 `%`。无单位值在 JSON、JSONC 和 CSS 中默认输出为 `px`，因此 `8` 和 `{ value: 8 }` 都输出 `"8px"`。这些写法是 Wave 输入能力，不是 DTCG 标准 dimension；Sketch 原生数值属性无法表达某个单位时会停止构建，不会静默换算。
+
+## Typed reference
+
+完整 token alias 会继承目标 token 的类型；复合值内的引用必须指向匹配的标准类型：
+
+```yaml
+theme:
+  color:
+    primary:
+      $type: color
+      $value: "#1872f0"
+  radius:
+    small:
+      $type: dimension
+      $value: 4
+  border:
+    dashed:
+      $type: strokeStyle
+      $value:
+        dashArray: [4, 8]
+        lineCap: butt
+    control:
+      $type: border
+      $value:
+        color: "{theme.color.primary}"
+        width: "{theme.radius.small}"
+        style: "{theme.border.dashed}"
+    controlAlias:
+      $value: "{theme.border.control}"
+```
+
+也可以用 `$ref: "#/theme/border/control/$value"` 引用完整值。类型不匹配、引用未解析或 composite 缺少标准字段时，构建会报告对应 token path 并失败。
 
 ## theme 顶级 key
 
@@ -139,7 +210,7 @@ theme:
 | key | 用途 | 常见 `$type` |
 | --- | --- | --- |
 | `color` | 品牌色、语义色、文本色、背景色、描边色 | `color` |
-| `state` | hover、pressed、disabled 等交互状态值 | `number`、`opacity` |
+| `state` | hover、pressed、disabled 等交互状态值 | `number` |
 | `shadow` | 投影、层级阴影、平滑阴影 | `shadow` |
 | `gradient` | 渐变、mask 渐变、平滑渐变 | `gradient` |
 | `border` | 描边宽度、描边样式、outline token | `dimension`、`border` |
