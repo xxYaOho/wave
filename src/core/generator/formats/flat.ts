@@ -4,55 +4,12 @@ export interface FlatFormatOptions {
 	filterLayer?: number;
 }
 
-export function cleanShadowZeroPx(value: unknown): unknown {
-	if (!Array.isArray(value)) return value;
-
-	return value.map((layer: unknown) => {
-		if (typeof layer !== 'object' || layer === null) return layer;
-
-		const l = layer as Record<string, unknown>;
-		const cleaned: Record<string, unknown> = {};
-
-		for (const [key, val] of Object.entries(l)) {
-			if (key === 'color') {
-				cleaned[key] = val;
-			} else if (typeof val === 'string' && val.endsWith('px')) {
-				const num = parseFloat(val);
-				cleaned[key] = Number.isNaN(num) ? val : num;
-			} else if (typeof val === 'number' && val === 0) {
-				cleaned[key] = 0;
-			} else {
-				cleaned[key] = val;
-			}
-		}
-
-		return cleaned;
-	});
-}
-
 function getFilteredName(token: WaveToken, filterLayer: number): string {
 	const path = token.path;
 	if (filterLayer <= 0 || path.length <= filterLayer) {
 		return token.name;
 	}
 	return path.slice(filterLayer).join('-');
-}
-
-function cleanInternalFields(value: unknown): unknown {
-	if (typeof value !== 'object' || value === null) return value;
-	if (Array.isArray(value)) return value.map(cleanInternalFields);
-
-	const cleaned: Record<string, unknown> = {};
-	for (const [key, val] of Object.entries(value)) {
-		if (!key.startsWith('_')) {
-			cleaned[key] = cleanInternalFields(val);
-		}
-	}
-	return cleaned;
-}
-
-function isShadowToken(token: WaveToken): boolean {
-	return token.type === 'shadow';
 }
 
 function isInheritColorToken(token: WaveToken): boolean {
@@ -89,10 +46,6 @@ function buildFlatRecord(
 			tokenValue = formatInheritColorValue(token);
 		} else {
 			tokenValue = token.value;
-			if (isShadowToken(token)) {
-				tokenValue = cleanShadowZeroPx(tokenValue);
-			}
-			tokenValue = cleanInternalFields(tokenValue);
 		}
 
 		if (compositePath) {
@@ -140,10 +93,6 @@ export const flatJsoncFormat: WaveFormatFn = (
 			tokenValue = formatInheritColorValue(token);
 		} else {
 			tokenValue = token.value;
-			if (isShadowToken(token)) {
-				tokenValue = cleanShadowZeroPx(tokenValue);
-			}
-			tokenValue = cleanInternalFields(tokenValue);
 		}
 
 		const description = token.comment;

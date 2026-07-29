@@ -15,6 +15,14 @@ function makeToken(partial: Partial<WaveToken> & { name: string }): WaveToken {
 	};
 }
 
+function expectFlatPayload(
+	tokens: WaveToken[],
+	expected: Record<string, unknown>,
+): void {
+	expect(JSON.parse(flatJsonFormat(tokens))).toEqual(expected);
+	expect(JSON.parse(flatJsoncFormat(tokens))).toEqual(expected);
+}
+
 describe('flatJsonFormat (Wave-native)', () => {
 	test('emits a JSON object keyed by token name', () => {
 		const tokens: WaveToken[] = [
@@ -97,28 +105,194 @@ describe('flatJsonFormat (Wave-native)', () => {
 		expect(out).toMatch(/alpha.*0\.3/);
 	});
 
-	test('cleans 0px in shadow values to bare numbers', () => {
+	test('preserves every standard type payload in JSON and JSONC', () => {
 		const tokens: WaveToken[] = [
-			{
-				name: 'style-shadow-1',
-				path: ['style', 'shadow-1'],
-				value: [
-					{
-						color: '#000000',
-						offsetX: '0px',
-						offsetY: '2px',
-						blur: '4px',
-						spread: '0px',
-					},
-				],
+			makeToken({ name: 'color', type: 'color', value: '#112233' }),
+			makeToken({ name: 'dimension', type: 'dimension', value: '8px' }),
+			makeToken({
+				name: 'font-family',
+				type: 'fontFamily',
+				value: ['Inter', 'sans-serif'],
+			}),
+			makeToken({ name: 'font-weight', type: 'fontWeight', value: 700 }),
+			makeToken({ name: 'duration', type: 'duration', value: '200ms' }),
+			makeToken({
+				name: 'cubic-bezier',
+				type: 'cubicBezier',
+				value: [0.4, 0, 0.2, 1],
+			}),
+			makeToken({ name: 'number', type: 'number', value: 0.5 }),
+			makeToken({
+				name: 'stroke-style',
+				type: 'strokeStyle',
+				value: { dashArray: ['4px', '8px'], lineCap: 'butt' },
+			}),
+			makeToken({
+				name: 'border',
+				type: 'border',
+				value: {
+					color: '#000000',
+					width: '1px',
+					style: { dashArray: ['4px', '8px'], lineCap: 'butt' },
+				},
+			}),
+			makeToken({
+				name: 'transition',
+				type: 'transition',
+				value: {
+					duration: '200ms',
+					delay: '0ms',
+					timingFunction: [0.4, 0, 0.2, 1],
+				},
+			}),
+			makeToken({
+				name: 'shadow',
 				type: 'shadow',
-				_order: 0,
+				value: {
+					color: '#00000080',
+					offsetX: '0px',
+					offsetY: '4px',
+					blur: '8px',
+					spread: '0px',
+					inset: false,
+				},
+			}),
+			makeToken({
+				name: 'gradient',
+				type: 'gradient',
+				value: [
+					{ color: '#000000', position: 0 },
+					{ color: '#ffffff', position: 1 },
+				],
+			}),
+			makeToken({
+				name: 'typography',
+				type: 'typography',
+				value: {
+					fontFamily: 'Inter',
+					fontSize: '16px',
+					fontWeight: 400,
+					letterSpacing: '0px',
+					lineHeight: 1.5,
+				},
+			}),
+		];
+
+		expectFlatPayload(tokens, {
+			color: '#112233',
+			dimension: '8px',
+			'font-family': ['Inter', 'sans-serif'],
+			'font-weight': 700,
+			duration: '200ms',
+			'cubic-bezier': [0.4, 0, 0.2, 1],
+			number: 0.5,
+			'stroke-style': { dashArray: ['4px', '8px'], lineCap: 'butt' },
+			border: {
+				color: '#000000',
+				width: '1px',
+				style: { dashArray: ['4px', '8px'], lineCap: 'butt' },
+			},
+			transition: {
+				duration: '200ms',
+				delay: '0ms',
+				timingFunction: [0.4, 0, 0.2, 1],
+			},
+			shadow: {
+				color: '#00000080',
+				offsetX: '0px',
+				offsetY: '4px',
+				blur: '8px',
+				spread: '0px',
+				inset: false,
+			},
+			gradient: [
+				{ color: '#000000', position: 0 },
+				{ color: '#ffffff', position: 1 },
+			],
+			typography: {
+				fontFamily: 'Inter',
+				fontSize: '16px',
+				fontWeight: 400,
+				letterSpacing: '0px',
+				lineHeight: 1.5,
+			},
+		});
+	});
+
+	test('preserves unknown custom object and array values exactly', () => {
+		const customObject = {
+			value: 8,
+			unit: 'vendor-unit',
+			_vendorMetadata: { source: 'plugin' },
+		};
+		const customArray = [customObject, 'raw', 2];
+
+		expectFlatPayload(
+			[
+				makeToken({
+					name: 'custom-object',
+					type: 'vendorObject',
+					value: customObject,
+				}),
+				makeToken({
+					name: 'custom-array',
+					type: 'vendorArray',
+					value: customArray,
+				}),
+			],
+			{
+				'custom-object': customObject,
+				'custom-array': customArray,
+			},
+		);
+	});
+
+	test('preserves dimension units in shadow arrays', () => {
+		const shadow = [
+			{
+				color: '#00000080',
+				offsetX: '0px',
+				offsetY: '4px',
+				blur: '8px',
+				spread: '0px',
+				inset: false,
 			},
 		];
 
-		const out = flatJsonFormat(tokens);
-		expect(out).not.toContain('"0px"');
-		expect(out).not.toContain('"2px"');
+		expectFlatPayload(
+			[makeToken({ name: 'shadow-stack', type: 'shadow', value: shadow })],
+			{ 'shadow-stack': shadow },
+		);
+	});
+
+	test('preserves clean none colors without emitting target color metadata', () => {
+		const noneColor = {
+			colorSpace: 'hsl',
+			components: ['none', 0, 100],
+			alpha: 0.5,
+		};
+		const tokens: WaveToken[] = [
+			makeToken({
+				name: 'color-none',
+				type: 'color',
+				value: noneColor,
+				_targetColorSpace: 'hex',
+			}),
+			makeToken({
+				name: 'border-none',
+				type: 'border',
+				value: { color: noneColor, width: '1px', style: 'solid' },
+				_targetColorSpace: 'hex',
+			}),
+		];
+		const expected = {
+			'color-none': noneColor,
+			'border-none': { color: noneColor, width: '1px', style: 'solid' },
+		};
+
+		expectFlatPayload(tokens, expected);
+		expect(flatJsonFormat(tokens)).not.toContain('_targetColorSpace');
+		expect(flatJsoncFormat(tokens)).not.toContain('_targetColorSpace');
 	});
 
 	test('groups _composite siblings into a nested object using property keys', () => {
@@ -134,7 +308,7 @@ describe('flatJsonFormat (Wave-native)', () => {
 			{
 				name: 'component-button-radius',
 				path: ['component', 'button', 'radius'],
-				value: 8,
+				value: '8px',
 				type: 'dimension',
 				_composite: 'component.button',
 				_order: 1,
@@ -143,7 +317,10 @@ describe('flatJsonFormat (Wave-native)', () => {
 
 		const out = flatJsonFormat(tokens);
 		const parsed = JSON.parse(out);
-		expect(parsed['component-button']).toEqual({ fill: '#ff0000', radius: 8 });
+		expect(parsed['component-button']).toEqual({
+			fill: '#ff0000',
+			radius: '8px',
+		});
 		expect(parsed['component-button-fill']).toBeUndefined();
 	});
 
