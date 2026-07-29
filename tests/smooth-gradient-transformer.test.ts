@@ -255,15 +255,17 @@ describe('smoothGradient transformation', () => {
 
 		const result = transformToWaveTokens(input);
 		const stops = findToken(result.tokens, 'gradient-smooth').value as {
+			color: string;
 			position: number;
 		}[];
 
-		expect(stops).toHaveLength(5);
+		expect(stops).toHaveLength(6);
 		expect(stops[0]?.position).toBe(0);
 		expect(stops[1]?.position).toBe(0.13);
 		expect(stops[2]?.position).toBe(0.25);
 		expect(stops[3]?.position).toBe(0.38);
 		expect(stops[4]?.position).toBe(0.5);
+		expect(stops[5]).toEqual({ color: '#0000ff', position: 1 });
 	});
 
 	test('supports reverse position range [0.5, 0]', () => {
@@ -287,15 +289,17 @@ describe('smoothGradient transformation', () => {
 
 		const result = transformToWaveTokens(input);
 		const stops = findToken(result.tokens, 'gradient-smooth').value as {
+			color: string;
 			position: number;
 		}[];
 
-		expect(stops).toHaveLength(5);
+		expect(stops).toHaveLength(6);
 		expect(stops[0]?.position).toBe(0.5);
 		expect(stops[1]?.position).toBe(0.38);
 		expect(stops[2]?.position).toBe(0.25);
 		expect(stops[3]?.position).toBe(0.13);
 		expect(stops[4]?.position).toBe(0);
+		expect(stops[5]).toEqual({ color: '#ff0000', position: 1 });
 	});
 
 	test('defaults missing position to 0 or 1', () => {
@@ -316,11 +320,13 @@ describe('smoothGradient transformation', () => {
 
 		const result = transformToWaveTokens(input);
 		const stops = findToken(result.tokens, 'gradient-smooth').value as {
+			color: string;
 			position: number;
 		}[];
 
-		expect(stops).toHaveLength(5);
+		expect(stops).toHaveLength(6);
 		expect(stops[0]?.position).toBe(0);
 		expect(stops[4]?.position).toBe(0.75);
+		expect(stops[5]).toEqual({ color: '#0000ff', position: 1 });
 	});
 });

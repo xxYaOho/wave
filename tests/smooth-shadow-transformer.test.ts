@@ -185,6 +185,87 @@ describe('smoothShadow transformation', () => {
 		expect(layers[2]!.inset).toBe(true);
 	});
 
+	test('preserves false and absence without a target', () => {
+		const extension = {
+			cubicBezier: [0, 0, 1, 1] as [number, number, number, number],
+			step: 3,
+		};
+		const layer = {
+			color: '#000000',
+			offsetX: 0,
+			offsetY: 2,
+			blur: 4,
+			spread: 0,
+		};
+		const input: ResolvedTokenGroup = {
+			shadow: {
+				$type: 'shadow',
+				withFalse: {
+					$value: { ...layer, inset: false },
+					$extensions: { smoothShadow: extension },
+				},
+				without: {
+					$value: layer,
+					$extensions: { smoothShadow: extension },
+				},
+			},
+		};
+
+		const { tokens } = transformToWaveTokens(input);
+		const withFalse = findToken(tokens, 'shadow-withfalse').value as Array<
+			Record<string, unknown>
+		>;
+		const without = findToken(tokens, 'shadow-without').value as Array<
+			Record<string, unknown>
+		>;
+		expect(withFalse.every((layer) => layer.inset === false)).toBe(true);
+		expect(without.every((layer) => !('inset' in layer))).toBe(true);
+	});
+
+	test('preserves false and absence with a target', () => {
+		const extension = {
+			cubicBezier: [0, 0, 1, 1] as [number, number, number, number],
+			step: 3,
+			target: {
+				alpha: 0.6,
+				offsetX: 0,
+				offsetY: 6,
+				blur: 12,
+				spread: 0,
+			},
+		};
+		const layer = {
+			color: '#00000040',
+			offsetX: 0,
+			offsetY: 2,
+			blur: 4,
+			spread: 0,
+		};
+		const input: ResolvedTokenGroup = {
+			shadow: {
+				$type: 'shadow',
+				withFalse: {
+					$value: { ...layer, inset: false },
+					$extensions: { smoothShadow: extension },
+				},
+				without: {
+					$value: layer,
+					$extensions: { smoothShadow: extension },
+				},
+			},
+		};
+
+		const { tokens } = transformToWaveTokens(input);
+		const withFalse = findToken(tokens, 'shadow-withfalse').value as Array<
+			Record<string, unknown>
+		>;
+		const without = findToken(tokens, 'shadow-without').value as Array<
+			Record<string, unknown>
+		>;
+		expect(withFalse.every((layer) => layer.inset === false)).toBe(true);
+		expect(without.every((layer) => !('inset' in layer))).toBe(true);
+	});
+
 	test('handles rem units with 3 decimal places', () => {
 		const input: ResolvedTokenGroup = {
 			shadow: {

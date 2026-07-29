@@ -468,6 +468,51 @@ function deriveSmoothGradient(
 	return derived;
 }
 
+function materializeGradientEndpoints(
+	value: unknown,
+	tokenPath?: string,
+): unknown {
+	if (!Array.isArray(value) || value.length === 0) {
+		throw new Error(
+			`gradient requires at least one stop${tokenPath ? ` at ${tokenPath}` : ''}`,
+		);
+	}
+
+	const stops = value.map((stop) => {
+		const item = stop as Record<string, unknown>;
+		const position = item.position as number;
+		return {
+			...item,
+			position: Math.min(1, Math.max(0, position)),
+		};
+	});
+
+	if (stops.length === 1) {
+		const stop = stops[0]!;
+		return [
+			{ ...stop, position: 0 },
+			{ ...stop, position: 1 },
+		];
+	}
+
+	let minimum = stops[0]!;
+	let maximum = stops[0]!;
+	for (const stop of stops.slice(1)) {
+		if (stop.position < minimum.position) minimum = stop;
+		if (stop.position >= maximum.position) maximum = stop;
+	}
+
+	return [
+		...(stops.some((stop) => stop.position === 0)
+			? []
+			: [{ ...minimum, position: 0 }]),
+		...stops,
+		...(stops.some((stop) => stop.position === 1)
+			? []
+			: [{ ...maximum, position: 1 }]),
+	];
+}
+
 function interpolateShadowValue(base: unknown, coeff: number): string | number {
 	if (typeof base === 'string') {
 		const match = base.trim().match(/^(-?\d+(\.\d+)?)\s*([a-z%]*)$/i);
@@ -643,7 +688,7 @@ function deriveSmoothShadow(
 	}
 	const baseColor = layer.color;
 	const baseAlpha = extractColorAlpha(baseColor);
-	const inset = layer.inset === true;
+	const hasInset = typeof layer.inset === 'boolean';
 
 	if (hasTarget) {
 		if (step < 2) {
@@ -665,7 +710,7 @@ function deriveSmoothShadow(
 			offsetY: interpolateShadowLength(layer.offsetY, target.offsetY, ratio),
 			blur: interpolateShadowLength(layer.blur, target.blur, ratio),
 			spread: interpolateShadowLength(layer.spread, target.spread, ratio),
-			...(inset && { inset: true }),
+			...(hasInset && { inset: layer.inset }),
 		}));
 
 		return filterUsefulShadowLayers(derived);
@@ -691,7 +736,7 @@ function deriveSmoothShadow(
 			offsetY: interpolateShadowValue(layer.offsetY, coeff),
 			blur: interpolateShadowValue(layer.blur, coeff),
 			spread: interpolateShadowValue(layer.spread, coeff),
-			...(inset && { inset: true }),
+			...(hasInset && { inset: layer.inset }),
 		});
 	}
 
@@ -758,6 +803,12 @@ function transformToken(
 			processedValue,
 			smoothGradient,
 			targetColorSpace,
+			tokenPath,
+		) as DtcgValue;
+	}
+	if (typeValue === 'gradient') {
+		processedValue = materializeGradientEndpoints(
+			processedValue,
 			tokenPath,
 		) as DtcgValue;
 	}

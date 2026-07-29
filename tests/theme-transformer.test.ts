@@ -103,6 +103,123 @@ describe('theme-transformer hex to color space conversion', () => {
 	});
 });
 
+describe('gradient and shadow semantic materialization', () => {
+	test('clamps gradient positions without mutating authored stops', () => {
+		const stops = [
+			{ color: '#ff0000', position: -0.25 },
+			{ color: '#0000ff', position: 1.25 },
+		];
+		const before = structuredClone(stops);
+		const input: ResolvedTokenGroup = {
+			gradient: {
+				$type: 'gradient',
+				clamped: { $value: stops },
+			},
+		};
+
+		const { tokens } = transformToWaveTokens(input);
+		expect(findToken(tokens, 'gradient-clamped').value).toEqual([
+			{ color: '#ff0000', position: 0 },
+			{ color: '#0000ff', position: 1 },
+		]);
+		expect(stops).toEqual(before);
+	});
+
+	test('materializes one stop at both endpoints and preserves object color', () => {
+		const color = {
+			colorSpace: 'hsl' as const,
+			components: ['none' as const, 0, 100],
+		};
+		const stops = [{ color, position: 0.4 }];
+		const input: ResolvedTokenGroup = {
+			gradient: {
+				$type: 'gradient',
+				single: { $value: stops },
+			},
+		};
+
+		const { tokens } = transformToWaveTokens(input);
+		expect(findToken(tokens, 'gradient-single').value).toEqual([
+			{ color, position: 0 },
+			{ color, position: 1 },
+		]);
+		expect(stops).toEqual([{ color, position: 0.4 }]);
+	});
+
+	test('preserves authored order and uses stable endpoint tie rules', () => {
+		const input: ResolvedTokenGroup = {
+			gradient: {
+				$type: 'gradient',
+				unsorted: {
+					$value: [
+						{ color: '#600000', position: 0.6 },
+						{ color: '#210000', position: 0.2 },
+						{ color: '#220000', position: 0.2 },
+						{ color: '#810000', position: 0.8 },
+						{ color: '#820000', position: 0.8 },
+					],
+				},
+			},
+		};
+
+		const { tokens } = transformToWaveTokens(input);
+		expect(findToken(tokens, 'gradient-unsorted').value).toEqual([
+			{ color: '#210000', position: 0 },
+			{ color: '#600000', position: 0.6 },
+			{ color: '#210000', position: 0.2 },
+			{ color: '#220000', position: 0.2 },
+			{ color: '#810000', position: 0.8 },
+			{ color: '#820000', position: 0.8 },
+			{ color: '#820000', position: 1 },
+		]);
+	});
+
+	test('rejects an empty gradient with its token path', () => {
+		const input: ResolvedTokenGroup = {
+			gradient: {
+				$type: 'gradient',
+				empty: { $value: [] },
+			},
+		};
+
+		expect(() => transformToWaveTokens(input)).toThrow(
+			'gradient requires at least one stop at gradient.empty',
+		);
+	});
+
+	test('preserves ordinary shadow inset true, false, and absence', () => {
+		const layer = {
+			color: '#000000',
+			offsetX: 0,
+			offsetY: 2,
+			blur: 4,
+			spread: 0,
+		};
+		const input: ResolvedTokenGroup = {
+			shadow: {
+				$type: 'shadow',
+				withTrue: { $value: { ...layer, inset: true } },
+				withFalse: { $value: { ...layer, inset: false } },
+				without: { $value: layer },
+			},
+		};
+
+		const { tokens } = transformToWaveTokens(input);
+		expect(
+			(findToken(tokens, 'shadow-withtrue').value as Record<string, unknown>)
+				.inset,
+		).toBe(true);
+		expect(
+			(findToken(tokens, 'shadow-withfalse').value as Record<string, unknown>)
+				.inset,
+		).toBe(false);
+		expect(
+			'inset' in
+				(findToken(tokens, 'shadow-without').value as Record<string, unknown>),
+		).toBe(false);
+	});
+});
+
 describe('theme-transformer DTCG color fallback', () => {
 	test('does not treat non-color string tokens as colors', () => {
 		const input: ResolvedTokenGroup = {
