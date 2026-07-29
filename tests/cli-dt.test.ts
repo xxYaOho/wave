@@ -902,7 +902,7 @@ describe('wave dt', () => {
 	test('dt build rejects standalone hex object as color syntax', async () => {
 		await expectInvalidDtcgColorBuildFailure(
 			['hex: "#0052f5"'],
-			'Unsupported color value at theme.color.bad',
+			'[theme.color.bad.$value] color must be a legacy string or DTCG color object with colorSpace and components',
 		);
 	});
 
@@ -916,7 +916,7 @@ describe('wave dt', () => {
 	test('dt build rejects DTCG hex fallback with alpha channel', async () => {
 		await expectInvalidDtcgColorBuildFailure(
 			['colorSpace: oklch', 'components: ["none", 0, 0]', 'hex: "#0052f5ff"'],
-			'DTCG color hex fallback must be #RRGGBB at theme.color.bad',
+			'[theme.color.bad.$value.hex] color hex must be a 6 digit hex value',
 		);
 	});
 
@@ -927,7 +927,7 @@ describe('wave dt', () => {
 				'components: [0.518, 0.251, 262.6]',
 				'hex: "#0052f5ff"',
 			],
-			'DTCG color hex fallback must be #RRGGBB at theme.color.bad',
+			'[theme.color.bad.$value.hex] color hex must be a 6 digit hex value',
 		);
 	});
 

@@ -779,6 +779,52 @@ describe('theme schema', () => {
 			'resolved',
 		);
 		expect(result.valid).toBe(true);
+
+		for (const components of [
+			['51.8%', -0.1, 262.6],
+			['51.8%', 0.251, 360],
+			['101%', 0.251, 262.6],
+		]) {
+			const malformed = validateThemeSchema(
+				{
+					theme: {
+						token: {
+							$type: 'color',
+							$value: {
+								colorSpace: 'oklch',
+								components,
+								hex: '#0052f5',
+							},
+						},
+					},
+				},
+				'resolved',
+			);
+			expect(malformed.valid, JSON.stringify(components)).toBe(false);
+		}
+	});
+
+	test('validates nested legacy color fallback instead of bypassing schema', () => {
+		const nestedValue = (overrides: Record<string, unknown>) => ({
+			oklch: {
+				colorSpace: 'oklch',
+				components: ['51.8%', 0.251, 262.6],
+				hex: '#0052f5',
+				...overrides,
+			},
+		});
+
+		for (const [value, phase] of [
+			[nestedValue({ components: ['51.8%', -0.1, 262.6] }), 'resolved'],
+			[{ ...nestedValue({}), alpha: 2 }, 'resolved'],
+			[nestedValue({ _swatchName: 'authored/name' }), 'raw'],
+		] as const) {
+			const result = validateThemeSchema(
+				{ theme: { token: { $type: 'color', $value: value } } },
+				phase,
+			);
+			expect(result.valid, `${phase}: ${JSON.stringify(value)}`).toBe(false);
+		}
 	});
 
 	test('rejects authored color metadata in the raw phase', () => {
@@ -805,6 +851,14 @@ describe('theme schema', () => {
 
 	test('defers raw shadow inset and gradient position references', () => {
 		for (const [type, value] of [
+			[
+				'color',
+				{
+					colorSpace: 'srgb',
+					components: [0, 0, 0],
+					alpha: '{theme.number.alpha}',
+				},
+			],
 			[
 				'shadow',
 				{

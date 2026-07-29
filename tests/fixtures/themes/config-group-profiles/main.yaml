@@ -29,5 +29,6 @@ theme:
   dimension:
     $type: dimension
     alpha:
+      $type: number
       sm:
         $value: "{wave.dimension.alpha.200}"

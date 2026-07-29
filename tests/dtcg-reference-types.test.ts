@@ -21,6 +21,16 @@ function validateAndResolve(
 	return result;
 }
 
+function typographyValue() {
+	return {
+		fontFamily: 'Inter',
+		fontSize: 16,
+		fontWeight: 400,
+		letterSpacing: 0,
+		lineHeight: 1.5,
+	};
+}
+
 describe('DTCG typed complete-token references', () => {
 	test('defers whole-token typography aliases in raw schema only', () => {
 		const tree = {
@@ -69,6 +79,89 @@ describe('DTCG typed complete-token references', () => {
 			},
 		});
 		expect(validateThemeSchema(result.tree, 'resolved').valid).toBe(true);
+	});
+
+	test('resolves an internal typography JSON Pointer without value metadata', () => {
+		const tree = {
+			theme: {
+				font: {
+					$type: 'typography',
+					body: { $value: typographyValue() },
+					alias: {
+						$value: { $ref: '#/theme/font/body/$value' },
+					},
+				},
+			},
+		} as DtcgTokenGroup;
+
+		expect(validateThemeSchema(tree, 'raw').valid).toBe(true);
+		const result = validateAndResolve(tree);
+		expect(validateThemeSchema(result.tree, 'resolved').valid).toBe(true);
+		const alias = (
+			(result.tree.theme as Record<string, unknown>).font as Record<
+				string,
+				Record<string, unknown>
+			>
+		).alias;
+		expect(alias?._swatchName).toBe('font/body');
+		expect(alias?.$value).toEqual(typographyValue());
+	});
+
+	test('resolves an external typography JSON Pointer without value metadata', () => {
+		const tree = {
+			theme: {
+				font: {
+					$type: 'typography',
+					alias: {
+						$value: { $ref: '#/brand/font/body/$value' },
+					},
+				},
+			},
+		} as DtcgTokenGroup;
+		const sources = {
+			brand: {
+				font: {
+					$type: 'typography',
+					body: { $value: typographyValue() },
+				},
+			},
+		};
+
+		expect(validateThemeSchema(tree, 'raw').valid).toBe(true);
+		const result = validateAndResolve(tree, sources);
+		expect(validateThemeSchema(result.tree, 'resolved').valid).toBe(true);
+		const alias = (
+			(result.tree.theme as Record<string, unknown>).font as Record<
+				string,
+				Record<string, unknown>
+			>
+		).alias;
+		expect(alias?._swatchName).toBe('font/body');
+		expect(alias?.$value).toEqual(typographyValue());
+	});
+
+	test('rejects authored typography metadata in resolved values', () => {
+		const result = validateThemeSchema(
+			{
+				theme: {
+					font: {
+						$type: 'typography',
+						bad: {
+							$value: { ...typographyValue(), _swatchName: 'authored/name' },
+						},
+					},
+				},
+			},
+			'resolved',
+		);
+
+		expect(result.valid).toBe(false);
+		expect(result.issues).toContainEqual(
+			expect.objectContaining({
+				path: 'theme.font.bad.$value._swatchName',
+				message: 'Unknown typography field "_swatchName"',
+			}),
+		);
 	});
 
 	test('accepts an internal curly alias with the same explicit type', () => {
@@ -199,6 +292,65 @@ describe('DTCG typed complete-token references', () => {
 				{},
 			),
 		).not.toThrow();
+	});
+
+	test('accepts a color alpha reference to a number token', () => {
+		expect(() =>
+			validateCompleteTokenReferenceTypes(
+				{
+					theme: {
+						number: {
+							$type: 'number',
+							half: { $value: 0.5 },
+						},
+						color: {
+							$type: 'color',
+							overlay: {
+								$value: {
+									colorSpace: 'srgb',
+									components: [0, 0, 0],
+									alpha: '{theme.number.half}',
+								},
+							},
+						},
+					},
+				},
+				{},
+			),
+		).not.toThrow();
+	});
+
+	test('rejects color alpha references to non-number token types', () => {
+		for (const [actualType, value] of [
+			['dimension', { value: 0.5, unit: 'px' }],
+			['duration', { value: 500, unit: 'ms' }],
+		] as const) {
+			expect(() =>
+				validateCompleteTokenReferenceTypes(
+					{
+						theme: {
+							source: {
+								$type: actualType,
+								value: { $value: value },
+							},
+							color: {
+								$type: 'color',
+								overlay: {
+									$value: {
+										colorSpace: 'srgb',
+										components: [0, 0, 0],
+										alpha: '{theme.source.value}',
+									},
+								},
+							},
+						},
+					},
+					{},
+				),
+			).toThrow(
+				`theme.color.overlay.$value.alpha expected type "number" but target "theme.source.value" has type "${actualType}"`,
+			);
+		}
 	});
 });
 

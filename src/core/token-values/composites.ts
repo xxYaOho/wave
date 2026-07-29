@@ -116,13 +116,24 @@ function isLegacyPercentColorWithHexFallback(
 	) {
 		return false;
 	}
-	return value.components.every(
-		(component) =>
-			component === 'none' ||
-			(typeof component === 'number' && Number.isFinite(component)) ||
-			(typeof component === 'string' &&
-				/^-?(?:0|[1-9]\d*)(?:\.\d+)?%$/.test(component)),
-	);
+	const ranges = COLOR_COMPONENT_RANGES[value.colorSpace]!;
+	return value.components.every((component, index) => {
+		if (component === 'none') return true;
+		if (typeof component === 'number') {
+			return (
+				Number.isFinite(component) &&
+				isWithinColorComponentRange(component, ranges[index]!)
+			);
+		}
+		if (
+			typeof component !== 'string' ||
+			!/^-?(?:0|[1-9]\d*)(?:\.\d+)?%$/.test(component)
+		) {
+			return false;
+		}
+		const percentage = Number(component.slice(0, -1));
+		return Number.isFinite(percentage) && percentage >= 0 && percentage <= 100;
+	});
 }
 
 function unknownFields(
@@ -193,6 +204,7 @@ function validateColor(
 		}
 		if (
 			value.alpha !== undefined &&
+			!(phase === 'raw' && isReference(value.alpha)) &&
 			(typeof value.alpha !== 'number' ||
 				!Number.isFinite(value.alpha) ||
 				value.alpha < 0 ||
@@ -209,6 +221,7 @@ function validateColor(
 		const issues = unknownFields(value, COLOR_KEYS, path, phase);
 		if (
 			value.alpha !== undefined &&
+			!(phase === 'raw' && isReference(value.alpha)) &&
 			(typeof value.alpha !== 'number' ||
 				!Number.isFinite(value.alpha) ||
 				value.alpha < 0 ||
@@ -226,15 +239,33 @@ function validateColor(
 			(key) => key !== 'alpha' && key !== '_swatchName',
 		);
 		if (legacySpaceKeys.length === 1) {
-			const nested = value[legacySpaceKeys[0]!];
+			const legacySpace = legacySpaceKeys[0]!;
+			const nested = value[legacySpace];
 			if (
 				isRecord(nested) &&
-				nested.colorSpace === legacySpaceKeys[0] &&
+				nested.colorSpace === legacySpace &&
 				Array.isArray(nested.components) &&
 				typeof nested.hex === 'string' &&
 				/^#[0-9a-fA-F]{6}$/.test(nested.hex)
 			) {
-				return [];
+				const issues = [
+					...unknownFields(value, new Set([legacySpace, 'alpha']), path, phase),
+					...validateColor(nested, `${path}.${legacySpace}`, phase),
+				];
+				if (
+					value.alpha !== undefined &&
+					!(phase === 'raw' && isReference(value.alpha)) &&
+					(typeof value.alpha !== 'number' ||
+						!Number.isFinite(value.alpha) ||
+						value.alpha < 0 ||
+						value.alpha > 1)
+				) {
+					issues.push({
+						path: `${path}.alpha`,
+						message: 'legacy color alpha must be between 0 and 1',
+					});
+				}
+				return issues;
 			}
 		}
 	}
@@ -273,6 +304,7 @@ function validateColor(
 	}
 	if (
 		value.alpha !== undefined &&
+		!(phase === 'raw' && isReference(value.alpha)) &&
 		(typeof value.alpha !== 'number' ||
 			!Number.isFinite(value.alpha) ||
 			value.alpha < 0 ||

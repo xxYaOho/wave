@@ -110,16 +110,16 @@ describe('doctor theme context', () => {
 		const result = await createThemeDoctorContextFromContent(
 			'/tmp/typography-invalid/main.yaml',
 			`theme:
-  dimension:
+  untyped:
     invalid:
-      $value: -1
+      $value: not-a-dimension
   font:
     $type: typography
     $extensions:
       typography:
         defaults:
           fontFamily: Inter
-          fontSize: "{theme.dimension.invalid}"
+          fontSize: "{theme.untyped.invalid}"
           fontWeight: 400
           lineHeight: 1.5
           letterSpacing: 0
@@ -143,9 +143,9 @@ describe('doctor theme context', () => {
 		const result = await createThemeDoctorContextFromContent(
 			'/tmp/border-dash-invalid/main.yaml',
 			`theme:
-  dimension:
+  untyped:
     invalid:
-      $value: -1
+      $value: not-a-dimension
   border:
     $type: border
     antline:
@@ -154,8 +154,9 @@ describe('doctor theme context', () => {
         width: 1
         style:
           dashArray:
-            - "{theme.dimension.invalid}"
+            - "{theme.untyped.invalid}"
             - 8
+          lineCap: butt
 `,
 			{},
 		);
@@ -190,6 +191,7 @@ describe('doctor theme context', () => {
           dashArray:
             - $ref: "#/theme/dimension/dash/$value"
             - 8
+          lineCap: butt
 `,
 			{},
 		);

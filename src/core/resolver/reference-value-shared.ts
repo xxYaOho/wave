@@ -116,6 +116,9 @@ export function resolveDtcgRef(
 	}
 
 	const swatchName = deriveSwatchNameFromDtcgRef(refValue.$ref);
+	const valueSwatchName = currentLocation.endsWith('.$value')
+		? undefined
+		: swatchName;
 
 	if (Object.keys(resolvedOverrides).length === 0) {
 		if (
@@ -123,7 +126,12 @@ export function resolveDtcgRef(
 			extractedValue !== null &&
 			!Array.isArray(extractedValue)
 		) {
-			return { ...extractedValue, _swatchName: swatchName } as DtcgObjectValue;
+			return {
+				...extractedValue,
+				...(valueSwatchName !== undefined && {
+					_swatchName: valueSwatchName,
+				}),
+			} as DtcgObjectValue;
 		}
 		return extractedValue;
 	}
@@ -137,7 +145,9 @@ export function resolveDtcgRef(
 		return {
 			...extractedValue,
 			...resolvedOverrides,
-			_swatchName: swatchName,
+			...(valueSwatchName !== undefined && {
+				_swatchName: valueSwatchName,
+			}),
 		} as DtcgObjectValue;
 	}
 
@@ -146,14 +156,18 @@ export function resolveDtcgRef(
 		return {
 			color: String(extractedValue),
 			...resolvedOverrides,
-			_swatchName: swatchName,
+			...(valueSwatchName !== undefined && {
+				_swatchName: valueSwatchName,
+			}),
 		} as DtcgObjectValue;
 	}
 
 	return {
 		value: extractedValue,
 		...resolvedOverrides,
-		_swatchName: swatchName,
+		...(valueSwatchName !== undefined && {
+			_swatchName: valueSwatchName,
+		}),
 	} as DtcgObjectValue;
 }
 

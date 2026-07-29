@@ -38,6 +38,7 @@ interface TokenInfo {
 }
 
 const COMPOSITE_FIELD_TYPES: Record<string, Record<string, string>> = {
+	color: { alpha: 'number' },
 	border: { color: 'color', width: 'dimension', style: 'strokeStyle' },
 	transition: {
 		duration: 'duration',
