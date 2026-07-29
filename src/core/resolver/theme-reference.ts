@@ -5,4 +5,7 @@ export {
 	UnresolvedReferenceError,
 } from './errors.ts';
 export { expandExtends } from './extends.ts';
-export { resolveReferences } from './reference-resolution.ts';
+export {
+	type ReferenceResolutionResult,
+	resolveReferences,
+} from './reference-resolution.ts';

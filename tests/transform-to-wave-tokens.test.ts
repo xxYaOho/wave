@@ -454,7 +454,7 @@ describe('transformToWaveTokens', () => {
 					},
 				},
 			};
-			const resolved = resolveReferences(raw, {});
+			const { tree: resolved } = resolveReferences(raw, {});
 			const font = (resolved.theme as Record<string, unknown>).font as Record<
 				string,
 				unknown

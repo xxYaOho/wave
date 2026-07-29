@@ -14,6 +14,10 @@ import {
 	expandExtends,
 	resolveReferences,
 } from '../resolver/theme-reference.ts';
+import {
+	validateCompleteTokenReferenceTypes,
+	validateResolvedCompositeReferences,
+} from '../schema/dtcg-reference-types.ts';
 import { validateThemeSchema } from '../schema/theme.ts';
 
 export interface ThemeDoctorContext {
@@ -195,7 +199,10 @@ async function createThemeDoctorContextFromParsedContent(
 		);
 		if (rootKeys.size === 0) rootKeys.add('theme');
 		const expanded = expandExtends(rawTree, rootKeys);
-		const resolved = resolveReferences(expanded, sources);
+		validateCompleteTokenReferenceTypes(expanded, sources);
+		const resolution = resolveReferences(expanded, sources);
+		validateResolvedCompositeReferences(resolution.tree, resolution.provenance);
+		const resolved = resolution.tree;
 		const resolvedSchemaResult = validateThemeSchema(resolved, 'resolved');
 		if (!resolvedSchemaResult.valid) {
 			const errorMessages = resolvedSchemaResult.issues

@@ -6,6 +6,10 @@ import type {
 	ResolvedTokenGroup,
 } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
+import {
+	type ReferenceProvenanceMap,
+	recordReferenceProvenance,
+} from '../schema/dtcg-reference-types.ts';
 import { CircularReferenceError, type UnresolvedReference } from './errors.ts';
 import {
 	deriveSwatchNameFromDtcgRef,
@@ -24,6 +28,7 @@ export function resolveDtcgRef(
 	unresolvedCollector: UnresolvedReference[],
 	currentLocation: string,
 	rootKeys: Set<string>,
+	provenance?: ReferenceProvenanceMap,
 ): DtcgValue | undefined {
 	const parsed = parseDtcgRef(refValue.$ref);
 
@@ -85,6 +90,13 @@ export function resolveDtcgRef(
 		unresolvedCollector.push({ ref: refValue.$ref, location: currentLocation });
 		return undefined;
 	}
+	recordReferenceProvenance(
+		provenance,
+		currentLocation,
+		refValue.$ref,
+		[source, ...path].join('.'),
+		extractedValue,
+	);
 
 	// 属性合并：$ref 解析的值作为基础，其他属性可以覆盖
 	const { $ref, ...overrides } = refValue;
@@ -157,6 +169,8 @@ export function resolveExternalReference(
 	ref: string,
 	sources: ReferenceDataSources,
 	rootKeys: Set<string>,
+	currentLocation?: string,
+	provenance?: ReferenceProvenanceMap,
 ): DtcgValue | undefined {
 	const match = ref.match(REFERENCE_PATTERN);
 
@@ -195,6 +209,15 @@ export function resolveExternalReference(
 
 	const found = getValueAtPath(dataSource, pathWithoutPrefix);
 	const extracted = extractValue(found);
+	if (extracted !== undefined && currentLocation !== undefined) {
+		recordReferenceProvenance(
+			provenance,
+			currentLocation,
+			ref,
+			path.join('.'),
+			extracted,
+		);
+	}
 	if (extracted === undefined) {
 		logger.warn(`Reference not found: ${ref}`);
 	}
@@ -208,6 +231,7 @@ export function resolveInternalReference(
 	unresolvedCollector: UnresolvedReference[],
 	currentLocation: string,
 	rootKeys: Set<string>,
+	provenance?: ReferenceProvenanceMap,
 ): DtcgValue | undefined {
 	const match = ref.match(REFERENCE_PATTERN);
 
@@ -235,6 +259,15 @@ export function resolveInternalReference(
 	const path = pathStr.split('.');
 	const found = getValueAtPath(themeTree, path);
 	const extracted = extractValue(found);
+	if (extracted !== undefined) {
+		recordReferenceProvenance(
+			provenance,
+			currentLocation,
+			ref,
+			path.join('.'),
+			extracted,
+		);
+	}
 
 	if (extracted === undefined) {
 		unresolvedCollector.push({ ref, location: currentLocation });

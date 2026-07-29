@@ -19,6 +19,11 @@ import {
 	UnresolvedReferenceError,
 } from '../resolver/index.ts';
 import { loadResource } from '../resolver/resource-loader.ts';
+import {
+	DtcgReferenceTypeError,
+	validateCompleteTokenReferenceTypes,
+	validateResolvedCompositeReferences,
+} from '../schema/dtcg-reference-types.ts';
 import { validateThemeSchema } from '../schema/theme.ts';
 import { ColorValueError } from '../transformer/color-value.ts';
 import { transformToWaveTokens } from '../transformer/index.ts';
@@ -180,7 +185,10 @@ export async function processThemeDocument(
 		if (rootKeys.size === 0) rootKeys.add('theme');
 		const expanded = expandExtends(parsed.raw, rootKeys);
 
-		const resolved = resolveReferences(expanded, sources);
+		validateCompleteTokenReferenceTypes(expanded, sources);
+		const resolution = resolveReferences(expanded, sources);
+		validateResolvedCompositeReferences(resolution.tree, resolution.provenance);
+		const resolved = resolution.tree;
 		const resolvedSchemaResult = validateThemeSchema(resolved, 'resolved');
 		if (!resolvedSchemaResult.valid) {
 			const errorMessages = resolvedSchemaResult.issues
@@ -232,6 +240,14 @@ export async function processThemeDocument(
 			};
 		}
 		if (err instanceof ColorValueError) {
+			return {
+				ok: false,
+				reason: 'schema_error',
+				message: err.message,
+				exitCode: ExitCode.FORMAT_ERROR,
+			};
+		}
+		if (err instanceof DtcgReferenceTypeError) {
 			return {
 				ok: false,
 				reason: 'schema_error',

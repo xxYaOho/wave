@@ -4,6 +4,7 @@ import type {
 	ResolvedTokenGroup,
 } from '../../types/index.ts';
 import { isDtcgRefValue } from '../../types/index.ts';
+import type { ReferenceProvenanceMap } from '../schema/dtcg-reference-types.ts';
 import type { UnresolvedReference } from './errors.ts';
 import {
 	isDtcgScalarValue,
@@ -24,6 +25,7 @@ export function resolveNestedInternalRefs(
 	unresolvedCollector: UnresolvedReference[],
 	currentLocation: string,
 	rootKeys: Set<string>,
+	provenance?: ReferenceProvenanceMap,
 ): NestedValue {
 	// 处理 $ref 对象 - 只处理指向文档内部根键的 $ref
 	if (isDtcgRefValue(value)) {
@@ -38,6 +40,7 @@ export function resolveNestedInternalRefs(
 					unresolvedCollector,
 					currentLocation,
 					rootKeys,
+					provenance,
 				) ?? value
 			);
 		}
@@ -54,6 +57,7 @@ export function resolveNestedInternalRefs(
 			unresolvedCollector,
 			currentLocation,
 			rootKeys,
+			provenance,
 		);
 		return resolved !== undefined ? resolved : value;
 	}
@@ -69,6 +73,7 @@ export function resolveNestedInternalRefs(
 				unresolvedCollector,
 				`${currentLocation}[${index}]`,
 				rootKeys,
+				provenance,
 			),
 		);
 	}
@@ -88,6 +93,7 @@ export function resolveNestedInternalRefs(
 				unresolvedCollector,
 				`${currentLocation}.${key}`,
 				rootKeys,
+				provenance,
 			);
 		}
 		return resolved;
@@ -105,6 +111,7 @@ export function resolveInternalDtcgValue(
 	unresolvedCollector: UnresolvedReference[],
 	currentLocation: string,
 	rootKeys: Set<string>,
+	provenance?: ReferenceProvenanceMap,
 ): DtcgValue {
 	// 处理 $ref 对象 - 只处理指向文档内部根键的 $ref
 	if (isDtcgRefValue(value)) {
@@ -119,6 +126,7 @@ export function resolveInternalDtcgValue(
 					unresolvedCollector,
 					currentLocation,
 					rootKeys,
+					provenance,
 				) ?? value
 			);
 		}
@@ -134,6 +142,7 @@ export function resolveInternalDtcgValue(
 			unresolvedCollector,
 			currentLocation,
 			rootKeys,
+			provenance,
 		);
 		return resolved !== undefined ? resolved : value;
 	}
@@ -149,6 +158,7 @@ export function resolveInternalDtcgValue(
 				unresolvedCollector,
 				`${currentLocation}[${index}]`,
 				rootKeys,
+				provenance,
 			),
 		) as unknown as DtcgValue;
 	}
@@ -171,6 +181,7 @@ export function resolveInternalDtcgValue(
 						unresolvedCollector,
 						`${currentLocation}.${key}[${index}]`,
 						rootKeys,
+						provenance,
 					),
 				);
 				resolved[key] = resolvedArray;
@@ -185,6 +196,7 @@ export function resolveInternalDtcgValue(
 						unresolvedCollector,
 						`${currentLocation}.${key}`,
 						rootKeys,
+						provenance,
 					);
 					if (valResolved !== undefined) {
 						if (isDtcgScalarValue(valResolved)) {
@@ -209,8 +221,9 @@ export function resolveInternalDtcgValue(
 					themeTree,
 					resolutionPath,
 					unresolvedCollector,
-					currentLocation,
+					`${currentLocation}.${key}`,
 					rootKeys,
+					provenance,
 				);
 				if (valResolved !== undefined) {
 					if (isDtcgValue(valResolved)) {

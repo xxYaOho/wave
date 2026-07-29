@@ -4,6 +4,7 @@ import type {
 	ResolvedTokenGroup,
 } from '../../types/index.ts';
 import { isDtcgRefValue } from '../../types/index.ts';
+import type { ReferenceProvenanceMap } from '../schema/dtcg-reference-types.ts';
 import type { UnresolvedReference } from './errors.ts';
 import {
 	isDtcgScalarValue,
@@ -24,6 +25,7 @@ export function resolveNestedRefs(
 	unresolvedCollector: UnresolvedReference[],
 	currentLocation: string,
 	rootKeys: Set<string>,
+	provenance?: ReferenceProvenanceMap,
 ): NestedValue {
 	// 处理 $ref 对象（Pass 1 跳过指向文档内部根键的 $ref，留到 Pass 2 处理）
 	if (isDtcgRefValue(value)) {
@@ -39,6 +41,7 @@ export function resolveNestedRefs(
 			unresolvedCollector,
 			currentLocation,
 			rootKeys,
+			provenance,
 		);
 		return result ?? value;
 	}
@@ -59,7 +62,13 @@ export function resolveNestedRefs(
 			}
 
 			// External reference - attempt to resolve
-			const resolved = resolveExternalReference(value, sources, rootKeys);
+			const resolved = resolveExternalReference(
+				value,
+				sources,
+				rootKeys,
+				currentLocation,
+				provenance,
+			);
 			if (resolved === undefined) {
 				// External reference failed to resolve - collect as error (same as $ref behavior)
 				unresolvedCollector.push({
@@ -71,7 +80,13 @@ export function resolveNestedRefs(
 			return resolved as string;
 		}
 		// Not a reference pattern, or inline reference - use original behavior
-		const resolved = resolveExternalReference(value, sources, rootKeys);
+		const resolved = resolveExternalReference(
+			value,
+			sources,
+			rootKeys,
+			currentLocation,
+			provenance,
+		);
 		return resolved !== undefined ? resolved : value;
 	}
 
@@ -86,6 +101,7 @@ export function resolveNestedRefs(
 				unresolvedCollector,
 				`${currentLocation}[${index}]`,
 				rootKeys,
+				provenance,
 			),
 		);
 	}
@@ -105,6 +121,7 @@ export function resolveNestedRefs(
 				unresolvedCollector,
 				`${currentLocation}.${key}`,
 				rootKeys,
+				provenance,
 			);
 		}
 		return resolved;
@@ -124,6 +141,7 @@ export function resolveExternalDtcgValue(
 	unresolvedCollector: UnresolvedReference[] = [],
 	currentLocation: string = '',
 	rootKeys: Set<string>,
+	provenance?: ReferenceProvenanceMap,
 ): DtcgValue {
 	// 处理 $ref 对象（Pass 1 跳过指向文档内部根键的 $ref，留到 Pass 2 处理）
 	if (isDtcgRefValue(value)) {
@@ -140,6 +158,7 @@ export function resolveExternalDtcgValue(
 				unresolvedCollector,
 				currentLocation,
 				rootKeys,
+				provenance,
 			) ?? value
 		);
 	}
@@ -159,7 +178,13 @@ export function resolveExternalDtcgValue(
 			}
 
 			// External reference - attempt to resolve
-			const resolved = resolveExternalReference(value, sources, rootKeys);
+			const resolved = resolveExternalReference(
+				value,
+				sources,
+				rootKeys,
+				currentLocation,
+				provenance,
+			);
 			if (resolved === undefined) {
 				// External reference failed to resolve - collect as error (same as $ref behavior)
 				unresolvedCollector.push({
@@ -171,7 +196,13 @@ export function resolveExternalDtcgValue(
 			return resolved;
 		}
 		// Not a reference pattern, or inline reference - use original behavior
-		const resolved = resolveExternalReference(value, sources, rootKeys);
+		const resolved = resolveExternalReference(
+			value,
+			sources,
+			rootKeys,
+			currentLocation,
+			provenance,
+		);
 		return resolved !== undefined ? resolved : value;
 	}
 
@@ -186,6 +217,7 @@ export function resolveExternalDtcgValue(
 				unresolvedCollector,
 				`${currentLocation}[${index}]`,
 				rootKeys,
+				provenance,
 			),
 		) as unknown as DtcgValue;
 	}
@@ -208,6 +240,7 @@ export function resolveExternalDtcgValue(
 						unresolvedCollector,
 						`${currentLocation}.${key}[${index}]`,
 						rootKeys,
+						provenance,
 					);
 				});
 				resolved[key] = resolvedArray;
@@ -225,6 +258,7 @@ export function resolveExternalDtcgValue(
 					unresolvedCollector,
 					`${currentLocation}.${key}`,
 					rootKeys,
+					provenance,
 				);
 				if (valResolved !== undefined) {
 					if (isDtcgScalarValue(valResolved)) {
@@ -258,6 +292,8 @@ export function resolveExternalDtcgValue(
 							val,
 							sources,
 							rootKeys,
+							`${currentLocation}.${key}`,
+							provenance,
 						);
 						if (valResolved === undefined) {
 							unresolvedCollector.push({
@@ -272,7 +308,13 @@ export function resolveExternalDtcgValue(
 						}
 					}
 				} else {
-					const valResolved = resolveExternalReference(val, sources, rootKeys);
+					const valResolved = resolveExternalReference(
+						val,
+						sources,
+						rootKeys,
+						`${currentLocation}.${key}`,
+						provenance,
+					);
 					if (valResolved !== undefined) {
 						if (isDtcgValue(valResolved)) {
 							resolved[key] = valResolved;

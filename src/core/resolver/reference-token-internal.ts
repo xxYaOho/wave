@@ -4,6 +4,7 @@ import type {
 	ResolvedTokenGroup,
 } from '../../types/index.ts';
 import { isDtcgRefValue } from '../../types/index.ts';
+import type { ReferenceProvenanceMap } from '../schema/dtcg-reference-types.ts';
 import type { UnresolvedReference } from './errors.ts';
 import {
 	deriveSwatchNameFromDtcgRef,
@@ -23,6 +24,7 @@ export function processTokenInternal(
 	currentPath: string,
 	unresolvedCollector: UnresolvedReference[],
 	rootKeys: Set<string>,
+	provenance?: ReferenceProvenanceMap,
 ): ResolvedDtcgToken {
 	const resolutionPath = currentPath ? [currentPath] : [];
 	const resolvedValue = resolveNestedInternalRefs(
@@ -31,8 +33,9 @@ export function processTokenInternal(
 		themeTree,
 		resolutionPath,
 		unresolvedCollector,
-		currentPath,
+		`${currentPath}.$value`,
 		rootKeys,
+		provenance,
 	) as ResolvedDtcgToken['$value'];
 
 	let swatchName: string | undefined;
@@ -62,6 +65,7 @@ export function processTokenInternal(
 						unresolvedCollector,
 						`${currentPath}.$extensions.${k}`,
 						rootKeys,
+						provenance,
 					),
 				]),
 			)
@@ -92,6 +96,7 @@ export function processTokenGroupInternal(
 	parentPath: string,
 	unresolvedCollector: UnresolvedReference[],
 	rootKeys: Set<string>,
+	provenance?: ReferenceProvenanceMap,
 ): ResolvedTokenGroup {
 	const result: ResolvedTokenGroup = {};
 
@@ -116,6 +121,7 @@ export function processTokenGroupInternal(
 					unresolvedCollector,
 					`${parentPath}.$extensions.${key}`,
 					rootKeys,
+					provenance,
 				),
 			]),
 		);
@@ -136,6 +142,7 @@ export function processTokenGroupInternal(
 				currentPath,
 				unresolvedCollector,
 				rootKeys,
+				provenance,
 			);
 		} else if (
 			typeof value === 'object' &&
@@ -149,6 +156,7 @@ export function processTokenGroupInternal(
 				currentPath,
 				unresolvedCollector,
 				rootKeys,
+				provenance,
 			);
 		} else {
 			result[key] = value;

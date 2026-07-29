@@ -3,6 +3,7 @@ import type {
 	ReferenceDataSources,
 	ResolvedTokenGroup,
 } from '../../types/index.ts';
+import type { ReferenceProvenanceMap } from '../schema/dtcg-reference-types.ts';
 import {
 	type UnresolvedReference,
 	UnresolvedReferenceError,
@@ -15,11 +16,17 @@ import {
 } from './reference-token-processor.ts';
 import { inferRootKeys } from './reference-utils.ts';
 
+export interface ReferenceResolutionResult {
+	tree: ResolvedTokenGroup;
+	provenance: ReferenceProvenanceMap;
+}
+
 export function resolveReferences(
 	tree: DtcgTokenGroup,
 	sources: ReferenceDataSources,
-): ResolvedTokenGroup {
+): ReferenceResolutionResult {
 	const rootKeys = inferRootKeys(tree);
+	const provenance: ReferenceProvenanceMap = new Map();
 
 	// 首先创建一个空的 themeTree 占位符，用于 Pass 1
 	// Pass 1 完成后，themeTree 会被更新为解析后的结果
@@ -33,6 +40,8 @@ export function resolveReferences(
 		emptyThemeTree,
 		pass1Unresolved,
 		rootKeys,
+		'',
+		provenance,
 	);
 
 	if (pass1Unresolved.length > 0) {
@@ -51,6 +60,7 @@ export function resolveReferences(
 			'',
 			unresolvedCollector,
 			rootKeys,
+			provenance,
 		);
 		maxIterations--;
 	}
@@ -81,5 +91,5 @@ export function resolveReferences(
 		throw new UnresolvedReferenceError(uniqueReferences);
 	}
 
-	return result;
+	return { tree: result, provenance };
 }

@@ -42,7 +42,7 @@ describe('generalized resolver', () => {
 			},
 		};
 
-		const result = resolveReferences(tree, sources);
+		const { tree: result } = resolveReferences(tree, sources);
 		expect(
 			(result.color as { primary: { $value: string } }).primary.$value,
 		).toBe('#000000');
@@ -77,7 +77,7 @@ describe('generalized resolver', () => {
 			},
 		};
 
-		const result = resolveReferences(
+		const { tree: result } = resolveReferences(
 			tree as unknown as DtcgTokenGroup,
 			sources,
 		);
@@ -105,7 +105,7 @@ describe('generalized resolver', () => {
 
 		const sources: ReferenceDataSources = {};
 
-		const result = resolveReferences(tree, sources);
+		const { tree: result } = resolveReferences(tree, sources);
 		expect(
 			(result.theme as unknown as { color: { secondary: { $value: string } } })
 				.color.secondary.$value,
@@ -173,7 +173,7 @@ describe('generalized resolver', () => {
 
 		const sources: ReferenceDataSources = {};
 
-		const result = resolveReferences(tree, sources);
+		const { tree: result } = resolveReferences(tree, sources);
 		expect(
 			(
 				result['theme-1'] as unknown as {
@@ -200,7 +200,7 @@ describe('generalized resolver', () => {
 
 		const sources: ReferenceDataSources = {};
 
-		const result = resolveReferences(tree, sources);
+		const { tree: result } = resolveReferences(tree, sources);
 		expect(
 			(
 				result['theme-1'] as unknown as {
@@ -243,7 +243,7 @@ describe('generalized resolver', () => {
 			},
 		};
 
-		const result = resolveReferences(tree, sources);
+		const { tree: result } = resolveReferences(tree, sources);
 		const token = result.theme as unknown as {
 			gradient: {
 				hero: {
@@ -282,7 +282,7 @@ describe('generalized resolver', () => {
 				},
 			},
 		};
-		const result = resolveReferences(tree, {
+		const { tree: result } = resolveReferences(tree, {
 			wave: {
 				dimension: { pt: { 14: { $value: { value: 14, unit: 'pt' } } } },
 			},
@@ -323,7 +323,7 @@ describe('generalized resolver', () => {
 			},
 		};
 
-		const result = resolveReferences(tree, {});
+		const { tree: result } = resolveReferences(tree, {});
 		const body = (
 			(result.theme as Record<string, unknown>).font as Record<string, unknown>
 		).body as {
@@ -337,7 +337,7 @@ describe('generalized resolver', () => {
 	});
 
 	test('preserves composite color source metadata through internal passes', () => {
-		const result = resolveReferences(
+		const { tree: result } = resolveReferences(
 			{
 				theme: {
 					color: {
@@ -422,7 +422,7 @@ describe('generalized resolver', () => {
 			},
 		};
 
-		const result = resolveReferences(tree, {});
+		const { tree: result } = resolveReferences(tree, {});
 		const font = (result.theme as Record<string, unknown>).font as Record<
 			string,
 			Record<string, unknown>
@@ -438,7 +438,7 @@ describe('generalized resolver', () => {
 	});
 
 	test('preserves alpha from an un-suffixed pointer through transformation', () => {
-		const result = resolveReferences(
+		const { tree: result } = resolveReferences(
 			{
 				theme: {
 					color: { text: { $type: 'color', $value: '#112233' } },
@@ -580,7 +580,7 @@ describe('generalized resolver', () => {
 			},
 		};
 
-		const result = resolveReferences(tree, sources);
+		const { tree: result } = resolveReferences(tree, sources);
 		const token = result.theme as unknown as {
 			style: {
 				shadow: {
@@ -664,7 +664,7 @@ describe('generalized resolver', () => {
 
 		const sources: ReferenceDataSources = {};
 
-		const result = resolveReferences(tree, sources);
+		const { tree: result } = resolveReferences(tree, sources);
 		const alias = (
 			result.theme as unknown as { style: { shadowAlias: { $value: unknown } } }
 		).style.shadowAlias.$value as Record<string, unknown>;
@@ -711,7 +711,7 @@ describe('generalized resolver', () => {
 			},
 		};
 
-		const result = resolveReferences(tree, sources);
+		const { tree: result } = resolveReferences(tree, sources);
 		const shadow = (
 			result.theme as unknown as {
 				style: { shadow1: { $value: Record<string, unknown> } };
@@ -750,7 +750,7 @@ describe('generalized resolver', () => {
 			},
 		};
 
-		const result = resolveReferences(tree, sources);
+		const { tree: result } = resolveReferences(tree, sources);
 		const color = (
 			result.theme as unknown as {
 				color: {
