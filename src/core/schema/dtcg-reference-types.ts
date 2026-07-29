@@ -37,9 +37,15 @@ interface TokenInfo {
 	value: unknown;
 }
 
-const COMPOSITE_FIELD_TYPES: Record<string, Record<string, string>> = {
+type ExpectedReferenceType = string | readonly string[];
+
+const COMPOSITE_FIELD_TYPES: Record<
+	string,
+	Record<string, ExpectedReferenceType>
+> = {
 	color: { alpha: 'number' },
 	border: { color: 'color', width: 'dimension', style: 'strokeStyle' },
+	gradient: { color: 'color', position: 'number' },
 	transition: {
 		duration: 'duration',
 		delay: 'duration',
@@ -57,6 +63,8 @@ const COMPOSITE_FIELD_TYPES: Record<string, Record<string, string>> = {
 		fontSize: 'dimension',
 		fontWeight: 'fontWeight',
 		letterSpacing: 'dimension',
+		lineHeight: ['number', 'dimension'],
+		color: 'color',
 	},
 };
 
@@ -143,7 +151,7 @@ function findToken(
 
 function assertReferenceType(
 	value: unknown,
-	expectedType: string | undefined,
+	expectedType: ExpectedReferenceType | undefined,
 	consumerPath: string,
 	tree: DtcgTokenGroup,
 	sources: ReferenceDataSources,
@@ -153,11 +161,24 @@ function assertReferenceType(
 	const reference = parseReference(value);
 	if (!reference) return;
 	const target = findToken(tree, sources, rootKeys, reference);
+	const expectedTypes = Array.isArray(expectedType)
+		? expectedType
+		: [expectedType];
 	// Untyped legacy targets remain shape-validated after resolution.
-	if (!target?.type || target.type === expectedType) return;
+	if (!target?.type || expectedTypes.includes(target.type)) return;
+	const expectedLabel = expectedTypes.map((type) => `"${type}"`).join(' or ');
 	throw new DtcgReferenceTypeError(
-		`${consumerPath} expected type "${expectedType}" but target "${target.path}" has type "${target.type}"`,
+		`${consumerPath} expected type ${expectedLabel} but target "${target.path}" has type "${target.type}"`,
 	);
+}
+
+function includesExpectedType(
+	expectedType: ExpectedReferenceType,
+	type: string,
+): boolean {
+	return Array.isArray(expectedType)
+		? expectedType.includes(type)
+		: expectedType === type;
 }
 
 function validateNestedReferences(
@@ -169,7 +190,10 @@ function validateNestedReferences(
 	rootKeys: Set<string>,
 ): void {
 	assertReferenceType(value, tokenType, path, tree, sources, rootKeys);
-	if (parseReference(value)) return;
+	if (parseReference(value)) {
+		validateCompositeFields(value, tokenType, path, tree, sources, rootKeys);
+		return;
+	}
 
 	if (Array.isArray(value)) {
 		for (let index = 0; index < value.length; index++) {
@@ -180,16 +204,14 @@ function validateNestedReferences(
 					? tokenType
 					: undefined;
 			assertReferenceType(item, expected, itemPath, tree, sources, rootKeys);
-			if (!parseReference(item)) {
-				validateCompositeFields(
-					item,
-					tokenType,
-					itemPath,
-					tree,
-					sources,
-					rootKeys,
-				);
-			}
+			validateCompositeFields(
+				item,
+				tokenType,
+				itemPath,
+				tree,
+				sources,
+				rootKeys,
+			);
 		}
 		return;
 	}
@@ -217,17 +239,34 @@ function validateCompositeFields(
 				sources,
 				rootKeys,
 			);
+			const nestedType = includesExpectedType(expectedType, 'color')
+				? 'color'
+				: includesExpectedType(expectedType, 'strokeStyle')
+					? 'strokeStyle'
+					: undefined;
+			if (nestedType !== undefined) {
+				validateCompositeFields(
+					value[field],
+					nestedType,
+					`${path}.${field}`,
+					tree,
+					sources,
+					rootKeys,
+				);
+			}
 		}
 	}
-	if (tokenType === 'gradient' && 'color' in value) {
-		assertReferenceType(
-			value.color,
-			'color',
-			`${path}.color`,
-			tree,
-			sources,
-			rootKeys,
-		);
+	if (tokenType === 'strokeStyle' && Array.isArray(value.dashArray)) {
+		for (let index = 0; index < value.dashArray.length; index++) {
+			assertReferenceType(
+				value.dashArray[index],
+				'dimension',
+				`${path}.dashArray[${index}]`,
+				tree,
+				sources,
+				rootKeys,
+			);
+		}
 	}
 }
 

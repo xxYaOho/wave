@@ -102,17 +102,13 @@ function isLegacyPercentColorWithHexFallback(
 	value: Record<string, unknown>,
 ): boolean {
 	if (
-		typeof value.colorSpace !== 'string' ||
-		!COLOR_SPACES.has(value.colorSpace) ||
+		value.colorSpace !== 'oklch' ||
 		!Array.isArray(value.components) ||
 		value.components.length !== 3 ||
 		typeof value.hex !== 'string' ||
 		!/^#[0-9a-fA-F]{6}$/.test(value.hex) ||
-		!value.components.some(
-			(component) =>
-				typeof component === 'string' &&
-				/^-?(?:0|[1-9]\d*)(?:\.\d+)?%$/.test(component),
-		)
+		typeof value.components[0] !== 'string' ||
+		!/^-?(?:0|[1-9]\d*)(?:\.\d+)?%$/.test(value.components[0])
 	) {
 		return false;
 	}
@@ -127,6 +123,7 @@ function isLegacyPercentColorWithHexFallback(
 		}
 		if (
 			typeof component !== 'string' ||
+			index !== 0 ||
 			!/^-?(?:0|[1-9]\d*)(?:\.\d+)?%$/.test(component)
 		) {
 			return false;

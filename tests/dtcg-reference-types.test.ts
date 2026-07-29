@@ -352,6 +352,249 @@ describe('DTCG typed complete-token references', () => {
 			);
 		}
 	});
+
+	test('validates inline color alpha references across standard composites', () => {
+		const half = '{theme.number.half}';
+		expect(() =>
+			validateCompleteTokenReferenceTypes(
+				{
+					theme: {
+						number: {
+							$type: 'number',
+							half: { $value: 0.5 },
+						},
+						border: {
+							$type: 'border',
+							$value: {
+								color: { color: '#000000', alpha: half },
+								width: 1,
+								style: 'solid',
+							},
+						},
+						shadow: {
+							$type: 'shadow',
+							$value: {
+								color: { color: '#000000', alpha: half },
+								offsetX: 0,
+								offsetY: 1,
+								blur: 2,
+								spread: 0,
+							},
+						},
+						gradient: {
+							$type: 'gradient',
+							$value: [
+								{
+									color: { color: '#000000', alpha: half },
+									position: '{theme.number.half}',
+								},
+							],
+						},
+						font: {
+							$type: 'typography',
+							$value: {
+								...typographyValue(),
+								color: { color: '#000000', alpha: half },
+							},
+						},
+					},
+				},
+				{},
+			),
+		).not.toThrow();
+	});
+
+	test('rejects non-number inline color alpha references', () => {
+		for (const [tokenName, valuePath] of [
+			['border', 'theme.border.$value.color.alpha'],
+			['shadow', 'theme.shadow.$value.color.alpha'],
+			['gradient', 'theme.gradient.$value[0].color.alpha'],
+			['font', 'theme.font.$value.color.alpha'],
+		] as const) {
+			const values = {
+				border: {
+					color: { color: '#000000', alpha: '{theme.dimension.half}' },
+					width: 1,
+					style: 'solid',
+				},
+				shadow: {
+					color: { color: '#000000', alpha: '{theme.dimension.half}' },
+					offsetX: 0,
+					offsetY: 1,
+					blur: 2,
+					spread: 0,
+				},
+				gradient: [
+					{
+						color: { color: '#000000', alpha: '{theme.dimension.half}' },
+						position: 0,
+					},
+				],
+				font: {
+					...typographyValue(),
+					color: { color: '#000000', alpha: '{theme.dimension.half}' },
+				},
+			};
+			expect(() =>
+				validateCompleteTokenReferenceTypes(
+					{
+						theme: {
+							dimension: {
+								$type: 'dimension',
+								half: { $value: { value: 0.5, unit: 'px' } },
+							},
+							[tokenName]: {
+								$type: tokenName === 'font' ? 'typography' : tokenName,
+								$value: values[tokenName],
+							},
+						},
+					},
+					{},
+				),
+			).toThrow(
+				`${valuePath} expected type "number" but target "theme.dimension.half" has type "dimension"`,
+			);
+		}
+	});
+
+	test('validates nested gradient, strokeStyle, and typography property refs', () => {
+		const valid = {
+			theme: {
+				number: {
+					$type: 'number',
+					half: { $value: 0.5 },
+				},
+				dimension: {
+					$type: 'dimension',
+					space: { $value: { value: 4, unit: 'px' } },
+				},
+				color: {
+					$type: 'color',
+					text: { $value: '#000000' },
+				},
+				gradient: {
+					$type: 'gradient',
+					$value: [
+						{ color: '{theme.color.text}', position: '{theme.number.half}' },
+					],
+				},
+				stroke: {
+					$type: 'strokeStyle',
+					$value: {
+						dashArray: ['{theme.dimension.space}'],
+						lineCap: 'butt',
+					},
+				},
+				border: {
+					$type: 'border',
+					$value: {
+						color: '{theme.color.text}',
+						width: '{theme.dimension.space}',
+						style: {
+							dashArray: ['{theme.dimension.space}'],
+							lineCap: 'butt',
+						},
+					},
+				},
+				fontNumber: {
+					$type: 'typography',
+					$value: {
+						...typographyValue(),
+						color: '{theme.color.text}',
+						lineHeight: '{theme.number.half}',
+					},
+				},
+				fontDimension: {
+					$type: 'typography',
+					$value: {
+						...typographyValue(),
+						lineHeight: '{theme.dimension.space}',
+					},
+				},
+			},
+		} as DtcgTokenGroup;
+		expect(() => validateCompleteTokenReferenceTypes(valid, {})).not.toThrow();
+
+		for (const [consumerPath, tree] of [
+			[
+				'theme.gradient.$value[0].position',
+				{
+					theme: {
+						dimension: {
+							$type: 'dimension',
+							bad: { $value: { value: 1, unit: 'px' } },
+						},
+						gradient: {
+							$type: 'gradient',
+							$value: [{ color: '#000000', position: '{theme.dimension.bad}' }],
+						},
+					},
+				},
+			],
+			[
+				'theme.border.$value.style.dashArray[0]',
+				{
+					theme: {
+						number: { $type: 'number', bad: { $value: 4 } },
+						border: {
+							$type: 'border',
+							$value: {
+								color: '#000000',
+								width: 1,
+								style: {
+									dashArray: ['{theme.number.bad}'],
+									lineCap: 'butt',
+								},
+							},
+						},
+					},
+				},
+			],
+			[
+				'theme.font.$value.color',
+				{
+					theme: {
+						duration: {
+							$type: 'duration',
+							bad: { $value: { value: 1, unit: 'ms' } },
+						},
+						font: {
+							$type: 'typography',
+							$value: {
+								...typographyValue(),
+								color: '{theme.duration.bad}',
+							},
+						},
+					},
+				},
+			],
+			[
+				'theme.font.$value.lineHeight',
+				{
+					theme: {
+						duration: {
+							$type: 'duration',
+							bad: { $value: { value: 1, unit: 'ms' } },
+						},
+						font: {
+							$type: 'typography',
+							$value: {
+								...typographyValue(),
+								lineHeight: '{theme.duration.bad}',
+							},
+						},
+					},
+				},
+			],
+		] as const) {
+			expect(() =>
+				validateCompleteTokenReferenceTypes(
+					tree as unknown as DtcgTokenGroup,
+					{},
+				),
+			).toThrow(consumerPath);
+		}
+	});
 });
 
 describe('composite array reference provenance', () => {

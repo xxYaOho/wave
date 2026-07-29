@@ -784,6 +784,7 @@ describe('theme schema', () => {
 			['51.8%', -0.1, 262.6],
 			['51.8%', 0.251, 360],
 			['101%', 0.251, 262.6],
+			[0.518, '25.1%', 262.6],
 		]) {
 			const malformed = validateThemeSchema(
 				{
@@ -802,6 +803,23 @@ describe('theme schema', () => {
 			);
 			expect(malformed.valid, JSON.stringify(components)).toBe(false);
 		}
+
+		const wrongColorSpace = validateThemeSchema(
+			{
+				theme: {
+					token: {
+						$type: 'color',
+						$value: {
+							colorSpace: 'srgb',
+							components: ['51.8%', 0.25, 0.5],
+							hex: '#0052f5',
+						},
+					},
+				},
+			},
+			'resolved',
+		);
+		expect(wrongColorSpace.valid).toBe(false);
 	});
 
 	test('validates nested legacy color fallback instead of bypassing schema', () => {
