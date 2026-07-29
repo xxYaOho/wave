@@ -20,6 +20,7 @@
 - `src/core/token-values/stroke-style.ts`：标准 strokeStyle 校验及 odd dashArray 物化。
 - `src/core/token-values/composites.ts`：border、transition、shadow、gradient、typography closed-shape 校验。
 - `src/core/schema/dtcg-reference-types.ts`：完整 token alias 的 effective type 与目标类型校验。
+- `tests/token-values.test.ts`：共享 primitive helper 的独立值合同。
 - `tests/dtcg-reference-types.test.ts`：curly alias 与 JSON Pointer typed-reference 回归。
 - `tests/fixtures/themes/dtcg-standard-types/main.yaml`：标准类型端到端 fixture。
 - `.changeset/<generated-name>.md`：本次用户可见行为变更。
@@ -31,14 +32,15 @@
 - `src/core/stroke-style.ts`：改为复用共享 strokeStyle helper，接受 `lineCap`。
 - `src/core/typography-value.ts`：复用 dimension/fontWeight helper，保留 Wave typography 方言。
 - `src/core/pipeline/theme-pipeline.ts`：在 extends 后、resolution 前执行 typed-reference 校验。
-- `src/core/resolver/reference-value-{internal,shared}.ts`：保留校验所需的单元素 composite reference 语义，避免数组误展开。
+- `src/core/resolver/reference-{resolution,token-processor,value-internal,value-shared}.ts`：覆盖 internal/external 两 pass，并保留单元素 composite reference 语义。
 - `src/core/transformer/{theme-transformer,color-value}.ts`：标准值归一化、nested composite color、gradient 和 dash 物化、`none` fallback。
 - `src/core/generator/formats/{flat,css,sketch,utils}.ts`：锁定三平台 payload 与失败语义。
 - `src/core/generator/token-generator.ts`：将新增 companion key 纳入碰撞预检，保持 format-before-write。
 - `tests/{theme-schema,theme-transformer,color-value,color-space,format-flat,format-css,format-sketch,token-generator}.test.ts`：分层回归。
 - `tests/integration/theme-service.test.ts`、`tests/quality-harness.test.ts`：fixture 端到端合同。
 - `tests/fixtures/themes/orca-realistic/main.yaml`：使用合法 `border` antline fixture。
-- `docs/SPEC.md`、`manual/pages/design-token.md`：内部合同与用户手册同步。
+- `benchmarks/design-token/cases.ts`：注册全标准类型 Quality Harness case。
+- `docs/SPEC.md`、`manual/pages/design-token-{main-yaml,color-typography,extensions-output}.md`：内部合同与用户手册同步。
 
 **跨仓修改，最后单独执行**
 
@@ -57,28 +59,25 @@
 - Create: `src/core/token-values/stroke-style.ts`
 - Modify: `src/core/stroke-style.ts`
 - Modify: `src/core/typography-value.ts`
-- Test: `tests/theme-schema.test.ts`
-- Test: `tests/theme-transformer.test.ts`
+- Test: `tests/token-values.test.ts`
 
-- [ ] **Step 1: 写 dimension、duration、fontWeight 和 strokeStyle 的失败测试**
+- [ ] **Step 1: 写 dimension、duration、fontWeight 和 strokeStyle helper 的失败测试**
 
   覆盖：标准 `{ value, unit: px|rem }`；Wave 裸 number、numeric string、`px|rem|pt|em|%`；duration 只允许 `ms|s`；fontWeight 全部标准别名；strokeStyle object 必含 `dashArray` 与 `lineCap`，但 schema 不拒绝负数或全零 dash。
 
   ```ts
-  expect(validateThemeSchema({ theme: { gap: {
-    $type: 'dimension', $value: 8,
-  } } }, 'resolved').valid).toBe(true);
-
-  expect(validateThemeSchema({ theme: { motion: {
-    $type: 'duration', $value: { value: 200, unit: 'px' },
-  } } }, 'resolved').valid).toBe(false);
+  expect(parseDimension(8, { defaultUnit: 'px' })).toEqual({
+    ok: true, value: { value: 8, unit: 'px' },
+  });
+  expect(parseDuration({ value: 200, unit: 'px' }).ok).toBe(false);
+  expect(normalizeFontWeight('demi-bold')).toEqual({ ok: true, value: 600 });
   ```
 
 - [ ] **Step 2: 运行 focused tests，确认新合同尚未满足**
 
-  Run: `bun test tests/theme-schema.test.ts tests/theme-transformer.test.ts`
+  Run: `bun test tests/token-values.test.ts`
 
-  Expected: FAIL；至少报告 `duration`/`fontWeight`/`strokeStyle` 未知或 `lineCap` 被拒绝。
+  Expected: FAIL；helper 尚不存在或旧 strokeStyle helper 拒绝 `lineCap`。
 
 - [ ] **Step 3: 实现共享 helper API**
 
@@ -103,14 +102,14 @@
 
 - [ ] **Step 5: 运行 focused tests**
 
-  Run: `bun test tests/theme-schema.test.ts tests/theme-transformer.test.ts`
+  Run: `bun test tests/token-values.test.ts && pnpm typecheck`
 
   Expected: PASS。
 
 - [ ] **Step 6: 提交 primitive helpers**
 
   ```bash
-  git add src/core/token-values src/core/stroke-style.ts src/core/typography-value.ts tests/theme-schema.test.ts tests/theme-transformer.test.ts
+  git add src/core/token-values src/core/stroke-style.ts src/core/typography-value.ts tests/token-values.test.ts
   git commit -m "feat(tokens): add standard primitive value contracts"
   ```
 
@@ -137,6 +136,8 @@
   } } }, 'resolved');
   expect(result.issues.some((issue) => issue.path.endsWith('.extra'))).toBe(true);
   ```
+
+  同时为 standalone dimension、duration、fontWeight、strokeStyle 写 schema 接线测试；这些测试只在本 Task 引入并通过。
 
 - [ ] **Step 3: 运行 schema tests，确认失败**
 
@@ -170,6 +171,8 @@
 **Files:**
 - Create: `src/core/schema/dtcg-reference-types.ts`
 - Modify: `src/core/pipeline/theme-pipeline.ts`
+- Modify: `src/core/resolver/reference-resolution.ts`
+- Modify: `src/core/resolver/reference-token-processor.ts`
 - Modify: `src/core/resolver/reference-value-internal.ts`
 - Modify: `src/core/resolver/reference-value-shared.ts`
 - Test: `tests/dtcg-reference-types.test.ts`
@@ -177,7 +180,7 @@
 
 - [ ] **Step 1: 写 effective type 与 target type 的失败测试**
 
-  覆盖显式 token `$type`、父 group `$type`、curly complete-token alias、JSON Pointer whole-token `$ref`；`border.style -> strokeStyle` 合法，`border.style -> duration` 必须失败。完整 token alias 的目标 effective type 不匹配时，即使 resolved shape 恰好相同也必须失败。
+  覆盖显式 token `$type`、父 group `$type`、内部/外部 curly complete-token alias、内部/外部 JSON Pointer whole-token `$ref`；`border.style -> strokeStyle` 合法，`border.style -> duration` 必须失败。外部 resource 中 `$type: number` 的 `700` 不能被 `$type: fontWeight` consumer 仅凭 shape 接受。
 
 - [ ] **Step 2: 写 array composite reference 语义测试**
 
@@ -191,11 +194,11 @@
 
 - [ ] **Step 4: 实现 pre-resolution complete-token type validator**
 
-  在 `expandExtends()` 后、`resolveReferences()` 前遍历 effective token graph。validator 解析内部 curly alias 和 JSON Pointer whole-token reference，比较 source effective type 与 target effective type；property-level `$ref` 留给 resolved schema 按字段合同验证。
+  在 `expandExtends()` 后、`resolveReferences()` 前遍历 effective token graph。validator 同时接收 expanded tree 与 dependency sources，解析内部/外部 curly alias 和 JSON Pointer whole-token reference，比较 source effective type 与 target effective type；property-level `$ref` 留给 resolved schema 按字段合同验证。
 
 - [ ] **Step 5: 保留单元素 composite reference provenance**
 
-  只增加 validator/resolver 内部 metadata 或 side-table，不向 `WaveToken`、JSON/JSONC、CSS、Sketch 泄漏字段；不得把数组引用 flatten。
+  在 `reference-resolution.ts` 统一持有 provenance side-table，并由 external/internal `reference-token-processor` 两 pass 传递；不得向 `WaveToken` 或任何 formatter 泄漏字段，也不得把数组引用 flatten。
 
 - [ ] **Step 6: 运行 reference、schema 和 integration tests**
 
@@ -206,7 +209,7 @@
 - [ ] **Step 7: 提交 typed references**
 
   ```bash
-  git add src/core/schema/dtcg-reference-types.ts src/core/pipeline/theme-pipeline.ts src/core/resolver/reference-value-internal.ts src/core/resolver/reference-value-shared.ts tests/dtcg-reference-types.test.ts tests/integration/theme-service.test.ts
+  git add src/core/schema/dtcg-reference-types.ts src/core/pipeline/theme-pipeline.ts src/core/resolver/reference-resolution.ts src/core/resolver/reference-token-processor.ts src/core/resolver/reference-value-internal.ts src/core/resolver/reference-value-shared.ts tests/dtcg-reference-types.test.ts tests/integration/theme-service.test.ts
   git commit -m "fix(tokens): enforce typed token references"
   ```
 
@@ -262,13 +265,14 @@
 **Files:**
 - Modify: `src/core/transformer/color-value.ts`
 - Modify: `src/core/transformer/theme-transformer.ts`
+- Modify: `src/types/index.ts`
 - Test: `tests/color-value.test.ts`
 - Test: `tests/color-space.test.ts`
 - Test: `tests/theme-transformer.test.ts`
 
-- [ ] **Step 1: 写 `none`、optional hex 与 fallback 矩阵**
+- [ ] **Step 1: 写 `none`、optional hex 与 transformer 保留矩阵**
 
-  覆盖 JSON-preservable standard object、CSS 可直接表达的 CSS Color 4 value、hex/Sketch 使用合法 `hex` fallback、无 fallback 时平台错误。错误必须包含 token path、format、target colorSpace 和原因。
+  覆盖可转换时输出 canonical string、`none` 使用合法 `hex` fallback、无 fallback 时保留 clean DTCG object。平台失败不属于本 Task，分别在 flat/CSS/Sketch formatter Task 验证。
 
 - [ ] **Step 2: 写 border、shadow、gradient、typography color slot 递归测试**
 
@@ -284,9 +288,9 @@
 
   clean object 仅含 `colorSpace`、`components`、optional `alpha`、optional `hex`。不得保留 `_swatchName` 等内部 metadata。
 
-- [ ] **Step 5: 把平台能力判断推迟到 formatter**
+- [ ] **Step 5: 为 formatter 保留目标 colorSpace 上下文**
 
-  transformer 不因 JSON/JSONC 可保留的标准 color object 失败；CSS/Sketch 在实际不能表达且无 fallback 时失败。
+  transformer 不因 JSON/JSONC 可保留的标准 color object 失败。扩充 `WaveToken` internal metadata 为 `_targetColorSpace`，由 `transformToWaveTokens()` 在无法转换而保留 object 的 standalone/composite token 上写入；flat formatter 不输出该 metadata，CSS/Sketch 用它构造包含 target colorSpace 的平台错误。
 
 - [ ] **Step 6: 运行 color、transformer 与 typecheck**
 
@@ -297,7 +301,7 @@
 - [ ] **Step 7: 提交 color contract**
 
   ```bash
-  git add src/core/transformer/color-value.ts src/core/transformer/theme-transformer.ts tests/color-value.test.ts tests/color-space.test.ts tests/theme-transformer.test.ts
+  git add src/types/index.ts src/core/transformer/color-value.ts src/core/transformer/theme-transformer.ts tests/color-value.test.ts tests/color-space.test.ts tests/theme-transformer.test.ts
   git commit -m "feat(tokens): support DTCG none color components"
   ```
 
@@ -305,7 +309,6 @@
 
 **Files:**
 - Modify: `src/core/transformer/theme-transformer.ts`
-- Modify: `src/core/generator/formats/utils.ts`
 - Test: `tests/theme-transformer.test.ts`
 
 - [ ] **Step 1: 写 gradient clamp 与端点失败测试**
@@ -324,7 +327,7 @@
 
 - [ ] **Step 4: 在 transformer 实现平台无关物化**
 
-  formatter 不重复 clamp/补端点。`gradientToCss()` 只消费已规范化的至少双 stop 数组，并保留 defensive assertion。
+  formatter 后续不重复 clamp/补端点；本 Task 只负责生成已规范化的至少双 stop 数组。
 
 - [ ] **Step 5: 运行 tests**
 
@@ -335,7 +338,7 @@
 - [ ] **Step 6: 提交 composite materialization**
 
   ```bash
-  git add src/core/transformer/theme-transformer.ts src/core/generator/formats/utils.ts tests/theme-transformer.test.ts
+  git add src/core/transformer/theme-transformer.ts tests/theme-transformer.test.ts
   git commit -m "feat(tokens): materialize gradient and shadow semantics"
   ```
 
@@ -349,7 +352,7 @@
 
 - [ ] **Step 1: 写设计规格平台矩阵的精确 output tests**
 
-  每个 standard type 各一条 JSON 与 JSONC assertion。dimension 及所有 composite dimension slot 输出带单位 string；shadow 的 `0px` 保留为 `"0px"`；unknown custom object/array 原值保留。
+  每个 standard type 各一条 JSON 与 JSONC assertion。dimension 及所有 composite dimension slot 输出带单位 string；shadow 的 `0px` 保留为 `"0px"`；unknown custom object/array 原值保留；含 `none` 且无 fallback 的 standalone/nested color 保留 clean DTCG object，且不输出 `_targetColorSpace`。
 
 - [ ] **Step 2: 运行 flat tests，确认失败**
 
@@ -379,7 +382,6 @@
 **Files:**
 - Modify: `src/core/generator/formats/css.ts`
 - Modify: `src/core/generator/formats/utils.ts`
-- Modify: `src/core/generator/token-generator.ts`
 - Test: `tests/format-css.test.ts`
 - Test: `tests/token-generator.test.ts`
 
@@ -393,7 +395,7 @@
 
 - [ ] **Step 3: 写平台限制和 unknown composite guard tests**
 
-  字段级负数合同按设计规格执行。unknown scalar 继续输出；unknown object/array 抛错，错误含 path、type、shape，且输出不含 `[object Object]`。
+  字段级负数合同按设计规格执行。unknown scalar 继续输出；unknown object/array 抛错，错误含 path、type、shape，且输出不含 `[object Object]`。含 `none` color 在 CSS Color 4 可表达时输出；不可表达时错误含 token path、`css`、`_targetColorSpace` 和原因。
 
 - [ ] **Step 4: 写 companion collision 与 no-write sentinel tests**
 
@@ -409,9 +411,9 @@
 
   `formatTokenValue()` 的最终 fallback 只接受 `string | number | boolean | null`；object/array 抛平台错误。standard composite 必须在 fallback 前全部消费。
 
-- [ ] **Step 7: 扩充 companion reservation 与 format-before-write 验证**
+- [ ] **Step 7: 扩充 CSS companion reservation 并验证 format-before-write**
 
-  保持 `generateTokens()` 先格式化全部 pending output 再写盘；新增 companion key 预检不得边写边发现。
+  companion key reservation 保持在 `css.ts`，因为只有 CSS formatter 掌握 filterLayer 后的真实 key。`token-generator.ts` 不新增 reservation 抽象，仅用现有 generation test 证明其继续先格式化全部 pending output 再写盘。
 
 - [ ] **Step 8: 运行 CSS/generator/typecheck**
 
@@ -422,7 +424,7 @@
 - [ ] **Step 9: 提交 CSS formatters**
 
   ```bash
-  git add src/core/generator/formats/css.ts src/core/generator/formats/utils.ts src/core/generator/token-generator.ts tests/format-css.test.ts tests/token-generator.test.ts
+  git add src/core/generator/formats/css.ts src/core/generator/formats/utils.ts tests/format-css.test.ts tests/token-generator.test.ts
   git commit -m "feat(tokens): format standard CSS token types"
   ```
 
@@ -438,7 +440,7 @@
 
 - [ ] **Step 2: 写不可表达 dimension/color 的平台失败测试**
 
-  generic dimension 可保留明确单位 string；映射到 Sketch 数值属性的 `em|rem|%` 在无既有 conversion contract 时失败。含 `none` 的 color 无 hex fallback 时失败并包含 path/format/target。
+  generic dimension 可保留明确单位 string；映射到 Sketch 数值属性的 `em|rem|%` 在无既有 conversion contract 时失败。含 `none` 的 color 无 hex fallback 时失败，错误包含 token path、`sketch`、`_targetColorSpace` 和原因。
 
 - [ ] **Step 3: 运行 Sketch tests，确认失败**
 
@@ -470,6 +472,7 @@
 **Files:**
 - Create: `tests/fixtures/themes/dtcg-standard-types/main.yaml`
 - Modify: `tests/fixtures/themes/orca-realistic/main.yaml`
+- Modify: `benchmarks/design-token/cases.ts`
 - Modify: `tests/integration/theme-service.test.ts`
 - Modify: `tests/quality-harness.test.ts`
 
@@ -477,24 +480,28 @@
 
   fixture 同时包含标准值、Wave dimension 简写、typed alias、odd dashArray、gradient 缺端点、shadow inset、typography 标准字段和明确 Wave extension；不得依赖 Orca 仓库。
 
-- [ ] **Step 2: 添加三平台 integration assertions**
+- [ ] **Step 2: 注册 Quality Harness case**
+
+  在 `benchmarks/design-token/cases.ts` 添加 `dtcg-standard-types` case，声明 traceable source、标准类型风险与预期平台；`tests/quality-harness.test.ts` 断言 case 被注册并真正运行，不只检查 fixture 文件存在。
+
+- [ ] **Step 3: 添加三平台 integration assertions**
 
   对 JSON/JSONC、CSS、Sketch 逐项断言关键 payload；CSS 全局断言不含 `[object Object]`。
 
-- [ ] **Step 3: 更新 Orca realistic fixture**
+- [ ] **Step 4: 更新 Orca realistic fixture**
 
   antline 使用 `$type: border`，style 为 `{ dashArray: [{value: 4, unit: px}, {value: 8, unit: px}], lineCap: butt }`。
 
-- [ ] **Step 4: 运行 integration 与 quality harness**
+- [ ] **Step 5: 运行 integration 与 quality harness**
 
   Run: `bun test tests/integration/theme-service.test.ts tests/quality-harness.test.ts`
 
   Expected: PASS；fixture 全程不访问真实 Orca。
 
-- [ ] **Step 5: 提交 fixtures**
+- [ ] **Step 6: 提交 fixtures**
 
   ```bash
-  git add tests/fixtures/themes/dtcg-standard-types tests/fixtures/themes/orca-realistic/main.yaml tests/integration/theme-service.test.ts tests/quality-harness.test.ts
+  git add tests/fixtures/themes/dtcg-standard-types tests/fixtures/themes/orca-realistic/main.yaml benchmarks/design-token/cases.ts tests/integration/theme-service.test.ts tests/quality-harness.test.ts
   git commit -m "test(tokens): cover all DTCG standard types"
   ```
 
@@ -502,8 +509,10 @@
 
 **Files:**
 - Modify: `docs/SPEC.md`
-- Modify: `manual/pages/design-token.md`
-- Create: `.changeset/<generated-name>.md`
+- Modify: `manual/pages/design-token-main-yaml.md`
+- Modify: `manual/pages/design-token-color-typography.md`
+- Modify: `manual/pages/design-token-extensions-output.md`
+- Create: `.changeset/bright-waves-support-dtcg-types.md`
 
 - [ ] **Step 1: 更新内部行为快照**
 
@@ -511,24 +520,22 @@
 
 - [ ] **Step 2: 更新用户手册**
 
-  `manual/pages/design-token.md` 提供最少而完整的 dimension、strokeStyle、border、transition、shadow、gradient、typography 示例；删除把 `opacity` 列为 `$type` 的内容，但保留 inheritColor/Sketch property opacity 文档。
+  在 `design-token-main-yaml.md` 更新已知类型并删除 `$type: opacity`；在 `design-token-color-typography.md` 更新 dashArray/lineCap、typography 和 border；在 `design-token-extensions-output.md` 更新三平台输出。保留 inheritColor/Sketch property opacity 文档。
 
 - [ ] **Step 3: 创建 minor changeset**
 
-  Run: `pnpm changeset`
-
-  选择 package `wave`（以 `package.json` 实际 name 为准）和 `minor`；摘要说明 DTCG standard types、dimension 简写、unknown CSS composite failure。不执行 version/publish。
+  创建确定文件 `.changeset/bright-waves-support-dtcg-types.md`，使用 `package.json` 的实际 package name 和 `minor`；摘要说明 DTCG standard types、dimension 简写、unknown CSS composite failure。不执行 version/publish。
 
 - [ ] **Step 4: 构建用户手册并运行文档相关 tests**
 
-  Run: `pnpm manual:build && bun test tests/manual-command.test.ts`
+  Run: `pnpm manual:build && bun test tests/manual-loader.test.ts tests/manual-app.test.ts tests/cli-manual.test.ts`
 
-  Expected: PASS；若实际测试文件名不同，使用 `rg --files tests | rg 'manual'` 定位唯一现有入口后运行，不新增重复测试入口。
+  Expected: PASS。
 
 - [ ] **Step 5: 提交 docs 与 changeset**
 
   ```bash
-  git add docs/SPEC.md manual/pages/design-token.md .changeset
+  git add docs/SPEC.md manual/pages/design-token-main-yaml.md manual/pages/design-token-color-typography.md manual/pages/design-token-extensions-output.md .changeset/bright-waves-support-dtcg-types.md
   git commit -m "docs(tokens): document DTCG standard type support"
   ```
 
@@ -580,15 +587,19 @@
 
 - [ ] **Step 3: 执行真实 Orca smoke**
 
-  Run: `pnpm dev -- dt build -f /Users/teatao/Projects/my-color/orca/main.yaml --out /Users/teatao/Projects/my-color/orca/.tmp/wave-stock-style-smoke`
+  Run: `ORCA_SMOKE_DIR="$(mktemp -d /Users/teatao/Projects/my-color/orca/.tmp/wave-stock-style-smoke.XXXXXX)"`
+
+  Run: `pnpm dev -- dt build -f /Users/teatao/Projects/my-color/orca/main.yaml --out "$ORCA_SMOKE_DIR"`
 
   Expected: light、named profile 与 Sketch parameter groups 全部成功；不通过覆盖 `--platform` 绕过既有互斥 group。
 
 - [ ] **Step 4: 检查损坏输出**
 
-  Run: `rg -n -- "\\[object Object\\]" /Users/teatao/Projects/my-color/orca/.tmp/wave-stock-style-smoke`
+  Run: `rg -n -- "\\[object Object\\]" "$ORCA_SMOKE_DIR"`
 
   Expected: exit 1，无匹配。生成 CSS 包含 border shorthand、`-dash-array` 和 `-line-cap`；Sketch payload 保留完整 border value。
+
+  检查完成后只删除本步骤由 `mktemp` 创建的 `$ORCA_SMOKE_DIR`，不清理 Orca 的其他 `.tmp` 内容。
 
 - [ ] **Step 5: 提交 Orca migration**
 
