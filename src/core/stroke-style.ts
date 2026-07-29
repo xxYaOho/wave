@@ -1,3 +1,6 @@
+import { parseDimension } from './token-values/dimension.ts';
+import { normalizeStrokeStyle } from './token-values/stroke-style.ts';
+
 export type StrokeStyleSchemaPhase = 'raw' | 'resolved';
 
 export interface StrokeStyleIssue {
@@ -5,14 +8,6 @@ export interface StrokeStyleIssue {
 	message: string;
 }
 
-interface ParsedDashLength {
-	value: number;
-	unit?: string;
-}
-
-const DASH_NUMBER_PATTERN = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
-const DASH_LENGTH_PATTERN = /^((?:0|[1-9]\d*)(?:\.\d+)?)(px|pt|rem|em|%)$/;
-const DASH_UNITS = new Set(['px', 'pt', 'rem', 'em', '%']);
 const ALIAS_PATTERN = /^\{[a-zA-Z][a-zA-Z0-9-]*(?:\.[a-zA-Z0-9-]+)*\}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -28,70 +23,29 @@ function isAlias(value: unknown): boolean {
 	);
 }
 
-function parseNumericValue(value: unknown): number | undefined {
-	if (typeof value === 'number') {
-		return Number.isFinite(value) && value >= 0 ? value : undefined;
-	}
-	if (typeof value !== 'string' || !DASH_NUMBER_PATTERN.test(value.trim())) {
-		return undefined;
-	}
-	const parsed = Number(value.trim());
-	return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function parseDashLength(
-	value: unknown,
-	phase: StrokeStyleSchemaPhase,
-): ParsedDashLength | 'alias' | undefined {
-	if (phase === 'raw' && isAlias(value)) return 'alias';
-
-	const numeric = parseNumericValue(value);
-	if (numeric !== undefined) return { value: numeric };
-
-	if (typeof value === 'string') {
-		const match = value.trim().match(DASH_LENGTH_PATTERN);
-		if (!match?.[1] || !match[2]) return undefined;
-		return { value: Number(match[1]), unit: match[2] };
-	}
-
-	if (!isRecord(value)) return undefined;
-	const keys = Object.keys(value);
-	const allowedKeys =
-		phase === 'resolved'
-			? new Set(['value', 'unit', '_swatchName'])
-			: new Set(['value', 'unit']);
-	if (!keys.includes('value') || keys.some((key) => !allowedKeys.has(key))) {
-		return undefined;
-	}
-	if (phase === 'raw' && isAlias(value.value)) return 'alias';
-	const objectValue = parseNumericValue(value.value);
-	if (objectValue === undefined) return undefined;
-	if (value.unit === undefined) return { value: objectValue };
-	if (typeof value.unit !== 'string' || !DASH_UNITS.has(value.unit)) {
-		return undefined;
-	}
-	return { value: objectValue, unit: value.unit };
-}
-
 export function validateBorderStrokeStyle(
 	style: unknown,
 	stylePath: string,
 	phase: StrokeStyleSchemaPhase,
 ): StrokeStyleIssue[] {
-	if (typeof style === 'string') return [];
+	if (phase === 'raw' && isAlias(style)) return [];
+	if (typeof style === 'string') {
+		const parsed = normalizeStrokeStyle(style);
+		return parsed.ok ? [] : [{ path: stylePath, message: parsed.message }];
+	}
 	if (!isRecord(style)) {
 		return [
 			{
 				path: stylePath,
 				message:
-					'border style must be a string or an object containing dashArray',
+					'border style must be a string or an object containing dashArray and lineCap',
 			},
 		];
 	}
 
 	const issues: StrokeStyleIssue[] = [];
 	for (const key of Object.keys(style)) {
-		if (key !== 'dashArray') {
+		if (key !== 'dashArray' && key !== 'lineCap') {
 			issues.push({
 				path: `${stylePath}.${key}`,
 				message: `Unknown border style field "${key}"`,
@@ -105,6 +59,13 @@ export function validateBorderStrokeStyle(
 		});
 		return issues;
 	}
+	if (!('lineCap' in style)) {
+		issues.push({
+			path: stylePath,
+			message: 'border style object must contain lineCap',
+		});
+		return issues;
+	}
 	if (!Array.isArray(style.dashArray) || style.dashArray.length === 0) {
 		issues.push({
 			path: `${stylePath}.dashArray`,
@@ -113,31 +74,43 @@ export function validateBorderStrokeStyle(
 		return issues;
 	}
 
-	let hasPositive = false;
-	let hasAlias = false;
 	for (const [index, member] of style.dashArray.entries()) {
-		const parsed = parseDashLength(member, phase);
-		if (parsed === 'alias') {
-			hasAlias = true;
-			continue;
-		}
-		if (parsed === undefined) {
+		if (phase === 'raw' && isAlias(member)) continue;
+		if (phase === 'raw' && isRecord(member) && '_swatchName' in member) {
 			issues.push({
-				path: `${stylePath}.dashArray[${index}]`,
-				message:
-					'border style dashArray members must be finite non-negative lengths using px, pt, rem, em, or %',
+				path: `${stylePath}.dashArray[${index}]._swatchName`,
+				message: 'Unknown dimension field "_swatchName"',
 			});
 			continue;
 		}
-		if (parsed.value > 0) hasPositive = true;
+		const parsed = parseDimension(member);
+		if (!parsed.ok) {
+			issues.push({
+				path: `${stylePath}.dashArray[${index}]`,
+				message: parsed.message,
+			});
+		}
 	}
-
-	if (!hasPositive && !(phase === 'raw' && hasAlias)) {
-		issues.push({
-			path: `${stylePath}.dashArray`,
-			message:
-				'border style dashArray must contain at least one positive member',
-		});
+	if (!(phase === 'raw' && isAlias(style.lineCap))) {
+		if (
+			style.lineCap !== 'round' &&
+			style.lineCap !== 'butt' &&
+			style.lineCap !== 'square'
+		) {
+			issues.push({
+				path: `${stylePath}.lineCap`,
+				message: 'border style lineCap must be round, butt, or square',
+			});
+		}
+	}
+	if (issues.length === 0 && phase === 'resolved') {
+		const parsed = normalizeStrokeStyle(style);
+		if (!parsed.ok) {
+			issues.push({
+				path: stylePath,
+				message: parsed.message,
+			});
+		}
 	}
 	return issues;
 }
@@ -148,15 +121,15 @@ export function formatDashArray(value: unknown): string {
 	}
 	let hasPositive = false;
 	const members = value.map((member, index) => {
-		const parsed = parseDashLength(member, 'resolved');
-		if (parsed === undefined || parsed === 'alias') {
+		const parsed = parseDimension(member);
+		if (!parsed.ok || parsed.value.value < 0) {
 			throw new Error(
 				`CSS border dashArray has an invalid member at index ${index}`,
 			);
 		}
-		if (parsed.value > 0) hasPositive = true;
-		if (parsed.value === 0) return '0';
-		return `${parsed.value}${parsed.unit ?? 'px'}`;
+		if (parsed.value.value > 0) hasPositive = true;
+		if (parsed.value.value === 0) return '0';
+		return `${parsed.value.value}${parsed.value.unit ?? 'px'}`;
 	});
 	if (!hasPositive) {
 		throw new Error(

@@ -1,4 +1,6 @@
 import type { DtcgValue, TypographyDefaults } from '../types/index.ts';
+import { parseDimension } from './token-values/dimension.ts';
+import { normalizeFontWeight } from './token-values/font-weight.ts';
 
 export const TYPOGRAPHY_FIELDS = [
 	'fontFamily',
@@ -12,8 +14,6 @@ export type TypographyField = (typeof TYPOGRAPHY_FIELDS)[number];
 export type TypographySchemaPhase = 'raw' | 'resolved';
 
 export const TYPOGRAPHY_NUMERIC_PATTERN = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/;
-const TYPOGRAPHY_DIMENSION_PATTERN =
-	/^(-?(?:0|[1-9]\d*)(?:\.\d+)?)(px|pt|rem)$/;
 
 function hasControlCharacter(value: string): boolean {
 	for (const character of value) {
@@ -58,27 +58,20 @@ export function parseTypographyNumber(value: unknown): number | undefined {
 export function parseTypographyDimension(
 	value: unknown,
 ): ParsedTypographyDimension | undefined {
-	const scalar = parseTypographyNumber(value);
-	if (scalar !== undefined) return { value: scalar };
-
-	if (typeof value === 'string') {
-		const match = value.trim().match(TYPOGRAPHY_DIMENSION_PATTERN);
-		if (!match) return undefined;
-		const parsed = Number(match[1]);
-		if (!Number.isFinite(parsed)) return undefined;
-		return { value: parsed, unit: match[2] as 'px' | 'pt' | 'rem' };
-	}
-
-	if (!isRecord(value)) return undefined;
-	const keys = Object.keys(value);
-	if (keys.some((key) => key !== 'value' && key !== 'unit')) return undefined;
-	const parsedValue = parseTypographyNumber(value.value);
-	if (parsedValue === undefined) return undefined;
-	if (value.unit === undefined) return { value: parsedValue };
-	if (value.unit !== 'px' && value.unit !== 'pt' && value.unit !== 'rem') {
+	const parsed = parseDimension(value);
+	if (!parsed.ok) return undefined;
+	if (
+		parsed.value.unit !== undefined &&
+		parsed.value.unit !== 'px' &&
+		parsed.value.unit !== 'pt' &&
+		parsed.value.unit !== 'rem'
+	) {
 		return undefined;
 	}
-	return { value: parsedValue, unit: value.unit };
+	return {
+		value: parsed.value.value,
+		...(parsed.value.unit ? { unit: parsed.value.unit } : {}),
+	} as ParsedTypographyDimension;
 }
 
 export function parseTypographyLineHeight(
@@ -118,26 +111,21 @@ export function validateTypographyField(
 	if (phase === 'raw' && isTypographyReference(value)) return undefined;
 
 	if (field === 'fontFamily') {
-		if (typeof value === 'string') {
-			return normalizeFontFamilyMember(value, false) === undefined
-				? 'must be a non-empty string without control characters'
-				: undefined;
-		}
+		if (typeof value === 'string') return undefined;
 		if (
 			Array.isArray(value) &&
-			value.length > 0 &&
-			value.every((item) => normalizeFontFamilyMember(item) !== undefined)
+			value.every((item) => typeof item === 'string')
 		) {
 			return undefined;
 		}
-		return 'must be a non-empty string or non-empty string array without control characters';
+		return 'must be a string or string array';
 	}
 
 	if (field === 'fontWeight') {
-		const parsed = parseTypographyNumber(value);
-		return parsed !== undefined && parsed > 0
+		const parsed = normalizeFontWeight(value);
+		return parsed.ok
 			? undefined
-			: 'must be a finite positive number or numeric string';
+			: 'must be an integer from 1 to 1000, numeric string, or standard name';
 	}
 
 	const parsed =
@@ -147,8 +135,7 @@ export function validateTypographyField(
 	if (parsed === undefined) {
 		return 'must be a finite number or dimension using only px, pt, or rem';
 	}
-	if (field === 'letterSpacing') return undefined;
-	return parsed.value > 0 ? undefined : 'must be greater than 0';
+	return undefined;
 }
 
 export function parseTypographyBaseFontSize(
