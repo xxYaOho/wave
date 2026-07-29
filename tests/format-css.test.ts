@@ -245,7 +245,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 			filterLayer: 1,
 		});
 
-		expect(out).toContain('--font-body-md-family: Inter, sans-serif;');
+		expect(out).toContain('--font-body-md-family: "Inter, sans-serif";');
 		expect(out).toContain('--font-body-md-size: 14px;');
 		expect(out).toContain('--font-body-md-weight: 400;');
 		expect(out).toContain('--font-body-md-line-height: 1.5;');
@@ -978,6 +978,35 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		);
 	});
 
+	test('quotes a comma in standalone and typography fontFamily as one family name', () => {
+		const standalone: WaveToken = {
+			name: 'family-comma',
+			path: ['family', 'comma'],
+			type: 'fontFamily',
+			value: 'ACME, UI',
+			_order: 0,
+		};
+		const typography: WaveToken = {
+			name: 'font-comma',
+			path: ['font', 'comma'],
+			type: 'typography',
+			value: {
+				fontFamily: 'ACME, UI',
+				fontSize: '16px',
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: '0px',
+			},
+			_order: 1,
+		};
+		expect(cssVariablesFormat([standalone])).toContain(
+			'--family-comma: "ACME, UI";',
+		);
+		expect(cssVariablesFormat([typography])).toContain(
+			'--font-comma-family: "ACME, UI";',
+		);
+	});
+
 	test('formats strokeStyle, border, transition, inset shadow, and gradient contracts', () => {
 		const tokens: WaveToken[] = [
 			{
@@ -1130,18 +1159,25 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		}
 	});
 
-	test('serializes none components when CSS Color 4 can express them and contextualizes failures', () => {
+	test('serializes hsl and hwb percentage components without rescaling', () => {
 		const color: WaveToken = {
 			name: 'color-none',
 			path: ['color', 'none'],
 			type: 'color',
-			value: { colorSpace: 'hsl', components: ['none', 0.5, 0.25], alpha: 0.5 },
+			value: { colorSpace: 'hsl', components: ['none', 50, 25], alpha: 0.5 },
 			_targetColorSpace: 'hex',
 			_order: 0,
 		};
-		expect(cssVariablesFormat([color])).toContain(
-			'--color-none: hsl(none 50% 25% / 0.5);',
-		);
+		const hwb: WaveToken = {
+			...color,
+			name: 'color-hwb',
+			path: ['color', 'hwb'],
+			value: { colorSpace: 'hwb', components: [120, 10, 'none'] },
+			_order: 1,
+		};
+		const out = cssVariablesFormat([color, hwb]);
+		expect(out).toContain('--color-none: hsl(none 50% 25% / 0.5);');
+		expect(out).toContain('--color-hwb: hwb(120 10% none);');
 		try {
 			cssVariablesFormat([
 				{ ...color, value: { colorSpace: 'hsl', components: ['none', 0.5] } },
@@ -1153,6 +1189,91 @@ describe('cssVariablesFormat (Wave-native)', () => {
 			expect(message).toContain('platform=css');
 			expect(message).toContain('hex');
 			expect(message).toContain('three components');
+		}
+	});
+
+	test('contextualizes fontFamily and dash platform errors', () => {
+		const assertContext = (
+			token: WaveToken,
+			expectedShape: 'string' | 'array' | 'object',
+		): void => {
+			try {
+				cssVariablesFormat([token]);
+				throw new Error('expected formatter to fail');
+			} catch (error) {
+				const message = String(error);
+				expect(message).toContain(token.path.join('.'));
+				expect(message).toContain(token.type ?? 'unknown');
+				expect(message).toContain(`shape ${expectedShape}`);
+			}
+		};
+
+		assertContext(
+			{
+				name: 'family-empty',
+				path: ['family', 'empty'],
+				type: 'fontFamily',
+				value: '',
+				_order: 0,
+			},
+			'string',
+		);
+		assertContext(
+			{
+				name: 'family-empty-array',
+				path: ['family', 'empty-array'],
+				type: 'fontFamily',
+				value: [],
+				_order: 0,
+			},
+			'array',
+		);
+		for (const fontFamily of ['', []]) {
+			assertContext(
+				{
+					name: 'font-empty',
+					path: ['font', 'empty'],
+					type: 'typography',
+					value: {
+						fontFamily,
+						fontSize: '16px',
+						fontWeight: 400,
+						lineHeight: 1.5,
+						letterSpacing: '0px',
+					},
+					_order: 0,
+				},
+				'object',
+			);
+		}
+		for (const dashArray of [
+			['-1px', '2px'],
+			['0px', 0],
+		]) {
+			assertContext(
+				{
+					name: 'stroke-bad',
+					path: ['stroke', 'bad'],
+					type: 'strokeStyle',
+					value: { dashArray, lineCap: 'round' },
+					_order: 0,
+				},
+				'object',
+			);
+			assertContext(
+				{
+					name: 'border-bad',
+					path: ['border', 'bad'],
+					type: 'border',
+					value: {
+						color: '#000000',
+						width: '1px',
+						style: { dashArray, lineCap: 'round' },
+					},
+					_order: 0,
+				},
+				'object',
+			);
 		}
 	});
 

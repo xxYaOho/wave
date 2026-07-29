@@ -110,9 +110,9 @@ function formatDtcgColorForCss(
 	const component = (item: number | 'none') => formatComponent(item);
 	switch (value.colorSpace) {
 		case 'hsl':
-			return `hsl(${component(first)} ${second === 'none' ? 'none' : `${second * 100}%`} ${third === 'none' ? 'none' : `${third * 100}%`}${alpha})`;
+			return `hsl(${component(first)} ${second === 'none' ? 'none' : `${second}%`} ${third === 'none' ? 'none' : `${third}%`}${alpha})`;
 		case 'hwb':
-			return `hwb(${component(first)} ${second === 'none' ? 'none' : `${second * 100}%`} ${third === 'none' ? 'none' : `${third * 100}%`}${alpha})`;
+			return `hwb(${component(first)} ${second === 'none' ? 'none' : `${second}%`} ${third === 'none' ? 'none' : `${third}%`}${alpha})`;
 		case 'lab':
 		case 'lch':
 		case 'oklab':
@@ -251,7 +251,7 @@ function formatTokenValue(token: WaveToken): string {
 		return String(parsed.value);
 	}
 	if (token.type === 'fontFamily') {
-		return formatFontFamily(tokenValue);
+		return formatFontFamily(tokenValue, token);
 	}
 	if (token.type === 'transition')
 		return formatTransitionValue(tokenValue, token);
@@ -279,13 +279,12 @@ const CSS_WIDE_KEYWORDS = new Set([
 	'revert-layer',
 ]);
 
-function formatFontFamily(value: unknown): string {
+function formatFontFamily(value: unknown, token: WaveToken): string {
 	if (typeof value === 'string') {
 		const family = normalizeFontFamilyMember(value, false);
 		if (family === undefined) {
-			throw new Error('CSS typography fontFamily must be a non-empty string');
+			throw platformError(token, 'fontFamily must be a non-empty string');
 		}
-		if (family.includes(',')) return family;
 		if (
 			SIMPLE_FONT_FAMILY_PATTERN.test(family) &&
 			!CSS_WIDE_KEYWORDS.has(family.toLowerCase())
@@ -295,14 +294,18 @@ function formatFontFamily(value: unknown): string {
 		return `"${family.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
 	}
 	if (!Array.isArray(value) || value.length === 0) {
-		throw new Error('CSS typography fontFamily must be a string or array');
+		throw platformError(
+			token,
+			'fontFamily must be a non-empty string or array',
+		);
 	}
 	return value
 		.map((item) => {
 			const family = normalizeFontFamilyMember(item);
 			if (family === undefined) {
-				throw new Error(
-					'CSS typography fontFamily array members must be non-empty strings',
+				throw platformError(
+					token,
+					'fontFamily array members must be non-empty strings',
 				);
 			}
 			if (
@@ -370,7 +373,7 @@ function typographyLines(
 	const lines: string[] = [];
 
 	if (family !== undefined && references.familyKey === undefined) {
-		lines.push(`  --${key}-family: ${formatFontFamily(family)};`);
+		lines.push(`  --${key}-family: ${formatFontFamily(family, token)};`);
 	}
 	if (size !== undefined) {
 		lines.push(
@@ -418,6 +421,19 @@ interface FormattedBorderValue {
 	lineCap?: string;
 }
 
+function formatDashArrayForToken(
+	value: unknown,
+	token: WaveToken,
+	field: 'border' | 'strokeStyle',
+): string {
+	try {
+		return formatDashArray(value);
+	} catch (error) {
+		const reason = error instanceof Error ? error.message : String(error);
+		throw platformError(token, `${field} ${reason}`);
+	}
+}
+
 function formatBorderValue(
 	value: unknown,
 	token: WaveToken,
@@ -434,7 +450,7 @@ function formatBorderValue(
 		style = obj.style;
 	} else if (typeof obj.style === 'object' && obj.style !== null) {
 		const styleObject = obj.style as Record<string, unknown>;
-		dashArray = formatDashArray(styleObject.dashArray);
+		dashArray = formatDashArrayForToken(styleObject.dashArray, token, 'border');
 		if (
 			styleObject.lineCap !== 'round' &&
 			styleObject.lineCap !== 'butt' &&
@@ -448,7 +464,10 @@ function formatBorderValue(
 		lineCap = styleObject.lineCap;
 		style = 'dashed';
 	} else if (obj.style !== undefined) {
-		throw new Error('CSS border style must be a string or dashArray object');
+		throw platformError(
+			token,
+			'border style must be a string or dashArray object',
+		);
 	}
 	const color =
 		obj.color === undefined ? 'currentColor' : formatCssColor(obj.color, token);
@@ -482,7 +501,7 @@ function formatStrokeStyleValue(
 	}
 	return {
 		value: 'dashed',
-		dashArray: formatDashArray(style.dashArray),
+		dashArray: formatDashArrayForToken(style.dashArray, token, 'strokeStyle'),
 		lineCap: style.lineCap,
 	};
 }
@@ -678,7 +697,7 @@ export const cssVariablesFormat: WaveFormatFn = (
 	for (const token of sortedTokens) {
 		const key = getFilteredName(token, filterLayer);
 		if (token.type === 'fontFamily') {
-			const family = formatFontFamily(token.value);
+			const family = formatFontFamily(token.value, token);
 			if (!familyKeys.has(family)) familyKeys.set(family, key);
 		}
 		if (token.type === 'color') {
@@ -710,7 +729,7 @@ export const cssVariablesFormat: WaveFormatFn = (
 					`CSS typography color is not normalized at ${token.path.join('.')}`,
 				);
 			}
-			const family = formatFontFamily(value.fontFamily);
+			const family = formatFontFamily(value.fontFamily, token);
 			lines.push(
 				...typographyLines(key, token.value, token, {
 					familyKey: familyKeys.get(family),
