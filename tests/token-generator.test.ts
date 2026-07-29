@@ -307,6 +307,49 @@ describe('generateTokens (Wave-native)', () => {
 		});
 	});
 
+	test('keeps existing outputs unchanged when CSS companion preflight fails', async () => {
+		await withTempDir(async (outputDir) => {
+			const jsonPath = path.join(outputDir, 'demo.json');
+			const cssPath = path.join(outputDir, 'demo.css');
+			await fs.writeFile(jsonPath, 'existing-json');
+			await fs.writeFile(cssPath, 'existing-css');
+			const tokens: WaveToken[] = [
+				{
+					name: 'theme-border-antline',
+					path: ['theme', 'border', 'antline'],
+					type: 'border',
+					value: {
+						color: '#000000',
+						width: '1px',
+						style: { dashArray: ['4px', '8px'], lineCap: 'butt' },
+					},
+					_order: 0,
+				},
+				{
+					name: 'theme-border-antline-line-cap',
+					path: ['theme', 'border', 'antline', 'line-cap'],
+					type: 'string',
+					value: 'round',
+					_order: 1,
+				},
+			];
+
+			const result = await generateTokens({
+				themeName: 'demo',
+				outputDir,
+				tokens,
+				platform: ['json', 'css'],
+				filterLayer: 1,
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.files).toEqual([]);
+			expect(result.error).toContain('--border-antline-line-cap');
+			expect(await fs.readFile(jsonPath, 'utf8')).toBe('existing-json');
+			expect(await fs.readFile(cssPath, 'utf8')).toBe('existing-css');
+		});
+	});
+
 	test('writes no platform outputs when sketch path preflight fails', async () => {
 		await withTempDir(async (outputDir) => {
 			const tokens: WaveToken[] = [

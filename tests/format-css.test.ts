@@ -647,6 +647,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 					width: '1px',
 					style: {
 						dashArray: [0, 4, '8', '1.5rem', { value: 2, unit: 'pt' }, '25%'],
+						lineCap: 'butt',
 					},
 				},
 				comment: 'animated border',
@@ -666,6 +667,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).toContain(
 			'--border-antline-dash-array: 0 4px 8px 1.5rem 2pt 25%;',
 		);
+		expect(out).toContain('--border-antline-line-cap: butt;');
 		expect(out).toContain('--border-antline-offset: 2px;');
 		expect(out).not.toContain('[object Object]');
 		expect(out.indexOf('--border-antline-dash-array:')).toBeGreaterThan(
@@ -686,6 +688,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 						{ value: 4, unit: 'px', _swatchName: 'dimension/dash' },
 						8,
 					],
+					lineCap: 'round',
 				},
 			},
 			_order: 0,
@@ -742,7 +745,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		);
 	});
 
-	test('throws instead of falling back for object border color', () => {
+	test('formats a DTCG object border color as CSS Color 4', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-border-outline-focus',
@@ -758,12 +761,13 @@ describe('cssVariablesFormat (Wave-native)', () => {
 			},
 		];
 
-		expect(() =>
-			cssVariablesFormat(tokens, {
-				includeRootKeys: ['border'],
-				filterLayer: 1,
-			}),
-		).toThrow('CSS output requires transformer-normalized value');
+		const out = cssVariablesFormat(tokens, {
+			includeRootKeys: ['border'],
+			filterLayer: 1,
+		});
+		expect(out).toContain(
+			'--border-outline-focus: 1px solid oklch(0.5 0.2 260);',
+		);
 	});
 
 	test('throws instead of emitting object border width', () => {
@@ -782,10 +786,10 @@ describe('cssVariablesFormat (Wave-native)', () => {
 				includeRootKeys: ['border'],
 				filterLayer: 1,
 			}),
-		).toThrow('CSS output requires transformer-normalized value');
+		).toThrow('CSS length must be a normalized dimension');
 	});
 
-	test('throws instead of emitting object color value', () => {
+	test('formats DTCG object color value as CSS Color 4', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-color-primary',
@@ -796,8 +800,8 @@ describe('cssVariablesFormat (Wave-native)', () => {
 			},
 		];
 
-		expect(() => cssVariablesFormat(tokens)).toThrow(
-			'CSS output requires transformer-normalized value',
+		expect(cssVariablesFormat(tokens)).toContain(
+			'--theme-color-primary: oklch(0.5 0.2 260);',
 		);
 	});
 
@@ -821,7 +825,10 @@ describe('cssVariablesFormat (Wave-native)', () => {
 			{
 				name: 'theme-gradient-accent',
 				path: ['theme', 'gradient', 'accent'],
-				value: [{ color: '#ff000040', position: 0 }],
+				value: [
+					{ color: '#ff000040', position: 0 },
+					{ color: '#ff000040', position: 1 },
+				],
 				type: 'gradient',
 				_order: 1,
 			},
@@ -857,7 +864,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).toContain('rgb(255 0 255 / 0.5)');
 	});
 
-	test('throws instead of emitting object color inside shadow', () => {
+	test('formats object color inside shadow as CSS Color 4', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-shadow-raised',
@@ -876,12 +883,12 @@ describe('cssVariablesFormat (Wave-native)', () => {
 			},
 		];
 
-		expect(() => cssVariablesFormat(tokens)).toThrow(
-			'CSS output requires transformer-normalized value',
+		expect(cssVariablesFormat(tokens)).toContain(
+			'0 4px 8px 0 oklch(0.5 0.2 260)',
 		);
 	});
 
-	test('throws instead of emitting object color inside single-object shadow', () => {
+	test('formats object color inside single-object shadow as CSS Color 4', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-shadow-raised',
@@ -898,12 +905,12 @@ describe('cssVariablesFormat (Wave-native)', () => {
 			},
 		];
 
-		expect(() => cssVariablesFormat(tokens)).toThrow(
-			'CSS output requires transformer-normalized value',
+		expect(cssVariablesFormat(tokens)).toContain(
+			'0 4px 8px 0 oklch(0.5 0.2 260)',
 		);
 	});
 
-	test('throws instead of emitting object color inside gradient', () => {
+	test('formats object colors inside gradient as CSS Color 4', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-gradient-accent',
@@ -913,14 +920,269 @@ describe('cssVariablesFormat (Wave-native)', () => {
 						color: { colorSpace: 'oklch', components: [0.5, 0.2, 260] },
 						position: 0,
 					},
+					{
+						color: { colorSpace: 'oklch', components: [0.7, 0.1, 120] },
+						position: 1,
+					},
 				],
 				type: 'gradient',
 				_order: 0,
 			},
 		];
 
-		expect(() => cssVariablesFormat(tokens)).toThrow(
-			'CSS output requires transformer-normalized value',
+		expect(cssVariablesFormat(tokens)).toContain(
+			'linear-gradient(to right, oklch(0.5 0.2 260) 0%, oklch(0.7 0.1 120) 100%)',
 		);
+	});
+
+	test('formats standard scalar types with type-directed CSS values', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'duration-fast',
+				path: ['duration', 'fast'],
+				type: 'duration',
+				value: '200ms',
+				_order: 0,
+			},
+			{
+				name: 'ease-standard',
+				path: ['ease', 'standard'],
+				type: 'cubicBezier',
+				value: [0.4, 0, 0.2, 1],
+				_order: 1,
+			},
+			{
+				name: 'weight-strong',
+				path: ['weight', 'strong'],
+				type: 'fontWeight',
+				value: 400.5,
+				_order: 2,
+			},
+			{
+				name: 'family-ui',
+				path: ['family', 'ui'],
+				type: 'fontFamily',
+				value: ['Inter', 'ACME \\ "UI"', 'sans-serif'],
+				_order: 3,
+			},
+		];
+		const out = cssVariablesFormat(tokens);
+		expect(out).toContain('--duration-fast: 200ms;');
+		expect(out).toContain('--ease-standard: cubic-bezier(0.4, 0, 0.2, 1);');
+		expect(out).toContain('--weight-strong: 400.5;');
+		expect(out).toContain(
+			'--family-ui: Inter, "ACME \\\\ \\"UI\\"", sans-serif;',
+		);
+		expect(() => cssVariablesFormat([{ ...tokens[3]!, value: [] }])).toThrow(
+			'fontFamily',
+		);
+	});
+
+	test('formats strokeStyle, border, transition, inset shadow, and gradient contracts', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'stroke-antline',
+				path: ['stroke', 'antline'],
+				type: 'strokeStyle',
+				value: { dashArray: ['4px', '8px'], lineCap: 'butt' },
+				_order: 0,
+			},
+			{
+				name: 'border-antline',
+				path: ['border', 'antline'],
+				type: 'border',
+				value: {
+					color: '#000000',
+					width: '1px',
+					style: { dashArray: ['4px', '8px'], lineCap: 'square' },
+				},
+				_order: 1,
+			},
+			{
+				name: 'transition-emphasis',
+				path: ['transition', 'emphasis'],
+				type: 'transition',
+				value: {
+					duration: '200ms',
+					timingFunction: [0.4, 0, 0.2, 1],
+					delay: '-50ms',
+				},
+				_order: 2,
+			},
+			{
+				name: 'shadow-inset',
+				path: ['shadow', 'inset'],
+				type: 'shadow',
+				value: {
+					color: '#00000080',
+					offsetX: '0px',
+					offsetY: '1px',
+					blur: '2px',
+					spread: '-1px',
+					inset: true,
+				},
+				_order: 3,
+			},
+			{
+				name: 'gradient-accent',
+				path: ['gradient', 'accent'],
+				type: 'gradient',
+				value: [
+					{ color: '#000000', position: 0 },
+					{ color: '#ffffff', position: 0.125 },
+					{ color: '#ffffff', position: 1 },
+				],
+				_order: 4,
+			},
+		];
+		const out = cssVariablesFormat(tokens);
+		expect(out).toContain('--stroke-antline: dashed;');
+		expect(out).toContain('--stroke-antline-dash-array: 4px 8px;');
+		expect(out).toContain('--stroke-antline-line-cap: butt;');
+		expect(out).toContain('--border-antline: 1px dashed #000000;');
+		expect(out).toContain('--border-antline-line-cap: square;');
+		expect(out).toContain(
+			'--transition-emphasis: 200ms cubic-bezier(0.4, 0, 0.2, 1) -50ms;',
+		);
+		expect(out).toContain(
+			'--shadow-inset: inset 0 1px 2px -1px rgb(0 0 0 / 0.5);',
+		);
+		expect(out).toContain('rgb(255 255 255 / 1) 12.5%');
+	});
+
+	test('enforces CSS field-level negative value restrictions', () => {
+		const token = (type: string, value: unknown): WaveToken => ({
+			name: `bad-${type}`,
+			path: ['bad', type],
+			type,
+			value,
+			_order: 0,
+		});
+		expect(() =>
+			cssVariablesFormat([
+				token('border', { color: '#000', width: '-1px', style: 'solid' }),
+			]),
+		).toThrow('border width');
+		expect(() =>
+			cssVariablesFormat([
+				token('transition', {
+					duration: '-1ms',
+					timingFunction: [0, 0, 1, 1],
+					delay: '-1ms',
+				}),
+			]),
+		).toThrow('transition duration');
+		expect(() =>
+			cssVariablesFormat([
+				token('shadow', {
+					color: '#000',
+					offsetX: '-1px',
+					offsetY: '0px',
+					blur: '-1px',
+					spread: '-1px',
+				}),
+			]),
+		).toThrow('shadow layer 0 blur');
+		expect(() =>
+			cssVariablesFormat([
+				token('strokeStyle', { dashArray: ['-1px', '2px'], lineCap: 'round' }),
+			]),
+		).toThrow('dashArray');
+		expect(() =>
+			cssVariablesFormat([
+				token('typography', {
+					fontFamily: 'Inter',
+					fontSize: '-1px',
+					fontWeight: 400,
+					lineHeight: 1,
+					letterSpacing: '-1px',
+				}),
+			]),
+		).toThrow('fontSize');
+	});
+
+	test('preserves unknown scalars and rejects unknown composites with path, type, and shape', () => {
+		const scalar: WaveToken = {
+			name: 'vendor-scalar',
+			path: ['vendor', 'scalar'],
+			type: 'vendorType',
+			value: 'kept',
+			_order: 0,
+		};
+		expect(cssVariablesFormat([scalar])).toContain('--vendor-scalar: kept;');
+		for (const value of [{ value: 8 }, [1, 2]]) {
+			const token: WaveToken = {
+				...scalar,
+				name: 'vendor-structured',
+				path: ['vendor', 'structured'],
+				value,
+			};
+			try {
+				cssVariablesFormat([token]);
+				throw new Error('expected formatter to fail');
+			} catch (error) {
+				const message = String(error);
+				expect(message).toContain('vendor.structured');
+				expect(message).toContain('vendorType');
+				expect(message).toContain(Array.isArray(value) ? 'array' : 'object');
+				expect(message).not.toContain('[object Object]');
+			}
+		}
+	});
+
+	test('serializes none components when CSS Color 4 can express them and contextualizes failures', () => {
+		const color: WaveToken = {
+			name: 'color-none',
+			path: ['color', 'none'],
+			type: 'color',
+			value: { colorSpace: 'hsl', components: ['none', 0.5, 0.25], alpha: 0.5 },
+			_targetColorSpace: 'hex',
+			_order: 0,
+		};
+		expect(cssVariablesFormat([color])).toContain(
+			'--color-none: hsl(none 50% 25% / 0.5);',
+		);
+		try {
+			cssVariablesFormat([
+				{ ...color, value: { colorSpace: 'hsl', components: ['none', 0.5] } },
+			]);
+			throw new Error('expected formatter to fail');
+		} catch (error) {
+			const message = String(error);
+			expect(message).toContain('color.none');
+			expect(message).toContain('platform=css');
+			expect(message).toContain('hex');
+			expect(message).toContain('three components');
+		}
+	});
+
+	test('preflights strokeStyle and border line-cap companion collisions', () => {
+		const structured = (type: 'strokeStyle' | 'border'): WaveToken => ({
+			name: `${type}-main`,
+			path: [type, 'main'],
+			type,
+			value:
+				type === 'strokeStyle'
+					? { dashArray: ['4px', '8px'], lineCap: 'round' }
+					: {
+							color: '#000',
+							width: '1px',
+							style: { dashArray: ['4px', '8px'], lineCap: 'round' },
+						},
+			_order: 0,
+		});
+		for (const type of ['strokeStyle', 'border'] as const) {
+			const source = structured(type);
+			const collision: WaveToken = {
+				name: `${type}-main-line-cap`,
+				path: [type, 'main', 'line-cap'],
+				type: 'string',
+				value: 'square',
+				_order: 1,
+			};
+			expect(() => cssVariablesFormat([source, collision])).toThrow(
+				`--${type}-main-line-cap`,
+			);
+		}
 	});
 });

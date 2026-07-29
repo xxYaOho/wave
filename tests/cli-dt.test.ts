@@ -899,6 +899,34 @@ describe('wave dt', () => {
 		}
 	}
 
+	async function expectDtcgColorCssBuildSuccess(
+		valueLines: string[],
+		expectedCss: string,
+	): Promise<void> {
+		const tempDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-valid-dtcg-css-'),
+		);
+		try {
+			await writeInvalidDtcgColorTheme(tempDir, valueLines);
+			const outputDir = path.join(tempDir, 'dist');
+			const result = await runWave(
+				['dt', 'build', '-f', path.join(tempDir, 'main.yaml'), '-o', outputDir],
+				rootDir,
+				isolatedResourceEnv(tempDir),
+			);
+
+			expect(result.exitCode).toBe(0);
+			const css = await fs.readFile(
+				path.join(outputDir, 'invalid-dtcg-color.css'),
+				'utf8',
+			);
+			expect(css).toContain(expectedCss);
+			expect(css).not.toContain('[object Object]');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	}
+
 	test('dt build rejects standalone hex object as color syntax', async () => {
 		await expectInvalidDtcgColorBuildFailure(
 			['hex: "#0052f5"'],
@@ -906,10 +934,10 @@ describe('wave dt', () => {
 		);
 	});
 
-	test('dt build CSS platform rejects none components without hex fallback', async () => {
-		await expectInvalidDtcgColorBuildFailure(
+	test('dt build CSS platform emits none components as CSS Color 4', async () => {
+		await expectDtcgColorCssBuildSuccess(
 			['colorSpace: hsl', 'components: ["none", 0, 0]'],
-			'CSS output requires transformer-normalized value at theme.color.bad',
+			'--theme-color-bad: hsl(none 0% 0%);',
 		);
 	});
 
@@ -931,10 +959,10 @@ describe('wave dt', () => {
 		);
 	});
 
-	test('dt build CSS platform rejects unsupported colorSpace without hex fallback', async () => {
-		await expectInvalidDtcgColorBuildFailure(
+	test('dt build CSS platform emits display-p3 without hex fallback', async () => {
+		await expectDtcgColorCssBuildSuccess(
 			['colorSpace: display-p3', 'components: [1, 0, 1]'],
-			'CSS output requires transformer-normalized value at theme.color.bad',
+			'--theme-color-bad: color(display-p3 1 0 1);',
 		);
 	});
 
