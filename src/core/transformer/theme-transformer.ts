@@ -225,6 +225,7 @@ function normalizeTransitionValue(
 
 function normalizeTypographyValue(
 	value: unknown,
+	targetFormat: ColorSpaceFormat,
 	tokenPath?: string,
 ): DtcgValue {
 	if (!isRecord(value)) return value as DtcgValue;
@@ -248,6 +249,13 @@ function normalizeTypographyValue(
 	}
 	return {
 		...value,
+		...(value.color !== undefined && {
+			color: normalizeNestedColor(
+				value.color,
+				targetFormat,
+				valuePath(tokenPath, 'color'),
+			) as DtcgValue,
+		}),
 		fontSize: normalizeDimensionOutput(
 			fontSize,
 			valuePath(tokenPath, 'fontSize'),
@@ -296,7 +304,7 @@ function processValue(
 		return normalizeTransitionValue(value, tokenPath);
 	}
 	if (typeValue === 'typography') {
-		return normalizeTypographyValue(value, tokenPath);
+		return normalizeTypographyValue(value, targetFormat, tokenPath);
 	}
 
 	if (
@@ -428,7 +436,7 @@ function deriveSmoothGradient(
 
 	if (typeof start.color !== 'string' || typeof end.color !== 'string') {
 		throw new Error(
-			`smoothGradient stops must have string colors${tokenPath ? ` at ${tokenPath}` : ''}`,
+			`smoothGradient requires convertible string colors${tokenPath ? ` at ${tokenPath}` : ''}`,
 		);
 	}
 
@@ -569,6 +577,25 @@ function filterUsefulShadowLayers(
 	return layers.filter(isUsefulShadowLayer);
 }
 
+function hasPreservedColorObject(
+	value: unknown,
+	typeValue: string | undefined,
+): boolean {
+	if (typeValue === 'color') return isDtcgColorObjectCandidate(value);
+	if (
+		typeValue !== 'border' &&
+		typeValue !== 'typography' &&
+		typeValue !== 'shadow' &&
+		typeValue !== 'gradient'
+	) {
+		return false;
+	}
+	const items = Array.isArray(value) ? value : [value];
+	return items.some(
+		(item) => isRecord(item) && isDtcgColorObjectCandidate(item.color),
+	);
+}
+
 function deriveSmoothShadow(
 	processedValue: unknown,
 	extension: unknown,
@@ -609,7 +636,12 @@ function deriveSmoothShadow(
 	const step = ext.step as number;
 
 	const layer = processedValue as Record<string, unknown>;
-	const baseColor = typeof layer.color === 'string' ? layer.color : '#000000';
+	if (typeof layer.color !== 'string') {
+		throw new Error(
+			`smoothShadow requires a convertible string color${tokenPath ? ` at ${tokenPath}.color` : ''}`,
+		);
+	}
+	const baseColor = layer.color;
 	const baseAlpha = extractColorAlpha(baseColor);
 	const inset = layer.inset === true;
 
@@ -676,7 +708,6 @@ function transformToken(
 ): Omit<WaveToken, 'name' | 'path'> {
 	const typeValue = token.$type ?? parentType;
 	let sourceValue: DtcgValue = token.$value;
-	let typographyColor: string | undefined;
 	let typographyUsesRem = false;
 	const sketchColorReference =
 		typeValue === 'typography' || typeValue === 'border'
@@ -695,14 +726,6 @@ function transformToken(
 		}
 		sourceValue = materialized as DtcgValue;
 		typographyUsesRem = hasTypographyRemDimension(materialized);
-		const color = materialized?.color;
-		if (color !== undefined) {
-			typographyColor = normalizeColorValue(
-				color,
-				targetColorSpace,
-				tokenPath ? `${tokenPath}.color` : undefined,
-			).value;
-		}
 	}
 	let processedValue = processValue(
 		sourceValue,
@@ -710,6 +733,12 @@ function transformToken(
 		tokenPath,
 		typeValue,
 	);
+	const typographyColor =
+		typeValue === 'typography' &&
+		isRecord(processedValue) &&
+		typeof processedValue.color === 'string'
+			? processedValue.color
+			: undefined;
 
 	// smoothShadow derivation
 	const smoothShadow = token.$extensions?.smoothShadow;
@@ -856,6 +885,9 @@ function transformToken(
 		}),
 		...(sketchColorReference !== undefined && {
 			_sketchColorReference: sketchColorReference,
+		}),
+		...(hasPreservedColorObject(processedValue, typeValue) && {
+			_targetColorSpace: targetColorSpace,
 		}),
 		...(typographyColor !== undefined && { _typographyColor: typographyColor }),
 		...(typeValue === 'typography' &&

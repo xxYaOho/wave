@@ -171,13 +171,16 @@ describe('flatJsonFormat (Wave-native)', () => {
 		const parsed = JSON.parse(flatJsonFormat(transformed));
 		expect(parsed['theme-font-body']).toEqual({
 			fontFamily: 'Inter',
-			fontSize: 14,
+			fontSize: '14px',
 			fontWeight: 400,
 			lineHeight: 1.5,
-			letterSpacing: 0,
+			letterSpacing: '0px',
 			color: '#112233',
 		});
-		expect(flatJsoncFormat(transformed)).toContain('"color":"#112233"');
+		const jsonc = flatJsoncFormat(transformed);
+		expect(jsonc).toContain('"fontSize":"14px"');
+		expect(jsonc).toContain('"letterSpacing":"0px"');
+		expect(jsonc).toContain('"color":"#112233"');
 	});
 });
 

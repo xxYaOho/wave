@@ -31,15 +31,15 @@ describe('smoothShadow contract', () => {
 		const result = transformToWaveTokens(input);
 		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			color: string;
-			offsetX: number;
-			offsetY: number;
-			blur: number;
-			spread: number;
+			offsetX: string;
+			offsetY: string;
+			blur: string;
+			spread: string;
 		}[];
 
 		expect(layers).toHaveLength(3);
-		expect(layers[2]!.offsetY).toBe(8);
-		expect(layers[2]!.blur).toBe(16);
+		expect(layers[2]!.offsetY).toBe('8px');
+		expect(layers[2]!.blur).toBe('16px');
 	});
 
 	test('preserves 8-digit hex when base color already has alpha', () => {
@@ -97,5 +97,29 @@ describe('smoothShadow contract', () => {
 		expect(
 			(token as unknown as Record<string, unknown>).$extensions,
 		).toBeUndefined();
+	});
+
+	test('rejects a preserved DTCG color instead of silently using black', () => {
+		const input: ResolvedTokenGroup = {
+			shadow: {
+				$type: 'shadow',
+				preserved: {
+					$value: {
+						color: { colorSpace: 'hsl', components: ['none', 0, 100] },
+						offsetX: 0,
+						offsetY: 2,
+						blur: 4,
+						spread: 0,
+					},
+					$extensions: {
+						smoothShadow: { cubicBezier: [0, 0, 1, 1], step: 2 },
+					},
+				},
+			},
+		};
+
+		expect(() => transformToWaveTokens(input)).toThrow(
+			'smoothShadow requires a convertible string color at shadow.preserved.color',
+		);
 	});
 });

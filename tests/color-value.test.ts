@@ -35,6 +35,42 @@ describe('normalizeColorValue', () => {
 		expect(result.source).toBe('dtcg-hex-fallback');
 	});
 
+	test('preserves a clean DTCG color object when none has no fallback', () => {
+		const result = normalizeColorValue(
+			{
+				colorSpace: 'hsl',
+				components: ['none', 0, 100],
+				alpha: 0.5,
+				_swatchName: 'color/white',
+			},
+			'hex',
+			'theme.color.white',
+		);
+
+		expect(result.value).toEqual({
+			colorSpace: 'hsl',
+			components: ['none', 0, 100],
+			alpha: 0.5,
+		});
+		expect(result.source).toBe('dtcg-components');
+	});
+
+	test('preserves an unsupported standard color space without fallback', () => {
+		const result = normalizeColorValue(
+			{
+				colorSpace: 'display-p3',
+				components: [1, 0, 1],
+			},
+			'oklch',
+			'theme.color.accent',
+		);
+
+		expect(result.value).toEqual({
+			colorSpace: 'display-p3',
+			components: [1, 0, 1],
+		});
+	});
+
 	test('falls back to six digit hex when components contain legacy percent strings', () => {
 		const result = normalizeColorValue(
 			{

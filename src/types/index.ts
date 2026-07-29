@@ -402,6 +402,8 @@ export interface WaveToken {
 	_colorReference?: string;
 	/** direct, unmodified composite color reference for Sketch variable mapping */
 	_sketchColorReference?: string;
+	/** requested output color space retained when a DTCG color object cannot be converted */
+	_targetColorSpace?: ColorSpaceFormat;
 	/** formatter-ready typography color in the active target color space */
 	_typographyColor?: string;
 	/** resolved root typography rem base, retained for platform formatters only */

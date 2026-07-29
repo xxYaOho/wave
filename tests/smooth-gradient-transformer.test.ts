@@ -130,6 +130,30 @@ describe('smoothGradient transformation', () => {
 		);
 	});
 
+	test('rejects preserved DTCG color objects explicitly', () => {
+		const input: ResolvedTokenGroup = {
+			gradient: {
+				$type: 'gradient',
+				preserved: {
+					$value: [
+						{
+							color: { colorSpace: 'hsl', components: ['none', 0, 100] },
+							position: 0,
+						},
+						{ color: '#0000ff', position: 1 },
+					],
+					$extensions: {
+						smoothGradient: { cubicBezier: [0, 0, 1, 1], step: 3 },
+					},
+				},
+			},
+		};
+
+		expect(() => transformToWaveTokens(input)).toThrow(
+			'smoothGradient requires convertible string colors at gradient.preserved',
+		);
+	});
+
 	test('throws for invalid curve', () => {
 		const input: ResolvedTokenGroup = {
 			gradient: {

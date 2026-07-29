@@ -860,11 +860,14 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					kerning: 1.4,
 				});
 				expect(json['font-body']).toMatchObject({
-					fontSize: { value: 0.875, unit: 'rem' },
-					lineHeight: { value: 1.5, unit: 'rem' },
-					letterSpacing: { value: 0.1, unit: 'rem' },
+					fontSize: '0.875rem',
+					lineHeight: '1.5rem',
+					letterSpacing: '0.1rem',
 				});
 				expect(JSON.stringify(json)).not.toContain('baseFontSize');
+				expect(jsonc).toContain('"fontSize":"0.875rem"');
+				expect(jsonc).toContain('"lineHeight":"1.5rem"');
+				expect(jsonc).toContain('"letterSpacing":"0.1rem"');
 				expect(jsonc).not.toContain('baseFontSize');
 			} finally {
 				await fs.rm(themeDir, { recursive: true, force: true });
@@ -1611,15 +1614,15 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					'Segoe UI Symbol',
 					'Noto Color Emoji',
 				],
-				fontSize: { value: 14, unit: 'pt' },
+				fontSize: '14pt',
 				fontWeight: 400,
 				lineHeight: 1.5,
-				letterSpacing: 0,
-				color: {
-					colorSpace: 'oklch',
-					components: [0.208, 0.042, 265.755],
-				},
+				letterSpacing: '0px',
+				color: '#0f172b',
 			});
+			expect(jsonc).toContain('"fontSize":"14pt"');
+			expect(jsonc).toContain('"letterSpacing":"0px"');
+			expect(jsonc).toContain('"color":"#0f172b"');
 
 			const sketch = JSON.parse(
 				await fs.readFile(
@@ -1690,10 +1693,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					color: '@/foundation/color/primary-main',
 					width: '1px',
 					style: {
-						dashArray: [
-							{ value: 4, unit: 'px' },
-							{ value: 8, unit: 'px' },
-						],
+						dashArray: ['4px', '8px'],
 						lineCap: 'butt',
 					},
 				},

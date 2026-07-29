@@ -18,11 +18,23 @@ export type NormalizedColorSource =
 	| 'legacy-color';
 
 export interface NormalizedColor {
-	value: string;
+	value: string | DtcgColorSpaceValue;
 	alpha: number;
 	hex6?: string;
 	hex8?: string;
 	source: NormalizedColorSource;
+}
+
+function cleanDtcgColorValue(
+	value: DtcgColorObjectShape,
+	alpha: number,
+): DtcgColorSpaceValue {
+	return {
+		colorSpace: value.colorSpace as DtcgColorSpaceType,
+		components: [...value.components] as DtcgColorSpaceValue['components'],
+		...(value.alpha !== undefined && { alpha }),
+		...(typeof value.hex === 'string' && { hex: value.hex.toLowerCase() }),
+	};
 }
 
 export class ColorValueError extends Error {
@@ -258,10 +270,14 @@ function normalizeDtcgColor(
 			alpha,
 		);
 	}
-	throw new ColorValueError(
-		`Unsupported DTCG color "${value.colorSpace}" without a valid hex fallback`,
-		tokenPath,
-	);
+	if (isDtcgColorSpaceValue(value)) {
+		return {
+			value: cleanDtcgColorValue(value, alpha),
+			alpha,
+			source: 'dtcg-components',
+		};
+	}
+	throw new ColorValueError('Invalid DTCG color components', tokenPath);
 }
 
 export function normalizeColorValue(

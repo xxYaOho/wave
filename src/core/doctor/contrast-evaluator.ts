@@ -35,6 +35,7 @@ function resolveColorToChroma(
 	if (typeof value === 'object' && value !== null) {
 		try {
 			const normalized = normalizeColorValue(value, 'hex');
+			if (typeof normalized.value !== 'string') return null;
 			const color = chroma(normalized.value);
 			return { color, alpha: normalized.alpha };
 		} catch {

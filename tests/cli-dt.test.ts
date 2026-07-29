@@ -906,10 +906,10 @@ describe('wave dt', () => {
 		);
 	});
 
-	test('dt build rejects none components without hex fallback', async () => {
+	test('dt build CSS platform rejects none components without hex fallback', async () => {
 		await expectInvalidDtcgColorBuildFailure(
 			['colorSpace: hsl', 'components: ["none", 0, 0]'],
-			'Unsupported DTCG color "hsl" without a valid hex fallback at theme.color.bad',
+			'CSS output requires transformer-normalized value at theme.color.bad',
 		);
 	});
 
@@ -931,10 +931,10 @@ describe('wave dt', () => {
 		);
 	});
 
-	test('dt build rejects unsupported colorSpace without hex fallback', async () => {
+	test('dt build CSS platform rejects unsupported colorSpace without hex fallback', async () => {
 		await expectInvalidDtcgColorBuildFailure(
 			['colorSpace: display-p3', 'components: [1, 0, 1]'],
-			'Unsupported DTCG color "display-p3" without a valid hex fallback at theme.color.bad',
+			'CSS output requires transformer-normalized value at theme.color.bad',
 		);
 	});
 

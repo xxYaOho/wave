@@ -302,7 +302,7 @@ describe('theme-transformer DTCG color fallback', () => {
 		expect(gradient[0]!.color).toBe('#0052f540');
 	});
 
-	test('throws with token path when unsupported color lacks fallback', () => {
+	test('preserves unsupported standalone color and records target color space', () => {
 		const input: ResolvedTokenGroup = {
 			theme: {
 				color: {
@@ -317,9 +317,102 @@ describe('theme-transformer DTCG color fallback', () => {
 			},
 		};
 
-		expect(() => transformToWaveTokens(input, undefined, 'hex')).toThrow(
-			'theme.color.bad',
-		);
+		const { tokens } = transformToWaveTokens(input, undefined, 'hex');
+		const token = findToken(tokens, 'theme-color-bad');
+		expect(token.value).toEqual({
+			colorSpace: 'display-p3',
+			components: [1, 0, 1],
+		});
+		expect(token._targetColorSpace).toBe('hex');
+	});
+
+	test('preserves clean color objects in every standard composite color slot', () => {
+		const noneColor = {
+			colorSpace: 'hsl' as const,
+			components: ['none' as const, 0, 100],
+			alpha: 0.5,
+			_swatchName: 'must-not-leak',
+		};
+		const input: ResolvedTokenGroup = {
+			border: {
+				$type: 'border',
+				preserved: {
+					$value: { color: noneColor, width: 1, style: 'solid' },
+				},
+			},
+			shadow: {
+				$type: 'shadow',
+				preserved: {
+					$value: {
+						color: noneColor,
+						offsetX: 0,
+						offsetY: 1,
+						blur: 2,
+						spread: 0,
+					},
+				},
+			},
+			gradient: {
+				$type: 'gradient',
+				preserved: {
+					$value: [{ color: noneColor, position: 0 }],
+				},
+			},
+			typography: {
+				$type: 'typography',
+				preserved: {
+					$value: {
+						fontFamily: 'Inter',
+						fontSize: 16,
+						fontWeight: 400,
+						letterSpacing: 0,
+						lineHeight: 1.5,
+						color: noneColor,
+					},
+				},
+			},
+		};
+
+		const { tokens } = transformToWaveTokens(input, undefined, 'hex');
+		const expectedColor = {
+			colorSpace: 'hsl',
+			components: ['none', 0, 100],
+			alpha: 0.5,
+		};
+		for (const name of [
+			'border-preserved',
+			'shadow-preserved',
+			'gradient-preserved',
+			'typography-preserved',
+		]) {
+			expect(findToken(tokens, name)._targetColorSpace).toBe('hex');
+		}
+		expect(
+			(findToken(tokens, 'border-preserved').value as Record<string, unknown>)
+				.color,
+		).toEqual(expectedColor);
+		expect(
+			(findToken(tokens, 'shadow-preserved').value as Record<string, unknown>)
+				.color,
+		).toEqual(expectedColor);
+		expect(
+			(
+				findToken(tokens, 'gradient-preserved').value as Array<
+					Record<string, unknown>
+				>
+			)[0]!.color,
+		).toEqual(expectedColor);
+		expect(
+			(
+				findToken(tokens, 'typography-preserved').value as Record<
+					string,
+					unknown
+				>
+			).color,
+		).toEqual(expectedColor);
+		expect(
+			findToken(tokens, 'typography-preserved')._typographyColor,
+		).toBeUndefined();
 	});
 
 	test('throws with token path for standalone hex object under color type', () => {
