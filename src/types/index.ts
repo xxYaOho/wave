@@ -222,6 +222,48 @@ export type DtcgValue =
 	| DtcgRefValue
 	| DtcgValue[];
 
+export interface DtcgDimensionValue {
+	value: number;
+	unit: 'px' | 'rem';
+}
+
+export interface DtcgDurationValue {
+	value: number;
+	unit: 'ms' | 's';
+}
+
+export type DtcgStrokeLineCap = 'round' | 'butt' | 'square';
+export type DtcgStrokeStyleName =
+	| 'solid'
+	| 'dashed'
+	| 'dotted'
+	| 'double'
+	| 'groove'
+	| 'ridge'
+	| 'outset'
+	| 'inset';
+
+export interface DtcgCustomStrokeStyleValue {
+	dashArray: DtcgValue[];
+	lineCap: DtcgStrokeLineCap;
+}
+
+export type DtcgStrokeStyleValue =
+	| DtcgStrokeStyleName
+	| DtcgCustomStrokeStyleValue;
+
+export interface DtcgBorderValue {
+	color: DtcgValue;
+	width: DtcgValue;
+	style: DtcgValue;
+}
+
+export interface DtcgTransitionValue {
+	duration: DtcgValue;
+	delay: DtcgValue;
+	timingFunction: DtcgValue;
+}
+
 export interface WaveTypographyValue {
 	fontFamily?: string | string[];
 	fontSize?: DtcgValue;

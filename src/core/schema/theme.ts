@@ -1,8 +1,5 @@
 import type { DtcgTokenGroup, TypographyDefaults } from '../../types/index.ts';
-import {
-	type StrokeStyleSchemaPhase,
-	validateBorderStrokeStyle,
-} from '../stroke-style.ts';
+import { validateStandardTokenValue } from '../token-values/composites.ts';
 import {
 	isTypographyReference,
 	materializeTypographyValue,
@@ -31,11 +28,14 @@ const KNOWN_TYPES = new Set([
 	'shadow',
 	'gradient',
 	'border',
-	'opacity',
 	'dimension',
 	'number',
 	'fontFamily',
+	'fontWeight',
+	'duration',
 	'cubicBezier',
+	'strokeStyle',
+	'transition',
 	'typography',
 ]);
 
@@ -390,6 +390,16 @@ function validateTypographyFields(
 			});
 		}
 	}
+	if (allowLegacyColor && value.color !== undefined) {
+		for (const issue of validateStandardTokenValue(
+			'color',
+			value.color,
+			`${valuePath}.color`,
+			phase,
+		)) {
+			issues.push({ ...issue, level: 'error' });
+		}
+	}
 	return value;
 }
 
@@ -539,11 +549,12 @@ function validateToken(
 	const explicitTokenType =
 		typeof token.$type === 'string' ? token.$type : undefined;
 	const tokenType = explicitTokenType ?? inheritedType;
-	if (tokenType === 'border' && isRecord(value) && 'style' in value) {
-		for (const issue of validateBorderStrokeStyle(
-			value.style,
-			`${tokenPath}.$value.style`,
-			phase as StrokeStyleSchemaPhase,
+	if (tokenType !== undefined && tokenType !== 'typography') {
+		for (const issue of validateStandardTokenValue(
+			tokenType,
+			value,
+			`${tokenPath}.$value`,
+			phase,
 		)) {
 			issues.push({ ...issue, level: 'error' });
 		}
