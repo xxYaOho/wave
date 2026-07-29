@@ -8,12 +8,21 @@ import {
 	type TypographyDefaults,
 	type WaveToken,
 } from '../../types/index.ts';
+import { parseDimension } from '../token-values/dimension.ts';
+import { parseDuration } from '../token-values/duration.ts';
+import { normalizeFontWeight } from '../token-values/font-weight.ts';
+import {
+	type NormalizedCustomStrokeStyle,
+	normalizeStrokeStyle,
+} from '../token-values/stroke-style.ts';
 import {
 	hasTypographyRemDimension,
 	materializeTypographyValue,
 	mergeTypographyDefaults,
 	missingTypographyFields,
 	parseTypographyBaseFontSize,
+	parseTypographyDimension,
+	parseTypographyLineHeight,
 	typographyDefaultsFromExtensions,
 } from '../typography-value.ts';
 import { formatColorOutput, isDtcgColorSpaceValue } from './color-space.ts';
@@ -106,6 +115,157 @@ function shouldNormalizeScalarColor(
 	);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function valuePath(tokenPath: string | undefined, field?: string): string {
+	if (!tokenPath) return field ?? '<unknown>';
+	return field ? `${tokenPath}.${field}` : tokenPath;
+}
+
+function normalizeDimensionOutput(value: unknown, path?: string): string {
+	const parsed = parseDimension(value, { defaultUnit: 'px' });
+	if (!parsed.ok) {
+		throw new Error(
+			`Invalid dimension at ${path ?? '<unknown>'}: ${parsed.message}`,
+		);
+	}
+	return `${parsed.value.value}${parsed.value.unit}`;
+}
+
+function normalizeDurationOutput(value: unknown, path?: string): string {
+	const parsed = parseDuration(value);
+	if (!parsed.ok) {
+		throw new Error(
+			`Invalid duration at ${path ?? '<unknown>'}: ${parsed.message}`,
+		);
+	}
+	return `${parsed.value.value}${parsed.value.unit}`;
+}
+
+function normalizeFontWeightOutput(value: unknown, path?: string): number {
+	const normalized = normalizeFontWeight(value);
+	if (!normalized.ok) {
+		throw new Error(
+			`Invalid fontWeight at ${path ?? '<unknown>'}: ${normalized.message}`,
+		);
+	}
+	return normalized.value;
+}
+
+function normalizeStrokeStyleOutput(value: unknown, path?: string): DtcgValue {
+	const normalized = normalizeStrokeStyle(value);
+	if (!normalized.ok) {
+		throw new Error(
+			`Invalid strokeStyle at ${path ?? '<unknown>'}: ${normalized.message}`,
+		);
+	}
+	if (typeof normalized.value === 'string') return normalized.value;
+	const style = normalized.value as NormalizedCustomStrokeStyle;
+	return {
+		dashArray: style.dashArray.map((member) =>
+			normalizeDimensionOutput(member, path ? `${path}.dashArray` : undefined),
+		),
+		lineCap: style.lineCap,
+	};
+}
+
+function normalizeNestedColor(
+	value: unknown,
+	targetFormat: ColorSpaceFormat,
+	path?: string,
+): unknown {
+	return typeof value === 'string' ||
+		isDtcgColorSpaceValue(value) ||
+		isDtcgColorObjectCandidate(value) ||
+		isLegacyColorSpaceWrapperObject(value) ||
+		isDtcgTokenValueObject(value) ||
+		isLegacyColorObject(value) ||
+		isStandaloneHexObject(value)
+		? normalizeColorValue(value, targetFormat, path).value
+		: value;
+}
+
+function normalizeBorderValue(
+	value: unknown,
+	targetFormat: ColorSpaceFormat,
+	tokenPath?: string,
+): DtcgValue {
+	if (!isRecord(value)) return value as DtcgValue;
+	return {
+		...value,
+		color: normalizeNestedColor(
+			value.color,
+			targetFormat,
+			valuePath(tokenPath, 'color'),
+		) as DtcgValue,
+		width: normalizeDimensionOutput(value.width, valuePath(tokenPath, 'width')),
+		style: normalizeStrokeStyleOutput(
+			value.style,
+			valuePath(tokenPath, 'style'),
+		),
+	};
+}
+
+function normalizeTransitionValue(
+	value: unknown,
+	tokenPath?: string,
+): DtcgValue {
+	if (!isRecord(value)) return value as DtcgValue;
+	return {
+		...value,
+		duration: normalizeDurationOutput(
+			value.duration,
+			valuePath(tokenPath, 'duration'),
+		),
+		delay: normalizeDurationOutput(value.delay, valuePath(tokenPath, 'delay')),
+	};
+}
+
+function normalizeTypographyValue(
+	value: unknown,
+	tokenPath?: string,
+): DtcgValue {
+	if (!isRecord(value)) return value as DtcgValue;
+	const fontSize = parseTypographyDimension(value.fontSize);
+	const letterSpacing = parseTypographyDimension(value.letterSpacing);
+	const lineHeight = parseTypographyLineHeight(value.lineHeight);
+	if (!fontSize) {
+		throw new Error(
+			`Invalid typography fontSize at ${valuePath(tokenPath, 'fontSize')}`,
+		);
+	}
+	if (!letterSpacing) {
+		throw new Error(
+			`Invalid typography letterSpacing at ${valuePath(tokenPath, 'letterSpacing')}`,
+		);
+	}
+	if (!lineHeight) {
+		throw new Error(
+			`Invalid typography lineHeight at ${valuePath(tokenPath, 'lineHeight')}`,
+		);
+	}
+	return {
+		...value,
+		fontSize: normalizeDimensionOutput(
+			fontSize,
+			valuePath(tokenPath, 'fontSize'),
+		),
+		fontWeight: normalizeFontWeightOutput(
+			value.fontWeight,
+			valuePath(tokenPath, 'fontWeight'),
+		),
+		letterSpacing: normalizeDimensionOutput(
+			letterSpacing,
+			valuePath(tokenPath, 'letterSpacing'),
+		),
+		lineHeight: lineHeight.unit
+			? normalizeDimensionOutput(lineHeight, valuePath(tokenPath, 'lineHeight'))
+			: lineHeight.value,
+	};
+}
+
 function processValue(
 	value: DtcgValue,
 	targetFormat: ColorSpaceFormat = 'hex',
@@ -117,24 +277,48 @@ function processValue(
 			.value as DtcgValue;
 	}
 
-	// 处理数组类型（shadow 和 gradient）
-	if (Array.isArray(value)) {
-		return value.map((item, index) =>
-			processArrayItem(item, targetFormat, `${tokenPath}[${index}]`, typeValue),
-		) as unknown as DtcgValue;
+	if (typeValue === 'dimension') {
+		return normalizeDimensionOutput(value, tokenPath);
+	}
+	if (typeValue === 'duration') {
+		return normalizeDurationOutput(value, tokenPath);
+	}
+	if (typeValue === 'fontWeight') {
+		return normalizeFontWeightOutput(value, tokenPath);
+	}
+	if (typeValue === 'strokeStyle') {
+		return normalizeStrokeStyleOutput(value, tokenPath);
+	}
+	if (typeValue === 'border') {
+		return normalizeBorderValue(value, targetFormat, tokenPath);
+	}
+	if (typeValue === 'transition') {
+		return normalizeTransitionValue(value, tokenPath);
+	}
+	if (typeValue === 'typography') {
+		return normalizeTypographyValue(value, tokenPath);
 	}
 
-	// 处理 { value: number, unit?: string } 格式的 dimension 值
 	if (
-		typeof value === 'object' &&
-		value !== null &&
-		!Array.isArray(value) &&
-		'value' in value
+		Array.isArray(value) &&
+		(typeValue === 'shadow' || typeValue === 'gradient')
 	) {
-		const obj = value as { value: number; unit?: string };
-		return (obj.unit
-			? `${obj.value}${obj.unit}`
-			: String(obj.value)) as unknown as DtcgValue;
+		return value.map((item, index) =>
+			processArrayItem(
+				item,
+				targetFormat,
+				tokenPath ? `${tokenPath}[${index}]` : `[${index}]`,
+				typeValue,
+			),
+		) as unknown as DtcgValue;
+	}
+	if (typeValue === 'shadow' && isRecord(value)) {
+		return processArrayItem(
+			value,
+			targetFormat,
+			tokenPath,
+			typeValue,
+		) as DtcgValue;
 	}
 	return value;
 }
@@ -165,15 +349,22 @@ function processArrayItem(
 				isLegacyColorObject(val) ||
 				isStandaloneHexObject(val))
 		) {
-			result[key] = normalizeColorValue(
+			result[key] = normalizeNestedColor(
 				val,
 				targetFormat,
 				itemPath ? `${itemPath}.color` : undefined,
-			).value;
-		} else if (typeof val === 'object' && val !== null && 'value' in val) {
-			// 处理 {value: number, unit?: string} 格式的值
-			const obj = val as { value: number; unit?: string };
-			result[key] = obj.unit ? `${obj.value}${obj.unit}` : obj.value;
+			);
+		} else if (
+			parentType === 'shadow' &&
+			(key === 'offsetX' ||
+				key === 'offsetY' ||
+				key === 'blur' ||
+				key === 'spread')
+		) {
+			result[key] = normalizeDimensionOutput(
+				val,
+				itemPath ? `${itemPath}.${key}` : undefined,
+			);
 		} else {
 			result[key] = val;
 		}
@@ -519,19 +710,6 @@ function transformToken(
 		tokenPath,
 		typeValue,
 	);
-	if (
-		(typeValue === 'shadow' || typeValue === 'border') &&
-		typeof processedValue === 'object' &&
-		processedValue !== null &&
-		!Array.isArray(processedValue)
-	) {
-		processedValue = processArrayItem(
-			processedValue,
-			targetColorSpace,
-			tokenPath,
-			typeValue,
-		) as DtcgValue;
-	}
 
 	// smoothShadow derivation
 	const smoothShadow = token.$extensions?.smoothShadow;

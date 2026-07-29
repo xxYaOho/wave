@@ -34,15 +34,15 @@ describe('smoothShadow transformation', () => {
 		const result = transformToWaveTokens(input);
 		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			color: string;
-			offsetX: number;
-			offsetY: number;
-			blur: number;
-			spread: number;
+			offsetX: string;
+			offsetY: string;
+			blur: string;
+			spread: string;
 		}[];
 
 		expect(layers).toHaveLength(3);
-		expect(layers[2]!.offsetY).toBe(6);
-		expect(layers[2]!.blur).toBe(12);
+		expect(layers[2]!.offsetY).toBe('6px');
+		expect(layers[2]!.blur).toBe('12px');
 	});
 
 	test('scales shadow properties toward zero', () => {
@@ -69,13 +69,13 @@ describe('smoothShadow transformation', () => {
 
 		const result = transformToWaveTokens(input);
 		const layers = findToken(result.tokens, 'shadow-raised').value as {
-			offsetY: number;
+			offsetY: string;
 		}[];
 
 		expect(layers).toHaveLength(3);
-		expect(layers[0]!.offsetY).toBe(Math.round(4 * (1 - 2 / 3)));
-		expect(layers[1]!.offsetY).toBe(Math.round(4 * (1 - 1 / 3)));
-		expect(layers[2]!.offsetY).toBe(4);
+		expect(layers[0]!.offsetY).toBe(`${Math.round(4 * (1 - 2 / 3))}px`);
+		expect(layers[1]!.offsetY).toBe(`${Math.round(4 * (1 - 1 / 3))}px`);
+		expect(layers[2]!.offsetY).toBe('4px');
 	});
 
 	test('orders layers from small to large', () => {
@@ -102,12 +102,15 @@ describe('smoothShadow transformation', () => {
 
 		const result = transformToWaveTokens(input);
 		const layers = findToken(result.tokens, 'shadow-raised').value as {
-			blur: number;
+			blur: string;
 		}[];
 
 		expect(layers).toHaveLength(5);
+		expect(layers.every((layer) => /^\d+px$/.test(layer.blur))).toBe(true);
 		for (let i = 1; i < 5; i++) {
-			expect(layers[i]!.blur).toBeGreaterThanOrEqual(layers[i - 1]!.blur);
+			expect(parseFloat(layers[i]!.blur)).toBeGreaterThanOrEqual(
+				parseFloat(layers[i - 1]!.blur),
+			);
 		}
 	});
 
@@ -135,12 +138,17 @@ describe('smoothShadow transformation', () => {
 
 		const result = transformToWaveTokens(input);
 		const layers = findToken(result.tokens, 'shadow-raised').value as {
-			offsetY: number;
-			blur: number;
+			offsetY: string;
+			blur: string;
 		}[];
 
 		expect(layers).toHaveLength(3);
-		expect(layers.every((l) => l.offsetY !== 0 || l.blur !== 0)).toBe(true);
+		expect(
+			layers.every(
+				(layer) =>
+					parseFloat(layer.offsetY) !== 0 || parseFloat(layer.blur) !== 0,
+			),
+		).toBe(true);
 	});
 
 	test('preserves inset flag across all layers', () => {
@@ -204,7 +212,7 @@ describe('smoothShadow transformation', () => {
 			offsetX: string;
 			offsetY: string;
 			blur: string;
-			spread: number;
+			spread: string;
 		}[];
 
 		expect(layers).toHaveLength(3);
@@ -282,17 +290,41 @@ describe('smoothShadow transformation', () => {
 		const result = transformToWaveTokens(input);
 		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			color: string;
-			offsetX: number;
-			offsetY: number;
-			blur: number;
-			spread: number;
+			offsetX: string;
+			offsetY: string;
+			blur: string;
+			spread: string;
 		}[];
 
 		expect(layers).toEqual([
-			{ color: '#0f172b05', offsetX: 0, offsetY: 1, blur: 2, spread: 1 },
-			{ color: '#0f172b0a', offsetX: 0, offsetY: 2, blur: 4, spread: 0 },
-			{ color: '#0f172b0f', offsetX: 0, offsetY: 3, blur: 6, spread: -1 },
-			{ color: '#0f172b14', offsetX: 0, offsetY: 4, blur: 8, spread: -2 },
+			{
+				color: '#0f172b05',
+				offsetX: '0px',
+				offsetY: '1px',
+				blur: '2px',
+				spread: '1px',
+			},
+			{
+				color: '#0f172b0a',
+				offsetX: '0px',
+				offsetY: '2px',
+				blur: '4px',
+				spread: '0px',
+			},
+			{
+				color: '#0f172b0f',
+				offsetX: '0px',
+				offsetY: '3px',
+				blur: '6px',
+				spread: '-1px',
+			},
+			{
+				color: '#0f172b14',
+				offsetX: '0px',
+				offsetY: '4px',
+				blur: '8px',
+				spread: '-2px',
+			},
 		]);
 	});
 
@@ -328,35 +360,35 @@ describe('smoothShadow transformation', () => {
 		const result = transformToWaveTokens(input);
 		const layers = findToken(result.tokens, 'shadow-raised').value as {
 			color: string;
-			offsetY: number;
-			blur: number;
-			spread: number;
+			offsetY: string;
+			blur: string;
+			spread: string;
 		}[];
 
 		expect(layers).toEqual([
 			expect.objectContaining({
 				color: '#0f172b05',
-				offsetY: 1,
-				blur: 2,
-				spread: 1,
+				offsetY: '1px',
+				blur: '2px',
+				spread: '1px',
 			}),
 			expect.objectContaining({
 				color: '#0f172b0f',
-				offsetY: 3,
-				blur: 6,
-				spread: -1,
+				offsetY: '3px',
+				blur: '6px',
+				spread: '-1px',
 			}),
 			expect.objectContaining({
 				color: '#0f172b14',
-				offsetY: 4,
-				blur: 8,
-				spread: -2,
+				offsetY: '4px',
+				blur: '8px',
+				spread: '-2px',
 			}),
 			expect.objectContaining({
 				color: '#0f172b14',
-				offsetY: 4,
-				blur: 8,
-				spread: -2,
+				offsetY: '4px',
+				blur: '8px',
+				spread: '-2px',
 			}),
 		]);
 	});

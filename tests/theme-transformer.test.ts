@@ -265,6 +265,10 @@ describe('theme-transformer DTCG color fallback', () => {
 		const gradient = findToken(result.tokens, 'theme-style-gradient-accent')
 			.value as Array<Record<string, unknown>>;
 		expect(shadow[0]!.color).toBe('#ff00ff80');
+		expect(shadow[0]!.offsetX).toBe('0px');
+		expect(shadow[0]!.offsetY).toBe('4px');
+		expect(shadow[0]!.blur).toBe('8px');
+		expect(shadow[0]!.spread).toBe('0px');
 		expect(gradient[0]!.color).toBe('#ff000040');
 	});
 
@@ -364,5 +368,153 @@ describe('theme-transformer DTCG color fallback', () => {
 		expect(() => transformToWaveTokens(input, undefined, 'hex')).toThrow(
 			'Unsupported color value at theme.style.shadow.bad[0].color',
 		);
+	});
+});
+
+describe('theme-transformer standard value normalization', () => {
+	test('dispatches standalone primitive normalization by effective type', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				dimension: {
+					$type: 'dimension',
+					space: { $value: 8 },
+				},
+				duration: {
+					$type: 'duration',
+					fast: { $value: { value: 200, unit: 'ms' } },
+				},
+				weight: {
+					$type: 'fontWeight',
+					strong: { $value: 'demi-bold' },
+				},
+				stroke: {
+					$type: 'strokeStyle',
+					antline: {
+						$value: {
+							dashArray: [4, { value: 8, unit: 'px' }, '1rem'],
+							lineCap: 'butt',
+						},
+					},
+				},
+				custom: {
+					$type: 'vendorValue',
+					structured: { $value: { value: 8, unit: 'px' } },
+				},
+			},
+		};
+
+		const { tokens } = transformToWaveTokens(input);
+		expect(findToken(tokens, 'theme-dimension-space').value).toBe('8px');
+		expect(findToken(tokens, 'theme-duration-fast').value).toBe('200ms');
+		expect(findToken(tokens, 'theme-weight-strong').value).toBe(600);
+		expect(findToken(tokens, 'theme-stroke-antline').value).toEqual({
+			dashArray: ['4px', '8px', '1rem', '4px', '8px', '1rem'],
+			lineCap: 'butt',
+		});
+		expect(findToken(tokens, 'theme-custom-structured').value).toEqual({
+			value: 8,
+			unit: 'px',
+		});
+	});
+
+	test('normalizes dimension-like fields inside standard composites', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				border: {
+					$type: 'border',
+					antline: {
+						$value: {
+							color: '#112233',
+							width: 1,
+							style: {
+								dashArray: [4, '8pt', 2],
+								lineCap: 'square',
+							},
+						},
+					},
+				},
+				transition: {
+					$type: 'transition',
+					enter: {
+						$value: {
+							duration: { value: 0.2, unit: 's' },
+							delay: { value: -50, unit: 'ms' },
+							timingFunction: [0.4, 0, 0.2, 1],
+						},
+					},
+				},
+				shadow: {
+					$type: 'shadow',
+					raised: {
+						$value: {
+							color: '#00000080',
+							offsetX: -1,
+							offsetY: { value: 4, unit: 'px' },
+							blur: '0.5rem',
+							spread: 0,
+							inset: true,
+						},
+					},
+				},
+				font: {
+					$type: 'typography',
+					body: {
+						$value: {
+							fontFamily: 'Inter',
+							fontSize: 16,
+							fontWeight: 'book',
+							letterSpacing: '0.02em',
+							lineHeight: 1.5,
+						},
+					},
+					caption: {
+						$value: {
+							fontFamily: 'Inter',
+							fontSize: '12pt',
+							fontWeight: 400.5,
+							letterSpacing: 0,
+							lineHeight: { value: 18, unit: 'px' },
+						},
+					},
+				},
+			},
+		};
+
+		const { tokens } = transformToWaveTokens(input);
+		expect(findToken(tokens, 'theme-border-antline').value).toEqual({
+			color: '#112233',
+			width: '1px',
+			style: {
+				dashArray: ['4px', '8pt', '2px', '4px', '8pt', '2px'],
+				lineCap: 'square',
+			},
+		});
+		expect(findToken(tokens, 'theme-transition-enter').value).toEqual({
+			duration: '0.2s',
+			delay: '-50ms',
+			timingFunction: [0.4, 0, 0.2, 1],
+		});
+		expect(findToken(tokens, 'theme-shadow-raised').value).toEqual({
+			color: '#00000080',
+			offsetX: '-1px',
+			offsetY: '4px',
+			blur: '0.5rem',
+			spread: '0px',
+			inset: true,
+		});
+		expect(findToken(tokens, 'theme-font-body').value).toEqual({
+			fontFamily: 'Inter',
+			fontSize: '16px',
+			fontWeight: 400,
+			letterSpacing: '0.02em',
+			lineHeight: 1.5,
+		});
+		expect(findToken(tokens, 'theme-font-caption').value).toEqual({
+			fontFamily: 'Inter',
+			fontSize: '12pt',
+			fontWeight: 400.5,
+			letterSpacing: '0px',
+			lineHeight: '18px',
+		});
 	});
 });

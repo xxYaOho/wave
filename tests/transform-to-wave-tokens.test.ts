@@ -146,10 +146,10 @@ describe('transformToWaveTokens', () => {
 
 		expect(shadow?.value).toEqual({
 			color: '#00000033',
-			offsetX: 0,
+			offsetX: '0px',
 			offsetY: '4px',
 			blur: '8px',
-			spread: 0,
+			spread: '0px',
 		});
 	});
 
@@ -271,10 +271,10 @@ describe('transformToWaveTokens', () => {
 		const token = transformToWaveTokens(input).tokens[0];
 		expect(token?.value).toEqual({
 			fontFamily: ['system-ui', 'PingFang SC'],
-			fontSize: 16,
+			fontSize: '16px',
 			fontWeight: 500,
 			lineHeight: 1.5,
-			letterSpacing: 0,
+			letterSpacing: '0px',
 			color: '#112233',
 		});
 		expect(token?._typographyColor).toBe('#112233');
@@ -307,10 +307,10 @@ describe('transformToWaveTokens', () => {
 		expect(token._typographyColor).toBe('#112233');
 		expect(token.value).toEqual({
 			fontFamily: 'Inter',
-			fontSize: 14,
+			fontSize: '14px',
 			fontWeight: 400,
 			lineHeight: 1.5,
-			letterSpacing: 0,
+			letterSpacing: '0px',
 			color: '#112233',
 		});
 	});
@@ -358,7 +358,7 @@ describe('transformToWaveTokens', () => {
 		expect(token._sketchColorReference).toBe('#/theme/color/text');
 		expect(token.value).toEqual({
 			color: '#112233',
-			width: 1,
+			width: '1px',
 			style: 'solid',
 		});
 	});
