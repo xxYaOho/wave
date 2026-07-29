@@ -42,6 +42,21 @@ describe('Quality Harness design-token case registry', () => {
 		expect(
 			defaultCases.some((testCase) => testCase.id === 'sketch-extensions'),
 		).toBe(true);
+		const dtcgStandardTypes = defaultCases.find(
+			(testCase) => testCase.id === 'dtcg-standard-types',
+		);
+		expect(dtcgStandardTypes?.platforms).toEqual([
+			'json',
+			'jsonc',
+			'css',
+			'sketch',
+		]);
+		expect(dtcgStandardTypes?.example?.sourceName).toBe(
+			'DTCG Format Module 2025.10',
+		);
+		expect(dtcgStandardTypes?.example?.risks).toContain(
+			'all standard token types',
+		);
 		expect(
 			defaultCases.some((testCase) => testCase.id === 'config-group-profiles'),
 		).toBe(true);
@@ -410,6 +425,35 @@ theme:
 			expect(sketchOutput.foundation.shadow.raised.shadow).toBeArray();
 			expect(sketchOutput.foundation.gradient.mask.gradient).toBeArray();
 			expect(result.tokensCount).toBeGreaterThan(0);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('runs the hermetic DTCG standard types case across every platform', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-qh-'));
+		try {
+			const testCase = getDesignTokenCases('smoke').find(
+				(candidate) => candidate.id === 'dtcg-standard-types',
+			);
+			expect(testCase).toBeDefined();
+			const result = await runDesignTokenBenchmarkCase(testCase!, {
+				mode: 'smoke',
+				runId: 'test-dtcg-standard-types',
+				iteration: 0,
+				tmpRoot: tempDir,
+			});
+
+			expect(result.status).toBe('success');
+			expect(result.outputFileNames).toEqual(
+				expect.arrayContaining([
+					'dtcg-standard-types.json',
+					'dtcg-standard-types.jsonc',
+					'dtcg-standard-types.css',
+					'dtcg-standard-types2sketch.json',
+				]),
+			);
+			expect(result.tokensCount).toBeGreaterThanOrEqual(15);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}

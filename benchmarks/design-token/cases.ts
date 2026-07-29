@@ -36,6 +36,35 @@ export const DESIGN_TOKEN_CASES: DesignTokenCase[] = [
 		compareDurations: true,
 	},
 	{
+		id: 'dtcg-standard-types',
+		caseVersion: 1,
+		suites: ['smoke', 'default'],
+		entryKind: 'main-config',
+		origin: 'internal-fixture',
+		example: {
+			sourceName: 'DTCG Format Module 2025.10',
+			capturedFrom: 'https://www.designtokens.org/tr/2025.10/format/',
+			reason:
+				'Covers the real standard value contracts and cross-platform projections in one hermetic fixture.',
+			risks: [
+				'all standard token types',
+				'typed token references',
+				'Wave dimension shorthand',
+				'composite platform projections',
+				'object stringification',
+			],
+		},
+		source: {
+			kind: 'fixture',
+			path: 'tests/fixtures/themes/dtcg-standard-types',
+		},
+		platforms: ['json', 'jsonc', 'css', 'sketch'],
+		filterLayer: 1,
+		includeNight: false,
+		includeProfiles: false,
+		compareDurations: true,
+	},
+	{
 		id: 'config-group-profiles',
 		caseVersion: 1,
 		suites: ['default'],

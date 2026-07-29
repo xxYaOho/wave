@@ -1542,6 +1542,175 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 		});
 	});
 
+	test('generates every DTCG standard type across JSON, CSS, and Sketch', async () => {
+		const fixture = await copyFixtureWorkspace(
+			'fixtures/themes/dtcg-standard-types',
+		);
+		const outputDir = path.join(fixture.dir, 'theme');
+		const previousEnv = applyResourceEnv(fixture.env);
+
+		try {
+			const result = await generateTheme({
+				workspacePath: path.join(fixture.dir, 'main.yaml'),
+				generateOptions: { night: false },
+			});
+
+			expect(result.ok).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toEqual(
+					expect.arrayContaining([
+						'dtcg-standard-types.json',
+						'dtcg-standard-types.jsonc',
+						'dtcg-standard-types.css',
+						'dtcg-standard-types2sketch.json',
+					]),
+				);
+			}
+
+			const json = JSON.parse(
+				await fs.readFile(
+					path.join(outputDir, 'dtcg-standard-types.json'),
+					'utf-8',
+				),
+			);
+			const jsonc = await fs.readFile(
+				path.join(outputDir, 'dtcg-standard-types.jsonc'),
+				'utf-8',
+			);
+			const css = await fs.readFile(
+				path.join(outputDir, 'dtcg-standard-types.css'),
+				'utf-8',
+			);
+			const sketch = JSON.parse(
+				await fs.readFile(
+					path.join(outputDir, 'dtcg-standard-types2sketch.json'),
+					'utf-8',
+				),
+			);
+
+			expect(json['state-source-color']).toBe('#336699');
+			expect(json['state-spacing-alias']).toBe('8px');
+			expect(json['state-wave-spacing']).toBe('12px');
+			expect(json['state-font-stack']).toEqual([
+				'Inter',
+				'Helvetica Neue',
+				'sans-serif',
+			]);
+			expect(json['state-semibold']).toBe(600);
+			expect(json['state-fast']).toBe('200ms');
+			expect(json['state-easing']).toEqual([0.4, 0, 0.2, 1]);
+			expect(json['state-scale']).toBe(0.75);
+			expect(json['state-antline-style']).toEqual({
+				dashArray: ['3px', '5px', '2px', '3px', '5px', '2px'],
+				lineCap: 'round',
+			});
+			expect(json['state-antline']).toEqual({
+				color: '#336699',
+				width: '8px',
+				style: json['state-antline-style'],
+			});
+			expect(json['state-emphasis']).toEqual({
+				duration: '200ms',
+				delay: '50ms',
+				timingFunction: [0.4, 0, 0.2, 1],
+			});
+			expect(json['state-raised']).toEqual({
+				color: '#336699',
+				offsetX: '0px',
+				offsetY: '4px',
+				blur: '12px',
+				spread: '-2px',
+				inset: true,
+			});
+			expect(json['state-focus-gradient']).toEqual([
+				{ color: '#336699', position: 0 },
+				{ color: '#336699', position: 0.25 },
+				{ color: '#ffffff', position: 0.75 },
+				{ color: '#ffffff', position: 1 },
+			]);
+			expect(json['state-body']).toEqual({
+				fontFamily: ['Inter', 'sans-serif'],
+				fontSize: '16px',
+				fontWeight: 400,
+				letterSpacing: '0px',
+				lineHeight: 1.5,
+			});
+			expect(json['state-body-wave']).toEqual({
+				fontFamily: 'Inter',
+				fontSize: '16px',
+				fontWeight: 400,
+				letterSpacing: '0px',
+				lineHeight: '24px',
+				color: '#336699',
+			});
+			expect(jsonc).toContain('"state-wave-spacing": "12px"');
+			expect(jsonc).toContain('"lineCap":"round"');
+
+			expect(css).toContain(
+				'--state-font-stack: Inter, "Helvetica Neue", sans-serif;',
+			);
+			expect(css).toContain('--state-semibold: 600;');
+			expect(css).toContain('--state-easing: cubic-bezier(0.4, 0, 0.2, 1);');
+			expect(css).toContain('--state-antline: 8px dashed #336699;');
+			expect(css).toContain(
+				'--state-antline-dash-array: 3px 5px 2px 3px 5px 2px;',
+			);
+			expect(css).toContain('--state-antline-line-cap: round;');
+			expect(css).toContain(
+				'--state-emphasis: 200ms cubic-bezier(0.4, 0, 0.2, 1) 50ms;',
+			);
+			expect(css).toContain(
+				'--state-raised: inset 0 4px 12px -2px rgb(51 102 153 / 1);',
+			);
+			expect(css).toContain('rgb(51 102 153 / 1) 0%');
+			expect(css).toContain('rgb(255 255 255 / 1) 100%');
+			expect(css).toContain('--state-body-wave-line-height: 24px;');
+			expect(css).not.toContain('[object Object]');
+
+			expect(sketch['state-source-color']).toEqual({ color: '#336699ff' });
+			expect(sketch['state-spacing-alias']).toEqual({ value: '8px' });
+			expect(sketch['state-antline-style']).toEqual({
+				value: json['state-antline-style'],
+			});
+			expect(sketch['state-antline']).toEqual({
+				value: {
+					color: '@/state-source-color',
+					width: '8px',
+					style: json['state-antline-style'],
+				},
+			});
+			expect(sketch['state-emphasis']).toEqual({
+				value: json['state-emphasis'],
+			});
+			expect(sketch['state-raised']).toEqual({
+				shadow: [
+					{
+						x: 0,
+						y: 4,
+						blur: 12,
+						spread: -2,
+						color: '#336699ff',
+						inset: true,
+					},
+				],
+			});
+			expect(sketch['state-focus-gradient'].gradient).toHaveLength(4);
+			expect(sketch['state-body'].textStyle).toEqual({
+				fontFamily: 'Inter',
+				fontSize: 16,
+				fontWeight: 400,
+				lineHeight: 24,
+				kerning: 0,
+			});
+			expect(sketch['state-body-wave'].textStyle.textColor).toBe(
+				'@/state-source-color',
+			);
+		} finally {
+			restoreResourceEnv(previousEnv);
+			await fs.rm(fixture.dir, { recursive: true, force: true });
+		}
+	});
+
 	test('orca-realistic materializes typography and preserves platform output contracts', async () => {
 		const fixture = await copyFixtureWorkspace(
 			'fixtures/themes/orca-realistic',

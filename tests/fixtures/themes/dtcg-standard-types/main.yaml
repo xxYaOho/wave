@@ -1,0 +1,111 @@
+$schema: "https://www.designtokens.org/tr/2025.10/format/"
+
+$config:
+  theme: dtcg-standard-types
+  parameter:
+    outputDir: ./theme
+    filterLayer: 1
+    platform:
+      - json
+      - jsonc
+      - css
+      - sketch
+
+theme:
+  state:
+    source-color:
+      $type: color
+      $value:
+        colorSpace: srgb
+        components: [0.2, 0.4, 0.6]
+        hex: "#336699"
+    spacing:
+      $type: dimension
+      $value:
+        value: 8
+        unit: px
+    spacing-alias:
+      $type: dimension
+      $value: "{theme.state.spacing}"
+    wave-spacing:
+      $type: dimension
+      $value: 12
+    font-stack:
+      $type: fontFamily
+      $value: [Inter, "Helvetica Neue", sans-serif]
+    semibold:
+      $type: fontWeight
+      $value: demi-bold
+    fast:
+      $type: duration
+      $value:
+        value: 200
+        unit: ms
+    easing:
+      $type: cubicBezier
+      $value: [0.4, 0, 0.2, 1]
+    scale:
+      $type: number
+      $value: 0.75
+    antline-style:
+      $type: strokeStyle
+      $value:
+        dashArray:
+          - value: 3
+            unit: px
+          - 5
+          - "2px"
+        lineCap: round
+    antline:
+      $type: border
+      $value:
+        color: "{theme.state.source-color}"
+        width: "{theme.state.spacing}"
+        style: "{theme.state.antline-style}"
+    emphasis:
+      $type: transition
+      $value:
+        duration: "{theme.state.fast}"
+        delay:
+          value: 50
+          unit: ms
+        timingFunction: "{theme.state.easing}"
+    raised:
+      $type: shadow
+      $value:
+        color: "{theme.state.source-color}"
+        offsetX: 0
+        offsetY: 4
+        blur: 12
+        spread: -2
+        inset: true
+    focus-gradient:
+      $type: gradient
+      $value:
+        - color: "{theme.state.source-color}"
+          position: 0.25
+        - color: "#ffffff"
+          position: 0.75
+    body:
+      $type: typography
+      $value:
+        fontFamily: [Inter, sans-serif]
+        fontSize:
+          value: 16
+          unit: px
+        fontWeight: book
+        letterSpacing:
+          value: 0
+          unit: px
+        lineHeight: 1.5
+    body-wave:
+      $type: typography
+      $value:
+        fontFamily: Inter
+        fontSize: 16
+        fontWeight: 400
+        letterSpacing: 0
+        lineHeight:
+          value: 24
+          unit: px
+        color: "{theme.state.source-color}"
