@@ -13,11 +13,12 @@ import {
 } from '../../typography-value.ts';
 
 interface SketchShadowLayer {
-	x: number | string;
-	y: number | string;
-	blur: number | string;
-	spread: number | string;
+	x: number;
+	y: number;
+	blur: number;
+	spread: number;
 	color: string;
+	inset?: boolean;
 }
 
 function findSiblingToken(
@@ -52,16 +53,14 @@ function hexToSketchColor(hex: string): string {
 	return hex;
 }
 
-function cleanValue(val: number | string): number | string {
-	if (typeof val === 'string' && val.endsWith('px')) {
-		const num = parseFloat(val);
-		return Number.isNaN(num) ? val : num;
-	}
-	return val;
-}
-
 function tokenPathLabel(token: WaveToken): string {
 	return token.path.join('.');
+}
+
+function sketchPlatformError(token: WaveToken, reason: string): Error {
+	return new Error(
+		`Sketch output failed at ${tokenPathLabel(token)} (type "${token.type ?? 'unknown'}", _targetColorSpace "${token._targetColorSpace ?? 'hex'}"): ${reason}`,
+	);
 }
 
 function roundTo(value: number, places: number): number {
@@ -73,6 +72,12 @@ function toSketchTypographyLength(
 	dimension: ParsedTypographyDimension,
 	token: WaveToken,
 ): number {
+	if (dimension.unit === 'em' || dimension.unit === '%') {
+		throw sketchPlatformError(
+			token,
+			`unit "${dimension.unit}" cannot be represented by a Sketch numeric typography property`,
+		);
+	}
 	if (dimension.unit !== 'rem') return dimension.value;
 	const baseFontSize = token._typographyBaseFontSize;
 	if (
@@ -88,32 +93,55 @@ function toSketchTypographyLength(
 function assertHexColor(color: string, token: WaveToken): void {
 	if (/^#[0-9a-fA-F]{3,4}$/.test(color)) return;
 	if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(color)) return;
-	throw new Error(
-		`Sketch color output requires hex color at ${tokenPathLabel(token)}`,
+	throw sketchPlatformError(
+		token,
+		`color "${color}" cannot be represented as Sketch HEX8`,
 	);
+}
+
+function formatSketchColorValue(
+	token: WaveToken,
+	value: unknown,
+	field: string,
+): string {
+	if (typeof value !== 'string') {
+		const hasNone =
+			typeof value === 'object' &&
+			value !== null &&
+			!Array.isArray(value) &&
+			Array.isArray((value as Record<string, unknown>).components) &&
+			((value as Record<string, unknown>).components as unknown[]).includes(
+				'none',
+			);
+		throw sketchPlatformError(
+			token,
+			hasNone
+				? `${field} contains "none" and has no hex fallback for Sketch`
+				: `${field} is not a transformer-normalized hex color`,
+		);
+	}
+	assertHexColor(value, token);
+	return hexToSketchColor(value);
 }
 
 function isFiniteNumber(value: unknown): value is number {
 	return typeof value === 'number' && Number.isFinite(value);
 }
 
-function parseFiniteNumber(value: unknown): number | undefined {
+function parseSketchNativeLength(
+	value: unknown,
+	token: WaveToken,
+	field: string,
+): number {
 	if (isFiniteNumber(value)) return value;
-	if (typeof value !== 'string') return undefined;
-	const parsed = parseFloat(value);
-	return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function parseDimensionNumber(value: unknown): number | undefined {
-	if (isFiniteNumber(value)) return value;
-	if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-		const obj = value as Record<string, unknown>;
-		if (obj.unit !== undefined && obj.unit !== 'px') return undefined;
-		return parseDimensionNumber(obj.value);
+	if (typeof value === 'string') {
+		const match = value.trim().match(/^(-?\d+(?:\.\d+)?)(px|pt)$/);
+		if (match) return Number(match[1]);
 	}
-	if (typeof value !== 'string') return undefined;
-	if (!/^-?\d+(?:\.\d+)?px$/.test(value.trim())) return undefined;
-	return parseFiniteNumber(value);
+	throw sketchPlatformError(
+		token,
+		`${field} requires a finite number or px/pt dimension; received ${JSON.stringify(value)}`,
+	);
 }
 
 function resolveSketchColorValue(token: WaveToken): string {
@@ -171,13 +199,7 @@ function resolveDimensionValue(
 	}
 
 	if (propertyKey === 'cornerRadius') {
-		const parsed = parseDimensionNumber(value);
-		if (parsed === undefined) {
-			throw new Error(
-				`Sketch property cornerRadius requires a finite number or px dimension at ${tokenPathLabel(token)}`,
-			);
-		}
-		return parsed;
+		return parseSketchNativeLength(value, token, 'property.cornerRadius');
 	}
 
 	return typeof value === 'string' ? parseFloat(value) : value;
@@ -187,29 +209,29 @@ function processShadowLayer(
 	layer: Record<string, unknown>,
 	token: WaveToken,
 ): SketchShadowLayer {
-	const color = String(layer.color);
-	assertHexColor(color, token);
 	return {
-		x: cleanValue(layer.offsetX as number | string),
-		y: cleanValue(layer.offsetY as number | string),
-		blur: cleanValue(layer.blur as number | string),
-		spread: cleanValue(layer.spread as number | string),
-		color: hexToSketchColor(color),
+		x: parseSketchNativeLength(layer.offsetX, token, 'shadow.offsetX'),
+		y: parseSketchNativeLength(layer.offsetY, token, 'shadow.offsetY'),
+		blur: parseSketchNativeLength(layer.blur, token, 'shadow.blur'),
+		spread: parseSketchNativeLength(layer.spread, token, 'shadow.spread'),
+		color: formatSketchColorValue(token, layer.color, 'shadow.color'),
+		...(typeof layer.inset === 'boolean' && { inset: layer.inset }),
 	};
 }
 
-function parseOutlineWidth(value: unknown): number {
+function parseOutlineWidth(value: unknown, token: WaveToken): number {
 	if (typeof value !== 'object' || value === null || Array.isArray(value)) {
 		return 0;
 	}
 	const width = (value as Record<string, unknown>).width;
 	if (typeof width === 'object' && width !== null) {
-		throw new Error(
+		throw sketchPlatformError(
+			token,
 			'Sketch outline output requires transformer-normalized width',
 		);
 	}
-	const parsed = parseDimensionNumber(width);
-	return parsed ?? 0;
+	if (width === undefined) return 0;
+	return parseSketchNativeLength(width, token, 'outline.width');
 }
 
 function outlineColor(value: unknown, token: WaveToken): string {
@@ -218,8 +240,9 @@ function outlineColor(value: unknown, token: WaveToken): string {
 	}
 	const color = (value as Record<string, unknown>).color;
 	if (typeof color === 'object' && color !== null) {
-		throw new Error(
-			`Sketch outline output requires transformer-normalized color at ${tokenPathLabel(token)}`,
+		throw sketchPlatformError(
+			token,
+			'Sketch outline output requires transformer-normalized color',
 		);
 	}
 	return typeof color === 'string' ? color : '#000000';
@@ -271,7 +294,7 @@ function selectSketchFontFamily(value: unknown): string | undefined {
 
 function formatSketchColorSlot(
 	token: WaveToken,
-	color: string,
+	color: unknown,
 	colorReferencePaths: Map<string, string>,
 ): string {
 	const reference = token._sketchColorReference;
@@ -284,8 +307,7 @@ function formatSketchColorSlot(
 			);
 		}
 	}
-	assertHexColor(color, token);
-	return hexToSketchColor(color);
+	return formatSketchColorValue(token, color, 'composite color');
 }
 
 function formatSketchTypography(
@@ -302,7 +324,8 @@ function formatSketchTypography(
 	const textStyle: Record<string, unknown> = {};
 	try {
 		if (obj.color !== undefined && token._typographyColor === undefined) {
-			throw new Error('color is not normalized');
+			formatSketchColorValue(token, obj.color, 'typography.color');
+			throw new Error('typography.color is missing formatter metadata');
 		}
 		const fontFamily = selectSketchFontFamily(obj.fontFamily);
 		if (fontFamily !== undefined) textStyle.fontFamily = fontFamily;
@@ -617,6 +640,13 @@ function formatSketchValue(
 	}
 
 	if (token.type === 'color' || token.inheritColor === true) {
+		if (
+			token.type === 'color' &&
+			token.inheritColor !== true &&
+			extractColorFromValue(token.value) === undefined
+		) {
+			formatSketchColorValue(token, token.value, 'color');
+		}
 		const { color, opacity, alpha } = resolveSketchColor(token, allTokens);
 		assertHexColor(color, token);
 		if (typeof opacity === 'number' || typeof alpha === 'number') {
@@ -633,7 +663,7 @@ function formatSketchValue(
 	}
 
 	if (token.type === 'border' && token._outline) {
-		const width = parseOutlineWidth(token.value);
+		const width = parseOutlineWidth(token.value, token);
 		const offset = token._outline.offset;
 		const color = outlineColor(token.value, token);
 		assertHexColor(color, token);
@@ -663,10 +693,9 @@ function formatSketchValue(
 			token.value === null ||
 			Array.isArray(token.value)
 		) {
-			return { value: resolveDimensionValue(token) };
+			throw sketchPlatformError(token, 'border requires a normalized object');
 		}
 		const value = token.value as Record<string, unknown>;
-		if (typeof value.color !== 'string') return { value };
 		return {
 			value: {
 				...value,
@@ -688,10 +717,8 @@ function formatSketchValue(
 		const gradientArray = toObjectArray(token.value, 'gradient', token);
 		return {
 			gradient: gradientArray.map((stop) => {
-				const color = String(stop.color);
-				assertHexColor(color, token);
 				return {
-					color: hexToSketchColor(color),
+					color: formatSketchColorValue(token, stop.color, 'gradient.color'),
 					position: stop.position,
 				};
 			}),
@@ -702,16 +729,11 @@ function formatSketchValue(
 		(token.type === 'number' || token.type === 'dimension') &&
 		isRadiusSketchPath(token)
 	) {
-		const parsed = parseDimensionNumber(token.value);
-		if (parsed === undefined) {
-			throw new Error(
-				`Sketch radius path requires a finite number or px dimension at ${tokenPathLabel(token)}`,
-			);
-		}
+		const parsed = parseSketchNativeLength(token.value, token, 'radius');
 		return { corners: { radii: parsed } };
 	}
 
-	return { value: resolveDimensionValue(token) };
+	return { value: token.value };
 }
 
 export const sketchFormat: WaveFormatFn = (

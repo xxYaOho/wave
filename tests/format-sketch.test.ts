@@ -24,15 +24,178 @@ describe('sketchFormat (Wave-native)', () => {
 			{
 				name: 'theme-dimension-gap-small',
 				path: ['theme', 'dimension', 'gap', 'small'],
-				value: 4,
+				value: '4px',
 				type: 'dimension',
 				_order: 0,
+			},
+			{
+				name: 'theme-dimension-gap-relative',
+				path: ['theme', 'dimension', 'gap', 'relative'],
+				value: '0.5rem',
+				type: 'dimension',
+				_order: 1,
 			},
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed['gap-small']).toEqual({ value: 4 });
+		expect(parsed['gap-small']).toEqual({ value: '4px' });
+		expect(parsed['gap-relative']).toEqual({ value: '0.5rem' });
+	});
+
+	test('emits exact payloads for every standard type', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-brand',
+				path: ['theme', 'color', 'brand'],
+				type: 'color',
+				value: '#112233',
+				_order: 0,
+			},
+			...[
+				['dimension', '8px'],
+				['fontFamily', ['Inter', 'sans-serif']],
+				['fontWeight', 700],
+				['duration', '200ms'],
+				['cubicBezier', [0.4, 0, 0.2, 1]],
+				['number', 0.5],
+				['strokeStyle', { dashArray: ['4px', '8px'], lineCap: 'butt' }],
+				[
+					'transition',
+					{
+						duration: '200ms',
+						delay: '0ms',
+						timingFunction: [0.4, 0, 0.2, 1],
+					},
+				],
+			].map(([type, value], index) => ({
+				name: `theme-standard-${type}`,
+				path: ['theme', 'standard', type as string],
+				type: type as string,
+				value,
+				_order: index + 1,
+			})),
+			{
+				name: 'theme-standard-border',
+				path: ['theme', 'standard', 'border'],
+				type: 'border',
+				value: {
+					color: '#112233',
+					width: '1px',
+					style: { dashArray: ['4px', '8px'], lineCap: 'butt' },
+				},
+				_sketchColorReference: '{theme.color.brand}',
+				_order: 9,
+			},
+			{
+				name: 'theme-standard-shadow',
+				path: ['theme', 'standard', 'shadow'],
+				type: 'shadow',
+				value: [
+					{
+						color: '#11223380',
+						offsetX: '0px',
+						offsetY: '4px',
+						blur: '8px',
+						spread: '0px',
+						inset: false,
+					},
+				],
+				_order: 10,
+			},
+			{
+				name: 'theme-standard-gradient',
+				path: ['theme', 'standard', 'gradient'],
+				type: 'gradient',
+				value: [
+					{ color: '#112233', position: 0 },
+					{ color: '#445566', position: 1 },
+				],
+				_order: 11,
+			},
+			{
+				name: 'theme-standard-typography',
+				path: ['theme', 'standard', 'typography'],
+				type: 'typography',
+				value: {
+					fontFamily: 'Inter',
+					fontSize: '16px',
+					fontWeight: 400,
+					letterSpacing: '0px',
+					lineHeight: 1.5,
+				},
+				_order: 12,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		expect(parsed.brand).toEqual({ color: '#112233ff' });
+		expect(parsed.dimension).toEqual({ value: '8px' });
+		expect(parsed.fontFamily).toEqual({ value: ['Inter', 'sans-serif'] });
+		expect(parsed.fontWeight).toEqual({ value: 700 });
+		expect(parsed.duration).toEqual({ value: '200ms' });
+		expect(parsed.cubicBezier).toEqual({ value: [0.4, 0, 0.2, 1] });
+		expect(parsed.number).toEqual({ value: 0.5 });
+		expect(parsed.strokeStyle).toEqual({
+			value: { dashArray: ['4px', '8px'], lineCap: 'butt' },
+		});
+		expect(parsed.transition).toEqual({
+			value: {
+				duration: '200ms',
+				delay: '0ms',
+				timingFunction: [0.4, 0, 0.2, 1],
+			},
+		});
+		expect(parsed.border).toEqual({
+			value: {
+				color: '@/brand',
+				width: '1px',
+				style: { dashArray: ['4px', '8px'], lineCap: 'butt' },
+			},
+		});
+		expect(parsed.shadow).toEqual({
+			shadow: [
+				{
+					x: 0,
+					y: 4,
+					blur: 8,
+					spread: 0,
+					color: '#11223380',
+					inset: false,
+				},
+			],
+		});
+		expect(parsed.gradient).toEqual({
+			gradient: [
+				{ color: '#112233ff', position: 0 },
+				{ color: '#445566ff', position: 1 },
+			],
+		});
+		expect(parsed.typography).toEqual({
+			textStyle: {
+				fontFamily: 'Inter',
+				fontSize: 16,
+				fontWeight: 400,
+				lineHeight: 24,
+				kerning: 0,
+			},
+		});
+	});
+
+	test('preserves unknown structured values in the generic value payload', () => {
+		const value = { custom: ['a', { nested: true }] };
+		const parsed = JSON.parse(
+			sketchFormat([
+				{
+					name: 'theme-custom-payload',
+					path: ['theme', 'custom', 'payload'],
+					type: 'vendorCustom',
+					value,
+					_order: 0,
+				},
+			]),
+		);
+		expect(parsed['theme-custom-payload']).toEqual({ value });
 	});
 
 	test('sketch output excludes public dimension root', () => {
@@ -134,7 +297,7 @@ describe('sketchFormat (Wave-native)', () => {
 	});
 
 	test('preserves structured dashArray on ordinary borders', () => {
-		const dashArray = [0, 4, '8px', { value: 2, unit: 'pt' }];
+		const dashArray = ['0px', '4px', '8px', '2pt'];
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-border-antline',
@@ -143,7 +306,7 @@ describe('sketchFormat (Wave-native)', () => {
 				value: {
 					color: '#000000',
 					width: 1,
-					style: { dashArray },
+					style: { dashArray, lineCap: 'round' },
 				},
 				_order: 0,
 			},
@@ -155,7 +318,7 @@ describe('sketchFormat (Wave-native)', () => {
 			value: {
 				color: '#000000ff',
 				width: 1,
-				style: { dashArray },
+				style: { dashArray, lineCap: 'round' },
 			},
 		});
 	});
@@ -239,8 +402,119 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
-			'Sketch color output requires hex color',
+			'Sketch output failed at theme.color.primary.main',
 		);
+	});
+
+	test('fails preserved none colors with path, platform, target, and reason', () => {
+		const preservedColor = {
+			colorSpace: 'oklch',
+			components: ['none', 0.2, 260],
+			alpha: 1,
+		};
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-none',
+				path: ['theme', 'color', 'none'],
+				type: 'color',
+				value: preservedColor,
+				_targetColorSpace: 'oklch',
+				_order: 0,
+			},
+			{
+				name: 'theme-border-none',
+				path: ['theme', 'border', 'none'],
+				type: 'border',
+				value: { color: preservedColor, width: '1px', style: 'solid' },
+				_targetColorSpace: 'oklch',
+				_order: 1,
+			},
+			{
+				name: 'theme-shadow-none',
+				path: ['theme', 'shadow', 'none'],
+				type: 'shadow',
+				value: {
+					color: preservedColor,
+					offsetX: '0px',
+					offsetY: '1px',
+					blur: '2px',
+					spread: '0px',
+				},
+				_targetColorSpace: 'oklch',
+				_order: 2,
+			},
+			{
+				name: 'theme-gradient-none',
+				path: ['theme', 'gradient', 'none'],
+				type: 'gradient',
+				value: [
+					{ color: preservedColor, position: 0 },
+					{ color: preservedColor, position: 1 },
+				],
+				_targetColorSpace: 'oklch',
+				_order: 3,
+			},
+			{
+				name: 'theme-font-none',
+				path: ['theme', 'font', 'none'],
+				type: 'typography',
+				value: {
+					fontFamily: 'Inter',
+					fontSize: '16px',
+					fontWeight: 400,
+					letterSpacing: '0px',
+					lineHeight: 1.5,
+					color: preservedColor,
+				},
+				_targetColorSpace: 'oklch',
+				_order: 4,
+			},
+		];
+
+		for (const token of tokens) {
+			let message = '';
+			try {
+				sketchFormat([token]);
+			} catch (error) {
+				message = error instanceof Error ? error.message : String(error);
+			}
+			expect(message).toContain('Sketch');
+			expect(message).toContain(token.path.join('.'));
+			expect(message).toContain('_targetColorSpace "oklch"');
+			expect(message).toContain('contains "none"');
+			expect(message).toContain('hex fallback');
+		}
+	});
+
+	test('rejects units without a Sketch numeric projection contract', () => {
+		for (const unit of ['em', 'rem', '%']) {
+			const radius: WaveToken = {
+				name: `theme-radius-${unit}`,
+				path: ['theme', 'radius', unit],
+				type: 'dimension',
+				value: `1${unit}`,
+				_sketch: { property: { cornerRadius: true } },
+				_order: 0,
+			};
+			const shadow: WaveToken = {
+				name: `theme-shadow-${unit}`,
+				path: ['theme', 'shadow', unit],
+				type: 'shadow',
+				value: {
+					color: '#000000',
+					offsetX: `1${unit}`,
+					offsetY: '0px',
+					blur: '1px',
+					spread: '0px',
+				},
+				_order: 1,
+			};
+
+			for (const token of [radius, shadow]) {
+				expect(() => sketchFormat([token])).toThrow('Sketch output failed');
+				expect(() => sketchFormat([token])).toThrow(token.path.join('.'));
+			}
+		}
 	});
 
 	test('formats normalized shadow and gradient colors as hex8', () => {
@@ -263,7 +537,10 @@ describe('sketchFormat (Wave-native)', () => {
 			{
 				name: 'theme-gradient-accent',
 				path: ['theme', 'gradient', 'accent'],
-				value: [{ color: '#ff000040', position: 0 }],
+				value: [
+					{ color: '#ff000040', position: 0 },
+					{ color: '#ff000040', position: 1 },
+				],
 				type: 'gradient',
 				_order: 1,
 			},
@@ -888,7 +1165,10 @@ describe('sketchFormat (Wave-native)', () => {
 				name: 'theme-gradient-accent',
 				path: ['theme', 'gradient', 'accent'],
 				type: 'gradient',
-				value: [{ color: '#112233', position: 0 }],
+				value: [
+					{ color: '#112233', position: 0 },
+					{ color: '#112233', position: 1 },
+				],
 				_sketchColorReference: '{theme.color.base}',
 				_order: 3,
 			},
