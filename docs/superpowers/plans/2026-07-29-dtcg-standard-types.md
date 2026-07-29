@@ -63,7 +63,7 @@
 
 - [ ] **Step 1: 写 dimension、duration、fontWeight 和 strokeStyle helper 的失败测试**
 
-  覆盖：标准 `{ value, unit: px|rem }`；Wave 裸 number、numeric string、`px|rem|pt|em|%`；duration 只允许 `ms|s`；fontWeight 全部标准别名；strokeStyle object 必含 `dashArray` 与 `lineCap`，但 schema 不拒绝负数或全零 dash。
+  覆盖：标准 `{ value, unit: px|rem }`；Wave 裸 number、numeric string、`px|rem|pt|em|%`；duration 只允许 `ms|s`；fontWeight 全部标准别名；strokeStyle object 必含 `dashArray` 与 `lineCap`，但 shared value helper 不拒绝负数或全零 dash。
 
   ```ts
   expect(parseDimension(8, { defaultUnit: 'px' })).toEqual({
@@ -198,7 +198,16 @@
 
 - [ ] **Step 5: 保留单元素 composite reference provenance**
 
-  在 `reference-resolution.ts` 统一持有 provenance side-table，并由 external/internal `reference-token-processor` 两 pass 传递；不得向 `WaveToken` 或任何 formatter 泄漏字段，也不得把数组引用 flatten。
+  将 `resolveReferences()` 的内部返回合同改为：
+
+  ```ts
+  interface ReferenceResolutionResult {
+    tree: ResolvedTokenGroup;
+    provenance: ReferenceProvenanceMap;
+  }
+  ```
+
+  `reference-resolution.ts` 统一持有 provenance side-table，并由 external/internal `reference-token-processor` 两 pass 填充。`theme-pipeline.ts` 取得结果后，先调用 `validateResolvedCompositeReferences(result.tree, result.provenance)` 验证 shadow/gradient 单元素引用与嵌套数组，再把 `result.tree` 传给现有 resolved schema 和 transformer。provenance 不写回 tree，不向 `WaveToken` 或 formatter 泄漏，也不得把数组引用 flatten。
 
 - [ ] **Step 6: 运行 reference、schema 和 integration tests**
 
@@ -546,7 +555,7 @@
 
 - [ ] **Step 1: 运行 focused aggregate tests**
 
-  Run: `bun test tests/theme-schema.test.ts tests/dtcg-reference-types.test.ts tests/theme-transformer.test.ts tests/color-value.test.ts tests/color-space.test.ts tests/format-flat.test.ts tests/format-css.test.ts tests/format-sketch.test.ts tests/token-generator.test.ts tests/integration/theme-service.test.ts tests/quality-harness.test.ts`
+  Run: `bun test tests/token-values.test.ts tests/theme-schema.test.ts tests/dtcg-reference-types.test.ts tests/theme-transformer.test.ts tests/color-value.test.ts tests/color-space.test.ts tests/format-flat.test.ts tests/format-css.test.ts tests/format-sketch.test.ts tests/token-generator.test.ts tests/integration/theme-service.test.ts tests/quality-harness.test.ts`
 
   Expected: PASS。
 
@@ -587,19 +596,44 @@
 
 - [ ] **Step 3: 执行真实 Orca smoke**
 
-  Run: `ORCA_SMOKE_DIR="$(mktemp -d /Users/teatao/Projects/my-color/orca/.tmp/wave-stock-style-smoke.XXXXXX)"`
+  在同一个受控 shell 中创建、使用并清理临时目录，避免变量跨 shell 丢失：
 
-  Run: `pnpm dev -- dt build -f /Users/teatao/Projects/my-color/orca/main.yaml --out "$ORCA_SMOKE_DIR"`
+  ```bash
+  set -euo pipefail
+  ORCA_SMOKE_DIR="$(mktemp -d /Users/teatao/Projects/my-color/orca/.tmp/wave-stock-style-smoke.XXXXXX)"
+  cleanup_orca_smoke() {
+    case "$ORCA_SMOKE_DIR" in
+      /Users/teatao/Projects/my-color/orca/.tmp/wave-stock-style-smoke.*)
+        rm -rf "$ORCA_SMOKE_DIR"
+        ;;
+      *)
+        echo "Refusing to clean unexpected smoke path: $ORCA_SMOKE_DIR" >&2
+        exit 1
+        ;;
+    esac
+  }
+  trap cleanup_orca_smoke EXIT
 
-  Expected: light、named profile 与 Sketch parameter groups 全部成功；不通过覆盖 `--platform` 绕过既有互斥 group。
+  pnpm dev -- dt build \
+    -f /Users/teatao/Projects/my-color/orca/main.yaml \
+    --out "$ORCA_SMOKE_DIR"
 
-- [ ] **Step 4: 检查损坏输出**
+  if rg -n -- "\\[object Object\\]" "$ORCA_SMOKE_DIR"; then
+    echo "Found object stringification in Orca output" >&2
+    exit 1
+  fi
+  rg -n -- '--border-antline: .* dashed ' "$ORCA_SMOKE_DIR"
+  rg -n -- '--border-antline-dash-array: 4px 8px;' "$ORCA_SMOKE_DIR"
+  rg -n -- '--border-antline-line-cap: butt;' "$ORCA_SMOKE_DIR"
+  rg -n -- '"dashArray"' "$ORCA_SMOKE_DIR"/*2sketch.json
+  rg -n -- '"lineCap": "butt"' "$ORCA_SMOKE_DIR"/*2sketch.json
+  ```
 
-  Run: `rg -n -- "\\[object Object\\]" "$ORCA_SMOKE_DIR"`
+  Expected: light、named profile 与 Sketch parameter groups 全部成功；不通过覆盖 `--platform` 绕过既有互斥 group；无 `[object Object]`；CSS 三项声明和 Sketch dashArray/lineCap 均命中。trap 只删除本步骤由 `mktemp` 创建且通过 prefix guard 的目录。
 
-  Expected: exit 1，无匹配。生成 CSS 包含 border shorthand、`-dash-array` 和 `-line-cap`；Sketch payload 保留完整 border value。
+- [ ] **Step 4: 记录 smoke 证据**
 
-  检查完成后只删除本步骤由 `mktemp` 创建的 `$ORCA_SMOKE_DIR`，不清理 Orca 的其他 `.tmp` 内容。
+  在任务汇报中记录生成文件清单及上述五项正/负断言结果；不提交临时产物。
 
 - [ ] **Step 5: 提交 Orca migration**
 
