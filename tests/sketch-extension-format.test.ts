@@ -113,7 +113,10 @@ describe('sketch extension format', () => {
 		];
 
 		expect(() => sketchFormat(tokens)).toThrow(
-			'Sketch color output requires a color value',
+			'Sketch output failed at theme.color.alpha',
+		);
+		expect(() => sketchFormat(tokens)).toThrow(
+			'color is not a transformer-normalized hex color',
 		);
 	});
 
@@ -180,7 +183,7 @@ describe('sketch extension format', () => {
 			token({
 				name: 'theme-dimension-radius-md',
 				path: ['theme', 'dimension', 'radius', 'md'],
-				value: { value: 8, unit: 'px' },
+				value: '8px',
 				type: 'dimension',
 				_sketch: { path: 'dimension-v2/radius' },
 			}),
@@ -221,7 +224,10 @@ describe('sketch extension format', () => {
 		];
 
 		expect(() => sketchFormat(tokens)).toThrow(
-			'Sketch property cornerRadius requires a finite number or px dimension',
+			'Sketch output failed at theme.dimension.radius.card',
+		);
+		expect(() => sketchFormat(tokens)).toThrow(
+			'property.cornerRadius requires a finite number or px/pt dimension',
 		);
 	});
 

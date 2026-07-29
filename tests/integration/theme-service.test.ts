@@ -753,10 +753,10 @@ theme:
 				expect(json['theme-style-shadow-sm']).toEqual([
 					{
 						color: '#0000001a',
-						offsetX: 0,
-						offsetY: 1,
-						blur: 2,
-						spread: 0,
+						offsetX: '0px',
+						offsetY: '1px',
+						blur: '2px',
+						spread: '0px',
 					},
 				]);
 				expect(typeof json['theme-dimension-alpha-sm']).toBe('number');
@@ -1316,10 +1316,10 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			expect(json['theme-style-shadow-elevated']).toEqual([
 				{
 					color: '#4f39f633',
-					offsetX: 0,
-					offsetY: 8,
-					blur: 16,
-					spread: 0,
+					offsetX: '0px',
+					offsetY: '8px',
+					blur: '16px',
+					spread: '0px',
 				},
 			]);
 			expect(JSON.stringify(json)).not.toContain('$ref');
@@ -2265,7 +2265,7 @@ theme:
 			await cleanupTempTheme(theme);
 		});
 
-		test('build rejects typography values that the Sketch platform cannot express', async () => {
+		test('build rejects negative typography dimensions at the CSS platform', async () => {
 			const theme = await createTempTheme({
 				name: 'typography-resolved-invalid',
 				tokens: {},
@@ -2301,7 +2301,10 @@ theme:
 
 			expect(result.ok).toBe(false);
 			if (!result.ok) {
-				expect(result.message).toContain('Sketch typography output failed');
+				expect(result.message).toContain('CSS platform error');
+				expect(result.message).toContain(
+					'typography fontSize must be non-negative',
+				);
 				expect(result.message).toContain('theme.font.body');
 			}
 			await cleanupTempTheme(theme);
