@@ -33,14 +33,14 @@ export function normalizeFontWeight(input: unknown): ParseResult<number> {
 
 	if (
 		weight === undefined ||
-		!Number.isInteger(weight) ||
+		!Number.isFinite(weight) ||
 		weight < 1 ||
 		weight > 1000
 	) {
 		return {
 			ok: false,
 			message:
-				'fontWeight must be an integer from 1 to 1000 or a standard name',
+				'fontWeight must be a finite number from 1 to 1000 or a standard name',
 		};
 	}
 	return { ok: true, value: weight };

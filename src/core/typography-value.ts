@@ -1,5 +1,8 @@
 import type { DtcgValue, TypographyDefaults } from '../types/index.ts';
-import { parseDimension } from './token-values/dimension.ts';
+import {
+	type DimensionUnit,
+	parseDimension,
+} from './token-values/dimension.ts';
 import { normalizeFontWeight } from './token-values/font-weight.ts';
 
 export const TYPOGRAPHY_FIELDS = [
@@ -30,7 +33,7 @@ function hasControlCharacter(value: string): boolean {
 
 export interface ParsedTypographyDimension {
 	value: number;
-	unit?: 'px' | 'pt' | 'rem';
+	unit?: DimensionUnit;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -60,18 +63,7 @@ export function parseTypographyDimension(
 ): ParsedTypographyDimension | undefined {
 	const parsed = parseDimension(value);
 	if (!parsed.ok) return undefined;
-	if (
-		parsed.value.unit !== undefined &&
-		parsed.value.unit !== 'px' &&
-		parsed.value.unit !== 'pt' &&
-		parsed.value.unit !== 'rem'
-	) {
-		return undefined;
-	}
-	return {
-		value: parsed.value.value,
-		...(parsed.value.unit ? { unit: parsed.value.unit } : {}),
-	} as ParsedTypographyDimension;
+	return parsed.value;
 }
 
 export function parseTypographyLineHeight(
@@ -80,7 +72,11 @@ export function parseTypographyLineHeight(
 	const multiplier = parseTypographyNumber(value);
 	if (multiplier !== undefined) return { value: multiplier };
 	const dimension = parseTypographyDimension(value);
-	return dimension?.unit ? dimension : undefined;
+	return dimension?.unit === 'px' ||
+		dimension?.unit === 'pt' ||
+		dimension?.unit === 'rem'
+		? dimension
+		: undefined;
 }
 
 export function normalizeFontFamilyMember(
@@ -125,7 +121,7 @@ export function validateTypographyField(
 		const parsed = normalizeFontWeight(value);
 		return parsed.ok
 			? undefined
-			: 'must be an integer from 1 to 1000, numeric string, or standard name';
+			: 'must be a finite number from 1 to 1000 or a standard name';
 	}
 
 	const parsed =
@@ -133,7 +129,9 @@ export function validateTypographyField(
 			? parseTypographyLineHeight(value)
 			: parseTypographyDimension(value);
 	if (parsed === undefined) {
-		return 'must be a finite number or dimension using only px, pt, or rem';
+		return field === 'lineHeight'
+			? 'must be a finite number or dimension using only px, pt, or rem'
+			: 'must be a finite number or dimension using px, rem, pt, em, or %';
 	}
 	return undefined;
 }

@@ -5,6 +5,7 @@ import {
 	validateCompleteTokenReferenceTypes,
 	validateResolvedCompositeReferences,
 } from '../src/core/schema/dtcg-reference-types.ts';
+import { validateThemeSchema } from '../src/core/schema/theme.ts';
 import type {
 	DtcgTokenGroup,
 	ReferenceDataSources,
@@ -21,6 +22,55 @@ function validateAndResolve(
 }
 
 describe('DTCG typed complete-token references', () => {
+	test('defers whole-token typography aliases in raw schema only', () => {
+		const tree = {
+			theme: {
+				font: {
+					$type: 'typography',
+					body: {
+						$value: {
+							fontFamily: 'Inter',
+							fontSize: 16,
+							fontWeight: 400,
+							letterSpacing: 0,
+							lineHeight: 1.5,
+						},
+					},
+					curlyAlias: { $value: '{theme.font.body}' },
+					pointerAlias: {
+						$value: { $ref: '#/theme/font/body/$value' },
+					},
+				},
+			},
+		} as DtcgTokenGroup;
+
+		expect(validateThemeSchema(tree, 'raw').valid).toBe(true);
+		const resolvedPhase = validateThemeSchema(tree, 'resolved');
+		expect(resolvedPhase.valid).toBe(false);
+		expect(
+			resolvedPhase.issues.filter((issue) => issue.level === 'error'),
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					path: 'theme.font.curlyAlias.$value',
+					message: 'typography value must be an object',
+				}),
+			]),
+		);
+
+		const result = validateAndResolve({
+			theme: {
+				font: {
+					$type: 'typography',
+					body: (tree.theme as Record<string, Record<string, unknown>>).font
+						?.body as { $value: Record<string, unknown> },
+					alias: { $value: '{theme.font.body}' },
+				},
+			},
+		});
+		expect(validateThemeSchema(result.tree, 'resolved').valid).toBe(true);
+	});
+
 	test('accepts an internal curly alias with the same explicit type', () => {
 		const result = validateAndResolve({
 			theme: {

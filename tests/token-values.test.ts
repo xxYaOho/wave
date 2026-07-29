@@ -95,9 +95,17 @@ describe('fontWeight values', () => {
 
 	test('accepts the numeric range and rejects numeric strings', () => {
 		expect(normalizeFontWeight(1)).toEqual({ ok: true, value: 1 });
+		expect(normalizeFontWeight(400.5)).toEqual({ ok: true, value: 400.5 });
 		expect(normalizeFontWeight(1000)).toEqual({ ok: true, value: 1000 });
 		expect(normalizeFontWeight('400').ok).toBe(false);
-		for (const value of [0, 1001, 400.5, 'Bold', '1e2']) {
+		for (const value of [
+			0,
+			1001,
+			Number.NaN,
+			Number.POSITIVE_INFINITY,
+			'Bold',
+			'1e2',
+		]) {
 			expect(normalizeFontWeight(value).ok).toBe(false);
 		}
 	});
@@ -164,6 +172,10 @@ describe('typography delegates to shared value contracts', () => {
 		expect(validateTypographyField('fontWeight', 'demi-bold', 'resolved')).toBe(
 			undefined,
 		);
+		for (const field of ['fontSize', 'letterSpacing'] as const) {
+			expect(validateTypographyField(field, '1em', 'resolved')).toBe(undefined);
+			expect(validateTypographyField(field, '25%', 'resolved')).toBe(undefined);
+		}
 		expect(validateTypographyField('lineHeight', 1.5, 'resolved')).toBe(
 			undefined,
 		);
@@ -171,6 +183,9 @@ describe('typography delegates to shared value contracts', () => {
 			undefined,
 		);
 		expect(validateTypographyField('lineHeight', '1em', 'resolved')).toContain(
+			'px, pt, or rem',
+		);
+		expect(validateTypographyField('lineHeight', '120%', 'resolved')).toContain(
 			'px, pt, or rem',
 		);
 	});

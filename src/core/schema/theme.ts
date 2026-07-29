@@ -411,6 +411,7 @@ function validateTypographyToken(
 	_typographyBaseFontSize: number | undefined,
 	issues: ThemeSchemaIssue[],
 ): void {
+	if (phase === 'raw' && isTypographyReference(token.$value)) return;
 	const tokenValue = validateTypographyFields(
 		token.$value,
 		`${tokenPath}.$value`,

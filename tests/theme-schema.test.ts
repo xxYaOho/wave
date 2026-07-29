@@ -731,6 +731,109 @@ describe('theme schema', () => {
 		}
 	});
 
+	test('validates DTCG color component ranges even when hex is present', () => {
+		for (const value of [
+			{ colorSpace: 'srgb', components: [2, 0, 0], hex: '#ff0000' },
+			{ colorSpace: 'hsl', components: [360, 100, 50], hex: '#ff0000' },
+			{ colorSpace: 'oklch', components: [0.5, -0.1, 20], hex: '#777777' },
+			{ colorSpace: 'lab', components: [50, Number.NaN, 0], hex: '#777777' },
+			{ colorSpace: 'display-p3', components: [1, 0], hex: '#ff00ff' },
+		]) {
+			const result = validateThemeSchema(
+				{ theme: { token: { $type: 'color', $value: value } } },
+				'resolved',
+			);
+			expect(result.valid, JSON.stringify(value)).toBe(false);
+		}
+	});
+
+	test('accepts DTCG none and unbounded signed color components', () => {
+		for (const value of [
+			{ colorSpace: 'hsl', components: ['none', 0, 100] },
+			{ colorSpace: 'lab', components: [50, -200, 200] },
+			{ colorSpace: 'oklab', components: [0.5, -2, 2] },
+			{ colorSpace: 'lch', components: [50, 500, 359.999] },
+		]) {
+			const result = validateThemeSchema(
+				{ theme: { token: { $type: 'color', $value: value } } },
+				'resolved',
+			);
+			expect(result.valid, JSON.stringify(value)).toBe(true);
+		}
+	});
+
+	test('keeps legacy percent color fallback separate from standard validation', () => {
+		const result = validateThemeSchema(
+			{
+				theme: {
+					token: {
+						$type: 'color',
+						$value: {
+							colorSpace: 'oklch',
+							components: ['51.8%', 0.251, 262.6],
+							hex: '#0052f5',
+						},
+					},
+				},
+			},
+			'resolved',
+		);
+		expect(result.valid).toBe(true);
+	});
+
+	test('rejects authored color metadata in the raw phase', () => {
+		const result = validateThemeSchema(
+			{
+				theme: {
+					token: {
+						$type: 'color',
+						$value: {
+							colorSpace: 'srgb',
+							components: [1, 0, 0],
+							_swatchName: 'authored/name',
+						},
+					},
+				},
+			},
+			'raw',
+		);
+		expect(result.valid).toBe(false);
+		expect(result.issues).toContainEqual(
+			expect.objectContaining({ path: 'theme.token.$value._swatchName' }),
+		);
+	});
+
+	test('defers raw shadow inset and gradient position references', () => {
+		for (const [type, value] of [
+			[
+				'shadow',
+				{
+					color: '#000000',
+					offsetX: 0,
+					offsetY: 1,
+					blur: 2,
+					spread: 0,
+					inset: '{theme.boolean.inset}',
+				},
+			],
+			[
+				'gradient',
+				[
+					{
+						color: '#000000',
+						position: { $ref: '#/theme/number/start/$value' },
+					},
+				],
+			],
+		] as const) {
+			const result = validateThemeSchema(
+				{ theme: { token: { $type: type, $value: value } } },
+				'raw',
+			);
+			expect(result.valid, type).toBe(true);
+		}
+	});
+
 	test('accepts string and DTCG dashArray border styles', () => {
 		for (const style of [
 			'solid',

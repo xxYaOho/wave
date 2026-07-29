@@ -1,4 +1,3 @@
-import { isDtcgColorSpaceValue } from '../../types/index.ts';
 import { validateBorderStrokeStyle } from '../stroke-style.ts';
 import { parseDimension } from './dimension.ts';
 import { parseDuration } from './duration.ts';
@@ -12,14 +11,8 @@ export interface TokenValueIssue {
 }
 
 const ALIAS_PATTERN = /^\{[^{}]+\}$/;
-const COLOR_KEYS = new Set([
-	'colorSpace',
-	'components',
-	'alpha',
-	'hex',
-	'_swatchName',
-]);
-const LEGACY_COLOR_KEYS = new Set(['color', 'alpha', '_swatchName']);
+const COLOR_KEYS = new Set(['colorSpace', 'components', 'alpha', 'hex']);
+const LEGACY_COLOR_KEYS = new Set(['color', 'alpha']);
 const RESOLVED_COLOR_TOKEN_KEYS = new Set([
 	'$value',
 	'$type',
@@ -46,6 +39,41 @@ const COLOR_SPACES = new Set([
 	'xyz-d50',
 ]);
 
+interface ColorComponentRange {
+	min?: number;
+	max?: number;
+	maxExclusive?: boolean;
+}
+
+const UNIT_RANGE: ColorComponentRange = { min: 0, max: 1 };
+const PERCENT_RANGE: ColorComponentRange = { min: 0, max: 100 };
+const HUE_RANGE: ColorComponentRange = {
+	min: 0,
+	max: 360,
+	maxExclusive: true,
+};
+const UNBOUNDED_RANGE: ColorComponentRange = {};
+const NON_NEGATIVE_RANGE: ColorComponentRange = { min: 0 };
+
+const COLOR_COMPONENT_RANGES: Readonly<
+	Record<string, readonly ColorComponentRange[]>
+> = {
+	srgb: [UNIT_RANGE, UNIT_RANGE, UNIT_RANGE],
+	'srgb-linear': [UNIT_RANGE, UNIT_RANGE, UNIT_RANGE],
+	hsl: [HUE_RANGE, PERCENT_RANGE, PERCENT_RANGE],
+	hwb: [HUE_RANGE, PERCENT_RANGE, PERCENT_RANGE],
+	lab: [PERCENT_RANGE, UNBOUNDED_RANGE, UNBOUNDED_RANGE],
+	lch: [PERCENT_RANGE, NON_NEGATIVE_RANGE, HUE_RANGE],
+	oklab: [UNIT_RANGE, UNBOUNDED_RANGE, UNBOUNDED_RANGE],
+	oklch: [UNIT_RANGE, NON_NEGATIVE_RANGE, HUE_RANGE],
+	'display-p3': [UNIT_RANGE, UNIT_RANGE, UNIT_RANGE],
+	'a98-rgb': [UNIT_RANGE, UNIT_RANGE, UNIT_RANGE],
+	'prophoto-rgb': [UNIT_RANGE, UNIT_RANGE, UNIT_RANGE],
+	rec2020: [UNIT_RANGE, UNIT_RANGE, UNIT_RANGE],
+	'xyz-d65': [UNIT_RANGE, UNIT_RANGE, UNIT_RANGE],
+	'xyz-d50': [UNIT_RANGE, UNIT_RANGE, UNIT_RANGE],
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -59,6 +87,42 @@ function isReference(value: unknown): boolean {
 
 function issue(path: string, message: string): TokenValueIssue[] {
 	return [{ path, message }];
+}
+
+function isWithinColorComponentRange(
+	value: number,
+	range: ColorComponentRange,
+): boolean {
+	if (range.min !== undefined && value < range.min) return false;
+	if (range.max === undefined) return true;
+	return range.maxExclusive ? value < range.max : value <= range.max;
+}
+
+function isLegacyPercentColorWithHexFallback(
+	value: Record<string, unknown>,
+): boolean {
+	if (
+		typeof value.colorSpace !== 'string' ||
+		!COLOR_SPACES.has(value.colorSpace) ||
+		!Array.isArray(value.components) ||
+		value.components.length !== 3 ||
+		typeof value.hex !== 'string' ||
+		!/^#[0-9a-fA-F]{6}$/.test(value.hex) ||
+		!value.components.some(
+			(component) =>
+				typeof component === 'string' &&
+				/^-?(?:0|[1-9]\d*)(?:\.\d+)?%$/.test(component),
+		)
+	) {
+		return false;
+	}
+	return value.components.every(
+		(component) =>
+			component === 'none' ||
+			(typeof component === 'number' && Number.isFinite(component)) ||
+			(typeof component === 'string' &&
+				/^-?(?:0|[1-9]\d*)(?:\.\d+)?%$/.test(component)),
+	);
 }
 
 function unknownFields(
@@ -98,6 +162,9 @@ function validateColor(
 ): TokenValueIssue[] {
 	if (phase === 'raw' && isReference(value)) return [];
 	if (typeof value === 'string') return [];
+	if (phase === 'raw' && isRecord(value) && '_swatchName' in value) {
+		return issue(`${path}._swatchName`, 'Unknown field "_swatchName"');
+	}
 	if (
 		phase === 'resolved' &&
 		isRecord(value) &&
@@ -138,15 +205,21 @@ function validateColor(
 		}
 		return issues;
 	}
-	if (
-		isRecord(value) &&
-		typeof value.colorSpace === 'string' &&
-		COLOR_SPACES.has(value.colorSpace) &&
-		Array.isArray(value.components) &&
-		typeof value.hex === 'string' &&
-		/^#[0-9a-fA-F]{6}$/.test(value.hex)
-	) {
-		return unknownFields(value, COLOR_KEYS, path, phase);
+	if (isRecord(value) && isLegacyPercentColorWithHexFallback(value)) {
+		const issues = unknownFields(value, COLOR_KEYS, path, phase);
+		if (
+			value.alpha !== undefined &&
+			(typeof value.alpha !== 'number' ||
+				!Number.isFinite(value.alpha) ||
+				value.alpha < 0 ||
+				value.alpha > 1)
+		) {
+			issues.push({
+				path: `${path}.alpha`,
+				message: 'legacy color alpha must be between 0 and 1',
+			});
+		}
+		return issues;
 	}
 	if (isRecord(value)) {
 		const legacySpaceKeys = Object.keys(value).filter(
@@ -165,7 +238,12 @@ function validateColor(
 			}
 		}
 	}
-	if (!isRecord(value) || !isDtcgColorSpaceValue(value)) {
+	if (
+		!isRecord(value) ||
+		typeof value.colorSpace !== 'string' ||
+		!COLOR_SPACES.has(value.colorSpace) ||
+		!Array.isArray(value.components)
+	) {
 		return issue(
 			path,
 			`color must be a legacy string or DTCG color object with colorSpace and components, got ${JSON.stringify(value)}`,
@@ -176,6 +254,21 @@ function validateColor(
 		issues.push({
 			path: `${path}.components`,
 			message: 'color components must have 3 elements',
+		});
+	} else {
+		const ranges = COLOR_COMPONENT_RANGES[value.colorSpace]!;
+		value.components.forEach((component, index) => {
+			if (component === 'none') return;
+			if (
+				typeof component !== 'number' ||
+				!Number.isFinite(component) ||
+				!isWithinColorComponentRange(component, ranges[index]!)
+			) {
+				issues.push({
+					path: `${path}.components[${index}]`,
+					message: `Invalid ${value.colorSpace} color component`,
+				});
+			}
 		});
 	}
 	if (
@@ -335,7 +428,11 @@ function validateShadowLayer(
 			);
 		}
 	}
-	if (value.inset !== undefined && typeof value.inset !== 'boolean') {
+	if (
+		value.inset !== undefined &&
+		!(phase === 'raw' && isReference(value.inset)) &&
+		typeof value.inset !== 'boolean'
+	) {
 		issues.push({
 			path: `${path}.inset`,
 			message: 'shadow inset must be a boolean',
@@ -379,6 +476,7 @@ function validateGradient(
 			issues.push(...validateColor(stop.color, `${stopPath}.color`, phase));
 		if (
 			stop.position !== undefined &&
+			!(phase === 'raw' && isReference(stop.position)) &&
 			(typeof stop.position !== 'number' || !Number.isFinite(stop.position))
 		) {
 			issues.push({
