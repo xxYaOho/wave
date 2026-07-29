@@ -531,7 +531,7 @@ theme:
 		}
 
 		for (const reference of [
-			'{external.color.blue}',
+			'"{external.color.blue}"',
 			'{ $ref: "#/external/color/blue/$value" }',
 		]) {
 			test(`resolves external value ${reference}`, async () => {
@@ -752,8 +752,7 @@ theme:
 				expect(json['theme-color-text-muted']).toMatch(/^#[0-9a-f]{8}$/i);
 				expect(json['theme-style-shadow-sm']).toEqual([
 					{
-						color: '#000000',
-						alpha: 0.1,
+						color: '#0000001a',
 						offsetX: 0,
 						offsetY: 1,
 						blur: 2,
@@ -1120,7 +1119,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					generateOptions: { night: true, profiles: 'all' },
 				});
 
-				expect(result.ok).toBe(true);
+				expect(result.ok, result.ok ? undefined : result.message).toBe(true);
 				if (result.ok) {
 					expect(result.outputDir).toBe(absoluteOutputDir);
 					expect(result.generatedFiles).toContain('profile-model.json');
@@ -1695,6 +1694,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 							{ value: 4, unit: 'px' },
 							{ value: 8, unit: 'px' },
 						],
+						lineCap: 'butt',
 					},
 				},
 			});
@@ -2155,7 +2155,7 @@ theme:
 					generateOptions: { night: false },
 				});
 
-				expect(result.ok).toBe(true);
+				expect(result.ok, result.ok ? undefined : result.message).toBe(true);
 				const css = await fs.readFile(
 					path.join(outputDir, 'root-matrix.css'),
 					'utf-8',
@@ -2265,7 +2265,7 @@ theme:
 			await cleanupTempTheme(theme);
 		});
 
-		test('build rejects typography values that become invalid after resolution', async () => {
+		test('build rejects typography values that the Sketch platform cannot express', async () => {
 			const theme = await createTempTheme({
 				name: 'typography-resolved-invalid',
 				tokens: {},
@@ -2301,17 +2301,13 @@ theme:
 
 			expect(result.ok).toBe(false);
 			if (!result.ok) {
-				expect(result.message).toContain(
-					'Theme schema validation failed after reference resolution',
-				);
-				expect(result.message).toContain(
-					'theme.font.$extensions.typography.defaults.fontSize',
-				);
+				expect(result.message).toContain('Sketch typography output failed');
+				expect(result.message).toContain('theme.font.body');
 			}
 			await cleanupTempTheme(theme);
 		});
 
-		test('build rejects border dash values that become invalid after resolution', async () => {
+		test('build rejects negative border dash values at the CSS platform', async () => {
 			const theme = await createTempTheme({
 				name: 'border-dash-resolved-invalid',
 				tokens: {},
@@ -2332,6 +2328,7 @@ theme:
           dashArray:
             - "{theme.dimension.invalid}"
             - 8
+          lineCap: butt
 `,
 				'utf8',
 			);
@@ -2346,10 +2343,7 @@ theme:
 			expect(result.ok).toBe(false);
 			if (!result.ok) {
 				expect(result.message).toContain(
-					'Theme schema validation failed after reference resolution',
-				);
-				expect(result.message).toContain(
-					'theme.border.antline.$value.style.dashArray[0]',
+					'CSS border dashArray has an invalid member at index 0',
 				);
 			}
 			await cleanupTempTheme(theme);
@@ -2380,6 +2374,7 @@ theme:
           dashArray:
             - $ref: "#/theme/dimension/dash/$value"
             - 8
+          lineCap: butt
 `,
 				'utf8',
 			);

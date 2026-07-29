@@ -19,6 +19,32 @@ const COLOR_KEYS = new Set([
 	'hex',
 	'_swatchName',
 ]);
+const LEGACY_COLOR_KEYS = new Set(['color', 'alpha', '_swatchName']);
+const RESOLVED_COLOR_TOKEN_KEYS = new Set([
+	'$value',
+	'$type',
+	'$description',
+	'$deprecated',
+	'$extensions',
+	'alpha',
+	'_swatchName',
+]);
+const COLOR_SPACES = new Set([
+	'oklch',
+	'srgb',
+	'hsl',
+	'srgb-linear',
+	'hwb',
+	'lab',
+	'lch',
+	'oklab',
+	'display-p3',
+	'a98-rgb',
+	'prophoto-rgb',
+	'rec2020',
+	'xyz-d65',
+	'xyz-d50',
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -72,10 +98,77 @@ function validateColor(
 ): TokenValueIssue[] {
 	if (phase === 'raw' && isReference(value)) return [];
 	if (typeof value === 'string') return [];
+	if (
+		phase === 'resolved' &&
+		isRecord(value) &&
+		Object.keys(value).every(
+			(key) => key === 'value' || key === '_swatchName',
+		) &&
+		typeof value.value === 'string'
+	) {
+		return [];
+	}
+	if (phase === 'resolved' && isRecord(value) && '$value' in value) {
+		return [
+			...unknownFields(value, RESOLVED_COLOR_TOKEN_KEYS, path, phase),
+			...validateColor(value.$value, `${path}.$value`, phase),
+		];
+	}
+	if (isRecord(value) && 'color' in value) {
+		const issues = unknownFields(value, LEGACY_COLOR_KEYS, path, phase);
+		if (phase === 'raw' && isReference(value.color)) {
+			// Existing Wave color wrapper compatibility.
+		} else {
+			issues.push(...validateColor(value.color, `${path}.color`, phase));
+		}
+		if (phase === 'raw' && isReference(value.alpha)) {
+			return issues;
+		}
+		if (
+			value.alpha !== undefined &&
+			(typeof value.alpha !== 'number' ||
+				!Number.isFinite(value.alpha) ||
+				value.alpha < 0 ||
+				value.alpha > 1)
+		) {
+			issues.push({
+				path: `${path}.alpha`,
+				message: 'legacy color alpha must be between 0 and 1',
+			});
+		}
+		return issues;
+	}
+	if (
+		isRecord(value) &&
+		typeof value.colorSpace === 'string' &&
+		COLOR_SPACES.has(value.colorSpace) &&
+		Array.isArray(value.components) &&
+		typeof value.hex === 'string' &&
+		/^#[0-9a-fA-F]{6}$/.test(value.hex)
+	) {
+		return unknownFields(value, COLOR_KEYS, path, phase);
+	}
+	if (isRecord(value)) {
+		const legacySpaceKeys = Object.keys(value).filter(
+			(key) => key !== 'alpha' && key !== '_swatchName',
+		);
+		if (legacySpaceKeys.length === 1) {
+			const nested = value[legacySpaceKeys[0]!];
+			if (
+				isRecord(nested) &&
+				nested.colorSpace === legacySpaceKeys[0] &&
+				Array.isArray(nested.components) &&
+				typeof nested.hex === 'string' &&
+				/^#[0-9a-fA-F]{6}$/.test(nested.hex)
+			) {
+				return [];
+			}
+		}
+	}
 	if (!isRecord(value) || !isDtcgColorSpaceValue(value)) {
 		return issue(
 			path,
-			'color must be a legacy string or DTCG color object with colorSpace and components',
+			`color must be a legacy string or DTCG color object with colorSpace and components, got ${JSON.stringify(value)}`,
 		);
 	}
 	const issues = unknownFields(value, COLOR_KEYS, path, phase);

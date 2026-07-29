@@ -217,6 +217,7 @@ theme:
               unit: px
             - value: 8
               unit: px
+          lineCap: butt
     outline:
       $value:
         color: "{theme.color.outline.ring}"
