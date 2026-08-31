@@ -358,6 +358,42 @@ theme:
 		}
 	});
 
+	test('generates the Orca-derived md-yml fixture contract', async () => {
+		const fixture = await copyFixtureWorkspace('fixtures/themes/md-yml-orca');
+		try {
+			const result = await generateTheme({
+				workspacePath: path.join(fixture.dir, 'main.yaml'),
+				generateOptions: { night: false },
+			});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+			if (!result.ok) return;
+			expect(result.generatedFiles).toEqual(['orca-doc2md.yml']);
+			const raw = await fs.readFile(
+				path.join(fixture.dir, 'out', 'orca-doc2md.yml'),
+				'utf8',
+			);
+			expect(raw.startsWith('---')).toBe(false);
+			expect(yaml.load(raw)).toEqual({
+				color: {
+					'primary-main': '#1a72f0',
+					'primary-on-main': '#ffffff',
+				},
+				radius: { md: '8px' },
+				font: {
+					'heading-h1': {
+						fontFamily: 'Inter',
+						fontSize: '40px',
+						fontWeight: 700,
+						letterSpacing: '0px',
+						lineHeight: 1.2,
+					},
+				},
+			});
+		} finally {
+			await fs.rm(fixture.dir, { recursive: true, force: true });
+		}
+	});
+
 	test('rejects an unknown CLI platform before changing output artifacts', async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-platform-'));
 		const outputDir = path.join(dir, 'out');

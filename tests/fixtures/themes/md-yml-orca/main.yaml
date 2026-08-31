@@ -1,0 +1,25 @@
+$config:
+  theme: orca-doc
+  parameter:
+    outputDir: ./out
+    platform: [md-yml]
+    filterLayer: 1
+theme:
+  color:
+    $type: color
+    primary:
+      main: { $value: "#1a72f0" }
+      on-main: { $value: "#ffffff" }
+  radius:
+    $type: dimension
+    md: { $value: { value: 8, unit: px } }
+  font:
+    $type: typography
+    heading:
+      h1:
+        $value:
+          fontFamily: Inter
+          fontSize: { value: 40, unit: px }
+          fontWeight: 700
+          letterSpacing: { value: 0, unit: px }
+          lineHeight: 1.2
