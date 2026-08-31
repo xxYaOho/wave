@@ -18,7 +18,7 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
     ↓
 颜色转换（colorSpace 在输出阶段介入）
     ↓
-输出文件（.json / .jsonc / .css / sketch JSON）
+输出文件（.json / .jsonc / .css / sketch JSON / md-yml YAML fragment）
 ```
 
 **认知边界：**
@@ -237,13 +237,13 @@ complete-token alias 继承目标的 effective type。composite 子字段引用�
 
 #### 平台投影与失败语义
 
-JSON 和 JSONC 使用 flat platform output。dimension 子值保留单位，standard composite 保留规范化结构。含 `"none"` 的 DTCG color 无法转换且无 `hex` fallback 时，保留只含标准字段的 clean color object。
+JSON 和 JSONC 使用 flat platform output。md-yml 使用相同的 formatter-ready value，但按 namespace 分组。dimension 子值保留单位，standard composite 保留规范化结构。含 `"none"` 的 DTCG color 无法转换且无 `hex` fallback 时，保留只含标准字段的 clean color object。
 
 CSS 为每种标准类型提供专用 formatter。`fontFamily` 输出合法 font stack；`duration`、`cubicBezier`、`transition` 输出可直接消费的 CSS value；object `strokeStyle` 和使用它的 `border` 输出 `dash-array`、`line-cap` companion variables。gradient 使用规范化端点，shadow 保留 `inset`。CSS 无法表达的 color、空 font family、负或全零 dash pattern，以及未知自定义 object/array 会显示 token path、type 和 value shape 后失败，禁止输出 `[object Object]`。
 
 Sketch 对 color、shadow、gradient 和 typography 使用既有原生 payload。没有原生语义的标准值使用 `{ value }`：generic dimension 保留单位字符串，primitive 保留规范化值，strokeStyle、border 和 transition 保留完整结构。该 shape 只承诺 Wave generator 输出，不代表下游 Sync Token 已支持这些 payload。不可转换且无 fallback 的 color，以及无法投影到原生数值属性的单位会明确失败。
 
-未知自定义 `$type` 继续产生 warning。JSON/JSONC 保留其值，CSS 只接受 scalar，Sketch 使用 `{ value: ... }` 保存可表示值。该兼容行为不属于 DTCG 标准类型支持。
+未知自定义 `$type` 继续产生 warning。JSON/JSONC 保留其值，md-yml 保留 YAML-safe 值，CSS 只接受 scalar，Sketch 使用 `{ value: ... }` 保存可表示值。该兼容行为不属于 DTCG 标准类型支持。
 
 ### show 命令
 
@@ -260,7 +260,7 @@ Sketch 对 color、shadow、gradient 和 typography 使用既有原生 payload�
 - `--profile <name>`：构建一个 named profile
 - `--profiles <mode>`：构建 profile 集合；当前支持 `all`
 - `--night`：包含有效的 Night Mode overlay
-- `--platform <list>`：指定输出平台（逗号分隔）：`json`、`jsonc`、`css`、`sketch`
+- `--platform <list>`：指定输出平台（逗号分隔）：`json`、`jsonc`、`css`、`sketch`、`md-yml`
 - `-o, --out <path>`：指定输出目录
 - `--output <dir>`：兼容旧参数，等价于 `--out`
 
@@ -316,7 +316,7 @@ Wave 不捆绑 `oxipng`、`pngquant`、`svgo`、`gifsicle`、`gifski`、`apngasm
 **parameter 字段：**
 
 - `outputDir`：非空字符串。
-- `platform`：非空数组，成员只能是 `json`、`jsonc`、`css`、`sketch`。
+- `platform`：非空数组，成员只能是 `json`、`jsonc`、`css`、`sketch`、`md-yml`。
 - `filterLayer`：大于等于 0 的整数。
 - `colorSpace`：只能是 `hex`、`oklch`、`srgb`、`hsl`。
 
@@ -356,9 +356,11 @@ theme:
       $value: "{leonardo.color.blue.600}"
 ```
 
-每个 `parameterGroup` 产生一个独立 build pass。group 字段覆盖 `$config.parameter` 的同名字段；CLI `--platform` 和 `--out` 再覆盖所有 pass。优先级为 CLI > `parameterGroup` > `parameter`。
+不传 CLI `--platform` 时，每个 `parameterGroup` 产生一个独立 build pass。group 字段覆盖 `$config.parameter` 的同名字段；仅传 `--out` 会覆盖每个 group pass 的输出目录，不改变 group 展开。
 
-输出平台在 formatter 执行和输出目录创建前统一 trim 并按首次出现顺序去重。未知 platform 使整个 build 失败，错误会列出受支持的 `json`、`jsonc`、`css`、`sketch`；空 platform 列表同样失败，不会返回 `success: true` 且没有产物。校验失败时不会改写已有产物，也不会创建新产物。
+传入 CLI `--platform` 时，每个选中的 default 或 named profile 只建立一个 pass。该 pass 使用 profile 的 base `$config.parameter`，并用 CLI platform 替换其 platform；不展开 `parameterGroup`，也不读取 group 专属的 `filterLayer`、`colorSpace` 或 `outputDir`。`--out` 仍可覆盖该 single pass 的 base output directory。
+
+输出平台在 formatter 执行和输出目录创建前统一 trim 并按首次出现顺序去重。未知 platform 使整个 build 失败，错误会列出受支持的 `json`、`jsonc`、`css`、`sketch`、`md-yml`；空 platform 列表同样失败，不会返回 `success: true` 且没有产物。校验失败时不会改写已有产物，也不会创建新产物。
 
 所有选中的 default、named profile 与有效 night scope 必须先完成 token processing，再按最终输出文件路径做一次全局规划；规划成功后才允许执行任一 formatter、创建输出目录或写文件。无效 night 仍按既有规则 warning + skip，不进入规划集合。任意两个 pass 产生相同最终路径时，build 返回 `GENERAL_ERROR`，错误为 `Output path collision: "<absolute-path>" is produced by passes "<id1>" and "<id2>"`；在失败前不会改写已有产物，也不会生成其他平台文件。GROUP 的 platform 集合部分重叠、default/profile/night 跨 scope 重叠均使用同一合同。
 
@@ -866,7 +868,7 @@ $value:
   alpha: 0.5
 ```
 
-颜色转换发生在 transformer 输出阶段，不发生在 parser、resource loader 或 resolver。同一个 `platform: css,sketch` pass 仍然合法；CSS/JSON/JSONC 使用 pass 指定的 `colorSpace`，Sketch 平台在生成阶段使用 hex-normalized token set，并输出 `#RRGGBBAA`。
+颜色转换发生在 transformer 输出阶段，不发生在 parser、resource loader 或 resolver。同一个 `platform: css,sketch` pass 仍然合法；CSS/JSON/JSONC/md-yml 使用 pass 指定的 `colorSpace`，Sketch 平台在生成阶段使用 hex-normalized token set，并输出 `#RRGGBBAA`。
 
 ---
 
@@ -908,7 +910,7 @@ component:
 
 - composite group 的直接子节点必须都是 token（有 `$value`），出现子 group 则 schema 报错
 - 可通过 `$extends` 继承 composite 标记
-- 仅影响 JSON/JSONC 输出格式，CSS 和 Sketch 输出不受影响
+- 仅影响 JSON/JSONC/md-yml 输出格式，CSS 和 Sketch 输出不受影响
 - 与普通 flat token 可在同一个文档中混合使用
 
 ### smoothGradient（v1）
@@ -950,7 +952,7 @@ $extensions:
 - 所有生成 stop 的 `position` 线性等距分布，输出时保留 **2 位小数**
 - `alpha` 按曲线采样值在两端点 alpha 之间插值，并 `clamp` 到 `[0, 1]`
 - v1 **不做中间颜色插值**：生成 stop 的颜色只使用端点原色
-- `$extensions` 在 transform 阶段被消费，**不会泄漏**到最终 json / css / sketch 输出
+- `$extensions` 在 transform 阶段被消费，**不会泄漏**到最终 json / css / sketch / md-yml 输出
 
 **与标准 gradient 的关系：**
 
@@ -1001,7 +1003,7 @@ $extensions:
   - 其他单位字符串取整输出
 - `alpha` 按曲线采样值从 `0` 到 `baseAlpha` 插值，保留 **2 位小数**
 - `inset: true` 会被复制到所有派生层
-- `$extensions` 在 transform 阶段被消费，**不会泄漏**到最终 json / css / sketch 输出
+- `$extensions` 在 transform 阶段被消费，**不会泄漏**到最终 json / css / sketch / md-yml 输出
 
 **与标准 shadow 的关系：**
 
@@ -1147,7 +1149,7 @@ wave dt wcag --profile mobile --night
   - 不输出 `theme.dimension`
   - 长度类数值自动补浏览器需要的 `px`
   - `$type: typography` token 输出 materialized 字段变量和一个 shorthand 变量；group `typography.defaults` 按祖先到 token 浅合并，数组 font family 按 CSS stack 规则序列化；与已输出 `fontFamily` token 等值时 shorthand 复用全局变量，否则保留局部 family；倍率 line height 保持无单位；可选 color 独立输出，直接引用已输出的 `theme.color.*` 时保留 CSS variable 引用
-  - typography 支持 `px`、`pt`、`rem`。`rem` 默认使用 16px；可在唯一允许的位置 `theme.font.$extensions.typography.baseFontSize` 以大于 0 的无单位 CSS px 数值覆盖。使用 rem 时 CSS 在 `:root` 输出有效 `font-size`，并保留 token 中的 rem 值。此内部 metadata 不输出到 JSON 或 JSONC
+  - typography 支持 `px`、`pt`、`rem`。`rem` 默认使用 16px；可在唯一允许的位置 `theme.font.$extensions.typography.baseFontSize` 以大于 0 的无单位 CSS px 数值覆盖。使用 rem 时 CSS 在 `:root` 输出有效 `font-size`，并保留 token 中的 rem 值。此内部 metadata 不输出到 JSON、JSONC 或 md-yml
   - DTCG border `style.dashArray` 输出 `dashed` shorthand 和 `-dash-array` companion variable
   - 带 `$extensions.outline.offset` 的 border token 输出 outline value 变量和 offset companion 变量
 - `sketch`：输出 Sketch API 兼容格式 `{theme}2sketch.json`
@@ -1171,7 +1173,13 @@ wave dt wcag --profile mobile --night
   - 内部直接 color reference 的 target 若被 `sketch.skip` 跳过，或被 root selection 排除，Sketch build 必须报错，不得以 HEX8 降级；外部 reference 与不符合直接引用条件的值正常 materialize 为 HEX8
   - 普通 DTCG dashed border 保留结构化 `style.dashArray`
   - 带 `$extensions.outline.offset` 的 border token 生成两层 shadow 模拟 outline；最终 JSON 顺序为 ring layer 在前、gap layer 在后
-- 多平台：`json,jsonc,css,sketch` 可同时输出多种格式
+- `md-yml`：输出 `{theme}2md.yml`，供用户复制到 Markdown frontmatter
+  - 输出是 YAML fragment，不包含 `---` delimiter、注释、token wrapper 或 `$type` / `$value` / `$description` metadata
+  - `filterLayer` 后的第一段是 namespace，剩余 source path 用 `-` 连接成 local key；过滤后必须至少保留 namespace 和 local key
+  - 输出 resolver 和 transformer 处理后的最终值，不保留 authored alias；dimension 保留单位字符串，object、array 和 explicit composite 保留结构
+  - 值只接受 YAML 可无损表示的 null、有限 number、string、boolean、密集 array 和 plain object；遇到 `undefined`、非有限 number、稀疏或含额外 own key 的 array、cycle、accessor 或非 plain object 时失败
+  - source segment 不能为空或含 `.`；hyphen-join 后的重名、direct/composite 重名或 composite property 重名都会失败，不会改写该 pass 的其他平台产物
+- 多平台：`json,jsonc,css,sketch,md-yml` 可同时输出多种格式
 
 CSS 不使用 Sketch 的 `@` 合同，保持既有颜色引用行为，包括 typography color 对已输出 `theme.color.*` 的 `var(--<color-token>)` 引用。Sync Token 的 `@` importer 属于独立后续仓库工作，不是 Wave 构建 gate。
 

@@ -66,7 +66,7 @@ theme:
 | `resource.dimension` | 可选；尺寸资源，使用非空字符串或非空字符串数组 |
 | `resource.custom` | 可选；自定义资源文件，使用非空字符串或非空字符串数组 |
 | `parameter.outputDir` | 非空输出目录 |
-| `parameter.platform` | 非空数组；支持 `json`、`jsonc`、`css`、`sketch` |
+| `parameter.platform` | 非空数组；支持 `json`、`jsonc`、`css`、`sketch`、`md-yml` |
 | `parameter.filterLayer` | 大于等于 0 的整数；输出 key 时跳过前 N 层路径 |
 | `parameter.colorSpace` | 支持 `hex`、`oklch`、`srgb`、`hsl` |
 | `parameterGroup.<name>` | 多组输出参数，字段同 `parameter` |
@@ -100,6 +100,14 @@ theme:
     $type: color
     primary:
       $value: "{tailwindcss.color.indigo.600}"
+```
+
+不传 `--platform` 时，Wave 会展开 `parameterGroup`，每个 group 生成一个 pass。仅传 `--out` 会把这些 pass 的产物写到指定目录，不改变 group 的 platform、`filterLayer` 或 `colorSpace`。
+
+传入 `--platform` 时，Wave 为每个选中的 profile 只建立一个 pass。该 pass 使用 profile 的 base `parameter`，并忽略 `parameterGroup` 中专属的 `filterLayer`、`colorSpace` 和 `outputDir`；`--out` 仍可以覆盖 single pass 的输出目录。例如，下列命令不会分别执行 `css` 和 `sketch` group，而是使用 base `filterLayer: 1` 只输出 `example2md.yml`：
+
+```bash
+wave dt build -f ./main.yaml --platform md-yml --out ./build/md
 ```
 
 Wave 会在写入前统一检查本次 build 的全部输出路径，包括 default、named profile、有效 night 和各个 parameter group。若两个 pass 最终写向同一文件，build 会直接失败，并保持已有文件不变；例如一个 group 输出 `[json, css]`、另一个 group 在相同目录输出 `[json]`，两者会因 JSON 路径重叠而失败。无效 night 仍会提示并跳过，不参与路径检查。
@@ -137,7 +145,7 @@ Wave 支持 DTCG 2025.10 的全部标准 `$type`：
 | 基础值 | `color`、`dimension`、`fontFamily`、`fontWeight`、`duration`、`cubicBezier`、`number`、`strokeStyle` |
 | 复合值 | `border`、`transition`、`shadow`、`gradient`、`typography` |
 
-`opacity` 不是标准 `$type`。透明度使用 `number` token；`inheritColor.property.opacity` 和 `$extensions.sketch.property.opacity` 是 Wave 扩展字段，写法见“扩展与输出”。未知自定义 `$type` 会产生 warning；JSON/JSONC 保留其值，CSS 只输出 scalar，自定义 object 或 array 会在 CSS 构建时失败。
+`opacity` 不是标准 `$type`。透明度使用 `number` token；`inheritColor.property.opacity` 和 `$extensions.sketch.property.opacity` 是 Wave 扩展字段，写法见“扩展与输出”。未知自定义 `$type` 会产生 warning；JSON/JSONC 保留其值，md-yml 保留 YAML-safe 值，CSS 只输出 scalar，自定义 object 或 array 会在 CSS 构建时失败。
 
 ## Dimension 写法
 

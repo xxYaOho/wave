@@ -1,6 +1,6 @@
 ---
 title: 扩展与输出
-description: $extensions 扩展字段与 json、jsonc、css、sketch 输出格式参考。
+description: $extensions 扩展字段与 json、jsonc、css、sketch、md-yml 输出格式参考。
 category: Design Token
 commands:
   - wave dt doctor
@@ -16,6 +16,7 @@ appliesTo:
 | `jsonc` | `{theme}.jsonc` | 带注释 JSONC |
 | `css` | `{theme}.css` | CSS 变量 |
 | `sketch` | `{theme}2sketch.json` | Sketch JSON |
+| `md-yml` | `{theme}2md.yml` | Markdown frontmatter 用 YAML token fragment |
 
 CSS 输出包含 `color`、`state`、`shadow`、`gradient`、`border`、`radius` 和 `font` roots。`theme.dimension` 不再作为 public output root；构建时会提示迁移，完整建议由 `wave dt doctor` 输出。
 
@@ -23,7 +24,7 @@ Typography token 会在 CSS 中输出字段变量和 shorthand 变量，在 Sket
 
 ### 标准类型的平台输出
 
-JSON 和 JSONC 输出扁平 key/value；dimension 和 composite 内的 dimension 字段保留单位字符串。CSS 输出可直接消费的值。Sketch 对 color、shadow、gradient 和 typography 使用原生 payload；其他标准类型使用 `{ value }` 保存规范化值。
+JSON 和 JSONC 输出扁平 key/value；dimension 和 composite 内的 dimension 字段保留单位字符串。md-yml 使用同样的最终值，但按 namespace 分组。CSS 输出可直接消费的值。Sketch 对 color、shadow、gradient 和 typography 使用原生 payload；其他标准类型使用 `{ value }` 保存规范化值。
 
 | `$type` | JSON / JSONC | CSS | Sketch |
 | --- | --- | --- | --- |
@@ -50,8 +51,37 @@ Sketch 的 generic `{ value }` 是 Wave generator 合同，不代表 Sync Token 
 多平台用逗号分隔：
 
 ```text
-PARAMETER platform json,jsonc,css,sketch
+PARAMETER platform json,jsonc,css,sketch,md-yml
 ```
+
+## md-yml
+
+`md-yml` 为 Markdown 文档生成可复制到 frontmatter 的 YAML token fragment。下列 Orca-derived token 使用 `filterLayer: 1` 时，会生成 `{theme}2md.yml`：
+
+```yaml
+color:
+  primary-main: '#1a72f0'
+  primary-on-main: '#ffffff'
+radius:
+  md: 8px
+font:
+  heading-h1:
+    fontFamily: Inter
+    fontSize: 40px
+    fontWeight: 700
+    letterSpacing: 0px
+    lineHeight: 1.2
+```
+
+输出的第一层是 namespace，剩余 source path 用 `-` 连接。因此 `theme.color.primary.main` 在过滤 `theme` 后输出为 `color.primary-main`，内文可使用：
+
+```markdown
+{color.primary-main}
+```
+
+md-yml 输出 resolver 和 transformer 处理后的最终值，不保留 authored alias。object、array 和 explicit composite 保留结构。文件不包含 `---` delimiter、`$description` 注释、token wrapper 或 `$type` / `$value` metadata。
+
+`filterLayer` 处理后必须至少保留 namespace 和 local key。路径中的 source segment 不能为空或包含 `.`；不同 source path 若投影到同一个 key，build 会失败。值含有 YAML 无法无损表示的数据，例如 `undefined`、非有限 number、稀疏 array 或 cycle 时，build 也会在写入该 pass 的任何产物前失败。
 
 ## $extensions
 
@@ -182,12 +212,12 @@ theme:
 | 平台 | 输出 |
 | --- | --- |
 | `css` | `currentColor` 或 `color-mix(in srgb, currentColor X%, transparent)` |
-| `json` / `jsonc` | `$COLOR_FOREGROUND` 或 `{ color: "$COLOR_FOREGROUND", opacity: X }` |
+| `json` / `jsonc` / `md-yml` | `$COLOR_FOREGROUND` 或 `{ color: "$COLOR_FOREGROUND", opacity: X }` |
 | `sketch` | 写入 Sketch 颜色、`opacity` 或 `alpha` 字段 |
 
 ## sketch
 
-`$extensions.sketch` 只控制 Sketch JSON 输出，不影响 `json`、`jsonc`、`css` 的 key。`sketch.path` 和 `sketch.skip` 可以写在 group 或 token 上；写在 group 上时，会应用到后代 token。
+`$extensions.sketch` 只控制 Sketch JSON 输出，不影响 `json`、`jsonc`、`css` 或 `md-yml` 的 key。`sketch.path` 和 `sketch.skip` 可以写在 group 或 token 上；写在 group 上时，会应用到后代 token。
 
 ```yaml
 theme:
@@ -266,7 +296,7 @@ Sketch 颜色引用使用目标 token 的完整输出路径，因此不同 `sket
 
 `sketch.property` 不继承。需要输出 `{ opacity: value }` 或 `{ corners: { radii: value } }` 时，仍要写在对应 token 上。
 
-`sketch.skip` 只接受 boolean，按最近声明继承，token 自己的值优先。显式 `false` 会覆盖祖先 group 的 `true`。这个开关只过滤 Sketch JSON，CSS、JSON 和 JSONC 仍会输出该 token。
+`sketch.skip` 只接受 boolean，按最近声明继承，token 自己的值优先。显式 `false` 会覆盖祖先 group 的 `true`。这个开关只过滤 Sketch JSON，CSS、JSON、JSONC 和 md-yml 仍会输出该 token。
 
 Sketch 输出不再固定包裹 `color`、`style`、`dimension` 或 `component` 顶层对象。位置由 `sketch.path` 控制，值形态由 `$type` 和 `sketch.property` 控制。
 
@@ -305,5 +335,5 @@ component:
 
 - `composite` 写在 group 的 `$extensions` 上。
 - composite group 的直接子节点必须都是 token，不能再嵌套 group。
-- JSON/JSONC 输出会合并为对象。
+- JSON/JSONC/md-yml 输出会合并为对象。
 - Sketch 输出不再把 composite 映射为组件样式字段；component 逻辑后续单独设计。
