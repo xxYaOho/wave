@@ -343,12 +343,7 @@ export function buildGroupPasses(
 	}
 
 	if (config.parameterGroups.length === 0) {
-		const resolved = resolveParameters(
-			config.parameter,
-			themeDir,
-			cliOutput,
-			cliPlatform,
-		);
+		const resolved = resolveParameters(config.parameter, themeDir, cliOutput);
 		if (!resolved.outputDir) resolved.outputDir = defaultOutputDir;
 		return [resolved];
 	}
@@ -357,12 +352,7 @@ export function buildGroupPasses(
 
 	for (const group of config.parameterGroups) {
 		const merged = mergeParameters(config.parameter, group.parameter);
-		const resolved = resolveParameters(
-			merged,
-			themeDir,
-			cliOutput,
-			cliPlatform,
-		);
+		const resolved = resolveParameters(merged, themeDir, cliOutput);
 		if (!resolved.outputDir) resolved.outputDir = defaultOutputDir;
 
 		passes.push({ ...resolved, groupName: group.name });
