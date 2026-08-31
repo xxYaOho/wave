@@ -91,7 +91,7 @@ font:
     letterSpacing: 0
 ```
 
-Wave `$extensions.composite: true` 产生的 `_composite` siblings 继续按现有 JSON 合同合并。explicit composite 的输出路径取 `_composite`，而不是任一 child token path；child path 的最后一个 segment 只作为 composite property。以下输入路径：
+Wave `$extensions.composite: true` 产生的 `_composite` siblings 继续按现有 JSON 合同合并。`_composite` 只标记 child 属于 explicit composite；formatter 不按 `.` 拆分这个字符串，因为合法 source key 自身可能包含 `.`。exact group path 取 child `token.path.slice(0, -1)`，最后一个 segment 作为 composite property。程序化调用若传入与该 group path 不一致的 `_composite` marker，formatter 明确失败。以下输入路径：
 
 ```text
 component.button.fill
@@ -121,6 +121,8 @@ component:
 formatter 把输入 token 与 nested value 视为只读数据。它不能为了组合、清理或序列化 md-yml 而修改 `WaveToken[]`、`token.value` 或其中的 object/array；同一 pass 中其他 platform 的输出不得受 platform 顺序影响。
 
 YAML 序列化必须保持值类型。`"#ffffff"`、`"true"`、`"001"`、`"null"` 等字符串在重新解析后仍须为原字符串，不能变成注释、boolean、number 或 null。输出不得使用 YAML anchor 或 alias，文件以换行结尾。
+
+md-yml 可安全表达的 value domain 为 `null`、string、boolean、finite number、dense array，以及由这些值递归组成的 plain 或 null-prototype object。formatter 在调用 serializer 前遍历 value，拒绝 `undefined`、array hole、`NaN`、infinity、bigint、symbol、function、cycle、symbol key，以及 Date、Map、Set、class instance 等非 plain object。错误包含 token path 与无法表达的 nested value path。该检查防止 `js-yaml` 把 object 中的 `undefined` 静默省略、把 array 中的 `undefined` 改成 `null`，或把非有限数写成 `.nan` / `.inf`。
 
 ## 路径边界与冲突
 
@@ -168,10 +170,10 @@ Resolver 和 transformer 保持现有职责。它们继续生成解析、规范�
 1. 应用 `filterLayer` 并计算 `namespace.local-key`；
 2. 复用 JSON 的 value 与 explicit composite 投影合同；
 3. 检测路径和 composite 冲突；
-4. 使用 `Map`、null-prototype record 或等价机制构造 prototype-safe mapping，并保持插入顺序；
+4. 使用 `Map` 索引 key、顺序和 source path，再转换为 null-prototype record 作为 YAML serializer 输入；
 5. 用仓库现有 `js-yaml` 依赖序列化无注释 YAML fragment。
 
-formatter 不通过 JSON 字符串 round-trip 构造 YAML，也不解析原始 `main.yaml`。`__proto__`、`constructor` 和 `prototype` 必须作为普通 source key 安全输出，不能修改 accumulator prototype、绕过冲突检测或静默丢失。
+formatter 不把 `Map` 直接传给 `js-yaml`，不通过 JSON 字符串 round-trip 构造 YAML，也不解析原始 `main.yaml`。`__proto__`、`constructor` 和 `prototype` 必须作为普通 source key 安全输出，不能修改 accumulator prototype、绕过冲突检测或静默丢失。
 
 ### Generator 与 CLI
 
@@ -226,7 +228,9 @@ Generator 注册 `md-yml` platform，并将文件名规划为 `<theme>2md.yml`�
 - 断言 namespace、direct token、interleaved explicit composite 和 composite property 严格遵循首次出现顺序。
 - 对 frozen token/value 分别运行 `[json, md-yml]` 和 `[md-yml, json]`，断言不抛出 mutation error，且两种顺序生成的 JSON 与 md-yml 分别字节一致。
 - 覆盖 negative、fractional、`NaN`、infinite filterLayer，以及 direct path、explicit composite path 不足的失败信息。
+- 覆盖含 `.` 的 exact composite group segment，断言不会与多 segment path 错误合并。
 - 覆盖折叠 key、direct/composite、property collision，以及 `__proto__`、`constructor`、`prototype` source key。
+- 覆盖 object `undefined`、array `undefined`/hole、非有限 number、cycle 和非 plain object，断言 serializer 前明确失败且错误包含 nested value path。
 
 ### Generator and integration contract
 
