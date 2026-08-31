@@ -105,6 +105,26 @@ describe('flatJsonFormat (Wave-native)', () => {
 		expect(out).toMatch(/alpha.*0\.3/);
 	});
 
+	test('inheritColor with alpha and opacity preserves both fields', () => {
+		expectFlatPayload(
+			[
+				makeToken({
+					name: 'theme-color-overlay',
+					inheritColor: true,
+					inheritColorAlpha: 0.4,
+					inheritColorOpacity: 0.6,
+				}),
+			],
+			{
+				'theme-color-overlay': {
+					color: '$COLOR_FOREGROUND',
+					alpha: 0.4,
+					opacity: 0.6,
+				},
+			},
+		);
+	});
+
 	test('preserves every standard type payload in JSON and JSONC', () => {
 		const tokens: WaveToken[] = [
 			makeToken({ name: 'color', type: 'color', value: '#112233' }),

@@ -1,4 +1,5 @@
 import type { WaveFormatFn, WaveToken } from '../../../types/index.ts';
+import { formatFlatTokenValue } from './flat-value.ts';
 
 export interface FlatFormatOptions {
 	filterLayer?: number;
@@ -12,25 +13,6 @@ function getFilteredName(token: WaveToken, filterLayer: number): string {
 	return path.slice(filterLayer).join('-');
 }
 
-function isInheritColorToken(token: WaveToken): boolean {
-	return token.inheritColor === true;
-}
-
-function formatInheritColorValue(token: WaveToken): unknown {
-	const alpha = token.inheritColorAlpha;
-	const opacity = token.inheritColorOpacity;
-	if (typeof alpha === 'number' && typeof opacity === 'number') {
-		return { color: '$COLOR_FOREGROUND', alpha, opacity };
-	}
-	if (typeof alpha === 'number') {
-		return { color: '$COLOR_FOREGROUND', alpha };
-	}
-	if (typeof opacity === 'number') {
-		return { color: '$COLOR_FOREGROUND', opacity };
-	}
-	return '$COLOR_FOREGROUND';
-}
-
 function buildFlatRecord(
 	tokens: WaveToken[],
 	filterLayer: number,
@@ -40,13 +22,7 @@ function buildFlatRecord(
 
 	for (const token of tokens) {
 		const compositePath = token._composite;
-		let tokenValue: unknown;
-
-		if (isInheritColorToken(token)) {
-			tokenValue = formatInheritColorValue(token);
-		} else {
-			tokenValue = token.value;
-		}
+		const tokenValue = formatFlatTokenValue(token);
 
 		if (compositePath) {
 			const path = token.path;
@@ -87,13 +63,7 @@ export const flatJsoncFormat: WaveFormatFn = (
 	for (let i = 0; i < tokens.length; i++) {
 		const token = tokens[i]!;
 		const key = getFilteredName(token, filterLayer);
-		let tokenValue: unknown;
-
-		if (isInheritColorToken(token)) {
-			tokenValue = formatInheritColorValue(token);
-		} else {
-			tokenValue = token.value;
-		}
+		const tokenValue = formatFlatTokenValue(token);
 
 		const description = token.comment;
 		const isMultilineDescription =
