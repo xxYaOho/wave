@@ -51,7 +51,7 @@ export function createDesignTokenBuildCommand(name = 'build'): Command {
 		.option('--output <dir>', 'Output directory')
 		.option(
 			'--platform <list>',
-			'Output platforms (comma separated): json, jsonc, css, sketch',
+			'Output platforms (comma separated): json, jsonc, css, sketch, md-yml',
 		)
 		.action(
 			async (

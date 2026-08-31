@@ -72,6 +72,34 @@ describe('generateTokens (Wave-native)', () => {
 		});
 	});
 
+	test('writes md-yml and supports a JSON companion output', async () => {
+		await withTempDir(async (outputDir) => {
+			const tokens: WaveToken[] = [
+				{
+					name: 'theme-color-primary-main',
+					path: ['theme', 'color', 'primary', 'main'],
+					value: '#1a72f0',
+					type: 'color',
+					_order: 0,
+				},
+			];
+			const result = await generateTokens({
+				themeName: 'demo',
+				outputDir,
+				tokens,
+				platform: ['json', 'md-yml'],
+				filterLayer: 1,
+			});
+			expect(result).toMatchObject({
+				success: true,
+				files: ['demo.json', 'demo2md.yml'],
+			});
+			expect(
+				await fs.readFile(path.join(outputDir, 'demo2md.yml'), 'utf8'),
+			).toBe("color:\n  primary-main: '#1a72f0'\n");
+		});
+	});
+
 	test('css platform emits public roots and excludes legacy dimension root', async () => {
 		await withTempDir(async (outputDir) => {
 			const tokens: WaveToken[] = [
@@ -401,7 +429,7 @@ describe('generateTokens (Wave-native)', () => {
 				success: false,
 				files: [],
 				error:
-					'Unknown platform "unknown". Supported platforms: json, jsonc, css, sketch',
+					'Unknown platform "unknown". Supported platforms: json, jsonc, css, sketch, md-yml',
 			});
 			expect(await fs.readFile(jsonPath, 'utf8')).toBe('existing-json');
 			expect(await fs.readdir(outputDir)).toEqual(['demo.json']);
@@ -425,6 +453,47 @@ describe('generateTokens (Wave-native)', () => {
 			expect(await fs.readdir(outputDir)).toEqual([]);
 		});
 	});
+
+	for (const platform of [
+		['json', 'md-yml', 'css'],
+		['md-yml', 'json', 'css'],
+	]) {
+		test(`keeps current pass artifacts unchanged when md-yml formatting fails (${platform.join(',')})`, async () => {
+			await withTempDir(async (outputDir) => {
+				const jsonPath = path.join(outputDir, 'demo.json');
+				const cssPath = path.join(outputDir, 'demo.css');
+				await fs.writeFile(jsonPath, 'json-marker');
+				await fs.writeFile(cssPath, 'css-marker');
+				const tokens: WaveToken[] = [
+					{
+						name: 'theme-color-a-b',
+						path: ['theme', 'color', 'a', 'b'],
+						value: '#fff',
+						_order: 0,
+					},
+					{
+						name: 'theme-color-a-b-collision',
+						path: ['theme', 'color', 'a-b'],
+						value: '#000',
+						_order: 1,
+					},
+				];
+				const result = await generateTokens({
+					themeName: 'demo',
+					outputDir,
+					tokens,
+					platform,
+					filterLayer: 1,
+				});
+				expect(result.success).toBe(false);
+				expect(await fs.readFile(jsonPath, 'utf8')).toBe('json-marker');
+				expect(await fs.readFile(cssPath, 'utf8')).toBe('css-marker');
+				expect(
+					await Bun.file(path.join(outputDir, 'demo2md.yml')).exists(),
+				).toBe(false);
+			});
+		});
+	}
 
 	test('normalizes and deduplicates platforms', async () => {
 		await withTempDir(async (outputDir) => {

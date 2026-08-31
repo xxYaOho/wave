@@ -331,6 +331,16 @@ export function buildGroupPasses(
 	cliPlatform?: string,
 ): ResolvedGroupParameters[] {
 	const defaultOutputDir = path.join(themeDir, config.theme);
+	if (cliPlatform !== undefined) {
+		const resolved = resolveParameters(
+			config.parameter,
+			themeDir,
+			cliOutput,
+			cliPlatform,
+		);
+		if (!resolved.outputDir) resolved.outputDir = defaultOutputDir;
+		return [resolved];
+	}
 
 	if (config.parameterGroups.length === 0) {
 		const resolved = resolveParameters(

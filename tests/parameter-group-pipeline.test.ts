@@ -172,16 +172,33 @@ describe('buildGroupPasses', () => {
 		expect(passes[1]!.outputDir).toBe('/cli/out');
 	});
 
-	test('CLI platform overrides all groups', () => {
+	test('CLI platform creates one pass from base parameters', () => {
+		const config = makeConfig({
+			parameter: { filterLayer: '1', colorSpace: 'oklch' },
+			parameterGroups: [
+				{ name: 'css', parameter: { platform: 'css', filterLayer: '2' } },
+				{ name: 'sketch', parameter: { platform: 'sketch' } },
+			],
+		});
+		const passes = buildGroupPasses(config, '/theme', undefined, 'md-yml');
+		expect(passes).toHaveLength(1);
+		expect(passes[0]).toMatchObject({
+			platforms: ['md-yml'],
+			filterLayer: 1,
+			colorSpace: 'oklch',
+		});
+		expect(passes[0]!.groupName).toBeUndefined();
+	});
+
+	test('CLI multi-platform value remains one base pass', () => {
 		const config = makeConfig({
 			parameterGroups: [
 				{ name: 'css', parameter: { platform: 'css' } },
 				{ name: 'sketch', parameter: { platform: 'sketch' } },
 			],
 		});
-		const passes = buildGroupPasses(config, '/theme', undefined, 'json');
-		expect(passes).toHaveLength(2);
-		expect(passes[0]!.platforms).toEqual(['json']);
-		expect(passes[1]!.platforms).toEqual(['json']);
+		const passes = buildGroupPasses(config, '/theme', undefined, 'css,sketch');
+		expect(passes).toHaveLength(1);
+		expect(passes[0]!.platforms).toEqual(['css', 'sketch']);
 	});
 });

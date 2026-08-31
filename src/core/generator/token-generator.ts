@@ -9,6 +9,7 @@ import type {
 import { transformToWaveTokens } from '../transformer/theme-transformer.ts';
 import { cssVariablesFormat } from './formats/css.ts';
 import { flatJsoncFormat, flatJsonFormat } from './formats/flat.ts';
+import { mdYamlFormat } from './formats/md-yml.ts';
 import { sketchFormat } from './formats/sketch.ts';
 
 export interface GeneratorOptions {
@@ -83,6 +84,10 @@ const PLATFORMS: Record<string, PlatformDefinition> = {
 				'font',
 			],
 		},
+	},
+	'md-yml': {
+		format: mdYamlFormat,
+		filename: (n) => `${n}2md.yml`,
 	},
 };
 

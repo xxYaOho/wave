@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import * as yaml from 'js-yaml';
 import {
 	generateTheme,
 	type ThemeGenerationInput,
@@ -209,6 +210,37 @@ ${tokenYaml}`,
 			}
 		});
 
+		test('rejects duplicate md-yml group paths before changing artifacts', async () => {
+			const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-plan-md-yml-'));
+			const outputDir = path.join(dir, 'out');
+			const markerPath = path.join(outputDir, 'group-collision2md.yml');
+			const marker = Buffer.from('existing-yaml\n');
+			try {
+				await fs.mkdir(outputDir);
+				await fs.writeFile(markerPath, marker);
+				await fs.writeFile(
+					path.join(dir, 'main.yaml'),
+					`$config:
+  theme: group-collision
+  parameterGroup:
+    first: { outputDir: ./out, platform: [md-yml] }
+    second: { outputDir: ./out, platform: [md-yml] }
+${tokenYaml}`,
+				);
+				const result = await generateTheme({
+					workspacePath: path.join(dir, 'main.yaml'),
+					generateOptions: { night: false },
+				});
+				expect(result.ok).toBe(false);
+				if (!result.ok)
+					expect(result.message).toContain('Output path collision:');
+				expect(await fs.readFile(markerPath)).toEqual(marker);
+				expect(await fs.readdir(outputDir)).toEqual(['group-collision2md.yml']);
+			} finally {
+				await fs.rm(dir, { recursive: true, force: true });
+			}
+		});
+
 		async function writeNightProfileWorkspace(
 			dir: string,
 			nightValue: string,
@@ -360,7 +392,7 @@ theme:
 				ok: false,
 				exitCode: ExitCode.GENERAL_ERROR,
 				message:
-					'Unknown platform "unknown". Supported platforms: json, jsonc, css, sketch',
+					'Unknown platform "unknown". Supported platforms: json, jsonc, css, sketch, md-yml',
 			});
 			expect(await fs.readFile(jsonPath)).toEqual(marker);
 			expect(await fs.readdir(outputDir)).toEqual(['platform-check.json']);
@@ -406,6 +438,139 @@ theme:
 			});
 			expect(await fs.readFile(jsonPath)).toEqual(marker);
 			expect(await fs.readdir(outputDir)).toEqual(['platform-check.json']);
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	test('CLI platform uses one base pass for default, named, and all profiles', async () => {
+		const dir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-md-yml-profile-'),
+		);
+		try {
+			await fs.mkdir(path.join(dir, 'profiles'));
+			await fs.writeFile(
+				path.join(dir, 'main.yaml'),
+				`$config:
+  theme: profile-doc
+  parameter: { filterLayer: 1 }
+  parameterGroup:
+    css: { platform: [css], filterLayer: 2 }
+    sketch: { platform: [sketch], filterLayer: 2 }
+theme:
+  color:
+    $type: color
+    primary: { $value: "#1a72f0" }
+`,
+			);
+			await fs.writeFile(
+				path.join(dir, 'profiles', 'mobile.yaml'),
+				`$config:
+  parameter: { filterLayer: 1 }
+  parameterGroup:
+    css: { platform: [css], filterLayer: 2 }
+    sketch: { platform: [sketch], filterLayer: 2 }
+theme:
+  color:
+    $type: color
+    primary: { $value: "#22c55e" }
+`,
+			);
+
+			const allOut = path.join(dir, 'all');
+			const all = await generateTheme({
+				workspacePath: path.join(dir, 'main.yaml'),
+				cliOutput: allOut,
+				cliPlatform: 'md-yml',
+				generateOptions: { night: false, profiles: 'all' },
+			});
+			expect(all.ok, all.ok ? undefined : all.message).toBe(true);
+			if (all.ok) {
+				expect(all.generatedFiles.sort()).toEqual([
+					'profile-doc-mobile2md.yml',
+					'profile-doc2md.yml',
+				]);
+			}
+			expect((await fs.readdir(allOut)).sort()).toEqual([
+				'profile-doc-mobile2md.yml',
+				'profile-doc2md.yml',
+			]);
+
+			const namedOut = path.join(dir, 'named');
+			const named = await generateTheme({
+				workspacePath: path.join(dir, 'main.yaml'),
+				cliOutput: namedOut,
+				cliPlatform: 'md-yml',
+				generateOptions: { night: false, profile: 'mobile' },
+			});
+			expect(named.ok, named.ok ? undefined : named.message).toBe(true);
+			expect(await fs.readdir(namedOut)).toEqual(['profile-doc-mobile2md.yml']);
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	test('CLI output alone preserves configured group passes', async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-group-output-'));
+		const outputDir = path.join(dir, 'override');
+		try {
+			await fs.writeFile(
+				path.join(dir, 'main.yaml'),
+				`$config:
+  theme: group-output
+  parameterGroup:
+    json: { outputDir: ./json, platform: [json] }
+    css: { outputDir: ./css, platform: [css] }
+theme:
+  color:
+    primary: { $type: color, $value: "#1a72f0" }
+`,
+			);
+			const result = await generateTheme({
+				workspacePath: path.join(dir, 'main.yaml'),
+				cliOutput: outputDir,
+				generateOptions: { night: false },
+			});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+			expect((await fs.readdir(outputDir)).sort()).toEqual([
+				'group-output.css',
+				'group-output.json',
+			]);
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	test('md-yml shares the current OKLCH transformed values with JSON', async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-md-yml-oklch-'));
+		try {
+			await fs.writeFile(
+				path.join(dir, 'main.yaml'),
+				`$config:
+  theme: oklch-doc
+  parameter:
+    outputDir: ./out
+    platform: [json, md-yml]
+    filterLayer: 1
+    colorSpace: oklch
+theme:
+  color:
+    primary: { $type: color, $value: "#0052f5" }
+`,
+			);
+			const result = await generateTheme({
+				workspacePath: path.join(dir, 'main.yaml'),
+				generateOptions: { night: false },
+			});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+			const json = JSON.parse(
+				await fs.readFile(path.join(dir, 'out', 'oklch-doc.json'), 'utf8'),
+			);
+			const md = yaml.load(
+				await fs.readFile(path.join(dir, 'out', 'oklch-doc2md.yml'), 'utf8'),
+			) as Record<string, Record<string, unknown>>;
+			expect(md.color?.primary).toEqual(json['color-primary']);
+			expect(md.color?.primary).not.toMatch(/^#[0-9a-f]{8}$/i);
 		} finally {
 			await fs.rm(dir, { recursive: true, force: true });
 		}

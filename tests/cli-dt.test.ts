@@ -267,6 +267,7 @@ describe('wave dt', () => {
 		expect(stdout).toContain('build           Build design token output');
 		expect(stdout).toContain('wcag            Check color contrast');
 		expect(stdout).toContain('-f, --file <path>    main.yaml path');
+		expect(stdout).toContain('md-yml');
 		expect(stdout).not.toContain('Usage: wave dt build');
 	});
 
@@ -285,6 +286,7 @@ describe('wave dt', () => {
 		expect(result.stdout).toContain('--profile <name>');
 		expect(result.stdout).toContain('--profiles <mode>');
 		expect(result.stdout).toContain('--night');
+		expect(result.stdout).toContain('md-yml');
 		expect(result.stdout).not.toContain('--variant');
 		expect(result.stdout).not.toContain('--variants');
 		expect(result.stdout).not.toContain('--no-variants');
@@ -304,6 +306,59 @@ describe('wave dt', () => {
 
 		expect(result.exitCode).not.toBe(0);
 		expect(`${result.stdout}\n${result.stderr}`).toContain('unknown option');
+	});
+
+	test('dt build --platform md-yml creates one base-parameter pass', async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-md-yml-cli-'));
+		const outputDir = path.join(dir, 'out');
+		try {
+			await fs.writeFile(
+				path.join(dir, 'main.yaml'),
+				`$config:
+  theme: cli-doc
+  parameter:
+    filterLayer: 1
+  parameterGroup:
+    css: { outputDir: ./css, platform: [css], filterLayer: 2 }
+    sketch: { outputDir: ./sketch, platform: [sketch] }
+theme:
+  color:
+    $type: color
+    primary:
+      main: { $value: "#1a72f0" }
+`,
+			);
+			const result = await runWave(
+				[
+					'dt',
+					'build',
+					'-f',
+					path.join(dir, 'main.yaml'),
+					'--platform',
+					'md-yml',
+					'--out',
+					outputDir,
+				],
+				dir,
+				isolatedResourceEnv(dir),
+			);
+			expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
+			expect(await fs.readdir(outputDir)).toEqual(['cli-doc2md.yml']);
+			const payload = yaml.load(
+				await fs.readFile(path.join(outputDir, 'cli-doc2md.yml'), 'utf8'),
+			);
+			expect(payload).toEqual({ color: { 'primary-main': '#1a72f0' } });
+			expect(
+				await Bun.file(path.join(dir, 'css', 'cli-doc.css')).exists(),
+			).toBe(false);
+			expect(
+				await Bun.file(
+					path.join(dir, 'sketch', 'cli-doc2sketch.json'),
+				).exists(),
+			).toBe(false);
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
 	});
 
 	test('dt build no longer auto-discovers variants directory', async () => {

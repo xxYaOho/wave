@@ -89,6 +89,17 @@ describe('design token main config validator', () => {
 		]);
 	});
 
+	test('accepts and normalizes the md-yml platform', () => {
+		const result = validateMainConfig({
+			theme: 'orca',
+			parameter: { platform: ['md-yml'] },
+		});
+		expect(result).toMatchObject({
+			ok: true,
+			config: { parameter: { platform: 'md-yml' } },
+		});
+	});
+
 	test('fails closed for unknown config fields', () => {
 		const result = validateMainConfig({
 			theme: ' ',

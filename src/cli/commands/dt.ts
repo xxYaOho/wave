@@ -28,7 +28,7 @@ const DESIGN_TOKEN_HELP = `Wave Design Token
   Options:
     -f, --file <path>    main.yaml path. Default: ./main.yaml
     -o, --out <path>     Override output directory
-    --platform <name>    Output platform. Repeatable: json, jsonc, css, sketch
+    --platform <name>    Output platform. Repeatable: json, jsonc, css, sketch, md-yml
     --profile <name>     Build one named profile from profiles/<name>.yaml
     --profiles all       Build main and all named profiles
     --night              Include valid Night Mode overlays when available

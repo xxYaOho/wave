@@ -7,7 +7,7 @@ import type {
 import { ExitCode } from '../../types/index.ts';
 
 const nonEmptyString = z.string().trim().min(1);
-const platforms = ['json', 'jsonc', 'css', 'sketch'] as const;
+const platforms = ['json', 'jsonc', 'css', 'sketch', 'md-yml'] as const;
 const colorSpaces = ['hex', 'oklch', 'srgb', 'hsl'] as const;
 
 const parameterSchema = z
