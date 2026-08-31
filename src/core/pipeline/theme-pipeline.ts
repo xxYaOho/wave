@@ -206,6 +206,10 @@ export async function processThemeDocument(
 			resolved,
 			undefined,
 			colorSpace,
+			{
+				provenance: resolution.provenance,
+				rootKeys: resolution.rootKeys,
+			},
 		);
 		return {
 			ok: true,

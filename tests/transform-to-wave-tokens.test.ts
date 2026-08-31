@@ -1,9 +1,153 @@
 import { describe, expect, test } from 'bun:test';
 import { resolveReferences } from '../src/core/resolver/theme-reference.ts';
+import { getTokenReferenceLineage } from '../src/core/transformer/reference-lineage.ts';
 import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
 import type { DtcgTokenGroup, ResolvedTokenGroup } from '../src/types/index.ts';
 
 describe('transformToWaveTokens', () => {
+	test('keeps internal whole and nested references in a private lineage sidecar', () => {
+		const raw: DtcgTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					base: { $value: '#112233' },
+					alias: { $value: '{theme.color.base}' },
+				},
+				border: {
+					$type: 'border',
+					base: {
+						$value: { color: '#112233', width: 1, style: 'solid' },
+					},
+					alias: {
+						$value: {
+							color: '{theme.color.base}',
+							width: 1,
+							style: 'solid',
+						},
+					},
+				},
+			},
+		};
+		const resolution = resolveReferences(raw, {});
+		const withContext = transformToWaveTokens(
+			resolution.tree,
+			undefined,
+			'hex',
+			resolution,
+		);
+
+		expect(
+			getTokenReferenceLineage(
+				withContext.tokens.find((token) => token.name === 'theme-color-alias')!,
+			),
+		).toEqual([{ valuePath: [], targetPath: ['theme', 'color', 'base'] }]);
+		expect(
+			getTokenReferenceLineage(
+				withContext.tokens.find(
+					(token) => token.name === 'theme-border-alias',
+				)!,
+			),
+		).toEqual([
+			{ valuePath: ['color'], targetPath: ['theme', 'color', 'base'] },
+		]);
+	});
+
+	test('inherits nearest typography default lineage and honors explicit fields', () => {
+		const raw: DtcgTokenGroup = {
+			theme: {
+				font: {
+					$type: 'typography',
+					$extensions: {
+						typography: {
+							defaults: {
+								fontFamily: '{theme.font.family-base}',
+								fontWeight: 400,
+								lineHeight: 1.5,
+								letterSpacing: 0,
+							},
+						},
+					},
+					'family-base': { $type: 'fontFamily', $value: ['Base'] },
+					'family-heading': { $type: 'fontFamily', $value: ['Heading'] },
+					heading: {
+						$extensions: {
+							typography: {
+								defaults: {
+									fontFamily: '{theme.font.family-heading}',
+								},
+							},
+						},
+						h1: { $value: { fontSize: 32 } },
+						h2: { $value: { fontFamily: ['Literal'], fontSize: 24 } },
+						h3: {
+							$value: {
+								fontFamily: '{theme.font.family-base}',
+								fontSize: 20,
+							},
+						},
+					},
+					body: {
+						$extensions: {
+							typography: { defaults: { fontFamily: ['Body Literal'] } },
+						},
+						paragraph: { $value: { fontSize: 16 } },
+					},
+				},
+			},
+		};
+		const resolution = resolveReferences(raw, {});
+		const { tokens } = transformToWaveTokens(
+			resolution.tree,
+			undefined,
+			'hex',
+			resolution,
+		);
+		const lineage = (name: string) =>
+			getTokenReferenceLineage(tokens.find((token) => token.name === name)!);
+
+		expect(lineage('theme-font-heading-h1')).toEqual([
+			{
+				valuePath: ['fontFamily'],
+				targetPath: ['theme', 'font', 'family-heading'],
+			},
+		]);
+		expect(lineage('theme-font-heading-h2')).toEqual([]);
+		expect(lineage('theme-font-heading-h3')).toEqual([
+			{
+				valuePath: ['fontFamily'],
+				targetPath: ['theme', 'font', 'family-base'],
+			},
+		]);
+		expect(lineage('theme-font-body-paragraph')).toEqual([]);
+	});
+
+	test('does not expose lineage through the public WaveToken shape', () => {
+		const raw: DtcgTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					base: { $value: '#112233' },
+					alias: { $value: '{theme.color.base}' },
+				},
+			},
+		};
+		const resolution = resolveReferences(raw, {});
+		const plain = transformToWaveTokens(resolution.tree).tokens;
+		const contextual = transformToWaveTokens(
+			resolution.tree,
+			undefined,
+			'hex',
+			resolution,
+		).tokens;
+
+		expect(contextual.map(Object.keys)).toEqual(plain.map(Object.keys));
+		expect(contextual.map(Reflect.ownKeys)).toEqual(plain.map(Reflect.ownKeys));
+		expect(contextual.map((token) => ({ ...token }))).toEqual(
+			plain.map((token) => ({ ...token })),
+		);
+		expect(JSON.stringify(contextual)).toBe(JSON.stringify(plain));
+		expect(contextual).toEqual(plain);
+	});
 	test('emits a flat WaveToken array with kebab name and path', () => {
 		const input: ResolvedTokenGroup = {
 			color: {

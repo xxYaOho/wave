@@ -3,8 +3,13 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { generateTokens } from '../src/core/generator/token-generator.ts';
+import { resolveReferences } from '../src/core/resolver/theme-reference.ts';
 import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
-import type { ResolvedTokenGroup, WaveToken } from '../src/types/index.ts';
+import type {
+	DtcgTokenGroup,
+	ResolvedTokenGroup,
+	WaveToken,
+} from '../src/types/index.ts';
 
 async function withTempDir(fn: (dir: string) => Promise<void>): Promise<void> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-gen-test-'));
@@ -625,6 +630,55 @@ describe('generateTokens (Wave-native)', () => {
 				lineHeight: 21,
 				kerning: 1.4,
 			});
+		});
+	});
+
+	test('reference context keeps legacy platform bytes identical through Sketch HEX re-transform', async () => {
+		await withTempDir(async (outputDir) => {
+			const raw: DtcgTokenGroup = {
+				theme: {
+					color: {
+						$type: 'color',
+						base: { $value: '#0052f5' },
+						alias: { $value: '{theme.color.base}' },
+					},
+				},
+			};
+			const resolution = resolveReferences(raw, {});
+			const plain = transformToWaveTokens(resolution.tree, undefined, 'oklch');
+			const contextual = transformToWaveTokens(
+				resolution.tree,
+				undefined,
+				'oklch',
+				resolution,
+			);
+			const plainDir = path.join(outputDir, 'plain');
+			const contextualDir = path.join(outputDir, 'contextual');
+			const platforms = ['json', 'jsonc', 'css', 'sketch'];
+
+			const plainResult = await generateTokens({
+				themeName: 'parity',
+				outputDir: plainDir,
+				tokens: plain.tokens,
+				platform: platforms,
+				resolved: resolution.tree,
+				colorSpace: 'oklch',
+			});
+			const contextualResult = await generateTokens({
+				themeName: 'parity',
+				outputDir: contextualDir,
+				tokens: contextual.tokens,
+				platform: platforms,
+				resolved: resolution.tree,
+				colorSpace: 'oklch',
+			});
+
+			expect(contextualResult).toEqual(plainResult);
+			for (const filename of plainResult.files) {
+				expect(
+					await fs.readFile(path.join(contextualDir, filename), 'utf8'),
+				).toBe(await fs.readFile(path.join(plainDir, filename), 'utf8'));
+			}
 		});
 	});
 });

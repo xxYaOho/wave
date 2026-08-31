@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test';
+import type { ReferenceProvenanceMap } from '../src/core/schema/dtcg-reference-types.ts';
+import { getTokenReferenceLineage } from '../src/core/transformer/reference-lineage.ts';
 import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
 import type { ResolvedTokenGroup, WaveToken } from '../src/types/index.ts';
 
@@ -6,6 +8,35 @@ function findToken(tokens: WaveToken[], name: string): WaveToken {
 	const t = tokens.find((tok) => tok.name === name);
 	if (!t) throw new Error(`token ${name} not found`);
 	return t;
+}
+
+function rootAliasContext(
+	consumerPath: readonly string[],
+	targetPath: readonly string[],
+	options: { scope?: 'internal' | 'external'; identity?: boolean } = {},
+): {
+	provenance: ReferenceProvenanceMap;
+	rootKeys: ReadonlySet<string>;
+} {
+	const consumerSegments = [...consumerPath, '$value'];
+	return {
+		provenance: new Map([
+			[
+				JSON.stringify(consumerSegments),
+				{
+					consumerPath: consumerSegments.join('.'),
+					consumerSegments,
+					reference: `{${targetPath.join('.')}}`,
+					targetPath: targetPath.join('.'),
+					targetSegments: targetPath,
+					resolvedTargetValueKind: 'object' as const,
+					scope: options.scope ?? 'internal',
+					identity: options.identity ?? true,
+				},
+			],
+		]),
+		rootKeys: new Set(['theme']),
+	};
 }
 
 describe('theme-transformer hex to color space conversion', () => {
@@ -104,6 +135,148 @@ describe('theme-transformer hex to color space conversion', () => {
 });
 
 describe('gradient and shadow semantic materialization', () => {
+	test('rejects external, computed, and target-property lineage candidates', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					base: { $value: '#112233' },
+					external: { $value: '#112233' },
+					computed: { $value: '#112233' },
+					property: { $value: '#112233' },
+				},
+				border: {
+					$type: 'border',
+					base: {
+						$value: { color: '#112233', width: 1, style: 'solid' },
+					},
+				},
+			},
+		};
+		const contexts = [
+			rootAliasContext(['theme', 'color', 'external'], ['palette', 'base'], {
+				scope: 'external',
+			}),
+			rootAliasContext(
+				['theme', 'color', 'computed'],
+				['theme', 'color', 'base'],
+				{ identity: false },
+			),
+			rootAliasContext(
+				['theme', 'color', 'property'],
+				['theme', 'border', 'base', '$value', 'color'],
+			),
+		];
+		const { tokens } = transformToWaveTokens(input, undefined, 'hex', {
+			provenance: new Map(
+				contexts.flatMap((context) => [...context.provenance.entries()]),
+			),
+			rootKeys: new Set(['theme']),
+		});
+
+		for (const name of ['external', 'computed', 'property']) {
+			expect(
+				getTokenReferenceLineage(findToken(tokens, `theme-color-${name}`)),
+			).toEqual([]);
+		}
+	});
+
+	test('blocks lineage when gradient endpoints are inserted', () => {
+		const stop = { color: '#112233', position: 0.5 };
+		const input: ResolvedTokenGroup = {
+			theme: {
+				gradient: {
+					$type: 'gradient',
+					base: { $value: [stop] },
+					alias: { $value: [stop] },
+				},
+			},
+		};
+		const { tokens } = transformToWaveTokens(
+			input,
+			undefined,
+			'hex',
+			rootAliasContext(
+				['theme', 'gradient', 'alias'],
+				['theme', 'gradient', 'base'],
+			),
+		);
+
+		expect(
+			getTokenReferenceLineage(findToken(tokens, 'theme-gradient-alias')),
+		).toEqual([]);
+	});
+
+	test('keeps lineage when a standard gradient already has both endpoints', () => {
+		const stops = [
+			{ color: '#112233', position: 0 },
+			{ color: '#445566', position: 1 },
+		];
+		const input: ResolvedTokenGroup = {
+			theme: {
+				gradient: {
+					$type: 'gradient',
+					base: { $value: stops },
+					alias: { $value: stops },
+				},
+			},
+		};
+		const { tokens } = transformToWaveTokens(
+			input,
+			undefined,
+			'hex',
+			rootAliasContext(
+				['theme', 'gradient', 'alias'],
+				['theme', 'gradient', 'base'],
+			),
+		);
+
+		expect(
+			getTokenReferenceLineage(findToken(tokens, 'theme-gradient-alias')),
+		).toEqual([{ valuePath: [], targetPath: ['theme', 'gradient', 'base'] }]);
+	});
+
+	test('blocks lineage for inheritColor but not inert legacy currentColor', () => {
+		const input: ResolvedTokenGroup = {
+			theme: {
+				color: {
+					$type: 'color',
+					base: { $value: '#112233' },
+					inherited: {
+						$value: '#112233',
+						$extensions: { inheritColor: true },
+					},
+					legacyInert: {
+						$value: '#112233',
+						$extensions: { currentColor: {} },
+					},
+				},
+			},
+		};
+		const inheritedContext = rootAliasContext(
+			['theme', 'color', 'inherited'],
+			['theme', 'color', 'base'],
+		);
+		const legacyContext = rootAliasContext(
+			['theme', 'color', 'legacyInert'],
+			['theme', 'color', 'base'],
+		);
+		const provenance = new Map([
+			...inheritedContext.provenance,
+			...legacyContext.provenance,
+		]);
+		const { tokens } = transformToWaveTokens(input, undefined, 'hex', {
+			provenance,
+			rootKeys: inheritedContext.rootKeys,
+		});
+
+		expect(
+			getTokenReferenceLineage(findToken(tokens, 'theme-color-inherited')),
+		).toEqual([]);
+		expect(
+			getTokenReferenceLineage(findToken(tokens, 'theme-color-legacyinert')),
+		).toEqual([{ valuePath: [], targetPath: ['theme', 'color', 'base'] }]);
+	});
 	test('clamps gradient positions without mutating authored stops', () => {
 		const stops = [
 			{ color: '#ff0000', position: -0.25 },

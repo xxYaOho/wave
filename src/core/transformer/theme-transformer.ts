@@ -30,6 +30,13 @@ import { normalizeColorValue } from './color-value.ts';
 import { sampleCubicBezier } from './cubic-bezier.ts';
 import { applyInheritColorExtension } from './inherit-color-extension.ts';
 import { roundTo } from './number-format.ts';
+import {
+	setTokenReferenceLineage,
+	type TokenReferenceLineage,
+	type TransformReferenceContext,
+	tokenReferenceLineage,
+	typographyDefaultReferenceLineage,
+} from './reference-lineage.ts';
 import { parseSketchExtension } from './sketch-extension.ts';
 
 interface InheritedExtensions {
@@ -37,6 +44,18 @@ interface InheritedExtensions {
 	sketchSkip?: boolean;
 	typographyDefaults?: TypographyDefaults;
 	typographyBaseFontSize?: number;
+	typographyDefaultLineage?: ReadonlyMap<string, TokenReferenceLineage>;
+}
+
+function mergeTypographyDefaultLineage(
+	inherited: ReadonlyMap<string, TokenReferenceLineage> | undefined,
+	localDefaults: TypographyDefaults | undefined,
+	local: ReadonlyMap<string, TokenReferenceLineage>,
+): ReadonlyMap<string, TokenReferenceLineage> {
+	const merged = new Map(inherited);
+	for (const field of Object.keys(localDefaults ?? {})) merged.delete(field);
+	for (const [field, lineage] of local) merged.set(field, lineage);
+	return merged;
 }
 
 function isLegacyColorObject(value: unknown): value is Record<string, unknown> {
@@ -750,8 +769,12 @@ function transformToken(
 	targetColorSpace: ColorSpaceFormat = 'hex',
 	tokenPath?: string,
 	inheritedExtensions: InheritedExtensions = {},
-): Omit<WaveToken, 'name' | 'path'> {
+): {
+	partial: Omit<WaveToken, 'name' | 'path'>;
+	preserveReferenceLineage: boolean;
+} {
 	const typeValue = token.$type ?? parentType;
+	let preserveReferenceLineage = true;
 	let sourceValue: DtcgValue = token.$value;
 	let typographyUsesRem = false;
 	const sketchColorReference =
@@ -788,6 +811,7 @@ function transformToken(
 	// smoothShadow derivation
 	const smoothShadow = token.$extensions?.smoothShadow;
 	if (smoothShadow !== undefined && typeValue === 'shadow') {
+		preserveReferenceLineage = false;
 		processedValue = deriveSmoothShadow(
 			processedValue,
 			smoothShadow,
@@ -799,6 +823,7 @@ function transformToken(
 	// smoothGradient derivation
 	const smoothGradient = token.$extensions?.smoothGradient;
 	if (smoothGradient !== undefined && typeValue === 'gradient') {
+		preserveReferenceLineage = false;
 		processedValue = deriveSmoothGradient(
 			processedValue,
 			smoothGradient,
@@ -807,10 +832,20 @@ function transformToken(
 		) as DtcgValue;
 	}
 	if (typeValue === 'gradient') {
+		const stopCount = Array.isArray(processedValue)
+			? processedValue.length
+			: undefined;
 		processedValue = materializeGradientEndpoints(
 			processedValue,
 			tokenPath,
 		) as DtcgValue;
+		if (
+			stopCount !== undefined &&
+			Array.isArray(processedValue) &&
+			processedValue.length !== stopCount
+		) {
+			preserveReferenceLineage = false;
+		}
 	}
 	// inheritColor extension (v1)
 	let inheritColor: boolean | undefined;
@@ -819,6 +854,7 @@ function transformToken(
 	let inheritColorSiblingSlot: string | undefined;
 	const inheritColorExt = token.$extensions?.inheritColor;
 	if (inheritColorExt !== undefined && typeValue === 'color') {
+		preserveReferenceLineage = false;
 		const result = applyInheritColorExtension(inheritColorExt, processedValue);
 		processedValue = result.value;
 		inheritColor = result.metadata.inheritColor;
@@ -860,6 +896,7 @@ function transformToken(
 					...(originalColor !== undefined && { _color: originalColor }),
 				};
 				currentColorOpacity = opacityRaw;
+				preserveReferenceLineage = false;
 			}
 		}
 
@@ -890,6 +927,7 @@ function transformToken(
 					currentColorShadowAlpha = alpha;
 				}
 				processedValue = [processedLayer as DtcgValue];
+				preserveReferenceLineage = false;
 			}
 		}
 	}
@@ -964,7 +1002,7 @@ function transformToken(
 		sdValue.deprecated = token.$deprecated;
 	}
 
-	return sdValue;
+	return { partial: sdValue, preserveReferenceLineage };
 }
 
 export interface WaveTokenResult {
@@ -992,10 +1030,33 @@ export function transformToWaveTokens(
 	resolved: ResolvedTokenGroup,
 	parentType?: string,
 	targetColorSpace: ColorSpaceFormat = 'hex',
+	referenceContext?: TransformReferenceContext,
 ): WaveTokenResult {
 	const tokens: WaveToken[] = [];
 	const groupComments: Record<string, string> = {};
 	let orderCounter = 0;
+
+	function bindReferenceLineage(
+		waveToken: WaveToken,
+		sourceToken: ResolvedDtcgToken,
+		tokenPath: readonly string[],
+		inherited: InheritedExtensions,
+		preserve: boolean,
+	): void {
+		if (!preserve || !referenceContext) return;
+		const direct = tokenReferenceLineage(tokenPath, resolved, referenceContext);
+		const explicitValue = isRecord(sourceToken.$value)
+			? sourceToken.$value
+			: undefined;
+		const inheritedLineage = [
+			...(inherited.typographyDefaultLineage?.entries() ?? []),
+		]
+			.filter(
+				([field]) => !explicitValue || !Object.hasOwn(explicitValue, field),
+			)
+			.map(([, lineage]) => lineage);
+		setTokenReferenceLineage(waveToken, [...direct, ...inheritedLineage]);
+	}
 
 	function walk(
 		group: ResolvedTokenGroup,
@@ -1011,6 +1072,10 @@ export function transformToWaveTokens(
 			groupType === 'typography'
 				? typographyDefaultsFromExtensions(group.$extensions)
 				: undefined;
+		const localTypographyDefaultLineage =
+			groupType === 'typography'
+				? typographyDefaultReferenceLineage(path, resolved, referenceContext)
+				: new Map<string, TokenReferenceLineage>();
 		const localTypographyBaseFontSize =
 			path.join('.') === 'theme.font'
 				? parseTypographyBaseFontSize(group.$extensions)
@@ -1031,6 +1096,15 @@ export function transformToWaveTokens(
 						),
 					}
 				: { typographyDefaults: undefined }),
+			...(groupType === 'typography'
+				? {
+						typographyDefaultLineage: mergeTypographyDefaultLineage(
+							inheritedExtensions.typographyDefaultLineage,
+							localTypographyDefaults,
+							localTypographyDefaultLineage,
+						),
+					}
+				: { typographyDefaultLineage: undefined }),
 			...(groupType === 'typography'
 				? {
 						typographyBaseFontSize:
@@ -1054,7 +1128,7 @@ export function transformToWaveTokens(
 			const childPathStr = childPath.join('.');
 
 			if (isResolvedToken(value)) {
-				const partial = transformToken(
+				const transformed = transformToken(
 					value,
 					groupType,
 					orderCounter++,
@@ -1062,7 +1136,15 @@ export function transformToWaveTokens(
 					childPathStr,
 					childInheritedExtensions,
 				);
-				tokens.push(buildWaveToken(childPath, partial));
+				const waveToken = buildWaveToken(childPath, transformed.partial);
+				bindReferenceLineage(
+					waveToken,
+					value,
+					childPath,
+					childInheritedExtensions,
+					transformed.preserveReferenceLineage,
+				);
+				tokens.push(waveToken);
 				continue;
 			}
 
@@ -1090,6 +1172,19 @@ export function transformToWaveTokens(
 						: { typographyDefaults: undefined }),
 					...(compositeType === 'typography'
 						? {
+								typographyDefaultLineage: mergeTypographyDefaultLineage(
+									childInheritedExtensions.typographyDefaultLineage,
+									typographyDefaultsFromExtensions(child.$extensions),
+									typographyDefaultReferenceLineage(
+										childPath,
+										resolved,
+										referenceContext,
+									),
+								),
+							}
+						: { typographyDefaultLineage: undefined }),
+					...(compositeType === 'typography'
+						? {
 								typographyBaseFontSize:
 									childInheritedExtensions.typographyBaseFontSize,
 							}
@@ -1106,7 +1201,7 @@ export function transformToWaveTokens(
 						continue;
 					}
 					if (!isResolvedToken(propValue)) continue;
-					const partial = transformToken(
+					const transformed = transformToken(
 						propValue,
 						compositeType,
 						orderCounter++,
@@ -1114,8 +1209,17 @@ export function transformToWaveTokens(
 						`${childPathStr}.${propKey}`,
 						compositeInheritedExtensions,
 					);
-					partial._composite = childPathStr;
-					tokens.push(buildWaveToken([...childPath, propKey], partial));
+					transformed.partial._composite = childPathStr;
+					const propPath = [...childPath, propKey];
+					const waveToken = buildWaveToken(propPath, transformed.partial);
+					bindReferenceLineage(
+						waveToken,
+						propValue,
+						propPath,
+						compositeInheritedExtensions,
+						transformed.preserveReferenceLineage,
+					);
+					tokens.push(waveToken);
 				}
 				continue;
 			}

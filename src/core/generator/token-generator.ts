@@ -136,6 +136,7 @@ function tokensForPlatform(
 ): WaveToken[] {
 	if (platform !== 'sketch') return tokens;
 	if (!resolved || colorSpace === 'hex') return tokens;
+	// Sketch re-materializes HEX values and intentionally has no md-yml lineage.
 	return transformToWaveTokens(resolved, undefined, 'hex').tokens;
 }
 
