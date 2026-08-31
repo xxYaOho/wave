@@ -409,6 +409,9 @@ theme:
   parameter:
     outputDir: ./out
     platform: [css]
+  parameterGroup:
+    css: { platform: [css] }
+    sketch: { platform: [sketch] }
 theme:
   color:
     primary:
@@ -452,6 +455,9 @@ theme:
   parameter:
     outputDir: ./out
     platform: [css]
+  parameterGroup:
+    css: { platform: [css] }
+    sketch: { platform: [sketch] }
 theme:
   color:
     primary:
