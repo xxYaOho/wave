@@ -237,7 +237,7 @@ complete-token alias 继承目标的 effective type。composite 子字段引用�
 
 #### 平台投影与失败语义
 
-JSON 和 JSONC 使用 flat platform output。md-yml 使用相同的 formatter-ready value，但按 namespace 分组。dimension 子值保留单位，standard composite 保留规范化结构。含 `"none"` 的 DTCG color 无法转换且无 `hex` fallback 时，保留只含标准字段的 clean color object。
+JSON 和 JSONC 使用 flat platform output。md-yml 使用相同的 formatter-ready value，但按 namespace 分组；可投影到同一 md-yml payload 且未被计算改写的 theme direct reference 会恢复为 `{namespace.local-key}`。外部 resource reference、`$ref + override` 和扩展计算结果保持 materialized。dimension 子值保留单位，standard composite 保留规范化结构。含 `"none"` 的 DTCG color 无法转换且无 `hex` fallback 时，保留只含标准字段的 clean color object。
 
 CSS 为每种标准类型提供专用 formatter。`fontFamily` 输出合法 font stack；`duration`、`cubicBezier`、`transition` 输出可直接消费的 CSS value；object `strokeStyle` 和使用它的 `border` 输出 `dash-array`、`line-cap` companion variables。gradient 使用规范化端点，shadow 保留 `inset`。CSS 无法表达的 color、空 font family、负或全零 dash pattern，以及未知自定义 object/array 会显示 token path、type 和 value shape 后失败，禁止输出 `[object Object]`。
 
@@ -1176,7 +1176,9 @@ wave dt wcag --profile mobile --night
 - `md-yml`：输出 `{theme}2md.yml`，供用户复制到 Markdown frontmatter
   - 输出是 YAML fragment，不包含 `---` delimiter、注释、token wrapper 或 `$type` / `$value` / `$description` metadata
   - `filterLayer` 后的第一段是 namespace，剩余 source path 用 `-` 连接成 local key；过滤后必须至少保留 namespace 和 local key
-  - 输出 resolver 和 transformer 处理后的最终值，不保留 authored alias；dimension 保留单位字符串，object、array 和 explicit composite 保留结构
+  - theme direct reference 在目标也存在于同一输出 payload、consumer slot 仍与目标最终值等价时，输出为 `{namespace.local-key}`；支持完整 token、composite 子字段、数组成员和 typography defaults 继承的引用
+  - external resource reference、`$ref + override`、`smoothShadow` / `smoothGradient`、`inheritColor` / `currentColor` 等 computed value 输出 transformer 处理后的最终值
+  - dimension 保留单位字符串，object、array 和 explicit composite 保留结构
   - 值只接受 YAML 可无损表示的 null、有限 number、string、boolean、密集 array 和 plain object；遇到 `undefined`、非有限 number、稀疏或含额外 own key 的 array、cycle、accessor 或非 plain object 时失败
   - source segment 不能为空或含 `.`；hyphen-join 后的重名、direct/composite 重名或 composite property 重名都会失败，不会改写该 pass 的其他平台产物
 - 多平台：`json,jsonc,css,sketch,md-yml` 可同时输出多种格式

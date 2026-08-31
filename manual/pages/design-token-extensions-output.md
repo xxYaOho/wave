@@ -62,12 +62,17 @@ PARAMETER platform json,jsonc,css,sketch,md-yml
 color:
   primary-main: '#1a72f0'
   primary-on-main: '#ffffff'
+  text-emphasis: '#112233'
 radius:
   md: 8px
 font:
+  font-family:
+    - system-ui
+    - sans-serif
   heading-h1:
-    fontFamily: Inter
-    fontSize: 40px
+    color: "{color.text-emphasis}"
+    fontFamily: "{font.font-family}"
+    fontSize: 2.5rem
     fontWeight: 700
     letterSpacing: 0px
     lineHeight: 1.2
@@ -79,7 +84,9 @@ font:
 {color.primary-main}
 ```
 
-md-yml 输出 resolver 和 transformer 处理后的最终值，不保留 authored alias。object、array 和 explicit composite 保留结构。文件不包含 `---` delimiter、`$description` 注释、token wrapper 或 `$type` / `$value` metadata。
+md-yml 会保留可投影到同一文件的 theme direct reference，并把路径改写为输出路径。例如 `theme.font.heading.h1` 从 `theme.font.$extensions.typography.defaults` 继承 `fontFamily: "{theme.font.font-family}"` 后，输出为 `fontFamily: "{font.font-family}"`。完整 token、composite 子字段和数组成员中的 direct reference 使用同一规则。
+
+引用只有在目标也输出到当前 payload，且 consumer slot 没有被计算改写时才保留。external resource reference、`$ref + override`、`smoothShadow` / `smoothGradient`、`inheritColor` / `currentColor` 等 computed value 仍输出 resolver 和 transformer 处理后的最终值。object、array 和 explicit composite 保留结构。文件不包含 `---` delimiter、`$description` 注释、token wrapper 或 `$type` / `$value` metadata。
 
 `filterLayer` 处理后必须至少保留 namespace 和 local key。路径中的 source segment 不能为空或包含 `.`；不同 source path 若投影到同一个 key，build 会失败。值含有 YAML 无法无损表示的数据，例如 `undefined`、非有限 number、稀疏 array 或 cycle 时，build 也会在写入该 pass 的任何产物前失败。
 
