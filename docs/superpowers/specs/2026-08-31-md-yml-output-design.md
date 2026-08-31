@@ -115,7 +115,7 @@ component:
 
 `md-yml` 使用与 JSON 相同的 formatter-ready value，而不是重新读取 source YAML：
 
-- 引用已由 resolver 解析；输出最终值，不保留 authored alias。
+- 引用先由 resolver 解析。外部 resource 与 computed reference 输出最终值；同一文档中的 theme 内部直接引用按 `2026-08-31-md-yml-theme-reference-design.md` 保留为投影后的 md-yml 引用。
 - colorSpace、dimension、duration、fontWeight、strokeStyle 和标准 composite 使用 transformer 已生成的规范化值。
 - unknown custom object 和 array 保持结构，禁止字符串化为 `[object Object]`。
 - custom value 内的 `$type`、`$value`、`$description` 等普通 property 保持不变；metadata 禁令只针对 formatter 额外生成的 token wrapper。
@@ -220,7 +220,7 @@ Pipeline 在存在 CLI `--platform` override 时只建立 base-parameter pass，
 - frontmatter `---`、`version`、`name`、`description` 等文档字段；
 - `$description` 注释；
 - namespace 重命名、schema adapter 或消费侧 token 补全；
-- 保留 authored alias；
+- 保留外部 resource、computed reference 或无法映射为同一 payload token 的 authored alias；theme 内部直接引用由增量规格覆盖；
 - 修改现有 platform 输出；
 - 把整个 multi-pass build 改造成文件系统事务；
 - 承诺某个特定 Markdown/frontmatter parser 的 schema 或 lint 兼容性。
