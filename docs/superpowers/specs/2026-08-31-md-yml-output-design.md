@@ -91,7 +91,7 @@ font:
     letterSpacing: 0
 ```
 
-Wave `$extensions.composite: true` 产生的 `_composite` siblings 继续按现有 JSON 合同合并。`_composite` 只标记 child 属于 explicit composite；formatter 不按 `.` 拆分这个字符串，因为合法 source key 自身可能包含 `.`。exact group path 取 child `token.path.slice(0, -1)`，最后一个 segment 作为 composite property。程序化调用若传入与该 group path 不一致的 `_composite` marker，formatter 明确失败。以下输入路径：
+Wave `$extensions.composite: true` 产生的 `_composite` siblings 继续按现有 JSON 合同合并。`_composite` 只标记 child 属于 explicit composite；formatter 不按 `.` 拆分这个字符串。exact group path 取 child `token.path.slice(0, -1)`，最后一个 segment 作为 composite property。程序化调用若传入与该 group path 不一致的 `_composite` marker，formatter 明确失败。以下输入路径：
 
 ```text
 component.button.fill
@@ -122,13 +122,15 @@ formatter 把输入 token 与 nested value 视为只读数据。它不能为了�
 
 YAML 序列化必须保持值类型。`"#ffffff"`、`"true"`、`"001"`、`"null"` 等字符串在重新解析后仍须为原字符串，不能变成注释、boolean、number 或 null。输出不得使用 YAML anchor 或 alias，文件以换行结尾。
 
-md-yml 可安全表达的 value domain 为 `null`、string、boolean、finite number、dense array，以及由这些值递归组成的 plain 或 null-prototype object。formatter 在调用 serializer 前遍历 value，拒绝 `undefined`、array hole、`NaN`、infinity、bigint、symbol、function、cycle、symbol key，以及 Date、Map、Set、class instance 等非 plain object。错误包含 token path 与无法表达的 nested value path。该检查防止 `js-yaml` 把 object 中的 `undefined` 静默省略、把 array 中的 `undefined` 改成 `null`，或把非有限数写成 `.nan` / `.inf`。
+md-yml 可安全表达的 value domain 为 `null`、string、boolean、finite number、dense array，以及由这些值递归组成的 plain 或 null-prototype object。formatter 在调用 serializer 前遍历 value；array 只能拥有 `length` 和从 `0` 到 `length - 1` 的完整 canonical index own keys，不能携带额外 string 或 symbol own key。formatter 拒绝 `undefined`、array hole、`NaN`、infinity、bigint、symbol、function、cycle、symbol key，以及 Date、Map、Set、class instance 等非 plain object。错误包含 token path 与无法表达的 nested value path。该检查防止 `js-yaml` 把 object 中的 `undefined` 静默省略、把 array 中的 `undefined` 改成 `null`、丢弃 array 的额外 property，或把非有限数写成 `.nan` / `.inf`。
 
 ## 路径边界与冲突
 
 主配置已把 `filterLayer` 限定为非负整数。md-yml formatter 还必须防御直接 API 调用：收到负数、fractional number、`NaN` 或 infinite number 时明确失败。
 
-路径过滤作用于实际输出单元：direct token 和 standard composite 使用 `token.path`；explicit composite 使用 `_composite` 拆分后的 group path。过滤后必须留下 namespace 和 local key。若实际输出 path 少于两个 segment，formatter 失败，并指出 source path 与 `filterLayer`；formatter 不退回完整 token name，也不猜测 namespace。explicit composite 的任一 child 触发该错误时，整个 composite 失败。
+路径过滤作用于实际输出单元：direct token 和 standard composite 使用 `token.path`；explicit composite 使用 child `token.path.slice(0, -1)` 的 exact group path。过滤后必须留下 namespace 和 local key。若实际输出 path 少于两个 segment，formatter 失败，并指出 source path 与 `filterLayer`；formatter 不退回完整 token name，也不猜测 namespace。explicit composite 的任一 child 触发该错误时，整个 composite 失败。
+
+过滤后参与 namespace、local key 或 explicit composite property 的任一 source segment 都不能包含 `.`。md-yml 使用 `.` 分隔 `{namespace.local-key}` 引用，保留 segment 内的 `.` 会产生无法无歧义引用的 key；formatter 必须指出具体 source path 和 segment 后失败，不自动替换字符。
 
 路径扁平化可能产生歧义：
 
@@ -186,6 +188,7 @@ Generator 注册 `md-yml` platform，并将文件名规划为 `<theme>2md.yml`�
 - `filterLayer` 后不足两个 path segment；
 - `filterLayer` 不是非负 finite integer；
 - namespace 或 local key 为空；
+- 过滤后的 source segment 包含 `.`；
 - 路径折叠或 composite 合并发生冲突；
 - formatter-ready value 无法由安全 YAML 表示；
 - serializer 抛出异常。
@@ -221,14 +224,14 @@ Generator 注册 `md-yml` platform，并将文件名规划为 `<theme>2md.yml`�
 
 - 精确测试 `filterLayer: 1` 将 `theme.color.primary.main` 输出为 `color.primary-main`。
 - 精确测试 standard scalar、object、array 和 typography、border、shadow、gradient composite 的 YAML shape。
-- 精确测试 `$extensions.composite: true` siblings 使用 `_composite` path 合并成单个 token object，并按第一个 child 的位置排序。
+- 精确测试 `$extensions.composite: true` siblings 以 `_composite` 标记 membership、使用 child exact group path 合并成单个 token object，并按第一个 child 的位置排序。
 - 精确测试 `inheritColor` placeholder 与 JSON 合同一致。
 - 将输出重新交给 `js-yaml.load()`，断言 payload 的 value 类型和结构与 formatter intermediate object 相同。
 - 用 exact output 断言 formatter 不生成 document delimiter、DTCG wrapper、description 注释或其他注释；value 本身为 `"---"` 或含 `$type`、`$value`、`$description` property 时仍合法保留。
 - 断言 namespace、direct token、interleaved explicit composite 和 composite property 严格遵循首次出现顺序。
 - 对 frozen token/value 分别运行 `[json, md-yml]` 和 `[md-yml, json]`，断言不抛出 mutation error，且两种顺序生成的 JSON 与 md-yml 分别字节一致。
 - 覆盖 negative、fractional、`NaN`、infinite filterLayer，以及 direct path、explicit composite path 不足的失败信息。
-- 覆盖含 `.` 的 exact composite group segment，断言不会与多 segment path 错误合并。
+- 覆盖 namespace、local path 和 explicit composite property 中含 `.` 的 segment，断言在序列化前明确失败。
 - 覆盖折叠 key、direct/composite、property collision，以及 `__proto__`、`constructor`、`prototype` source key。
 - 覆盖 object `undefined`、array `undefined`/hole、非有限 number、cycle 和非 plain object，断言 serializer 前明确失败且错误包含 nested value path。
 
@@ -240,6 +243,7 @@ Generator 注册 `md-yml` platform，并将文件名规划为 `<theme>2md.yml`�
 - md-yml format 失败时，当前 pass 中预先存在的其他 platform 文件保持字节不变，当前 pass 不产生新文件。
 - parameter groups 或 profiles 计划到同一 `<theme>2md.yml` 时，在写文件前报告 output path collision。
 - 增加 Orca example-derived hermetic fixture，验证 `color.primary-main`、`radius.md` 和 `font.heading-h1` 的结构；真实 Orca 仓库不作为自动测试依赖。
+- 使用 `/Users/teatao/Projects/my-color/orca/main.yaml` 的 default profile 和 CLI `--platform md-yml` override，在任务独占的临时输出目录中真实生成 `orca2md.yml`；解析并抽查已知 token，确认没有 `[object Object]`、YAML anchor/alias、frontmatter delimiter 或 formatter 注释，且 Orca source hash 前后不变。该真实 consumer smoke 是完成条件，不由 hermetic fixture 替代。
 
 ### Repository gates
 
@@ -247,6 +251,7 @@ Generator 注册 `md-yml` platform，并将文件名规划为 `<theme>2md.yml`�
 - `pnpm typecheck` 通过；
 - `bun test` 通过；
 - `pnpm check:ci` 通过。
+- 真实 Orca `main.yaml` 的 `md-yml` CLI build 与 payload 检查通过。
 
 ## 成功条件
 
