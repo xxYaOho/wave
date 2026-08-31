@@ -271,6 +271,35 @@ describe('mdYamlFormat', () => {
 		expect(parse(output)).toEqual({ custom: { safe: value } });
 	});
 
+	test('emits the shared inheritColor value contract exactly', () => {
+		const tokens = [
+			makeToken(['theme', 'color', 'foreground'], '#000000', {
+				inheritColor: true,
+				inheritColorAlpha: 0.4,
+				inheritColorOpacity: 0.6,
+			}),
+		];
+		const output = mdYamlFormat(tokens, { filterLayer: 1 });
+		const expectedValue = {
+			color: '$COLOR_FOREGROUND',
+			alpha: 0.4,
+			opacity: 0.6,
+		};
+
+		expect(output).toBe(
+			'color:\n  foreground:\n    color: $COLOR_FOREGROUND\n    alpha: 0.4\n    opacity: 0.6\n',
+		);
+		expect(parse(output)).toEqual({ color: { foreground: expectedValue } });
+		expect(
+			(
+				JSON.parse(flatJsonFormat(tokens, { filterLayer: 1 })) as Record<
+					string,
+					unknown
+				>
+			)['color-foreground'],
+		).toEqual(expectedValue);
+	});
+
 	test('rejects unsafe values before serialization with token and nested paths', () => {
 		const cases: Array<{ value: unknown; nestedPath?: string }> = [
 			{ value: undefined },
@@ -301,14 +330,22 @@ describe('mdYamlFormat', () => {
 		).toThrow(/theme\.unsafe\.cycle.*\$\.self.*cycle/);
 	});
 
-	test('rejects silently lossy object and array properties without invoking getters', () => {
+	test('rejects silently lossy object and array properties without invoking accessors', () => {
 		let getterCalls = 0;
+		let setterCalls = 0;
 		const accessor = {};
 		Object.defineProperty(accessor, 'danger', {
 			enumerable: true,
 			get() {
 				getterCalls += 1;
 				return 'value';
+			},
+		});
+		const setterOnly = {};
+		Object.defineProperty(setterOnly, 'danger', {
+			enumerable: true,
+			set(_value: unknown) {
+				setterCalls += 1;
 			},
 		});
 		const nonEnumerable = {};
@@ -330,6 +367,7 @@ describe('mdYamlFormat', () => {
 
 		for (const value of [
 			accessor,
+			setterOnly,
 			nonEnumerable,
 			symbolObject,
 			extraArray,
@@ -340,6 +378,7 @@ describe('mdYamlFormat', () => {
 			).toThrow(/md-yml.*theme\.unsafe\.property/);
 		}
 		expect(getterCalls).toBe(0);
+		expect(setterCalls).toBe(0);
 	});
 
 	test('round-trips prototype-sensitive source keys safely', () => {
