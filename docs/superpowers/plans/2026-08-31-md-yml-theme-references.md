@@ -4,7 +4,7 @@
 
 **Goal:** 让 `md-yml` 保留同一 payload 内可忠实表达的 `theme` token 引用，同时继续解析外部资源与运算型引用，并保持 JSON、JSONC、CSS、Sketch 行为不变。
 
-**Architecture:** 保持 `resolver -> transformer -> WaveToken[] -> formatter` 主链路。Resolver 记录结构化 reference provenance；transformer 把仍可能对应 formatter-ready slot 的内部引用转换为通用 sidecar lineage，并按现有 typography defaults 继承规则传播；md-yml formatter 先建立未符号化 base graph，再对 value 相等、target 已 emission 的 lineage 做 clone-on-write overlay。
+**Architecture:** 保持 `resolver -> transformer -> WaveToken[] -> formatter` 主链路。Resolver 记录结构化 reference provenance；transformer 把仍可能对应 formatter-ready slot 的内部引用转换为模块私有 WeakMap lineage，并按现有 typography defaults 继承规则传播；md-yml formatter 先建立未符号化 base graph，再对 value 相等、target 已 emission 的 lineage 做 clone-on-write overlay。
 
 **Tech Stack:** TypeScript strict、ESM、Bun test、js-yaml、pnpm。
 
@@ -19,9 +19,8 @@
 - `src/core/resolver/reference-token-{external,internal}.ts`：以真实 group/token segments 建立 value 与 extension consumer locator。
 - `src/core/resolver/reference-resolution.ts`：返回 resolved tree、provenance 和 document root keys。
 - `src/core/pipeline/theme-pipeline.ts`：把 provenance 与 root keys 交给 transformer，不暴露到 public result。
-- `src/core/transformer/reference-lineage.ts`：把 resolver locator 映射为 token value slot；处理 target token 定位和 typography default lineage。
+- `src/core/transformer/reference-lineage.ts`：把 resolver locator 映射为 token value slot；用模块私有 WeakMap 保存 lineage；处理 target token 定位和 typography default lineage。
 - `src/core/transformer/theme-transformer.ts`：传播普通 token 与 typography defaults lineage，阻断 shape-changing transform 的候选。
-- `src/types/index.ts`：定义 formatter 可忽略的通用 `WaveToken._references` sidecar。
 - `src/core/generator/formats/md-yml.ts`：base graph、target index、等价性判断、引用 overlay 与完整性检查。
 - `tests/dtcg-reference-types.test.ts`、`tests/resource-resolver.test.ts`：structured provenance 与 pure/override 合同。
 - `tests/theme-transformer.test.ts`、`tests/transform-to-wave-tokens.test.ts`：普通 lineage、defaults 继承与 transform 阻断。
@@ -57,7 +56,7 @@
     reference: string;
     targetPath: string;
     targetSegments: readonly string[];
-    targetValueKind: 'array' | 'object' | 'scalar';
+    resolvedTargetValueKind: 'array' | 'object' | 'scalar';
     scope: 'internal' | 'external';
     identity: boolean;
   }
@@ -84,15 +83,19 @@
   }
   ```
 
-  Resolver recursion 同时推进 label 与 segments：object append string key，array append numeric index。Group/token processor 使用真实 key 数组建立起点；不得通过 `consumerPath.split('.')` 或正则恢复 segments。
+  `ReferenceLocation` 只是在 resolver recursion 内同步推进 label 与 segments 的 traversal carrier；`ReferenceProvenance.consumerSegments` / `targetSegments` 是跨层持久合同。Object append string key，array append numeric index。Group/token processor 使用真实 key 数组建立起点；不得通过 `consumerPath.split('.')` 或正则恢复 segments。
 
   `ReferenceProvenanceMap` 的 key 改为 `JSON.stringify(consumerSegments)` 生成的 canonical structured key，不能继续使用点连接 label；这样 `['a.b', 'c']` 与 `['a', 'b.c']` 不会覆盖。`consumerPath` 只用于兼容错误文本。
 
   `parseDtcgRef()` 的 decoded source/path 用作 target segments。Curly alias target 按其受限 dot grammar 分段。`resolveDtcgRef()` 在 overrides 为空时记录主 target `identity: true`，否则为 `false`；override 内部的独立 reference 继续按自己的 consumer segments 递归记录。Curly alias 记录 `identity: true`。Pass 1/Pass 2 分别记录 external/internal scope。
 
+  同一 canonical consumer key 再次记录时，保留第一次的 `reference`、target、scope、identity 和 structured locator，只更新 `resolvedTargetValueKind`。增加 `A -> B -> C -> external` 多轮测试，精确断言 A 保持 direct target B、B 保持 C；同时用 transitive array target 断言 existing composite validation 仍看到最终 value kind。
+
 - [ ] **Step 4: 保持现有 validator 兼容**
 
-  `validateResolvedCompositeReferences()` 继续使用现有 string label 输出错误，但结构判断改用 `consumerSegments`，避免 array path regex 成为第二套 source of truth。现有错误文本与 typed-reference 行为不变。
+  `validateResolvedCompositeReferences()` 继续使用现有 string label 输出错误，但结构判断改用 `consumerSegments`，并读取 `resolvedTargetValueKind`，避免 array path regex 成为第二套 source of truth。现有错误文本与 typed-reference 行为不变。
+
+  `ReferenceResolutionResult` 明确增加 `rootKeys: ReadonlySet<string>`；测试断言其内容来自当前 document roots，pipeline 不重新推断。
 
 - [ ] **Step 5: 运行 resolver gate**
 
@@ -113,13 +116,12 @@
 
 ## Milestone 2: Transformer Lineage and md-yml Overlay
 
-完成条件：普通内部 direct reference 与 typography defaults lineage 到达 `WaveToken`；md-yml 只在 base values 等价且 target 已 emission 时输出 `{namespace.local-key}`；真实 Orca 生成通过。
+完成条件：普通内部 direct reference 与 typography defaults lineage 通过 WeakMap 关联到对应 `WaveToken` identity，但不改变 token 对象；md-yml 只在 base values 等价且 target 已 emission 时输出 `{namespace.local-key}`；真实 Orca 生成通过。
 
 ### Task 2: 把 provenance 映射为 WaveToken lineage
 
 **Files:**
 - Create: `src/core/transformer/reference-lineage.ts`
-- Modify: `src/types/index.ts`
 - Modify: `src/core/transformer/theme-transformer.ts`
 - Modify: `src/core/pipeline/theme-pipeline.ts`
 - Modify: `src/core/generator/token-generator.ts`
@@ -129,21 +131,27 @@
 
 - [ ] **Step 1: 写 transformer lineage 失败测试**
 
-  定义通用 sidecar：
+  在 `reference-lineage.ts` 定义内部 sidecar，不修改导出的 `WaveToken`：
 
   ```ts
-  export interface WaveTokenReference {
+  export interface TokenReferenceLineage {
     valuePath: readonly (string | number)[];
     targetPath: readonly string[];
   }
 
-  export interface WaveToken {
-    // existing fields
-    _references?: readonly WaveTokenReference[];
-  }
+  const referencesByToken = new WeakMap<WaveToken, readonly TokenReferenceLineage[]>();
+
+  export function setTokenReferenceLineage(
+    token: WaveToken,
+    lineage: readonly TokenReferenceLineage[],
+  ): void;
+
+  export function getTokenReferenceLineage(
+    token: WaveToken,
+  ): readonly TokenReferenceLineage[];
   ```
 
-  断言 whole-token alias 使用 empty `valuePath`；typography、border、shadow、gradient 使用相对 `$value` slot；external 与 `identity: false` 不产生 candidate。
+  该模块不从 `src/types/index.ts` 或公共 barrel 导出。断言 whole-token alias 使用 empty `valuePath`；typography、border、shadow、gradient 使用相对 `$value` slot；external 与 `identity: false` 不产生 candidate。
 
 - [ ] **Step 2: 写 typography defaults 失败测试**
 
@@ -175,9 +183,18 @@
 
   `InheritedExtensions` 增加 typography default lineage map，与 `mergeTypographyDefaults()` 使用相同覆盖顺序。`transformToken()` 在 materialize 后附加有效 candidate。Token explicit field 存在时不继承同名 default lineage。
 
-  `smoothShadow`、`smoothGradient`、`inheritColor` 或其他改变 value topology/专用输出合同的分支删除受影响 candidate；不通过值猜测是否安全。
+  逐项处理 value-changing branch：
+
+  - `smoothShadow`、`smoothGradient`：阻断整个 token lineage；
+  - standard gradient endpoint materialization：比较 materialize 前后 stop 数量，增加 stop 时阻断整个 gradient lineage，数量不变时保留 candidate 给 formatter equality gate；
+  - `inheritColor`：阻断整个 token lineage；
+  - legacy `currentColor`：只有实际执行 opacity/shadow value rewrite 时阻断整个 token lineage；
+  - ordinary color-space、color object、dimension、fontWeight、strokeStyle、border 与 typography normalization：保留 candidate，最终由 slot existence 与 base-value equality 决定；
+  - outline 与 Sketch-only metadata 不改变 value，不影响 lineage。
 
 - [ ] **Step 5: 运行 transformer gate**
+
+  增加 public-shape isolation 测试：对同一 resolved tree 分别调用无 `referenceContext` 与有 `referenceContext` 的 transform，断言每个 token 的 `Object.keys()`、`Reflect.ownKeys()`、spread、`JSON.stringify()` 和 deep enumerable snapshot 完全一致。
 
   Run: `bun test tests/theme-transformer.test.ts tests/transform-to-wave-tokens.test.ts tests/token-generator.test.ts && pnpm typecheck`
 
@@ -186,7 +203,7 @@
 - [ ] **Step 6: 提交 transformer lineage**
 
   ```bash
-  git add src/core/transformer/reference-lineage.ts src/types/index.ts src/core/transformer/theme-transformer.ts src/core/pipeline/theme-pipeline.ts src/core/generator/token-generator.ts tests/theme-transformer.test.ts tests/transform-to-wave-tokens.test.ts tests/token-generator.test.ts
+  git add src/core/transformer/reference-lineage.ts src/core/transformer/theme-transformer.ts src/core/pipeline/theme-pipeline.ts src/core/generator/token-generator.ts tests/theme-transformer.test.ts tests/transform-to-wave-tokens.test.ts tests/token-generator.test.ts
   git commit -m "feat(tokens): carry internal reference lineage"
   ```
 
@@ -217,7 +234,9 @@
 
 - [ ] **Step 2: 写 fallback 与回归失败测试**
 
-  覆盖 missing/non-emitted target、missing slot、base value mismatch、target property、`$ref + alpha`、smoothShadow、smoothGradient 与 inheritColor：均输出最终值，不生成 dangling reference。用 frozen inputs 分别运行 `[json, md-yml]` 与 `[md-yml, json]`，断言 JSON 字节不变且无 mutation。
+  覆盖 missing/non-emitted target、missing slot、base value mismatch、target property、`$ref + alpha`、smoothShadow、smoothGradient、gradient endpoint insertion、inheritColor 与 legacy currentColor：均输出最终值，不生成 dangling reference。覆盖 root+nested、ancestor+descendant、重复同 target 和冲突 target，断言稳定优先级与 contradiction error。用 frozen inputs 分别运行 `[json, md-yml]` 与 `[md-yml, json]`，断言无 mutation。
+
+  对同一 resolved tree 的无 context / 有 context transforms，分别运行 `flatJsonFormat`、`flatJsoncFormat`、`cssVariablesFormat` 和 `sketchFormat`，断言四个平台字节逐一相同。Sketch 用其真实 HEX re-transform 条件另加 integration case，避免只验证直接 formatter。
 
 - [ ] **Step 3: 实现两阶段 base graph**
 
@@ -227,17 +246,17 @@
   interface BaseEntry {
     sourcePath: readonly string[];
     value: unknown;
-    references: readonly WaveTokenReference[];
+    references: readonly TokenReferenceLineage[];
   }
   ```
 
-  Explicit composite child作为 consumer 时保留其 lineage；它不是独立 target。Target index 只登记能独立产生 `namespace.local-key` 的 token entry。所有 target 比较使用未 overlay 的 base value。
+  Explicit composite child 作为 consumer 时保留其 lineage；它不是独立 target。Target index 只登记能独立产生 `namespace.local-key` 的 token entry。所有 target 比较使用未 overlay 的 base value。
 
 - [ ] **Step 4: 实现等价性与 clone-on-write overlay**
 
-  使用 YAML value domain 的递归 semantic equality：primitive 用 `Object.is`，array 按 index，plain/null-prototype object按 own enumerable data keys 与值比较；不使用 `JSON.stringify`，不触发 accessor。
+  使用 YAML value domain 的递归 semantic equality：primitive 用 `Object.is`，array 按 index，plain/null-prototype object 按 own enumerable data keys 与值比较；不使用 `JSON.stringify`，不触发 accessor。
 
-  Candidate 同时满足 target exists、consumer slot exists、base values equal 时，clone consumer 的沿途 array/object 并写入 `"{namespace.local-key}"`。Root candidate eligible 时优先于 nested candidate；不 eligible 时仍检查 nested candidates。Overlay 后检查所有生成引用都能命中 target index。
+  Candidate 先按 `valuePath.length` 升序，再按 `JSON.stringify(valuePath)` 排序。相同 value path + target 去重；相同 value path 指向不同 target 时抛出包含 consumer 和两个 target 的 lineage contradiction error。Candidate 同时满足 target exists、consumer slot exists、base values equal 时，clone consumer 的沿途 array/object 并写入 `"{namespace.local-key}"`。Eligible ancestor（包括 root）覆盖 descendants；ancestor 不 eligible 时继续检查 descendants。Overlay 后检查所有生成引用都能命中 target index。结果不得依赖 WeakMap lineage array 或 resolver Map 的插入顺序。
 
 - [ ] **Step 5: 运行 formatter gate**
 
@@ -280,14 +299,14 @@
   - `font.heading-h1.color === '{color.text-emphasis}'`；
   - `font.heading-h1.fontSize` 是最终 dimension；
   - 所有 `{namespace.local-key}` 命中同一 payload target；
-  - 无 `{wave.*}`、`{tailwindcss.*}`、`{corerain.*}`、anchor/alias、`[object Object]` 或 frontmatter delimiter；
+  - 无 `{wave.*}`、`{tailwindcss.*}`、`{corerain.*}`、`[object Object]` 或 frontmatter delimiter；
   - source SHA-256 前后逐字一致。
 
-  只删除本步骤创建的 temp directory。
+  Hermetic exact-output test 已锁定 `yaml.dump({ noRefs: true })` 不生成 anchor/alias；真实 smoke 只用行级 YAML token regex 检查 js-yaml 的 `&ref_` / `*ref_` 标记，不扫描普通 quoted string。只删除本步骤创建的 temp directory。
 
 - [ ] **Step 10: Milestone 2 Critic Gate**
 
-  提供 reviewed baseline、两个实现 commit、focused tests、typecheck、真实 Orca artifact 检查和 source hash parity。要求核验 defaults lineage、base-value comparison、alias chain、computed fallback、dangling prevention、immutability 和非 md-yml platform parity；`STATUS: PASS` 后进入 Milestone 3。
+  提供 reviewed baseline、两个实现 commit、focused tests、typecheck、真实 Orca artifact 检查和 source hash parity。要求核验 WeakMap 公共边界、first-origin multi-pass provenance、defaults lineage、branch inventory、base-value comparison、candidate precedence、alias chain、computed fallback、dangling prevention、immutability 和四个非 md-yml platform parity；`STATUS: PASS` 后进入 Milestone 3。
 
 ## Milestone 3: Documentation and Final Verification
 

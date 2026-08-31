@@ -114,17 +114,29 @@ Resolver 继续解析所有引用并返回 resolved tree。`ReferenceProvenance`
 
 Provenance 同时携带结构化 consumer 与 target locator。Object property 使用 string segment，array member 使用 number segment；JSON Pointer segment 按 RFC 6901 解码。现有 string path 只服务错误信息和兼容校验，后续层禁止通过 `split('.')` 或正则反推结构。
 
+Internal resolver 的多轮解析不能覆盖 authored direct target。同一 consumer 第一次记录的 reference、target、scope、identity 和 structured locator 固定不变；后续轮次只更新 resolved target value kind，供现有 composite validation 使用。例如 `A -> B -> C` 始终保留 `A -> B` 与 `B -> C`，不能收缩成 `A -> C`。
+
 ### Transformer lineage
 
-Transformer 接收 resolver provenance，并把仍与 formatter-ready value slot 对齐的引用转换为通用 token reference lineage。lineage 以 token value 内的结构化 slot path 指向 source target token path；它是 sidecar metadata，不写入 `token.value`。
+Transformer 接收 resolver provenance，并把仍与 formatter-ready value slot 对齐的引用转换为内部 token reference lineage。Lineage 以 token value 内的结构化 slot path 指向 source target token path，并存入 transformer 模块私有的 `WeakMap<WaveToken, Lineage>`。它不是 `WaveToken` property，不进入导出类型、`Object.keys()`、`Reflect.ownKeys()`、spread、snapshot 或 JSON serialization。
 
 Typography defaults 同时继承 value 和 lineage。materialize 时，显式 token field 使用自身 lineage；缺失 field 使用最终生效 default 的 lineage。
 
-改变 value topology 或语义的 transformer 分支不得传播受影响 lineage。其他 JSON、JSONC、CSS 和 Sketch formatter 忽略该 metadata，输出保持不变。
+改变 value topology 或语义的 transformer 分支不得传播受影响 lineage：
+
+- `smoothShadow` 与 `smoothGradient` 阻断整个 token lineage；
+- standard gradient endpoint materialization 增加 stop 时阻断整个 gradient lineage；未增加 stop 时 index 保持稳定，再由 formatter-ready value equality 决定；
+- `inheritColor` 阻断整个 token lineage；
+- legacy `currentColor` 实际改写 color 或 shadow value 时阻断整个 token lineage；
+- ordinary color-space、dimension、fontWeight、strokeStyle、border、typography normalization 不单独阻断，最终仍需通过 slot addressability 与 base-value equality。
+
+JSON、JSONC、CSS 和 Sketch formatter 不能访问该 WeakMap。相同 resolved tree 分别在无 reference context 与有 reference context 下 transform 后，其可枚举 token shape、own keys、JSON serialization 和四个平台输出必须一致。
 
 ### md-yml formatter
 
-md-yml formatter 是唯一消费该通用 lineage 的 formatter。它分两阶段工作：先建立全部未符号化的 base entry graph 与 source-token index；再比较 base consumer slot 和 base target value，把符合合同的 slot 替换为投影引用字符串。Alias chain 始终与 target base value 比较，不能拿已经替换成引用字符串的 target 比较。Formatter 使用 clone-on-write，不修改 `WaveToken[]`、`token.value` 或 lineage metadata。
+md-yml formatter 是唯一通过内部 getter 消费 lineage 的 formatter。它分两阶段工作：先建立全部未符号化的 base entry graph 与 source-token index；再比较 base consumer slot 和 base target value，把符合合同的 slot 替换为投影引用字符串。Alias chain 始终与 target base value 比较，不能拿已经替换成引用字符串的 target 比较。Formatter 使用 clone-on-write，不修改 `WaveToken[]`、`token.value` 或 WeakMap lineage。
+
+Candidate 先按 value path 长度升序，再按 canonical segment encoding 排序。相同 value path 与相同 target 去重；相同 value path 指向不同 target 属于 lineage 矛盾并失败。Eligible ancestor（包括 root）覆盖 descendant；ancestor 不 eligible 时继续检查 descendant。结果不能依赖 resolver Map 插入顺序。
 
 禁止以下实现：
 
@@ -140,7 +152,7 @@ md-yml formatter 是唯一消费该通用 lineage 的 formatter。它分两阶�
 
 - 已生成的 `{namespace.local-key}` 找不到同一 payload target；
 - target 参与 md-yml path projection 时触发现有空 segment、dot segment 或 collision 错误；
-- lineage metadata 自相矛盾，无法安全判断 reference 是否等价。
+- 相同 consumer value path 出现不同 direct target 等 lineage 矛盾，无法安全判断 reference 是否等价。
 
 Consumer slot 不存在、target 不是独立 token、target 未 emission、值不相等、外部引用、computed reference 和明确被 transformer 消费的 lineage 不触发错误，它们按合同输出最终值。
 
@@ -152,10 +164,11 @@ Consumer slot 不存在、target 不是独立 token、target 未 emission、值�
 - typography、border、shadow 和 gradient 的内部 direct slot reference 被保留；
 - typography defaults 的 `fontFamily: "{theme.font.font-family}"` materialize 为每个未 override token 上的 `{font.font-family}`；显式 override 不继承该 lineage；
 - `theme.font.font-family -> wave.dimension.fontFamily` 自身输出外部资源最终值；
-- `$ref + alpha`、smoothShadow、smoothGradient、inheritColor 和 target property reference 输出最终值；
+- `$ref + alpha`、smoothShadow、smoothGradient、gradient endpoint insertion、inheritColor、legacy currentColor 和 target property reference 输出最终值；
 - multi-hop `theme A -> theme B -> external resource` 输出 `A -> {B}`，B 输出最终值；
+- multi-hop `A -> B -> C -> external resource` 不被 resolver 多轮处理收缩，输出 `A -> {B}`、`B -> {C}`，C 输出最终值；
 - missing/non-emitted target、slot missing 和 value mismatch 输出最终值，不生成 dangling reference；实际 emission 的不可投影或 collision target 按既有合同明确失败；
-- md-yml 前后运行 JSON、JSONC、CSS 和 Sketch，断言其他平台输出字节不变且输入未被修改。
+- 同一 resolved tree 分别以无 reference context 和有 reference context transform，断言 token own keys、JSON serialization、JSON、JSONC、CSS 和 Sketch 输出字节一致；md-yml 前后顺序不修改输入。
 
 ### Real Orca smoke
 
