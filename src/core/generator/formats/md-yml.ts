@@ -1,17 +1,28 @@
 import * as yaml from 'js-yaml';
 import type { WaveFormatFn, WaveToken } from '../../../types/index.ts';
+import {
+	getTokenReferenceLineage,
+	type TokenReferenceLineage,
+} from '../../transformer/reference-lineage.ts';
 import { formatFlatTokenValue } from './flat-value.ts';
+
+interface BaseEntry {
+	sourcePath: readonly string[];
+	value: unknown;
+	references: readonly TokenReferenceLineage[];
+}
 
 interface DirectEntry {
 	kind: 'direct';
-	value: unknown;
+	base: BaseEntry;
+	projectedPath: string;
 	sourcePaths: string[];
 }
 
 interface CompositeEntry {
 	kind: 'composite';
 	groupPath: string;
-	properties: Map<string, unknown>;
+	properties: Map<string, BaseEntry>;
 	propertySources: Map<string, string[]>;
 	sourcePaths: string[];
 }
@@ -20,6 +31,13 @@ type LocalEntry = DirectEntry | CompositeEntry;
 
 interface NamespaceState {
 	entries: Map<string, LocalEntry>;
+}
+
+interface TargetEntry {
+	base: BaseEntry;
+	namespace: string;
+	localKey: string;
+	projectedPath: string;
 }
 
 function mdYamlError(tokenPath: string, reason: string): Error {
@@ -220,6 +238,224 @@ function collisionError(target: string, sourcePaths: string[]): Error {
 	);
 }
 
+function canonicalPath(path: readonly (string | number)[]): string {
+	return JSON.stringify(path);
+}
+
+function defineDataProperty(target: object, key: string, value: unknown): void {
+	Object.defineProperty(target, key, {
+		value,
+		enumerable: true,
+		writable: true,
+		configurable: true,
+	});
+}
+
+function ownEnumerableDataValue(
+	value: object,
+	key: string,
+): { found: true; value: unknown } | { found: false } {
+	const descriptor = Object.getOwnPropertyDescriptor(value, key);
+	if (!descriptor?.enumerable || !('value' in descriptor)) {
+		return { found: false };
+	}
+	return { found: true, value: descriptor.value };
+}
+
+function valueAtPath(
+	root: unknown,
+	path: readonly (string | number)[],
+): { found: true; value: unknown } | { found: false } {
+	let current = root;
+	for (const segment of path) {
+		if (typeof current !== 'object' || current === null) {
+			return { found: false };
+		}
+		if (typeof segment === 'number') {
+			if (
+				!Array.isArray(current) ||
+				!Number.isInteger(segment) ||
+				segment < 0
+			) {
+				return { found: false };
+			}
+		} else if (Array.isArray(current)) {
+			return { found: false };
+		}
+		const child = ownEnumerableDataValue(current, String(segment));
+		if (!child.found) return child;
+		current = child.value;
+	}
+	return { found: true, value: current };
+}
+
+function semanticEqual(left: unknown, right: unknown): boolean {
+	if (Object.is(left, right)) return true;
+	if (
+		typeof left !== 'object' ||
+		left === null ||
+		typeof right !== 'object' ||
+		right === null
+	) {
+		return false;
+	}
+	if (Array.isArray(left) || Array.isArray(right)) {
+		if (!Array.isArray(left) || !Array.isArray(right)) return false;
+		if (left.length !== right.length) return false;
+		for (let index = 0; index < left.length; index++) {
+			const leftItem = ownEnumerableDataValue(left, String(index));
+			const rightItem = ownEnumerableDataValue(right, String(index));
+			if (
+				!leftItem.found ||
+				!rightItem.found ||
+				!semanticEqual(leftItem.value, rightItem.value)
+			) {
+				return false;
+			}
+		}
+		return true;
+	}
+	const leftKeys = Object.keys(left);
+	const rightKeys = Object.keys(right);
+	if (leftKeys.length !== rightKeys.length) return false;
+	const rightKeySet = new Set(rightKeys);
+	for (const key of leftKeys) {
+		if (!rightKeySet.has(key)) return false;
+		const leftItem = ownEnumerableDataValue(left, key);
+		const rightItem = ownEnumerableDataValue(right, key);
+		if (
+			!leftItem.found ||
+			!rightItem.found ||
+			!semanticEqual(leftItem.value, rightItem.value)
+		) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function normalizedClone(value: unknown): unknown {
+	if (typeof value !== 'object' || value === null) return value;
+	if (Array.isArray(value)) {
+		const clone: unknown[] = [];
+		for (let index = 0; index < value.length; index++) {
+			const item = ownEnumerableDataValue(value, String(index));
+			if (!item.found)
+				throw new Error('md-yml internal clone invariant failed');
+			clone.push(normalizedClone(item.value));
+		}
+		return clone;
+	}
+	const clone = Object.create(Object.getPrototypeOf(value)) as object;
+	for (const key of Object.keys(value)) {
+		const item = ownEnumerableDataValue(value, key);
+		if (!item.found) throw new Error('md-yml internal clone invariant failed');
+		defineDataProperty(clone, key, normalizedClone(item.value));
+	}
+	return clone;
+}
+
+function writeValueAtPath(
+	root: unknown,
+	path: readonly (string | number)[],
+	value: unknown,
+): unknown {
+	if (path.length === 0) return value;
+	const clone = normalizedClone(root);
+	let current = clone;
+	for (let index = 0; index < path.length - 1; index++) {
+		const segment = path[index]!;
+		if (typeof current !== 'object' || current === null) {
+			throw new Error('md-yml internal overlay invariant failed');
+		}
+		const child = ownEnumerableDataValue(current, String(segment));
+		if (!child.found)
+			throw new Error('md-yml internal overlay invariant failed');
+		current = child.value;
+	}
+	if (typeof current !== 'object' || current === null) {
+		throw new Error('md-yml internal overlay invariant failed');
+	}
+	defineDataProperty(current, String(path[path.length - 1]!), value);
+	return clone;
+}
+
+function hasPathPrefix(
+	path: readonly (string | number)[],
+	prefix: readonly (string | number)[],
+): boolean {
+	return (
+		path.length >= prefix.length &&
+		prefix.every((segment, index) => Object.is(segment, path[index]))
+	);
+}
+
+function normalizedReferences(
+	base: BaseEntry,
+): readonly TokenReferenceLineage[] {
+	const sorted = [...base.references].sort((left, right) => {
+		const lengthOrder = left.valuePath.length - right.valuePath.length;
+		if (lengthOrder) return lengthOrder;
+		const pathOrder = canonicalPath(left.valuePath).localeCompare(
+			canonicalPath(right.valuePath),
+		);
+		return (
+			pathOrder ||
+			canonicalPath(left.targetPath).localeCompare(
+				canonicalPath(right.targetPath),
+			)
+		);
+	});
+	const byValuePath = new Map<string, TokenReferenceLineage>();
+	for (const candidate of sorted) {
+		const key = canonicalPath(candidate.valuePath);
+		const existing = byValuePath.get(key);
+		if (!existing) {
+			byValuePath.set(key, candidate);
+			continue;
+		}
+		if (
+			canonicalPath(existing.targetPath) !== canonicalPath(candidate.targetPath)
+		) {
+			throw mdYamlError(
+				base.sourcePath.join('.'),
+				`reference lineage contradiction at value path ${key}: ${existing.targetPath.join('.')} and ${candidate.targetPath.join('.')}`,
+			);
+		}
+	}
+	return [...byValuePath.values()];
+}
+
+function overlayReferences(
+	base: BaseEntry,
+	targets: ReadonlyMap<string, TargetEntry>,
+	generatedTargets: Set<TargetEntry>,
+): unknown {
+	let output = base.value;
+	const covered: Array<readonly (string | number)[]> = [];
+	for (const reference of normalizedReferences(base)) {
+		if (
+			covered.some((ancestor) => hasPathPrefix(reference.valuePath, ancestor))
+		) {
+			continue;
+		}
+		const target = targets.get(canonicalPath(reference.targetPath));
+		if (!target) continue;
+		const consumerSlot = valueAtPath(base.value, reference.valuePath);
+		if (
+			!consumerSlot.found ||
+			!semanticEqual(consumerSlot.value, target.base.value)
+		) {
+			continue;
+		}
+		const renderedReference = `{${target.projectedPath}}`;
+		output = writeValueAtPath(output, reference.valuePath, renderedReference);
+		covered.push(reference.valuePath);
+		generatedTargets.add(target);
+	}
+	return output;
+}
+
 function namespaceFor(
 	namespaces: Map<string, NamespaceState>,
 	name: string,
@@ -234,6 +470,7 @@ function namespaceFor(
 
 function addDirectToken(
 	namespaces: Map<string, NamespaceState>,
+	targets: Map<string, TargetEntry>,
 	token: WaveToken,
 	filterLayer: number,
 ): void {
@@ -253,10 +490,22 @@ function addDirectToken(
 			sourcePath,
 		]);
 	}
+	const base: BaseEntry = {
+		sourcePath: [...token.path],
+		value,
+		references: getTokenReferenceLineage(token),
+	};
 	state.entries.set(localKey, {
 		kind: 'direct',
-		value,
+		base,
+		projectedPath: `${namespace}.${localKey}`,
 		sourcePaths: [sourcePath],
+	});
+	targets.set(canonicalPath(token.path), {
+		base,
+		namespace,
+		localKey,
+		projectedPath: `${namespace}.${localKey}`,
 	});
 }
 
@@ -300,10 +549,10 @@ function addCompositeChild(
 			sourcePath,
 		]);
 	}
-	const composite = existing ?? {
+	const composite: CompositeEntry = existing ?? {
 		kind: 'composite' as const,
 		groupPath: exactMarker,
-		properties: new Map<string, unknown>(),
+		properties: new Map<string, BaseEntry>(),
 		propertySources: new Map<string, string[]>(),
 		sourcePaths: [],
 	};
@@ -314,7 +563,11 @@ function addCompositeChild(
 			sourcePath,
 		]);
 	}
-	composite.properties.set(property, value);
+	composite.properties.set(property, {
+		sourcePath: [...token.path],
+		value,
+		references: getTokenReferenceLineage(token),
+	});
 	composite.propertySources.set(property, [sourcePath]);
 	composite.sourcePaths.push(sourcePath);
 	if (!existing) state.entries.set(localKey, composite);
@@ -322,22 +575,45 @@ function addCompositeChild(
 
 function mapToNullPrototypeRecord(
 	namespaces: Map<string, NamespaceState>,
+	targets: ReadonlyMap<string, TargetEntry>,
 ): Record<string, unknown> {
 	const output = Object.create(null) as Record<string, unknown>;
+	const generatedTargets = new Set<TargetEntry>();
 	for (const [namespaceName, namespace] of namespaces) {
 		const localOutput = Object.create(null) as Record<string, unknown>;
 		for (const [localKey, entry] of namespace.entries) {
 			if (entry.kind === 'direct') {
-				localOutput[localKey] = entry.value;
+				defineDataProperty(
+					localOutput,
+					localKey,
+					overlayReferences(entry.base, targets, generatedTargets),
+				);
 				continue;
 			}
 			const compositeOutput = Object.create(null) as Record<string, unknown>;
-			for (const [property, value] of entry.properties) {
-				compositeOutput[property] = value;
+			for (const [property, base] of entry.properties) {
+				defineDataProperty(
+					compositeOutput,
+					property,
+					overlayReferences(base, targets, generatedTargets),
+				);
 			}
-			localOutput[localKey] = compositeOutput;
+			defineDataProperty(localOutput, localKey, compositeOutput);
 		}
-		output[namespaceName] = localOutput;
+		defineDataProperty(output, namespaceName, localOutput);
+	}
+	for (const target of generatedTargets) {
+		const namespace = ownEnumerableDataValue(output, target.namespace);
+		const emitted =
+			namespace.found &&
+			typeof namespace.value === 'object' &&
+			namespace.value !== null &&
+			ownEnumerableDataValue(namespace.value, target.localKey).found;
+		if (!emitted) {
+			throw new Error(
+				`md-yml platform generated reference target ${target.projectedPath} is missing from payload`,
+			);
+		}
 	}
 	return output;
 }
@@ -355,16 +631,17 @@ export const mdYamlFormat: WaveFormatFn = (
 			(a, b) => a.token._order - b.token._order || a.inputIndex - b.inputIndex,
 		);
 	const namespaces = new Map<string, NamespaceState>();
+	const targets = new Map<string, TargetEntry>();
 	for (const { token } of ordered) {
 		if (token._composite !== undefined) {
 			addCompositeChild(namespaces, token, filterLayer);
 		} else {
-			addDirectToken(namespaces, token, filterLayer);
+			addDirectToken(namespaces, targets, token, filterLayer);
 		}
 	}
 
 	try {
-		return yaml.dump(mapToNullPrototypeRecord(namespaces), {
+		return yaml.dump(mapToNullPrototypeRecord(namespaces, targets), {
 			lineWidth: -1,
 			noRefs: true,
 			sortKeys: false,

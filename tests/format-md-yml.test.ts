@@ -2,6 +2,10 @@ import { describe, expect, test } from 'bun:test';
 import * as yaml from 'js-yaml';
 import { flatJsonFormat } from '../src/core/generator/formats/flat.ts';
 import { mdYamlFormat } from '../src/core/generator/formats/md-yml.ts';
+import {
+	setTokenReferenceLineage,
+	type TokenReferenceLineage,
+} from '../src/core/transformer/reference-lineage.ts';
 import type { WaveToken } from '../src/types/index.ts';
 
 function makeToken(
@@ -26,6 +30,14 @@ function ownValue(record: object, key: string): unknown {
 	return Object.getOwnPropertyDescriptor(record, key)?.value;
 }
 
+function withLineage(
+	token: WaveToken,
+	lineage: readonly TokenReferenceLineage[],
+): WaveToken {
+	setTokenReferenceLineage(token, lineage);
+	return token;
+}
+
 function deepFreeze<T>(value: T, seen = new WeakSet<object>()): T {
 	if (typeof value !== 'object' || value === null || seen.has(value))
 		return value;
@@ -38,6 +50,256 @@ function deepFreeze<T>(value: T, seen = new WeakSet<object>()): T {
 }
 
 describe('mdYamlFormat', () => {
+	test('preserves projected theme references against the complete base graph', () => {
+		const fontFamily = makeToken(
+			['theme', 'font', 'font-family'],
+			['Inter', 'sans-serif'],
+		);
+		const emphasis = makeToken(
+			['theme', 'color', 'text', 'emphasis'],
+			'#112233',
+			{ _order: 1 },
+		);
+		const heading = withLineage(
+			makeToken(
+				['theme', 'font', 'heading', 'h1'],
+				{
+					color: '#112233',
+					fontFamily: ['Inter', 'sans-serif'],
+					fontSize: '2.5rem',
+				},
+				{ _order: 2 },
+			),
+			[
+				{
+					valuePath: ['fontFamily'],
+					targetPath: ['theme', 'font', 'font-family'],
+				},
+				{
+					valuePath: ['color'],
+					targetPath: ['theme', 'color', 'text', 'emphasis'],
+				},
+			],
+		);
+
+		expect(
+			mdYamlFormat([fontFamily, emphasis, heading], { filterLayer: 1 }),
+		).toBe(
+			"font:\n  font-family:\n    - Inter\n    - sans-serif\n  heading-h1:\n    color: '{color.text-emphasis}'\n    fontFamily: '{font.font-family}'\n    fontSize: 2.5rem\ncolor:\n  text-emphasis: '#112233'\n",
+		);
+	});
+
+	test('preserves root, nested array, alias-chain, and composite-child references', () => {
+		const base = makeToken(['theme', 'color', 'base'], '#112233');
+		const middle = withLineage(
+			makeToken(['theme', 'color', 'middle'], '#112233', { _order: 1 }),
+			[{ valuePath: [], targetPath: ['theme', 'color', 'base'] }],
+		);
+		const alias = withLineage(
+			makeToken(['theme', 'color', 'alias'], '#112233', { _order: 2 }),
+			[{ valuePath: [], targetPath: ['theme', 'color', 'middle'] }],
+		);
+		const gradient = withLineage(
+			makeToken(
+				['theme', 'gradient', 'hero'],
+				[
+					{ color: '#112233', position: 0 },
+					{ color: '#ffffff', position: 1 },
+				],
+				{ _order: 3 },
+			),
+			[{ valuePath: [0, 'color'], targetPath: ['theme', 'color', 'base'] }],
+		);
+		const compositeChild = withLineage(
+			makeToken(['theme', 'component', 'button', 'fill'], '#112233', {
+				_composite: 'theme.component.button',
+				_order: 4,
+			}),
+			[{ valuePath: [], targetPath: ['theme', 'color', 'base'] }],
+		);
+
+		const filtered = parse(
+			mdYamlFormat([base, middle, alias, gradient, compositeChild], {
+				filterLayer: 1,
+			}),
+		);
+		expect(filtered).toEqual({
+			color: {
+				base: '#112233',
+				middle: '{color.base}',
+				alias: '{color.middle}',
+			},
+			gradient: {
+				hero: [
+					{ color: '{color.base}', position: 0 },
+					{ color: '#ffffff', position: 1 },
+				],
+			},
+			component: { button: { fill: '{color.base}' } },
+		});
+		expect(parse(mdYamlFormat([base, middle], { filterLayer: 0 }))).toEqual({
+			theme: { 'color-base': '#112233', 'color-middle': '{theme.color-base}' },
+		});
+	});
+
+	test('falls back for missing targets, missing slots, mismatches, and composite targets', () => {
+		const base = makeToken(['theme', 'color', 'base'], '#112233');
+		const compositeTarget = makeToken(
+			['theme', 'component', 'button', 'fill'],
+			'#112233',
+			{ _composite: 'theme.component.button', _order: 1 },
+		);
+		const consumer = withLineage(
+			makeToken(
+				['theme', 'custom', 'consumer'],
+				{ equal: '#112233', mismatch: '#445566', kept: '#112233' },
+				{ _order: 2 },
+			),
+			[
+				{ valuePath: ['missing'], targetPath: ['theme', 'color', 'base'] },
+				{ valuePath: ['mismatch'], targetPath: ['theme', 'color', 'base'] },
+				{ valuePath: ['equal'], targetPath: ['theme', 'color', 'absent'] },
+				{
+					valuePath: ['kept'],
+					targetPath: ['theme', 'component', 'button', 'fill'],
+				},
+			],
+		);
+
+		const parsed = parse(
+			mdYamlFormat([base, compositeTarget, consumer], { filterLayer: 1 }),
+		);
+		const custom = ownValue(parsed, 'custom') as object;
+		expect(ownValue(custom, 'consumer')).toEqual({
+			equal: '#112233',
+			mismatch: '#445566',
+			kept: '#112233',
+		});
+	});
+
+	test('normalizes lineage deterministically and rejects contradictory targets', () => {
+		const one = makeToken(['theme', 'color', 'one'], '#111111');
+		const two = makeToken(['theme', 'color', 'two'], '#111111', { _order: 1 });
+		const consumer = withLineage(
+			makeToken(['theme', 'color', 'consumer'], '#111111', { _order: 2 }),
+			[
+				{ valuePath: [], targetPath: ['theme', 'color', 'one'] },
+				{ valuePath: [], targetPath: ['theme', 'color', 'one'] },
+			],
+		);
+		const parsed = parse(
+			mdYamlFormat([one, two, consumer], { filterLayer: 1 }),
+		);
+		expect(ownValue(ownValue(parsed, 'color') as object, 'consumer')).toBe(
+			'{color.one}',
+		);
+
+		setTokenReferenceLineage(consumer, [
+			{ valuePath: [], targetPath: ['theme', 'color', 'two'] },
+			{ valuePath: [], targetPath: ['theme', 'color', 'one'] },
+		]);
+		expect(() =>
+			mdYamlFormat([one, two, consumer], { filterLayer: 1 }),
+		).toThrow(
+			/theme\.color\.consumer.*contradiction.*theme\.color\.one.*theme\.color\.two/,
+		);
+	});
+
+	test('lets an eligible ancestor cover descendants and retries after an ineligible ancestor', () => {
+		const color = makeToken(['theme', 'color', 'base'], '#112233');
+		const object = makeToken(
+			['theme', 'custom', 'object'],
+			{ color: '#112233', label: 'base' },
+			{ _order: 1 },
+		);
+		const covered = withLineage(
+			makeToken(
+				['theme', 'custom', 'covered'],
+				{ color: '#112233', label: 'base' },
+				{ _order: 2 },
+			),
+			[
+				{ valuePath: ['color'], targetPath: ['theme', 'color', 'base'] },
+				{ valuePath: [], targetPath: ['theme', 'custom', 'object'] },
+			],
+		);
+		const retried = withLineage(
+			makeToken(
+				['theme', 'custom', 'retried'],
+				{ color: '#112233', label: 'changed' },
+				{ _order: 3 },
+			),
+			[
+				{ valuePath: [], targetPath: ['theme', 'custom', 'object'] },
+				{ valuePath: ['color'], targetPath: ['theme', 'color', 'base'] },
+			],
+		);
+
+		const parsed = parse(
+			mdYamlFormat([color, object, covered, retried], { filterLayer: 1 }),
+		);
+		const custom = ownValue(parsed, 'custom') as object;
+		expect(ownValue(custom, 'covered')).toBe('{custom.object}');
+		expect(ownValue(custom, 'retried')).toEqual({
+			color: '{color.base}',
+			label: 'changed',
+		});
+	});
+
+	test('overlays prototype-sensitive and restricted descriptors without mutation', () => {
+		const nested = Object.create(null) as Record<string, unknown>;
+		Object.defineProperty(nested, '__proto__', {
+			value: '#112233',
+			enumerable: true,
+			writable: false,
+			configurable: false,
+		});
+		Object.defineProperty(nested, 'constructor', {
+			value: '#112233',
+			enumerable: true,
+			writable: false,
+			configurable: false,
+		});
+		const array = [{ prototype: '#112233' }];
+		Object.defineProperty(array, '0', {
+			value: array[0],
+			enumerable: true,
+			writable: false,
+			configurable: false,
+		});
+		const value = { nested, array };
+		const base = makeToken(['theme', 'color', 'base'], '#112233');
+		const consumer = withLineage(
+			makeToken(['theme', 'custom', 'safe'], value, { _order: 1 }),
+			[
+				{
+					valuePath: ['nested', '__proto__'],
+					targetPath: ['theme', 'color', 'base'],
+				},
+				{
+					valuePath: ['nested', 'constructor'],
+					targetPath: ['theme', 'color', 'base'],
+				},
+				{
+					valuePath: ['array', 0, 'prototype'],
+					targetPath: ['theme', 'color', 'base'],
+				},
+			],
+		);
+		const beforePrototype = Object.getPrototypeOf(nested);
+		const parsed = parse(mdYamlFormat([base, consumer], { filterLayer: 1 }));
+		const custom = ownValue(parsed, 'custom') as object;
+		const safe = ownValue(custom, 'safe') as object;
+		const parsedNested = ownValue(safe, 'nested') as object;
+		const parsedArray = ownValue(safe, 'array');
+
+		expect(ownValue(parsedNested, '__proto__')).toBe('{color.base}');
+		expect(ownValue(parsedNested, 'constructor')).toBe('{color.base}');
+		expect(parsedArray).toEqual([{ prototype: '{color.base}' }]);
+		expect(Object.getPrototypeOf(nested)).toBe(beforePrototype);
+		expect(ownValue(nested, '__proto__')).toBe('#112233');
+		expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+	});
 	test('projects filtered paths into namespace and hyphen-joined local keys', () => {
 		const tokens = [
 			makeToken(['theme', 'color', 'primary', 'main'], '#1a72f0', {

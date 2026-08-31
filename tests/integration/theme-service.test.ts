@@ -373,22 +373,68 @@ theme:
 				'utf8',
 			);
 			expect(raw.startsWith('---')).toBe(false);
-			expect(yaml.load(raw)).toEqual({
+			const payload = yaml.load(raw) as Record<string, unknown>;
+			expect(payload).toEqual({
 				color: {
 					'primary-main': '#1a72f0',
 					'primary-on-main': '#ffffff',
+					'text-emphasis': '#112233',
+					'text-muted': '#11223380',
 				},
 				radius: { md: '8px' },
 				font: {
+					'font-family': [
+						'system-ui',
+						'-apple-system',
+						'BlinkMacSystemFont',
+						'Segoe UI',
+						'Roboto',
+						'Helvetica Neue',
+						'Arial',
+						'PingFang SC',
+						'Hiragino Sans GB',
+						'Microsoft YaHei',
+						'Noto Sans',
+						'sans-serif',
+						'Apple Color Emoji',
+						'Segoe UI Emoji',
+						'Segoe UI Symbol',
+						'Noto Color Emoji',
+					],
 					'heading-h1': {
-						fontFamily: 'Inter',
-						fontSize: '40px',
+						color: '{color.text-emphasis}',
+						fontFamily: '{font.font-family}',
+						fontSize: '2.5rem',
 						fontWeight: 700,
 						letterSpacing: '0px',
 						lineHeight: 1.2,
 					},
 				},
+				shadow: {
+					raised: expect.any(Array),
+				},
 			});
+			const visit = (value: unknown): void => {
+				if (typeof value === 'string') {
+					const match = /^\{([^.{}]+)\.([^.{}]+)\}$/.exec(value);
+					if (!match) return;
+					const namespace = payload[match[1]!] as
+						| Record<string, unknown>
+						| undefined;
+					expect(namespace).toBeDefined();
+					expect(Object.hasOwn(namespace!, match[2]!)).toBe(true);
+					return;
+				}
+				if (Array.isArray(value)) {
+					for (const item of value) visit(item);
+					return;
+				}
+				if (typeof value === 'object' && value !== null) {
+					for (const item of Object.values(value)) visit(item);
+				}
+			};
+			visit(payload);
+			expect(raw).not.toMatch(/(?:^|\s)[&*]ref_/m);
 		} finally {
 			await fs.rm(fixture.dir, { recursive: true, force: true });
 		}
