@@ -1,6 +1,6 @@
 # md-yml Theme References Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** 按 yes-subagents 的实施、Critic Gate 与 Pruner/Scout 工作流逐项执行；步骤使用 checkbox (`- [ ]`) 跟踪。
 
 **Goal:** 让 `md-yml` 保留同一 payload 内可忠实表达的 `theme` token 引用，同时继续解析外部资源与运算型引用，并保持 JSON、JSONC、CSS、Sketch 行为不变。
 
@@ -91,6 +91,10 @@
 
   同一 canonical consumer key 再次记录时，保留第一次的 `reference`、target、scope、identity 和 structured locator，只更新 `resolvedTargetValueKind`。增加 `A -> B -> C -> external` 多轮测试，精确断言 A 保持 direct target B、B 保持 C；同时用 transitive array target 断言 existing composite validation 仍看到最终 value kind。
 
+  `identity: false` consumer 形成 structured computed-subtree barrier。记录 barrier 时删除 Map 中所有 strict descendant entries；此后 `recordReferenceProvenance()` 在写入前检查是否存在 segment-wise ancestor barrier，命中则忽略。不得使用 label/string prefix。Barrier 本身保留供诊断和 mapper 排除，且同一 consumer 后续轮次不能把它改回 `identity: true`。
+
+  增加 shape-preserving custom object 回归：B direct alias 到 C；A 使用 `{ $ref: B, tag: 'x' }`。即使中间 resolved A 内出现对 C 的字符串，provenance 中 A root 保持 `identity:false` 且不存在 A descendants；这与 `$ref + alpha` 一起覆盖 computed reference。
+
 - [ ] **Step 4: 保持现有 validator 兼容**
 
   `validateResolvedCompositeReferences()` 继续使用现有 string label 输出错误，但结构判断改用 `consumerSegments`，并读取 `resolvedTargetValueKind`，避免 array path regex 成为第二套 source of truth。现有错误文本与 typed-reference 行为不变。
@@ -112,7 +116,7 @@
 
 - [ ] **Step 7: Milestone 1 Critic Gate**
 
-  以 reviewed spec/plan commit、Milestone 1 commit、focused tests 和 typecheck 为基线。要求核验 locator 不依赖 string parsing、canonical Map key 无 segment collision、RFC 6901 decode、override identity、internal/external scope、multi-pass provenance overwrite 与现有 validator 兼容；`STATUS: PASS` 后进入 Milestone 2。
+  以 reviewed spec/plan commit、Milestone 1 commit、focused tests 和 typecheck 为基线。要求核验 locator 不依赖 string parsing、canonical Map key 无 segment collision、RFC 6901 decode、first-origin target、computed-subtree barrier、internal/external scope、multi-pass provenance 与现有 validator 兼容；`STATUS: PASS` 后进入 Milestone 2。
 
 ## Milestone 2: Transformer Lineage and md-yml Overlay
 
@@ -234,7 +238,7 @@
 
 - [ ] **Step 2: 写 fallback 与回归失败测试**
 
-  覆盖 missing/non-emitted target、missing slot、base value mismatch、target property、`$ref + alpha`、smoothShadow、smoothGradient、gradient endpoint insertion、inheritColor 与 legacy currentColor：均输出最终值，不生成 dangling reference。覆盖 root+nested、ancestor+descendant、重复同 target 和冲突 target，断言稳定优先级与 contradiction error。用 frozen inputs 分别运行 `[json, md-yml]` 与 `[md-yml, json]`，断言无 mutation。
+  覆盖 missing/non-emitted target、missing slot、base value mismatch、target property、`$ref + alpha`、shape-preserving custom object `$ref + override`、smoothShadow、smoothGradient、gradient endpoint insertion、inheritColor 与 legacy currentColor：均输出最终值，不生成 dangling reference。覆盖 root+nested、ancestor+descendant、重复同 target 和冲突 target，断言稳定优先级与 contradiction error。用 frozen inputs 分别运行 `[json, md-yml]` 与 `[md-yml, json]`，断言无 mutation。
 
   对同一 resolved tree 的无 context / 有 context transforms，分别运行 `flatJsonFormat`、`flatJsoncFormat`、`cssVariablesFormat` 和 `sketchFormat`，断言四个平台字节逐一相同。Sketch 用其真实 HEX re-transform 条件另加 integration case，避免只验证直接 formatter。
 
@@ -254,9 +258,11 @@
 
 - [ ] **Step 4: 实现等价性与 clone-on-write overlay**
 
-  使用 YAML value domain 的递归 semantic equality：primitive 用 `Object.is`，array 按 index，plain/null-prototype object 按 own enumerable data keys 与值比较；不使用 `JSON.stringify`，不触发 accessor。
+  使用 YAML value domain 的递归 semantic equality：primitive 用 `Object.is`，array 按 index；plain/null-prototype object 先比较完整 own enumerable string key set，再逐 key 比较值，key insertion order 不影响相等性。不使用 `JSON.stringify`，不触发 accessor。
 
   Candidate 先按 `valuePath.length` 升序，再按 `JSON.stringify(valuePath)` 排序。相同 value path + target 去重；相同 value path 指向不同 target 时抛出包含 consumer 和两个 target 的 lineage contradiction error。Candidate 同时满足 target exists、consumer slot exists、base values equal 时，clone consumer 的沿途 array/object 并写入 `"{namespace.local-key}"`。Eligible ancestor（包括 root）覆盖 descendants；ancestor 不 eligible 时继续检查 descendants。Overlay 后检查所有生成引用都能命中 target index。结果不得依赖 WeakMap lineage array 或 resolver Map 的插入顺序。
+
+  Object clone 使用 `Object.create(Object.getPrototypeOf(value))` 加 `Object.defineProperties()` 保留 plain/null prototype 与 own data descriptors；overlay write 使用 `Object.defineProperty()` 创建 enumerable、writable、configurable data property，禁止普通 assignment。Array 只 clone 已验证的 dense indices。增加 null-prototype consumer 和 `__proto__`、`constructor`、`prototype` nested paths 测试，断言 overlay 后 prototype 不变、keys/values 完整且全局 prototype 未污染。
 
 - [ ] **Step 5: 运行 formatter gate**
 
@@ -306,7 +312,7 @@
 
 - [ ] **Step 10: Milestone 2 Critic Gate**
 
-  提供 reviewed baseline、两个实现 commit、focused tests、typecheck、真实 Orca artifact 检查和 source hash parity。要求核验 WeakMap 公共边界、first-origin multi-pass provenance、defaults lineage、branch inventory、base-value comparison、candidate precedence、alias chain、computed fallback、dangling prevention、immutability 和四个非 md-yml platform parity；`STATUS: PASS` 后进入 Milestone 3。
+  提供 reviewed baseline、两个实现 commit、focused tests、typecheck、真实 Orca artifact 检查和 source hash parity。要求核验 WeakMap 公共边界、first-origin multi-pass provenance、computed-subtree barrier、defaults lineage、branch inventory、prototype-safe overlay、base-value comparison、candidate precedence、alias chain、computed fallback、dangling prevention、immutability 和四个非 md-yml platform parity；`STATUS: PASS` 后进入 Milestone 3。
 
 ## Milestone 3: Documentation and Final Verification
 

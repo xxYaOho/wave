@@ -116,6 +116,8 @@ Provenance 同时携带结构化 consumer 与 target locator。Object property �
 
 Internal resolver 的多轮解析不能覆盖 authored direct target。同一 consumer 第一次记录的 reference、target、scope、identity 和 structured locator 固定不变；后续轮次只更新 resolved target value kind，供现有 composite validation 使用。例如 `A -> B -> C` 始终保留 `A -> B` 与 `B -> C`，不能收缩成 `A -> C`。
 
+`identity: false` consumer 是 computed-subtree barrier。记录该 consumer 时，resolver 删除已经记录在其 structured path 下的 descendant provenance；后续轮次也拒绝在该 path 或其 descendants 记录新 provenance。Prefix 判断按 structured segments 逐段比较，不能用 string prefix。这样 `$ref + alpha` 或 custom object `$ref + override` 的中间 resolved value 不会在下一轮伪装成 authored nested direct reference。
+
 ### Transformer lineage
 
 Transformer 接收 resolver provenance，并把仍与 formatter-ready value slot 对齐的引用转换为内部 token reference lineage。Lineage 以 token value 内的结构化 slot path 指向 source target token path，并存入 transformer 模块私有的 `WeakMap<WaveToken, Lineage>`。它不是 `WaveToken` property，不进入导出类型、`Object.keys()`、`Reflect.ownKeys()`、spread、snapshot 或 JSON serialization。
@@ -134,7 +136,9 @@ JSON、JSONC、CSS 和 Sketch formatter 不能访问该 WeakMap。相同 resolve
 
 ### md-yml formatter
 
-md-yml formatter 是唯一通过内部 getter 消费 lineage 的 formatter。它分两阶段工作：先建立全部未符号化的 base entry graph 与 source-token index；再比较 base consumer slot 和 base target value，把符合合同的 slot 替换为投影引用字符串。Alias chain 始终与 target base value 比较，不能拿已经替换成引用字符串的 target 比较。Formatter 使用 clone-on-write，不修改 `WaveToken[]`、`token.value` 或 WeakMap lineage。
+md-yml formatter 是唯一通过内部 getter 消费 lineage 的 formatter。它分两阶段工作：先建立全部未符号化的 base entry graph 与 source-token index；再比较 base consumer slot 和 base target value，把符合合同的 slot 替换为投影引用字符串。Alias chain 始终与 target base value 比较，不能拿已经替换成引用字符串的 target 比较。Formatter 使用 prototype-safe clone-on-write，不修改 `WaveToken[]`、`token.value` 或 WeakMap lineage。
+
+Object clone 保留原始 `Object.prototype` 或 null prototype，并用 own property descriptors 建立副本。Overlay write 使用 `Object.defineProperty()` 写入 enumerable、writable、configurable data property，不能用普通 assignment；因此 `__proto__`、`constructor` 和 `prototype` value path 不改变 prototype 或静默丢失。Array clone 保持 dense index 顺序。Semantic equality 比较完整 own enumerable string key set，object key 顺序不影响相等性。
 
 Candidate 先按 value path 长度升序，再按 canonical segment encoding 排序。相同 value path 与相同 target 去重；相同 value path 指向不同 target 属于 lineage 矛盾并失败。Eligible ancestor（包括 root）覆盖 descendant；ancestor 不 eligible 时继续检查 descendant。结果不能依赖 resolver Map 插入顺序。
 
@@ -165,10 +169,12 @@ Consumer slot 不存在、target 不是独立 token、target 未 emission、值�
 - typography defaults 的 `fontFamily: "{theme.font.font-family}"` materialize 为每个未 override token 上的 `{font.font-family}`；显式 override 不继承该 lineage；
 - `theme.font.font-family -> wave.dimension.fontFamily` 自身输出外部资源最终值；
 - `$ref + alpha`、smoothShadow、smoothGradient、gradient endpoint insertion、inheritColor、legacy currentColor 和 target property reference 输出最终值；
+- shape-preserving custom object `$ref + override` 建立 computed-subtree barrier，中间解析产生的 nested reference 不得输出；
 - multi-hop `theme A -> theme B -> external resource` 输出 `A -> {B}`，B 输出最终值；
 - multi-hop `A -> B -> C -> external resource` 不被 resolver 多轮处理收缩，输出 `A -> {B}`、`B -> {C}`，C 输出最终值；
 - missing/non-emitted target、slot missing 和 value mismatch 输出最终值，不生成 dangling reference；实际 emission 的不可投影或 collision target 按既有合同明确失败；
 - 同一 resolved tree 分别以无 reference context 和有 reference context transform，断言 token own keys、JSON serialization、JSON、JSONC、CSS 和 Sketch 输出字节一致；md-yml 前后顺序不修改输入。
+- null-prototype object 与 `__proto__`、`constructor`、`prototype` value path 在 overlay 后保持 prototype、own keys 和 value，且不污染任何 accumulator prototype。
 
 ### Real Orca smoke
 
