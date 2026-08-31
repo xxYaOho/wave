@@ -367,6 +367,14 @@
 
   该分支必须位于 `parameterGroups.length` 判断之前。更新 `tests/parameter-group-pipeline.test.ts`：原“CLI platform overrides all groups”断言改为 single base pass；覆盖 base `filterLayer` / `colorSpace` 生效而 group 专属值不生效、`--platform css,sketch` 仍为一个 multi-platform pass、无 CLI platform 时 group passes 不变、仅 CLI output 时仍覆盖所有 groups。
 
+  在 `tests/integration/theme-service.test.ts` 增加跨层回归：
+
+  - default profile 含两个 parameter groups，`cliPlatform: 'md-yml'` 时只生成 `<theme>2md.yml`，使用 default profile 的 base `filterLayer`；
+  - named profile 具有自己的 base parameter 与 parameter groups，`--profile <name> --platform md-yml` 时只生成 `<theme>-<profile>2md.yml`，使用合并后的 profile base parameter；
+  - `--profiles all --platform md-yml` 时 default 与每个 named profile 各产生一个文件，不展开任一 profile 的 parameter groups；
+  - 含 parameter groups 的 workspace 分别传入 empty 与 unknown CLI platform，均在 formatter、目录创建和写文件前失败，不回退 config platform，不产生 group artifact；
+  - 仅传 CLI output、不传 CLI platform 时，pipeline 仍按原 group platforms 生成全部 group 文件到 override output directory。
+
 - [ ] **Step 5: 写当前 pass format-before-write 回归**
 
   在 `tests/token-generator.test.ts` 预置 `demo.json` 和 `demo.css` marker，传入会触发 md-yml path collision 或 unsafe value 的 tokens，platform 顺序覆盖 `['json', 'md-yml', 'css']` 与 `['md-yml', 'json', 'css']`。两种情况都断言：result failure、markers 字节不变、`demo2md.yml` 不存在。
@@ -451,7 +459,7 @@
   });
   ```
 
-  同时断言 raw 文件不以 `---` 开头、不包含 formatter-generated comments，`generatedFiles` 只含 `orca-doc2md.yml`。
+  同时断言 raw 文件不以 `---` 开头，`generatedFiles` 只含 `orca-doc2md.yml`。formatter 无注释合同由 formatter exact-output tests 锁定，不对合法 quoted `#` 字符做启发式扫描。
 
 - [ ] **Step 3: 运行 fixture integration test**
 
@@ -571,7 +579,7 @@
 
   Run: `git log --oneline --max-count=8 && git status --short`
 
-  Expected: 本计划产生 5 个原子提交；用户原有 `.gitignore`、`CLAUDE.md` 和 `docs/simple-wiki/` 修改仍原样存在，未进入本次提交。
+  Expected: 本计划包含 5 个预定功能提交；gate 发现的 regression fix 归入当前未通过里程碑并允许形成额外原子修复提交，不为保持固定数量改写历史。用户原有 `.gitignore`、`CLAUDE.md` 和 `docs/simple-wiki/` 修改仍原样存在，未进入本次提交。
 
 - [ ] **Step 6: Milestone 3 Critic Gate**
 
@@ -585,4 +593,5 @@
 2. 派遣 Scout 只读核验候选引用安全性；
 3. Pruner 只执行 `SAFE` 项，放弃 `UNSAFE`，把 `UNCERTAIN` 交给 Human；
 4. 执行清理后重新运行受影响 focused tests、typecheck 和 style check；
-5. 不清理用户原有未提交文件，不扩展到存量技术债。
+5. 无论 Pruner 是否实际修改文件，都重新执行 Milestone 2 的真实 Orca consumer smoke、payload 断言与 source hash parity，确认最后一次潜在代码 mutation 后仍生成唯一 `orca2md.yml`；
+6. 不清理用户原有未提交文件，不扩展到存量技术债。

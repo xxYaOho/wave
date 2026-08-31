@@ -247,6 +247,7 @@ Pipeline 在存在 CLI `--platform` override 时只建立 base-parameter pass，
 - `platform: [md-yml]` 只写 `<theme>2md.yml`。
 - 多 platform build 同时正确规划 `json`、`css`、`sketch` 和 `md-yml` 文件。
 - 未传 CLI platform 时 parameter groups 继续分别生成；传入 CLI platform 时，每个选中 profile 只产生一个使用 `$config.parameter` 的 pass。`--out` 单独使用时仍覆盖全部 group，不改变 pass 数量。
+- named profile 使用合并后的 profile base parameter；`--profiles all --platform md-yml` 为 default 与每个 named profile 各生成一个对应的 `<theme>[-<profile>]2md.yml`。含 groups 的 workspace 收到 empty 或 unknown CLI platform 时仍在任何 formatter 或文件 mutation 前失败。
 - 未知 platform 错误的 supported list 包含 `md-yml`。
 - md-yml format 失败时，当前 pass 中预先存在的其他 platform 文件保持字节不变，当前 pass 不产生新文件。
 - parameter groups 或 profiles 计划到同一 `<theme>2md.yml` 时，在写文件前报告 output path collision。
@@ -260,6 +261,7 @@ Pipeline 在存在 CLI `--platform` override 时只建立 base-parameter pass，
 - `bun test` 通过；
 - `pnpm check:ci` 通过。
 - 真实 Orca `main.yaml` 的 `md-yml` CLI build 与 payload 检查通过。
+- 所有计划内代码修改与收尾清理结束后，重新执行真实 Orca smoke 和 source hash parity；此前里程碑证据不能替代最终 mutation 后验证。
 
 ## 成功条件
 
