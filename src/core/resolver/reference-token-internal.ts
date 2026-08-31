@@ -21,6 +21,19 @@ import {
 	resolveNestedInternalRefs,
 } from './reference-value-resolver.ts';
 
+function groupExtensionLocation(
+	parentPath: ReferenceLocation,
+	key: string,
+): ReferenceLocation {
+	const location = appendReferenceLocation(
+		appendReferenceLocation(parentPath, '$extensions'),
+		key,
+	);
+	return parentPath.label
+		? location
+		: { ...location, label: `.${location.label}` };
+}
+
 export function processTokenInternal(
 	token: ResolvedDtcgToken,
 	sources: ReferenceDataSources,
@@ -126,10 +139,7 @@ export function processTokenGroupInternal(
 					themeTree,
 					resolutionPath,
 					unresolvedCollector,
-					appendReferenceLocation(
-						appendReferenceLocation(parentPath, '$extensions'),
-						key,
-					),
+					groupExtensionLocation(parentPath, key),
 					rootKeys,
 					provenance,
 				),

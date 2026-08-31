@@ -21,6 +21,43 @@ import type {
 const rootDir = path.resolve(__dirname, '..');
 
 describe('generalized resolver', () => {
+	test('preserves root group extension display labels with structured segments', () => {
+		const resolved = indexedResolveReferences(
+			{
+				$extensions: {
+					externalMetadata: '{brand.value}',
+					internalMetadata: '{theme.token}',
+				},
+				theme: { token: { $value: 1 } },
+			} as unknown as DtcgTokenGroup,
+			{ brand: { value: { $value: 'resolved' } } },
+		);
+		expect([...resolved.provenance.values()]).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					consumerPath: '.$extensions.externalMetadata',
+					consumerSegments: ['$extensions', 'externalMetadata'],
+					scope: 'external',
+				}),
+				expect.objectContaining({
+					consumerPath: '.$extensions.internalMetadata',
+					consumerSegments: ['$extensions', 'internalMetadata'],
+					scope: 'internal',
+				}),
+			]),
+		);
+
+		expect(() =>
+			indexedResolveReferences(
+				{
+					$extensions: { metadata: '{unknown.value}' },
+					theme: { token: { $value: 1 } },
+				} as unknown as DtcgTokenGroup,
+				{},
+			),
+		).toThrow('.$extensions.metadata');
+	});
+
 	test('records structured external pointer and internal curly provenance', () => {
 		const result = indexedResolveReferences(
 			{
