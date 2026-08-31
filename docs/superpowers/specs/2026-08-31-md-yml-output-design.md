@@ -36,7 +36,11 @@ orca-assistant-app2md.yml
 
 文件只包含 YAML mapping，不生成 `---` frontmatter 分隔符、DTCG token wrapper、description 注释或其他 YAML 注释。formatter 不额外输出 token 的 `$type`、`$value`、`$description` metadata；token value 自身若合法包含同名字段，仍按 value parity 原样保留。用户自行选择复制范围，并把 fragment 放入目标 Markdown frontmatter。
 
-默认 platform 仍为 `json`。现有 `json`、`jsonc`、`css` 和 `sketch` 的文件名、结构和行为保持不变。
+默认 platform 仍为 `json`。现有 `json`、`jsonc`、`css` 和 `sketch` 的文件名与 formatter 结构保持不变；CLI `--platform` 的 pass planning 按下述合同纠正。
+
+CLI `--platform` 表示一次显式的输出平台覆盖，而不是把所选 platform 注入每个 `parameterGroup`。未传 `--platform` 时，每个 parameter group 继续产生独立 build pass；传入 `--platform <list>` 时，每个选中的 profile 只基于该 profile 的 `$config.parameter` 产生一个 pass，并由 CLI platform list 覆盖其中的 `platform`。parameter group 专属的 `filterLayer`、`colorSpace` 和 `outputDir` 不参与该 pass；CLI `--out` 仍覆盖输出目录。仅传 `--out` 而未传 `--platform` 时，现有 parameter group 展开保持不变。
+
+因此 Orca 的 `css`、`sketch` parameter groups 在 `--platform md-yml` 下不会变成两个 md-yml pass。build 使用 `$config.parameter.filterLayer: 1` 生成唯一的 `orca2md.yml`。这一语义同时适用于现有 platform；例如 `--platform css,sketch` 生成一个同时包含两种 platform 的 base-parameter pass，而不是每个 parameter group 各执行一次。
 
 ## 输出结构
 
@@ -122,7 +126,7 @@ formatter 把输入 token 与 nested value 视为只读数据。它不能为了�
 
 YAML 序列化必须保持值类型。`"#ffffff"`、`"true"`、`"001"`、`"null"` 等字符串在重新解析后仍须为原字符串，不能变成注释、boolean、number 或 null。输出不得使用 YAML anchor 或 alias，文件以换行结尾。
 
-md-yml 可安全表达的 value domain 为 `null`、string、boolean、finite number、dense array，以及由这些值递归组成的 plain 或 null-prototype object。formatter 在调用 serializer 前遍历 value；array 只能拥有 `length` 和从 `0` 到 `length - 1` 的完整 canonical index own keys，不能携带额外 string 或 symbol own key。formatter 拒绝 `undefined`、array hole、`NaN`、infinity、bigint、symbol、function、cycle、symbol key，以及 Date、Map、Set、class instance 等非 plain object。错误包含 token path 与无法表达的 nested value path。该检查防止 `js-yaml` 把 object 中的 `undefined` 静默省略、把 array 中的 `undefined` 改成 `null`、丢弃 array 的额外 property，或把非有限数写成 `.nan` / `.inf`。
+md-yml 可安全表达的 value domain 为 `null`、string、boolean、finite number、dense array，以及由这些值递归组成的 plain 或 null-prototype object。formatter 在调用 serializer 前遍历 value；array 只能拥有 `length` 和从 `0` 到 `length - 1` 的完整 canonical index own keys，不能携带额外 string 或 symbol own key。plain object 只能包含 enumerable data properties；non-enumerable own property 和 accessor property 都明确失败，避免 serializer 静默省略字段、重复取值或触发 getter 副作用。formatter 拒绝 `undefined`、array hole、`NaN`、infinity、bigint、symbol、function、cycle、symbol key，以及 Date、Map、Set、class instance 等非 plain object。错误包含 token path 与无法表达的 nested value path。该检查防止 `js-yaml` 把 object 中的 `undefined` 静默省略、把 array 中的 `undefined` 改成 `null`、丢弃 array 或 object property，或把非有限数写成 `.nan` / `.inf`。
 
 ## 路径边界与冲突
 
@@ -181,6 +185,8 @@ formatter 不把 `Map` 直接传给 `js-yaml`，不通过 JSON 字符串 round-t
 
 Generator 注册 `md-yml` platform，并将文件名规划为 `<theme>2md.yml`。CLI 帮助、未知 platform 错误、SPEC 和 design-token 用户文档同步列出 `md-yml`。
 
+Pipeline 在存在 CLI `--platform` override 时只建立 base-parameter pass，不展开 parameter groups；无 CLI platform override 时保持现有 group pass 模型。该判断属于 pass planning，不进入 resolver、transformer 或 formatter。
+
 ## 错误处理
 
 以下情况使 `md-yml` platform 失败：
@@ -204,6 +210,7 @@ Generator 注册 `md-yml` platform，并将文件名规划为 `<theme>2md.yml`�
 - JSON-compatible value、explicit composite 与 `inheritColor` 投影；
 - 确定性 YAML 序列化和冲突失败；
 - CLI、SPEC、用户文档与回归测试更新。
+- CLI `--platform` 从“覆盖每个 parameter group”纠正为“基于 base parameter 的单 pass override”。
 
 ### 本次不包含
 
@@ -233,17 +240,18 @@ Generator 注册 `md-yml` platform，并将文件名规划为 `<theme>2md.yml`�
 - 覆盖 negative、fractional、`NaN`、infinite filterLayer，以及 direct path、explicit composite path 不足的失败信息。
 - 覆盖 namespace、local path 和 explicit composite property 中含 `.` 的 segment，断言在序列化前明确失败。
 - 覆盖折叠 key、direct/composite、property collision，以及 `__proto__`、`constructor`、`prototype` source key。
-- 覆盖 object `undefined`、array `undefined`/hole、非有限 number、cycle 和非 plain object，断言 serializer 前明确失败且错误包含 nested value path。
+- 覆盖 object `undefined`、non-enumerable/accessor property、array `undefined`/hole/extra own key、非有限 number、cycle 和非 plain object，断言 serializer 前明确失败且错误包含 nested value path；accessor getter 不得被调用。
 
 ### Generator and integration contract
 
 - `platform: [md-yml]` 只写 `<theme>2md.yml`。
 - 多 platform build 同时正确规划 `json`、`css`、`sketch` 和 `md-yml` 文件。
+- 未传 CLI platform 时 parameter groups 继续分别生成；传入 CLI platform 时，每个选中 profile 只产生一个使用 `$config.parameter` 的 pass。`--out` 单独使用时仍覆盖全部 group，不改变 pass 数量。
 - 未知 platform 错误的 supported list 包含 `md-yml`。
 - md-yml format 失败时，当前 pass 中预先存在的其他 platform 文件保持字节不变，当前 pass 不产生新文件。
 - parameter groups 或 profiles 计划到同一 `<theme>2md.yml` 时，在写文件前报告 output path collision。
 - 增加 Orca example-derived hermetic fixture，验证 `color.primary-main`、`radius.md` 和 `font.heading-h1` 的结构；真实 Orca 仓库不作为自动测试依赖。
-- 使用 `/Users/teatao/Projects/my-color/orca/main.yaml` 的 default profile 和 CLI `--platform md-yml` override，在任务独占的临时输出目录中真实生成 `orca2md.yml`；解析并抽查已知 token，确认没有 `[object Object]`、YAML anchor/alias、frontmatter delimiter 或 formatter 注释，且 Orca source hash 前后不变。该真实 consumer smoke 是完成条件，不由 hermetic fixture 替代。
+- 使用 `/Users/teatao/Projects/my-color/orca/main.yaml` 的 default profile 和 CLI `--platform md-yml` override，在任务独占的临时输出目录中真实生成唯一的 `orca2md.yml`；解析并抽查已知 token，确认没有 `[object Object]`、YAML anchor/alias 或 frontmatter delimiter，且 Orca source hash 前后不变。该真实 consumer smoke 是 Milestone 2 gate 和最终完成条件，不由 hermetic fixture 替代。
 
 ### Repository gates
 

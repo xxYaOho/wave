@@ -4,7 +4,7 @@
 
 **Goal:** 为 Wave 增加 `md-yml` design-token platform，输出 `<theme>2md.yml`，以一级 namespace 分组、组内 hyphen-join path，供用户复制到 Markdown frontmatter 并在内文引用。
 
-**Architecture:** 保持 `resolver -> transformer -> WaveToken[] -> formatter -> generator` 分层。`md-yml` 与 flat JSON 共享 formatter-ready value 投影，但独立完成 path projection、YAML-safe value validation、冲突检测和确定性序列化；generator 只负责 platform 注册、文件规划和既有 format-before-write。Map 只承担索引、顺序和冲突来源记录，最终转换为 null-prototype record 后交给 `js-yaml`。
+**Architecture:** 保持 `resolver -> transformer -> WaveToken[] -> formatter -> generator` 分层。`md-yml` 与 flat JSON 共享 formatter-ready value 投影，但独立完成 path projection、YAML-safe value validation、冲突检测和确定性序列化；generator 只负责 platform 注册、文件规划和既有 format-before-write。Pipeline 在 CLI `--platform` 存在时基于 `$config.parameter` 建立单个 pass，不展开 parameter groups；未覆盖时保持现有 group passes。Map 只承担索引、顺序和冲突来源记录，最终转换为 null-prototype record 后交给 `js-yaml`。
 
 **Tech Stack:** TypeScript strict、ESM、Bun test、pnpm、`js-yaml@4.1.1`、Zod、Changesets。
 
@@ -26,6 +26,7 @@
 
 - `src/core/generator/formats/flat.ts`：改用共享 value helper，保持 JSON/JSONC 字节合同。
 - `src/core/generator/token-generator.ts`：注册 `md-yml` 和 `<theme>2md.yml`。
+- `src/core/pipeline/theme-pipeline.ts`：CLI platform override 使用 base parameter single pass，未覆盖时保持 group expansion。
 - `src/core/validator/design-token-config.ts`：允许 `$config.parameter.platform: [md-yml]`。
 - `src/cli/commands/build.ts`、`src/cli/commands/dt.ts`：帮助文本列出 `md-yml`。
 - `tests/format-flat.test.ts`：锁定共享 helper 抽取前后行为一致。
@@ -33,6 +34,7 @@
 - `tests/design-token-config.test.ts`：config platform validation。
 - `tests/cli-dt.test.ts`：module/build help 列出 `md-yml`。
 - `tests/integration/theme-service.test.ts`：真实 pipeline、output planner 与 fixture 输出。
+- `tests/parameter-group-pipeline.test.ts`：锁定 CLI platform single-pass 与 `--out` group-preserving 语义。
 - `docs/SPEC.md`：当前系统行为、platform 列表、文件名和 md-yml 投影合同。
 - `manual/pages/design-token-main-yaml.md`：配置字段支持 `md-yml`。
 - `manual/pages/design-token-extensions-output.md`：输出格式表、结构、引用方式与限制。
@@ -221,7 +223,7 @@
   ];
   ```
 
-  再构造 cycle、symbol-key object，以及分别带 `extra` string own key 与 symbol own key 的 array。每项必须在 `yaml.dump()` 前失败，错误含 token path 和 nested value path。`__proto__`、`constructor`、`prototype` 作为 namespace、local key 或 composite property 时必须正常 round-trip。
+  再构造 cycle、symbol-key object、non-enumerable own property、getter/setter accessor，以及分别带 `extra` string own key 与 symbol own key 的 array。每项必须在 `yaml.dump()` 前失败，getter body 使用计数器并断言从未被调用；错误含 token path 和 nested value path。`__proto__`、`constructor`、`prototype` 作为 namespace、local key 或 composite property 时必须正常 round-trip。
 
 - [ ] **Step 5: 实现安全值检查**
 
@@ -236,7 +238,7 @@
   ): void;
   ```
 
-  规则：string/boolean/null 直接通过；number 仅接受 `Number.isFinite()`；array 用 `Reflect.ownKeys()` 检查 own keys，只允许 `length` 与从 `0` 到 `length - 1` 的完整 canonical index，拒绝 hole、额外 string key 和 symbol key，再递归每个 element；object prototype 只接受 `Object.prototype` 或 null，拒绝 symbol keys并递归 own enumerable string properties；`ancestors` 只追踪当前递归栈以拒绝 cycle，不把重复但非循环的引用误报为 cycle。
+  规则：string/boolean/null 直接通过；number 仅接受 `Number.isFinite()`；array 用 `Reflect.ownKeys()` 检查 own keys，只允许 `length` 与从 `0` 到 `length - 1` 的完整 canonical index，拒绝 hole、额外 string key 和 symbol key，再递归每个 element；object prototype 只接受 `Object.prototype` 或 null，使用 `Reflect.ownKeys()` 和 `Object.getOwnPropertyDescriptor()` 检查全部 own properties，拒绝 symbol key、non-enumerable property 和 accessor descriptor，只递归 enumerable data property 的 descriptor value，验证过程不读取 `object[key]`；`ancestors` 只追踪当前递归栈以拒绝 cycle，不把重复但非循环的引用误报为 cycle。
 
 - [ ] **Step 6: 实现 prototype-safe ordered projection**
 
@@ -299,11 +301,13 @@
 **Files:**
 - Modify: `src/core/validator/design-token-config.ts`
 - Modify: `src/core/generator/token-generator.ts`
+- Modify: `src/core/pipeline/theme-pipeline.ts`
 - Modify: `src/cli/commands/build.ts`
 - Modify: `src/cli/commands/dt.ts`
 - Test: `tests/design-token-config.test.ts`
 - Test: `tests/cli-dt.test.ts`
 - Test: `tests/token-generator.test.ts`
+- Test: `tests/parameter-group-pipeline.test.ts`
 - Test: `tests/integration/theme-service.test.ts`
 
 - [ ] **Step 1: 写 config 与 generator 失败测试**
@@ -342,28 +346,47 @@
 
   `build.ts` 与 `dt.ts` 的 platform 列表尾部加入 `md-yml`。不修改 CLI option parser 或默认 platform。在 `tests/cli-dt.test.ts` 断言 `dt --help` 与 `dt build --help` 都含 `md-yml`，且 `design-token --help` 继续与 `dt --help` 字节一致。
 
-  再通过 CLI command handler 的既有测试入口传入 `--platform md-yml`，使用 config 中未声明 md-yml 的 fixture，断言 override 实际生成 `<theme>2md.yml` 且不生成 config 原 platform 文件。该测试验证选择链路，不只验证 help 文本。
+  再通过 CLI command handler 的既有测试入口传入 `--platform md-yml`，使用含 `css`、`sketch` parameter groups 且 base `filterLayer: 1` 的 fixture，断言 override 实际只生成一个 `<theme>2md.yml`，不生成 config 原 platform 文件，也不因两个 group 规划相同文件而碰撞。该测试验证选择链路，不只验证 help 文本。
 
-- [ ] **Step 4: 写当前 pass format-before-write 回归**
+- [ ] **Step 4: 纠正 CLI platform pass planning**
+
+  在 `buildGroupPasses()` 入口增加 CLI platform 分支：
+
+  ```ts
+  if (cliPlatform !== undefined) {
+    const resolved = resolveParameters(
+      config.parameter,
+      themeDir,
+      cliOutput,
+      cliPlatform,
+    );
+    if (!resolved.outputDir) resolved.outputDir = defaultOutputDir;
+    return [resolved];
+  }
+  ```
+
+  该分支必须位于 `parameterGroups.length` 判断之前。更新 `tests/parameter-group-pipeline.test.ts`：原“CLI platform overrides all groups”断言改为 single base pass；覆盖 base `filterLayer` / `colorSpace` 生效而 group 专属值不生效、`--platform css,sketch` 仍为一个 multi-platform pass、无 CLI platform 时 group passes 不变、仅 CLI output 时仍覆盖所有 groups。
+
+- [ ] **Step 5: 写当前 pass format-before-write 回归**
 
   在 `tests/token-generator.test.ts` 预置 `demo.json` 和 `demo.css` marker，传入会触发 md-yml path collision 或 unsafe value 的 tokens，platform 顺序覆盖 `['json', 'md-yml', 'css']` 与 `['md-yml', 'json', 'css']`。两种情况都断言：result failure、markers 字节不变、`demo2md.yml` 不存在。
 
-- [ ] **Step 5: 写 global output planner 集成回归**
+- [ ] **Step 6: 写 global output planner 集成回归**
 
   在 `tests/integration/theme-service.test.ts` 创建两个 parameter groups，均生成相同 `<theme>2md.yml`；断言 formatter 运行和目录创建前返回 `Output path collision`，已有 marker 不变。
 
   增加 `colorSpace: oklch` 的 pipeline case：同一 transformed token set 同时输出 JSON 与 md-yml，断言 md-yml color 与 JSON 的 oklch formatter-ready value 相同，并且不是 Sketch 专用 HEX8。由此锁定 md-yml 使用当前 pass 的 transformed tokens，不走 Sketch hex re-transform。
 
-- [ ] **Step 6: 运行 platform integration tests**
+- [ ] **Step 7: 运行 platform integration tests**
 
-  Run: `bun test tests/design-token-config.test.ts tests/cli-dt.test.ts tests/token-generator.test.ts tests/integration/theme-service.test.ts && pnpm typecheck`
+  Run: `bun test tests/design-token-config.test.ts tests/cli-dt.test.ts tests/token-generator.test.ts tests/parameter-group-pipeline.test.ts tests/integration/theme-service.test.ts && pnpm typecheck`
 
   Expected: PASS。
 
-- [ ] **Step 7: 提交 public platform integration**
+- [ ] **Step 8: 提交 public platform integration**
 
   ```bash
-  git add src/core/validator/design-token-config.ts src/core/generator/token-generator.ts src/cli/commands/build.ts src/cli/commands/dt.ts tests/design-token-config.test.ts tests/cli-dt.test.ts tests/token-generator.test.ts tests/integration/theme-service.test.ts
+  git add src/core/validator/design-token-config.ts src/core/generator/token-generator.ts src/core/pipeline/theme-pipeline.ts src/cli/commands/build.ts src/cli/commands/dt.ts tests/design-token-config.test.ts tests/cli-dt.test.ts tests/token-generator.test.ts tests/parameter-group-pipeline.test.ts tests/integration/theme-service.test.ts
   git commit -m "feat(tokens): expose md-yml output platform"
   ```
 
@@ -443,13 +466,28 @@
   git commit -m "test(tokens): cover md-yml pipeline output"
   ```
 
-- [ ] **Step 5: Milestone 2 Critic Gate**
+- [ ] **Step 5: 运行真实 Orca consumer smoke**
 
-  基线：design spec + 本计划 Milestone 2。提供 config/generator/integration test 与 typecheck 输出；要求核验 filename、supported list、current-pass atomicity、global path planning、colorSpace 与 fixture shape。`STATUS: PASS` 后进入 Milestone 3。
+  对当前实例明确使用的两个 source `/Users/teatao/Projects/my-color/orca/main.yaml` 与 `/Users/teatao/Projects/my-color/orca/custom/corerain.yaml` 按上述固定顺序生成 SHA-256 清单；任一缺失、不是 regular file 或是 symlink 都直接失败。用 `mktemp -d` 创建任务独占输出目录，并运行：
+
+  ```bash
+  pnpm dev -- dt build \
+    -f /Users/teatao/Projects/my-color/orca/main.yaml \
+    --platform md-yml \
+    --out <task-temp-dir>
+  ```
+
+  Expected: default profile 构建成功且只生成 `<task-temp-dir>/orca2md.yml`。用 `js-yaml.load()` 断言至少存在 `color.primary-main`、`color.primary-on-main`、`color.text-disabled`；raw YAML 不含 `[object Object]`、`&ref_`、`*ref_`，且不以 `---` 开头。再次生成相同 source 清单并逐字比较；最后只清理本步骤创建的 task temp directory。
+
+  若真实 Orca 暴露缺口，先提炼仓库内 hermetic regression，再修复并重跑。真实 smoke 不可降级，也不得修改 Orca source。
+
+- [ ] **Step 6: Milestone 2 Critic Gate**
+
+  基线：design spec + 本计划 Milestone 2。提供 config/generator/integration test、typecheck、真实 Orca smoke 与 source hash parity；要求核验 filename、supported list、CLI platform single-pass、`--out` group-preserving、current-pass atomicity、global path planning、colorSpace、fixture shape 与真实 payload。`STATUS: PASS` 后进入 Milestone 3。
 
 ## Milestone 3: Documentation, Release Metadata, and Final Verification
 
-完成条件：SPEC、用户手册和 changeset 与真实实现一致；focused tests、full suite、build、style、hermetic CLI smoke，以及用户指定的真实 Orca `main.yaml` 生成全部通过。
+完成条件：SPEC、用户手册和 changeset 与真实实现一致；focused tests、full suite、build、style 和 hermetic CLI smoke 全部通过；Milestone 2 已通过的真实 Orca smoke 在最终状态仍有有效证据。
 
 ### Task 5: 同步合同文档与 changeset
 
@@ -461,7 +499,7 @@
 
 - [ ] **Step 1: 更新 SPEC 的所有 platform source-of-truth**
 
-  更新 Mental Model 输出列表、CLI `--platform`、config enum、unknown platform supported list、输出格式章节和 multi-platform 示例。新增 md-yml 合同：`<theme>2md.yml`、一级 namespace、组内 hyphen-joined source path、resolved values、无 wrapper/comments/delimiter、explicit composite、安全值失败与当前 pass 原子性。
+  更新 Mental Model 输出列表、CLI `--platform`、config enum、unknown platform supported list、输出格式章节和 multi-platform 示例。新增 md-yml 合同：`<theme>2md.yml`、一级 namespace、组内 hyphen-joined source path、resolved values、无 wrapper/comments/delimiter、explicit composite、安全值失败与当前 pass 原子性。同步纠正 CLI platform semantics：有 `--platform` 时基于 base parameter 建立 single pass；仅 `--out` 时仍覆盖所有 parameter groups。
 
 - [ ] **Step 2: 更新用户手册配置与输出页**
 
@@ -503,7 +541,7 @@
 
 - [ ] **Step 1: 运行 focused contract suite**
 
-  Run: `bun test tests/format-flat.test.ts tests/format-md-yml.test.ts tests/design-token-config.test.ts tests/cli-dt.test.ts tests/token-generator.test.ts tests/integration/theme-service.test.ts`
+  Run: `bun test tests/format-flat.test.ts tests/format-md-yml.test.ts tests/design-token-config.test.ts tests/cli-dt.test.ts tests/token-generator.test.ts tests/parameter-group-pipeline.test.ts tests/integration/theme-service.test.ts`
 
   Expected: PASS。
 
@@ -529,28 +567,13 @@
 
   Expected: success receipt；生成 `.tmp/md-yml-smoke/orca-doc2md.yml`。用 `js-yaml.load()` 验证 `color.primary-main`、`radius.md` 和 `font.heading-h1`；完成后只删除本步骤创建的 `.tmp/md-yml-smoke`。
 
-- [ ] **Step 5: 运行真实 Orca consumer smoke**
-
-  对 `/Users/teatao/Projects/my-color/orca/main.yaml` 和其 `$config.resource.custom` 指向的本地 source 生成排序后的 SHA-256 清单。用 `mktemp -d` 创建任务独占输出目录，并在 repo root 运行 CLI override：
-
-  ```bash
-  pnpm dev -- dt build \
-    -f /Users/teatao/Projects/my-color/orca/main.yaml \
-    --platform md-yml \
-    --out <task-temp-dir>
-  ```
-
-  Expected: default profile 构建成功且只生成 `<task-temp-dir>/orca2md.yml`。用 `js-yaml.load()` 断言至少存在 `color.primary-main`、`color.primary-on-main`、`color.text-disabled`，value 均来自 resolved/transformed Orca token graph；raw YAML 不含 `[object Object]`、`&ref_`、`*ref_`、开头 `---` 或 formatter comment。再次生成 source hash 清单并逐字比较，确认 Orca 仓库未被修改；最后只清理本步骤创建的 task temp directory。
-
-  这条真实 consumer smoke 是完成条件。若当前 Orca source 暴露 md-yml 合同缺口，先将缺口提炼成仓库内 hermetic regression，再修复并重跑；不得把真实 smoke 降级为可选，也不得修改 Orca source 来迁就实现。
-
-- [ ] **Step 6: 检查提交与工作树边界**
+- [ ] **Step 5: 检查提交与工作树边界**
 
   Run: `git log --oneline --max-count=8 && git status --short`
 
   Expected: 本计划产生 5 个原子提交；用户原有 `.gitignore`、`CLAUDE.md` 和 `docs/simple-wiki/` 修改仍原样存在，未进入本次提交。
 
-- [ ] **Step 7: Milestone 3 Critic Gate**
+- [ ] **Step 6: Milestone 3 Critic Gate**
 
   基线：reviewed commit 中的 design spec + 完整实施计划。提供 focused/full/check:ci、hermetic CLI smoke、真实 Orca smoke、source hash parity 证据和最终 diff；要求核验实现忠实度、现有 formatter 回归、文档真实性与 changeset。`STATUS: PASS` 后进入 yes-subagents 收尾整理。
 
