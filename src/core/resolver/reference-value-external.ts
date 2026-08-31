@@ -4,7 +4,11 @@ import type {
 	ResolvedTokenGroup,
 } from '../../types/index.ts';
 import { isDtcgRefValue } from '../../types/index.ts';
-import type { ReferenceProvenanceMap } from '../schema/dtcg-reference-types.ts';
+import {
+	appendReferenceLocation,
+	type ReferenceLocation,
+	type ReferenceProvenanceMap,
+} from '../schema/dtcg-reference-types.ts';
 import type { UnresolvedReference } from './errors.ts';
 import {
 	isDtcgScalarValue,
@@ -23,7 +27,7 @@ export function resolveNestedRefs(
 	themeTree: ResolvedTokenGroup,
 	resolutionPath: string[],
 	unresolvedCollector: UnresolvedReference[],
-	currentLocation: string,
+	currentLocation: ReferenceLocation,
 	rootKeys: Set<string>,
 	provenance?: ReferenceProvenanceMap,
 ): NestedValue {
@@ -73,7 +77,7 @@ export function resolveNestedRefs(
 				// External reference failed to resolve - collect as error (same as $ref behavior)
 				unresolvedCollector.push({
 					ref: `${refPath} (unresolved: ${value})`,
-					location: currentLocation,
+					location: currentLocation.label,
 				});
 				return value as string; // Keep original but mark as unresolved
 			}
@@ -99,7 +103,7 @@ export function resolveNestedRefs(
 				themeTree,
 				resolutionPath,
 				unresolvedCollector,
-				`${currentLocation}[${index}]`,
+				appendReferenceLocation(currentLocation, index),
 				rootKeys,
 				provenance,
 			),
@@ -119,7 +123,7 @@ export function resolveNestedRefs(
 				themeTree,
 				resolutionPath,
 				unresolvedCollector,
-				`${currentLocation}.${key}`,
+				appendReferenceLocation(currentLocation, key),
 				rootKeys,
 				provenance,
 			);
@@ -139,7 +143,7 @@ export function resolveExternalDtcgValue(
 	themeTree: ResolvedTokenGroup,
 	resolutionPath: string[] = [],
 	unresolvedCollector: UnresolvedReference[] = [],
-	currentLocation: string = '',
+	currentLocation: ReferenceLocation = { label: '', segments: [] },
 	rootKeys: Set<string>,
 	provenance?: ReferenceProvenanceMap,
 ): DtcgValue {
@@ -189,7 +193,7 @@ export function resolveExternalDtcgValue(
 				// External reference failed to resolve - collect as error (same as $ref behavior)
 				unresolvedCollector.push({
 					ref: `${refPath} (unresolved: ${value})`,
-					location: currentLocation,
+					location: currentLocation.label,
 				});
 				return value as string; // Keep original but mark as unresolved
 			}
@@ -215,7 +219,7 @@ export function resolveExternalDtcgValue(
 				themeTree,
 				resolutionPath,
 				unresolvedCollector,
-				`${currentLocation}[${index}]`,
+				appendReferenceLocation(currentLocation, index),
 				rootKeys,
 				provenance,
 			),
@@ -238,7 +242,10 @@ export function resolveExternalDtcgValue(
 						themeTree,
 						resolutionPath,
 						unresolvedCollector,
-						`${currentLocation}.${key}[${index}]`,
+						appendReferenceLocation(
+							appendReferenceLocation(currentLocation, key),
+							index,
+						),
 						rootKeys,
 						provenance,
 					);
@@ -256,7 +263,7 @@ export function resolveExternalDtcgValue(
 					themeTree,
 					resolutionPath,
 					unresolvedCollector,
-					`${currentLocation}.${key}`,
+					appendReferenceLocation(currentLocation, key),
 					rootKeys,
 					provenance,
 				);
@@ -292,13 +299,13 @@ export function resolveExternalDtcgValue(
 							val,
 							sources,
 							rootKeys,
-							`${currentLocation}.${key}`,
+							appendReferenceLocation(currentLocation, key),
 							provenance,
 						);
 						if (valResolved === undefined) {
 							unresolvedCollector.push({
 								ref: `${refPath} (unresolved: ${val})`,
-								location: `${currentLocation}.${key}`,
+								location: appendReferenceLocation(currentLocation, key).label,
 							});
 							resolved[key] = val;
 						} else if (isDtcgValue(valResolved)) {
@@ -312,7 +319,7 @@ export function resolveExternalDtcgValue(
 						val,
 						sources,
 						rootKeys,
-						`${currentLocation}.${key}`,
+						appendReferenceLocation(currentLocation, key),
 						provenance,
 					);
 					if (valResolved !== undefined) {

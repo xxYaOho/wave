@@ -7,6 +7,8 @@ import type {
 } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 import {
+	appendReferenceLocation,
+	type ReferenceLocation,
 	type ReferenceProvenanceMap,
 	recordReferenceProvenance,
 } from '../schema/dtcg-reference-types.ts';
@@ -26,14 +28,17 @@ export function resolveDtcgRef(
 	themeTree: ResolvedTokenGroup,
 	resolutionPath: string[],
 	unresolvedCollector: UnresolvedReference[],
-	currentLocation: string,
+	currentLocation: ReferenceLocation,
 	rootKeys: Set<string>,
 	provenance?: ReferenceProvenanceMap,
 ): DtcgValue | undefined {
 	const parsed = parseDtcgRef(refValue.$ref);
 
 	if (!parsed) {
-		unresolvedCollector.push({ ref: refValue.$ref, location: currentLocation });
+		unresolvedCollector.push({
+			ref: refValue.$ref,
+			location: currentLocation.label,
+		});
 		return undefined;
 	}
 
@@ -54,7 +59,7 @@ export function resolveDtcgRef(
 		if (dataSource === undefined) {
 			unresolvedCollector.push({
 				ref: refValue.$ref,
-				location: currentLocation,
+				location: currentLocation.label,
 			});
 			return undefined;
 		}
@@ -62,7 +67,10 @@ export function resolveDtcgRef(
 	}
 
 	if (found === undefined) {
-		unresolvedCollector.push({ ref: refValue.$ref, location: currentLocation });
+		unresolvedCollector.push({
+			ref: refValue.$ref,
+			location: currentLocation.label,
+		});
 		return undefined;
 	}
 
@@ -87,15 +95,20 @@ export function resolveDtcgRef(
 	}
 
 	if (extractedValue === undefined) {
-		unresolvedCollector.push({ ref: refValue.$ref, location: currentLocation });
+		unresolvedCollector.push({
+			ref: refValue.$ref,
+			location: currentLocation.label,
+		});
 		return undefined;
 	}
 	recordReferenceProvenance(
 		provenance,
 		currentLocation,
 		refValue.$ref,
-		[source, ...path].join('.'),
+		[source, ...path],
 		extractedValue,
+		rootKeys.has(source) ? 'internal' : 'external',
+		Object.keys(refValue).length === 1,
 	);
 
 	// 属性合并：$ref 解析的值作为基础，其他属性可以覆盖
@@ -105,7 +118,13 @@ export function resolveDtcgRef(
 	let resolvedOverrides: Record<string, unknown> = overrides;
 	for (const [key, val] of Object.entries(overrides)) {
 		if (typeof val === 'string') {
-			const resolved = resolveExternalReference(val, sources, rootKeys);
+			const resolved = resolveExternalReference(
+				val,
+				sources,
+				rootKeys,
+				appendReferenceLocation(currentLocation, key),
+				provenance,
+			);
 			if (resolved !== undefined) {
 				if (resolvedOverrides === overrides) {
 					resolvedOverrides = { ...overrides };
@@ -116,7 +135,7 @@ export function resolveDtcgRef(
 	}
 
 	const swatchName = deriveSwatchNameFromDtcgRef(refValue.$ref);
-	const valueSwatchName = currentLocation.endsWith('.$value')
+	const valueSwatchName = currentLocation.label.endsWith('.$value')
 		? undefined
 		: swatchName;
 
@@ -183,7 +202,7 @@ export function resolveExternalReference(
 	ref: string,
 	sources: ReferenceDataSources,
 	rootKeys: Set<string>,
-	currentLocation?: string,
+	currentLocation?: ReferenceLocation,
 	provenance?: ReferenceProvenanceMap,
 ): DtcgValue | undefined {
 	const match = ref.match(REFERENCE_PATTERN);
@@ -228,8 +247,10 @@ export function resolveExternalReference(
 			provenance,
 			currentLocation,
 			ref,
-			path.join('.'),
+			path,
 			extracted,
+			'external',
+			true,
 		);
 	}
 	if (extracted === undefined) {
@@ -243,7 +264,7 @@ export function resolveInternalReference(
 	themeTree: ResolvedTokenGroup,
 	resolutionPath: string[],
 	unresolvedCollector: UnresolvedReference[],
-	currentLocation: string,
+	currentLocation: ReferenceLocation,
 	rootKeys: Set<string>,
 	provenance?: ReferenceProvenanceMap,
 ): DtcgValue | undefined {
@@ -278,13 +299,15 @@ export function resolveInternalReference(
 			provenance,
 			currentLocation,
 			ref,
-			path.join('.'),
+			path,
 			extracted,
+			'internal',
+			true,
 		);
 	}
 
 	if (extracted === undefined) {
-		unresolvedCollector.push({ ref, location: currentLocation });
+		unresolvedCollector.push({ ref, location: currentLocation.label });
 	}
 
 	return extracted;

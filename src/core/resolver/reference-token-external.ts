@@ -6,7 +6,11 @@ import type {
 	ResolvedTokenGroup,
 } from '../../types/index.ts';
 import { isDtcgRefValue, isDtcgToken } from '../../types/index.ts';
-import type { ReferenceProvenanceMap } from '../schema/dtcg-reference-types.ts';
+import {
+	appendReferenceLocation,
+	type ReferenceLocation,
+	type ReferenceProvenanceMap,
+} from '../schema/dtcg-reference-types.ts';
 import type { UnresolvedReference } from './errors.ts';
 import {
 	deriveSwatchNameFromDtcgRef,
@@ -24,7 +28,7 @@ export function processTokenExternal(
 	sources: ReferenceDataSources,
 	themeTree: ResolvedTokenGroup,
 	unresolvedCollector: UnresolvedReference[],
-	currentPath: string = '',
+	currentPath: ReferenceLocation = { label: '', segments: [] },
 	rootKeys: Set<string>,
 	provenance?: ReferenceProvenanceMap,
 ): ResolvedDtcgToken {
@@ -34,7 +38,7 @@ export function processTokenExternal(
 		themeTree,
 		[],
 		unresolvedCollector,
-		`${currentPath}.$value`,
+		appendReferenceLocation(currentPath, '$value'),
 		rootKeys,
 		provenance,
 	) as ResolvedDtcgToken['$value'];
@@ -58,7 +62,10 @@ export function processTokenExternal(
 						themeTree,
 						[],
 						unresolvedCollector,
-						`${currentPath}.$extensions.${k}`,
+						appendReferenceLocation(
+							appendReferenceLocation(currentPath, '$extensions'),
+							k,
+						),
 						rootKeys,
 						provenance,
 					),
@@ -90,7 +97,7 @@ export function processTokenGroupExternal(
 	themeTree: ResolvedTokenGroup,
 	unresolvedCollector: UnresolvedReference[],
 	rootKeys: Set<string>,
-	parentPath: string = '',
+	parentPath: ReferenceLocation = { label: '', segments: [] },
 	provenance?: ReferenceProvenanceMap,
 ): ResolvedTokenGroup {
 	const result: ResolvedTokenGroup = {};
@@ -113,7 +120,10 @@ export function processTokenGroupExternal(
 					themeTree,
 					[],
 					unresolvedCollector,
-					`${parentPath}.$extensions.${key}`,
+					appendReferenceLocation(
+						appendReferenceLocation(parentPath, '$extensions'),
+						key,
+					),
 					rootKeys,
 					provenance,
 				),
@@ -125,7 +135,7 @@ export function processTokenGroupExternal(
 		if (key === '$type' || key === '$description' || key === '$extensions') {
 			continue;
 		}
-		const currentPath = parentPath ? `${parentPath}.${key}` : key;
+		const currentPath = appendReferenceLocation(parentPath, key);
 
 		if (isDtcgToken(value)) {
 			result[key] = processTokenExternal(

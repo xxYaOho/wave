@@ -4,7 +4,11 @@ import type {
 	ResolvedTokenGroup,
 } from '../../types/index.ts';
 import { isDtcgRefValue } from '../../types/index.ts';
-import type { ReferenceProvenanceMap } from '../schema/dtcg-reference-types.ts';
+import {
+	appendReferenceLocation,
+	type ReferenceLocation,
+	type ReferenceProvenanceMap,
+} from '../schema/dtcg-reference-types.ts';
 import type { UnresolvedReference } from './errors.ts';
 import {
 	isDtcgScalarValue,
@@ -23,7 +27,7 @@ export function resolveNestedInternalRefs(
 	themeTree: ResolvedTokenGroup,
 	resolutionPath: string[],
 	unresolvedCollector: UnresolvedReference[],
-	currentLocation: string,
+	currentLocation: ReferenceLocation,
 	rootKeys: Set<string>,
 	provenance?: ReferenceProvenanceMap,
 ): NestedValue {
@@ -71,7 +75,7 @@ export function resolveNestedInternalRefs(
 				themeTree,
 				resolutionPath,
 				unresolvedCollector,
-				`${currentLocation}[${index}]`,
+				appendReferenceLocation(currentLocation, index),
 				rootKeys,
 				provenance,
 			),
@@ -91,7 +95,7 @@ export function resolveNestedInternalRefs(
 				themeTree,
 				resolutionPath,
 				unresolvedCollector,
-				`${currentLocation}.${key}`,
+				appendReferenceLocation(currentLocation, key),
 				rootKeys,
 				provenance,
 			);
@@ -109,7 +113,7 @@ export function resolveInternalDtcgValue(
 	themeTree: ResolvedTokenGroup,
 	resolutionPath: string[],
 	unresolvedCollector: UnresolvedReference[],
-	currentLocation: string,
+	currentLocation: ReferenceLocation,
 	rootKeys: Set<string>,
 	provenance?: ReferenceProvenanceMap,
 ): DtcgValue {
@@ -156,7 +160,7 @@ export function resolveInternalDtcgValue(
 				themeTree,
 				resolutionPath,
 				unresolvedCollector,
-				`${currentLocation}[${index}]`,
+				appendReferenceLocation(currentLocation, index),
 				rootKeys,
 				provenance,
 			),
@@ -179,7 +183,10 @@ export function resolveInternalDtcgValue(
 						themeTree,
 						resolutionPath,
 						unresolvedCollector,
-						`${currentLocation}.${key}[${index}]`,
+						appendReferenceLocation(
+							appendReferenceLocation(currentLocation, key),
+							index,
+						),
 						rootKeys,
 						provenance,
 					),
@@ -194,7 +201,7 @@ export function resolveInternalDtcgValue(
 						themeTree,
 						resolutionPath,
 						unresolvedCollector,
-						`${currentLocation}.${key}`,
+						appendReferenceLocation(currentLocation, key),
 						rootKeys,
 						provenance,
 					);
@@ -221,7 +228,7 @@ export function resolveInternalDtcgValue(
 					themeTree,
 					resolutionPath,
 					unresolvedCollector,
-					`${currentLocation}.${key}`,
+					appendReferenceLocation(currentLocation, key),
 					rootKeys,
 					provenance,
 				);

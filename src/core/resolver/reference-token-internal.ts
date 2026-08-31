@@ -4,7 +4,11 @@ import type {
 	ResolvedTokenGroup,
 } from '../../types/index.ts';
 import { isDtcgRefValue } from '../../types/index.ts';
-import type { ReferenceProvenanceMap } from '../schema/dtcg-reference-types.ts';
+import {
+	appendReferenceLocation,
+	type ReferenceLocation,
+	type ReferenceProvenanceMap,
+} from '../schema/dtcg-reference-types.ts';
 import type { UnresolvedReference } from './errors.ts';
 import {
 	deriveSwatchNameFromDtcgRef,
@@ -21,19 +25,19 @@ export function processTokenInternal(
 	token: ResolvedDtcgToken,
 	sources: ReferenceDataSources,
 	themeTree: ResolvedTokenGroup,
-	currentPath: string,
+	currentPath: ReferenceLocation,
 	unresolvedCollector: UnresolvedReference[],
 	rootKeys: Set<string>,
 	provenance?: ReferenceProvenanceMap,
 ): ResolvedDtcgToken {
-	const resolutionPath = currentPath ? [currentPath] : [];
+	const resolutionPath = currentPath.label ? [currentPath.label] : [];
 	const resolvedValue = resolveNestedInternalRefs(
 		token.$value as NestedValue,
 		sources,
 		themeTree,
 		resolutionPath,
 		unresolvedCollector,
-		`${currentPath}.$value`,
+		appendReferenceLocation(currentPath, '$value'),
 		rootKeys,
 		provenance,
 	) as ResolvedDtcgToken['$value'];
@@ -63,7 +67,10 @@ export function processTokenInternal(
 						themeTree,
 						resolutionPath,
 						unresolvedCollector,
-						`${currentPath}.$extensions.${k}`,
+						appendReferenceLocation(
+							appendReferenceLocation(currentPath, '$extensions'),
+							k,
+						),
 						rootKeys,
 						provenance,
 					),
@@ -93,7 +100,7 @@ export function processTokenGroupInternal(
 	group: ResolvedTokenGroup,
 	sources: ReferenceDataSources,
 	themeTree: ResolvedTokenGroup,
-	parentPath: string,
+	parentPath: ReferenceLocation,
 	unresolvedCollector: UnresolvedReference[],
 	rootKeys: Set<string>,
 	provenance?: ReferenceProvenanceMap,
@@ -109,7 +116,7 @@ export function processTokenGroupInternal(
 	}
 
 	if (group.$extensions !== undefined) {
-		const resolutionPath = parentPath ? [parentPath] : [];
+		const resolutionPath = parentPath.label ? [parentPath.label] : [];
 		result.$extensions = Object.fromEntries(
 			Object.entries(group.$extensions).map(([key, value]) => [
 				key,
@@ -119,7 +126,10 @@ export function processTokenGroupInternal(
 					themeTree,
 					resolutionPath,
 					unresolvedCollector,
-					`${parentPath}.$extensions.${key}`,
+					appendReferenceLocation(
+						appendReferenceLocation(parentPath, '$extensions'),
+						key,
+					),
 					rootKeys,
 					provenance,
 				),
@@ -132,7 +142,7 @@ export function processTokenGroupInternal(
 			continue;
 		}
 
-		const currentPath = parentPath ? `${parentPath}.${key}` : key;
+		const currentPath = appendReferenceLocation(parentPath, key);
 
 		if (typeof value === 'object' && value !== null && '$value' in value) {
 			result[key] = processTokenInternal(

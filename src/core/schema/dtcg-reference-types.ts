@@ -9,11 +9,22 @@ import {
 	REFERENCE_PATTERN,
 } from '../resolver/reference-utils.ts';
 
+export type ReferencePathSegment = string | number;
+
+export interface ReferenceLocation {
+	label: string;
+	segments: readonly ReferencePathSegment[];
+}
+
 export interface ReferenceProvenance {
 	consumerPath: string;
+	consumerSegments: readonly ReferencePathSegment[];
 	reference: string;
 	targetPath: string;
-	targetValueKind: 'array' | 'object' | 'scalar';
+	targetSegments: readonly string[];
+	resolvedTargetValueKind: 'array' | 'object' | 'scalar';
+	scope: 'internal' | 'external';
+	identity: boolean;
 }
 
 export type ReferenceProvenanceMap = Map<string, ReferenceProvenance>;
@@ -72,7 +83,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function valueKind(value: unknown): ReferenceProvenance['targetValueKind'] {
+function valueKind(
+	value: unknown,
+): ReferenceProvenance['resolvedTargetValueKind'] {
 	if (Array.isArray(value)) return 'array';
 	if (isRecord(value)) return 'object';
 	return 'scalar';
@@ -80,17 +93,97 @@ function valueKind(value: unknown): ReferenceProvenance['targetValueKind'] {
 
 export function recordReferenceProvenance(
 	provenance: ReferenceProvenanceMap | undefined,
-	consumerPath: string,
+	consumer: ReferenceLocation,
 	reference: string,
-	targetPath: string,
+	targetSegments: readonly string[],
 	targetValue: unknown,
+	scope: ReferenceProvenance['scope'],
+	identity: boolean,
 ): void {
-	provenance?.set(consumerPath, {
-		consumerPath,
+	if (!provenance) return;
+	const canonicalKey = JSON.stringify(consumer.segments);
+	const existing = provenance.get(canonicalKey);
+	const resolvedTargetValueKind = valueKind(targetValue);
+
+	if (existing) {
+		const upgradedIdentity = existing.identity && identity;
+		provenance.set(canonicalKey, {
+			...existing,
+			resolvedTargetValueKind,
+			identity: upgradedIdentity,
+		});
+		if (!upgradedIdentity) {
+			deleteProvenanceDescendants(provenance, consumer.segments);
+		}
+		return;
+	}
+
+	if (hasComputedAncestor(provenance, consumer.segments)) return;
+
+	provenance.set(canonicalKey, {
+		consumerPath: consumer.label,
+		consumerSegments: [...consumer.segments],
 		reference,
-		targetPath,
-		targetValueKind: valueKind(targetValue),
+		targetPath: targetSegments.join('.'),
+		targetSegments: [...targetSegments],
+		resolvedTargetValueKind,
+		scope,
+		identity,
 	});
+	if (!identity) {
+		deleteProvenanceDescendants(provenance, consumer.segments);
+	}
+}
+
+function isSegmentPrefix(
+	prefix: readonly ReferencePathSegment[],
+	path: readonly ReferencePathSegment[],
+): boolean {
+	return (
+		prefix.length <= path.length &&
+		prefix.every((segment, index) => Object.is(segment, path[index]))
+	);
+}
+
+function hasComputedAncestor(
+	provenance: ReferenceProvenanceMap,
+	segments: readonly ReferencePathSegment[],
+): boolean {
+	for (const entry of provenance.values()) {
+		if (!entry.identity && isSegmentPrefix(entry.consumerSegments, segments)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function deleteProvenanceDescendants(
+	provenance: ReferenceProvenanceMap,
+	segments: readonly ReferencePathSegment[],
+): void {
+	for (const [key, entry] of provenance) {
+		if (
+			entry.consumerSegments.length > segments.length &&
+			isSegmentPrefix(segments, entry.consumerSegments)
+		) {
+			provenance.delete(key);
+		}
+	}
+}
+
+export function appendReferenceLocation(
+	location: ReferenceLocation,
+	segment: ReferencePathSegment,
+): ReferenceLocation {
+	return {
+		label:
+			typeof segment === 'number'
+				? `${location.label}[${segment}]`
+				: location.label
+					? `${location.label}.${segment}`
+					: segment,
+		segments: [...location.segments, segment],
+	};
 }
 
 function parseReference(value: unknown): ReferenceTarget | undefined {
@@ -334,14 +427,21 @@ export function validateResolvedCompositeReferences(
 	provenance: ReferenceProvenanceMap,
 ): void {
 	for (const entry of provenance.values()) {
-		if (entry.targetValueKind !== 'array') continue;
-		const valueMarker = entry.consumerPath.indexOf('.$value');
+		if (entry.resolvedTargetValueKind !== 'array') continue;
+		const valueMarker = entry.consumerSegments.indexOf('$value');
 		if (valueMarker < 0) continue;
-		const tokenPath = entry.consumerPath.slice(0, valueMarker).split('.');
+		const tokenPath = entry.consumerSegments.slice(0, valueMarker);
+		if (
+			!tokenPath.every(
+				(segment): segment is string => typeof segment === 'string',
+			)
+		) {
+			continue;
+		}
 		const tokenType = getResolvedTokenType(tree, tokenPath);
 		if (
 			(tokenType === 'shadow' || tokenType === 'gradient') &&
-			/^\.\$value\[\d+\]/.test(entry.consumerPath.slice(valueMarker))
+			typeof entry.consumerSegments[valueMarker + 1] === 'number'
 		) {
 			throw new DtcgReferenceTypeError(
 				`${entry.consumerPath} references "${entry.targetPath}" whose value is an array; composite member references are not flattened`,

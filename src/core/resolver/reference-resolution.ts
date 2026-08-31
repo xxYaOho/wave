@@ -19,6 +19,7 @@ import { inferRootKeys } from './reference-utils.ts';
 export interface ReferenceResolutionResult {
 	tree: ResolvedTokenGroup;
 	provenance: ReferenceProvenanceMap;
+	rootKeys: ReadonlySet<string>;
 }
 
 export function resolveReferences(
@@ -40,7 +41,7 @@ export function resolveReferences(
 		emptyThemeTree,
 		pass1Unresolved,
 		rootKeys,
-		'',
+		{ label: '', segments: [] },
 		provenance,
 	);
 
@@ -57,7 +58,7 @@ export function resolveReferences(
 			result,
 			sources,
 			result,
-			'',
+			{ label: '', segments: [] },
 			unresolvedCollector,
 			rootKeys,
 			provenance,
@@ -91,5 +92,5 @@ export function resolveReferences(
 		throw new UnresolvedReferenceError(uniqueReferences);
 	}
 
-	return { tree: result, provenance };
+	return { tree: result, provenance, rootKeys };
 }

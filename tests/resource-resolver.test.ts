@@ -21,6 +21,129 @@ import type {
 const rootDir = path.resolve(__dirname, '..');
 
 describe('generalized resolver', () => {
+	test('records structured external pointer and internal curly provenance', () => {
+		const result = indexedResolveReferences(
+			{
+				theme: {
+					value: { $value: 8 },
+					consumer: {
+						$value: {
+							items: [
+								{ $ref: '#/brand/a~0~1b/token/$value' },
+								'{theme.value}',
+								{ $ref: '#/brand/a~0~1b/token/$value', alpha: 0.5 },
+							],
+						},
+					},
+				},
+			} as unknown as DtcgTokenGroup,
+			{
+				brand: {
+					'a~/b': { token: { $value: '#123456' } },
+				},
+			},
+		);
+		const entries = [...result.provenance.values()];
+
+		expect(result.rootKeys).toEqual(new Set(['theme']));
+		expect(entries).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					consumerPath: 'theme.consumer.$value.items[0]',
+					consumerSegments: ['theme', 'consumer', '$value', 'items', 0],
+					targetPath: 'brand.a~/b.token',
+					targetSegments: ['brand', 'a~/b', 'token'],
+					scope: 'external',
+					identity: true,
+				}),
+				expect.objectContaining({
+					consumerPath: 'theme.consumer.$value.items[1]',
+					consumerSegments: ['theme', 'consumer', '$value', 'items', 1],
+					targetSegments: ['theme', 'value'],
+					scope: 'internal',
+					identity: true,
+				}),
+				expect.objectContaining({
+					consumerPath: 'theme.consumer.$value.items[2]',
+					scope: 'external',
+					identity: false,
+				}),
+			]),
+		);
+	});
+
+	test('keeps first-origin targets through multi-pass internal resolution', () => {
+		const result = indexedResolveReferences(
+			{
+				theme: {
+					a: { $value: '{theme.b}' },
+					b: { $value: '{theme.c}' },
+					c: { $value: '{brand.value}' },
+				},
+			} as DtcgTokenGroup,
+			{ brand: { value: { $value: ['Inter', 'sans-serif'] } } },
+		);
+		const byConsumer = new Map(
+			[...result.provenance.values()].map((entry) => [
+				entry.consumerPath,
+				entry,
+			]),
+		);
+
+		expect(byConsumer.get('theme.a.$value')).toEqual(
+			expect.objectContaining({
+				targetSegments: ['theme', 'b'],
+				resolvedTargetValueKind: 'array',
+				identity: true,
+			}),
+		);
+		expect(byConsumer.get('theme.b.$value')).toEqual(
+			expect.objectContaining({
+				targetSegments: ['theme', 'c'],
+				resolvedTargetValueKind: 'array',
+				identity: true,
+			}),
+		);
+		expect(byConsumer.get('theme.c.$value')).toEqual(
+			expect.objectContaining({
+				targetSegments: ['brand', 'value'],
+				scope: 'external',
+			}),
+		);
+	});
+
+	test('keeps a computed object ref as a subtree barrier across passes', () => {
+		const result = indexedResolveReferences(
+			{
+				theme: {
+					a: { $value: { $ref: '#/theme/b/$value', tag: 'a' } },
+					b: { $value: '{theme.c}' },
+					c: { $value: '{brand.value}' },
+				},
+			} as unknown as DtcgTokenGroup,
+			{ brand: { value: { $value: { base: 1 } } } },
+		);
+		const entries = [...result.provenance.values()];
+		const root = entries.find(
+			(entry) => entry.consumerPath === 'theme.a.$value',
+		);
+
+		expect(root).toEqual(
+			expect.objectContaining({
+				reference: '#/theme/b/$value',
+				targetSegments: ['theme', 'b'],
+				identity: false,
+			}),
+		);
+		expect(
+			entries.some(
+				(entry) =>
+					entry.consumerSegments.length > 3 &&
+					entry.consumerSegments.slice(0, 3).join('/') === 'theme/a/$value',
+			),
+		).toBe(false);
+	});
+
 	test('resolves curly-brace references for arbitrary dependency namespaces', () => {
 		const tree: DtcgTokenGroup = {
 			color: {

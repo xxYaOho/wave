@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { processThemeDocument } from '../src/core/pipeline/theme-pipeline.ts';
 import { resolveReferences } from '../src/core/resolver/reference-resolution.ts';
+import type { ReferenceProvenanceMap } from '../src/core/schema/dtcg-reference-types.ts';
 import {
+	recordReferenceProvenance,
 	validateCompleteTokenReferenceTypes,
 	validateResolvedCompositeReferences,
 } from '../src/core/schema/dtcg-reference-types.ts';
@@ -30,6 +32,95 @@ function typographyValue() {
 		lineHeight: 1.5,
 	};
 }
+
+describe('structured reference provenance recording', () => {
+	test('uses canonical segments instead of display labels as map keys', () => {
+		const provenance: ReferenceProvenanceMap = new Map();
+		recordReferenceProvenance(
+			provenance,
+			{ label: 'theme.a.b.c', segments: ['theme', 'a.b', 'c'] },
+			'{theme.target.one}',
+			['theme', 'target', 'one'],
+			1,
+			'internal',
+			true,
+		);
+		recordReferenceProvenance(
+			provenance,
+			{ label: 'theme.a.b.c', segments: ['theme', 'a', 'b.c'] },
+			'{theme.target.two}',
+			['theme', 'target', 'two'],
+			2,
+			'internal',
+			true,
+		);
+
+		expect(provenance.size).toBe(2);
+		expect([...provenance.keys()]).toEqual([
+			'["theme","a.b","c"]',
+			'["theme","a","b.c"]',
+		]);
+	});
+
+	test('upgrades a direct origin to a computed barrier and rejects descendants', () => {
+		const provenance: ReferenceProvenanceMap = new Map();
+		const root = {
+			label: 'theme.alias.$value',
+			segments: ['theme', 'alias', '$value'],
+		} as const;
+		recordReferenceProvenance(
+			provenance,
+			root,
+			'{theme.first}',
+			['theme', 'first'],
+			1,
+			'internal',
+			true,
+		);
+		recordReferenceProvenance(
+			provenance,
+			{
+				label: 'theme.alias.$value.child',
+				segments: [...root.segments, 'child'],
+			},
+			'{theme.child}',
+			['theme', 'child'],
+			1,
+			'internal',
+			true,
+		);
+		recordReferenceProvenance(
+			provenance,
+			root,
+			'#/theme/computed/$value',
+			['theme', 'computed'],
+			{ value: 1 },
+			'internal',
+			false,
+		);
+		recordReferenceProvenance(
+			provenance,
+			{
+				label: 'theme.alias.$value.later',
+				segments: [...root.segments, 'later'],
+			},
+			'{theme.later}',
+			['theme', 'later'],
+			1,
+			'internal',
+			true,
+		);
+
+		expect([...provenance.values()]).toEqual([
+			expect.objectContaining({
+				reference: '{theme.first}',
+				targetSegments: ['theme', 'first'],
+				resolvedTargetValueKind: 'object',
+				identity: false,
+			}),
+		]);
+	});
+});
 
 describe('DTCG typed complete-token references', () => {
 	test('defers whole-token typography aliases in raw schema only', () => {
