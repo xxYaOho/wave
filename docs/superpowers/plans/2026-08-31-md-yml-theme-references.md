@@ -95,6 +95,8 @@
 
   增加 shape-preserving custom object 回归：B direct alias 到 C；A 使用 `{ $ref: B, tag: 'x' }`。即使中间 resolved A 内出现对 C 的字符串，provenance 中 A root 保持 `identity:false` 且不存在 A descendants；这与 `$ref + alpha` 一起覆盖 computed reference。
 
+  增加写入顺序回归：同一 consumer 先记录 `identity:true`，随后记录 `identity:false` 时必须升级为 barrier、清除 descendants，并在后续轮次保持 barrier；first-origin target 规则不能阻止 barrier 升级。
+
 - [ ] **Step 4: 保持现有 validator 兼容**
 
   `validateResolvedCompositeReferences()` 继续使用现有 string label 输出错误，但结构判断改用 `consumerSegments`，并读取 `resolvedTargetValueKind`，避免 array path regex 成为第二套 source of truth。现有错误文本与 typed-reference 行为不变。
@@ -262,7 +264,7 @@
 
   Candidate 先按 `valuePath.length` 升序，再按 `JSON.stringify(valuePath)` 排序。相同 value path + target 去重；相同 value path 指向不同 target 时抛出包含 consumer 和两个 target 的 lineage contradiction error。Candidate 同时满足 target exists、consumer slot exists、base values equal 时，clone consumer 的沿途 array/object 并写入 `"{namespace.local-key}"`。Eligible ancestor（包括 root）覆盖 descendants；ancestor 不 eligible 时继续检查 descendants。Overlay 后检查所有生成引用都能命中 target index。结果不得依赖 WeakMap lineage array 或 resolver Map 的插入顺序。
 
-  Object clone 使用 `Object.create(Object.getPrototypeOf(value))` 加 `Object.defineProperties()` 保留 plain/null prototype 与 own data descriptors；overlay write 使用 `Object.defineProperty()` 创建 enumerable、writable、configurable data property，禁止普通 assignment。Array 只 clone 已验证的 dense indices。增加 null-prototype consumer 和 `__proto__`、`constructor`、`prototype` nested paths 测试，断言 overlay 后 prototype 不变、keys/values 完整且全局 prototype 未污染。
+  Object clone 使用 `Object.create(Object.getPrototypeOf(value))`，逐个 own enumerable string key 读取已验证 data descriptor 的 value，再以 enumerable、writable、configurable data property 写入 clone；不能复制 source descriptor flags。Overlay write 同样使用 `Object.defineProperty()`，禁止普通 assignment。Array 以普通 `[]` 按已验证 dense indices 重建，由运行时维护规范 `length` descriptor，不复制 source index/length flags。增加 null-prototype consumer、non-configurable enumerable source property、non-writable array index，以及 `__proto__`、`constructor`、`prototype` nested paths 测试，断言 overlay 可执行、prototype 不变、keys/values 完整且全局 prototype 未污染。
 
 - [ ] **Step 5: 运行 formatter gate**
 

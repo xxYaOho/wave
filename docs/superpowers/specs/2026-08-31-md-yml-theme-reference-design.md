@@ -138,7 +138,7 @@ JSON、JSONC、CSS 和 Sketch formatter 不能访问该 WeakMap。相同 resolve
 
 md-yml formatter 是唯一通过内部 getter 消费 lineage 的 formatter。它分两阶段工作：先建立全部未符号化的 base entry graph 与 source-token index；再比较 base consumer slot 和 base target value，把符合合同的 slot 替换为投影引用字符串。Alias chain 始终与 target base value 比较，不能拿已经替换成引用字符串的 target 比较。Formatter 使用 prototype-safe clone-on-write，不修改 `WaveToken[]`、`token.value` 或 WeakMap lineage。
 
-Object clone 保留原始 `Object.prototype` 或 null prototype，并用 own property descriptors 建立副本。Overlay write 使用 `Object.defineProperty()` 写入 enumerable、writable、configurable data property，不能用普通 assignment；因此 `__proto__`、`constructor` 和 `prototype` value path 不改变 prototype 或静默丢失。Array clone 保持 dense index 顺序。Semantic equality 比较完整 own enumerable string key set，object key 顺序不影响相等性。
+Object clone 保留原始 `Object.prototype` 或 null prototype、own enumerable string keys 和 values，但把 clone 上的属性统一规范化为 enumerable、writable、configurable data property；不能原样复制可能不可覆盖的 descriptor flags。Overlay write 使用 `Object.defineProperty()`，不能用普通 assignment；因此 `__proto__`、`constructor` 和 `prototype` value path 不改变 prototype 或静默丢失。Array clone 按 dense index 重建普通数组，让运行时管理规范的 `length` descriptor；不复制 source index 或 `length` 的 writable/configurable flags。Semantic equality 比较完整 own enumerable string key set，object key 顺序不影响相等性。
 
 Candidate 先按 value path 长度升序，再按 canonical segment encoding 排序。相同 value path 与相同 target 去重；相同 value path 指向不同 target 属于 lineage 矛盾并失败。Eligible ancestor（包括 root）覆盖 descendant；ancestor 不 eligible 时继续检查 descendant。结果不能依赖 resolver Map 插入顺序。
 
@@ -175,6 +175,7 @@ Consumer slot 不存在、target 不是独立 token、target 未 emission、值�
 - missing/non-emitted target、slot missing 和 value mismatch 输出最终值，不生成 dangling reference；实际 emission 的不可投影或 collision target 按既有合同明确失败；
 - 同一 resolved tree 分别以无 reference context 和有 reference context transform，断言 token own keys、JSON serialization、JSON、JSONC、CSS 和 Sketch 输出字节一致；md-yml 前后顺序不修改输入。
 - null-prototype object 与 `__proto__`、`constructor`、`prototype` value path 在 overlay 后保持 prototype、own keys 和 value，且不污染任何 accumulator prototype。
+- source 使用 non-configurable enumerable data property 时，clone 仍可安全 overlay；array index 与 `length` descriptor 不阻断写入。
 
 ### Real Orca smoke
 
