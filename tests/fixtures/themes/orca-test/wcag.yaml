@@ -1,0 +1,62 @@
+doctor:
+  wcagPairs:
+    primary-main:
+      foreground: "{theme.color.primary.on-main}"
+      background: "{theme.color.primary.main}"
+    primary-container:
+      foreground: "{theme.color.primary.on-container}"
+      background: "{theme.color.primary.container}"
+    secondary-main:
+      foreground: "{theme.color.secondary.on-main}"
+      background: "{theme.color.secondary.main}"
+    secondary-container:
+      foreground: "{theme.color.secondary.on-container}"
+      background: "{theme.color.secondary.container}"
+    neutral-main:
+      foreground: "{theme.color.neutral.on-main}"
+      background: "{theme.color.neutral.main}"
+    neutral-container:
+      foreground: "{theme.color.neutral.on-container}"
+      background: "{theme.color.neutral.container}"
+    error-main:
+      foreground: "{theme.color.error.on-main}"
+      background: "{theme.color.error.main}"
+    error-container:
+      foreground: "{theme.color.error.on-container}"
+      background: "{theme.color.error.container}"
+    warning-main:
+      foreground: "{theme.color.warning.on-main}"
+      background: "{theme.color.warning.main}"
+    warning-container:
+      foreground: "{theme.color.warning.on-container}"
+      background: "{theme.color.warning.container}"
+    attention-main:
+      foreground: "{theme.color.attention.on-main}"
+      background: "{theme.color.attention.main}"
+    attention-container:
+      foreground: "{theme.color.attention.on-container}"
+      background: "{theme.color.attention.container}"
+    success-main:
+      foreground: "{theme.color.success.on-main}"
+      background: "{theme.color.success.main}"
+    success-container:
+      foreground: "{theme.color.success.on-container}"
+      background: "{theme.color.success.container}"
+    info-main:
+      foreground: "{theme.color.info.on-main}"
+      background: "{theme.color.info.main}"
+    info-container:
+      foreground: "{theme.color.info.on-container}"
+      background: "{theme.color.info.container}"
+    text-defualt:
+      foreground: "{theme.color.text.default}"
+      background: "{theme.color.container.default}"
+    text-subtlest:
+      foreground: "{theme.color.text.subtlest}"
+      background: "{theme.color.container.low}"
+    surface:
+      foreground: "{theme.color.neutral.on-container}"
+      background: "{theme.color.surface.default}"
+    container:
+      foreground: "{theme.color.neutral.on-container}"
+      background: "{theme.color.container.default}"

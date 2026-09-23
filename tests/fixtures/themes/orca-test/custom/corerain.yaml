@@ -1,0 +1,208 @@
+corerain:
+  color:
+    $type: color
+    main:
+      # 原色彩 '#0059aa, hsl(209, 100%, 33%)'，偏灰，略显显得老气；
+      # 重新调整为 '#1872f0, hsl(215, 88%, 52%)'，明亮一些，带有年轻感；
+      50:
+        $description: ~
+        $value:
+          colorSpace: oklch
+          components: [0.974, 0.013, 241]
+          hex: "#eff8ff"
+      100:
+        $description: ~
+        $value:
+          colorSpace: oklch
+          components: [0.94, 0.031, 244]
+          hex: "#daeeff"
+      200:
+        $description: ~
+        $value:
+          colorSpace: oklch
+          components: [0.896, 0.056, 242]
+          hex: "#bde2ff"
+      300:
+        $description: ~
+        $value:
+          colorSpace: oklch
+          components: [0.832, 0.093, 241]
+          hex: "#90d0ff"
+      400:
+        $description: ~
+        $value:
+          colorSpace: oklch
+          components: [0.751, 0.135, 245]
+          hex: "#5cb6fe"
+      500:
+        $description: ~
+        $value:
+          colorSpace: oklch
+          components: [0.665, 0.175, 253]
+          hex: "#3695fb"
+      600:
+        $description: "基线色值"
+        $value:
+          colorSpace: oklch
+          components: [0.577, 0.206, 259]
+          hex: "#1872f0"
+      700:
+        $description: ~
+        $value:
+          colorSpace: oklch
+          components: [0.526, 0.203, 261]
+          hex: "#1860dd"
+      800:
+        $description: ~
+        $value:
+          colorSpace: oklch
+          components: [0.455, 0.17, 262]
+          hex: "#1a4eb3"
+      900:
+        $description: ~
+        $value:
+          colorSpace: oklch
+          components: [0.405, 0.129, 260]
+          hex: "#1b458d"
+      950:
+        $description: ~
+        $value:
+          colorSpace: oklch
+          components: [0.297, 0.083, 262]
+          hex: "#152b56"
+    sub:
+      # 原色彩 '#00aff0, hsl(196, 100%, 47%)'，感觉和 main 拉不开；
+      # 重新调整为 '#00b8e6, hsl(192, 100%, 45%)'；
+      50:
+        $description: ~
+        $value: "#effbff"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.98, 0.014, 220]
+      100:
+        $description: ~
+        $value: "#def6ff"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.958, 0.028, 222]
+      200:
+        $description: ~
+        $value: "#b6efff"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.918, 0.062, 217]
+      300:
+        $description: ~
+        $value: "#75e5ff"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.865, 0.108, 215]
+      400:
+        $description: ~
+        $value: "#2cd9ff"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.819, 0.139, 218]
+      500:
+        $description: "基线色值"
+        $value: "#00b8e6"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.727, 0.137, 224]
+      600:
+        $description: ~
+        $value: "#009fd4"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.659, 0.133, 231]
+      700:
+        $description: ~
+        $value: "#007fab"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.56, 0.114, 232]
+      800:
+        $description: ~
+        $value: "#006b8d"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.493, 0.097, 229]
+      900:
+        $description: ~
+        $value: "#065874"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.431, 0.083, 229]
+      950:
+        $description: ~
+        $value: "#04384d"
+        $extensions:
+          oklch:
+            colorSpace: oklch
+            components: [0.32, 0.062, 232]
+    # main:
+    #   "50":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#eef0ff"
+    #       components: [95.8%, 0.020, 279.9]
+    #   "100":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#d7dbff"
+    #       components: [90.0%, 0.049, 280.3]
+    #   "200":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#b2bbff"
+    #       components: [81.0%, 0.097, 278.2]
+    #   "300":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#909fff"
+    #       components: [73.1%, 0.140, 275.6]
+    #   "400":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#6d84ff"
+    #       components: [65.6%, 0.183, 272.4]
+    #   "500":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#446aff"
+    #       components: [58.6%, 0.225, 267.8]
+    #   "600":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#0052f5"
+    #       components: [51.8%, 0.251, 262.6]
+    #   "700":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#0042cb"
+    #       components: [44.9%, 0.218, 262.6]
+    #   "800":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#002e93"
+    #       components: [35.5%, 0.171, 262.5]
+    #   "900":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#001858"
+    #       components: [24.6%, 0.119, 262.5]
+    #   "950":
+    #     $value:
+    #       colorSpace: oklch
+    #       hex: "#000c38"
+    #       components: [18.2%, 0.088, 262.6]

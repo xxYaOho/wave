@@ -1,0 +1,378 @@
+$schema: "https://www.designtokens.org/tr/2025.10/format/"
+theme:
+  color:
+    $type: color
+    $description: light mode
+    transparent:
+      $description: 透明, 对应开发中的 `transparent` 值
+      $value: "#00000000"
+    black:
+      point:
+        $description: 黑点, 色彩空间的亮度最低值
+        $value:
+          colorSpace: hsl
+          components: [220, 45, 3]
+    white:
+      point:
+        $description: 白点, 色彩空间的亮度最高值, 影响色温
+        $value: "#ffffff"
+    current:
+      point:
+        $description: 当前点
+        $value:
+          $ref: "#/theme/color/black/point/$value"
+    primary:
+      $description: 主色, 品牌色.
+      main:
+        $value: "{tailwindcss.color.sky.500}"
+      on-main:
+        $value: "{tailwindcss.color.sky.50}"
+      container:
+        $value: "{tailwindcss.color.sky.200}"
+      on-container:
+        $value: "{tailwindcss.color.sky.600}"
+    secondary:
+      $description: 辅助色, 与主色 (品牌色)配合
+      main:
+        $value: "{tailwindcss.color.cyan.400}"
+      on-main:
+        $value: "{tailwindcss.color.cyan.50}"
+      container:
+        $value: "{tailwindcss.color.cyan.200}"
+      on-container:
+        $value: "{tailwindcss.color.cyan.600}"
+    neutral:
+      $description: 中性自然色, 适应大多数色彩
+      main:
+        $value: "{tailwindcss.color.slate.600}"
+      on-main:
+        $value: "{tailwindcss.color.slate.100}"
+      container:
+        $value: "{tailwindcss.color.slate.800}"
+      on-container:
+        $value: "{tailwindcss.color.slate.300}"
+    error:
+      $description: 错误, 严重提示. 多数情况下 hue='0-5'
+      main:
+        $value: "{tailwindcss.color.red.500}"
+      on-main:
+        $value: "{tailwindcss.color.white}"
+      container:
+        $value: "{tailwindcss.color.red.950}"
+      on-container:
+        $value: "{tailwindcss.color.red.100}"
+    warning:
+      $description: 警告, 重度提示. 多数情况下 hue='10-20'
+      main:
+        $value: "{tailwindcss.color.orange.500}"
+      on-main:
+        $value: "{tailwindcss.color.orange.50}"
+      container:
+        $value: "{tailwindcss.color.orange.950}"
+      on-container:
+        $value: "{tailwindcss.color.orange.100}"
+    attention:
+      $description: 注意, 轻度提示. 多数情况下 hue='35-45'
+      main:
+        $value: "{tailwindcss.color.yellow.400}"
+      on-main:
+        $value: "{tailwindcss.color.yellow.50}"
+      container:
+        $value: "{tailwindcss.color.yellow.950}"
+      on-container:
+        $value: "{tailwindcss.color.yellow.100}"
+    success:
+      $description: 安全. 多数情况下 hue='150-160'
+      main:
+        $value: "{tailwindcss.color.green.500}"
+      on-main:
+        $value: "{tailwindcss.color.white}"
+      container:
+        $value: "{tailwindcss.color.green.950}"
+      on-container:
+        $value: "{tailwindcss.color.green.100}"
+    info:
+      $description: 安全. 多数情况下 hue='150-160'
+      main:
+        $value: "{tailwindcss.color.sky.600}"
+      on-main:
+        $value: "{tailwindcss.color.white}"
+      container:
+        $value: "{tailwindcss.color.sky.50}"
+      on-container:
+        $value: "{tailwindcss.color.sky.600}"
+    text:
+      $description: 文本
+      emphasis:
+        $value: "{tailwindcss.color.slate.50}"
+      default:
+        $value: "{tailwindcss.color.slate.100}"
+      subtle:
+        $value: "{tailwindcss.color.slate.300}"
+      subtlest:
+        $value: "{tailwindcss.color.slate.500}"
+      disabled:
+        $value:
+          $ref: "#/theme/color/text/default/$value"
+          alpha: "{wave.dimension.alpha.400}"
+    border:
+      $description: 边框
+      emphasis:
+        $description: 强
+        $value:
+          $ref: "#/theme/color/neutral/main/$value"
+          alpha: "{wave.dimension.alpha.300}"
+      default:
+        $description: 默认
+        $value:
+          $ref: "#/theme/color/neutral/main/$value"
+          alpha: "{wave.dimension.alpha.200}"
+      subtle:
+        $description: 弱
+        $value:
+          $ref: "#/theme/color/neutral/main/$value"
+          alpha: "{wave.dimension.alpha.100}"
+    outline:
+      default:
+        $description: 带品牌色调取向的焦点环
+        $value: "#ff00ff"
+        $extensions:
+          inheritColor:
+            property:
+              opacity: "{wave.dimension.alpha.400}"
+      entry-box:
+        $description: 带品牌色调取向的焦点环
+        $value:
+          $ref: "#/theme/color/neutral/main/$value"
+          alpha: "{wave.dimension.alpha.200}"
+      ring:
+        $description: 带品牌色调取向的焦点环
+        $value:
+          $ref: "#/theme/color/primary/main/$value"
+    surface:
+      $description: 背景层
+      default:
+        $description: 主背景, 基于 deepGray.light.100 的微调
+        $value:
+          colorSpace: hsl
+          components: [210, 10, 96]
+      dim:
+        $description: 下降层, 用于需要降低亮度的区域
+        $value:
+          colorSpace: hsl
+          components: [210, 10, 94]
+      bright:
+        $description: 提升层, 用于需要提高亮度的区域
+        $value:
+          colorSpace: hsl
+          components: [210, 10, 98]
+    container:
+      $description: 容器, 框架层
+      highest:
+        $description: 最高层级, 比如 modal, dialog
+        $value:
+          colorSpace: hsl
+          components: [220, 40, 20]
+      high:
+        $description: 抬升层级, 比如 popover, dropdown
+        $value:
+          colorSpace: hsl
+          components: [220, 40, 17]
+      default:
+        $description: 标准层级, 用于大多数组件的默认容器
+        $value:
+          colorSpace: hsl
+          components: [220, 40, 15]
+      low:
+        $description: 次级层级, 比如 card, list, table
+        $value:
+          colorSpace: hsl
+          components: [220, 40, 12]
+      lowest:
+        $description: 最低层级(视觉下沉), 比如 input-field
+        $value:
+          colorSpace: hsl
+          components: [220, 40, 10]
+    scrim:
+      $description: 半透明遮罩,用于 modal/drawer 背景
+      $value:
+        $ref: "#/theme/color/black/point/$value"
+        alpha: "{wave.dimension.alpha.700}"
+    shadow:
+      $description: 主题色倾向
+      $value: "{tailwindcss.color.slate.900}"
+    inverse:
+      surface:
+        $description: 反色背景(通常是深色), 比如 Snackbar, Toast
+        $value:
+          color: "{tailwindcss.color.slate.900}"
+          alpha: "{wave.dimension.alpha.800}"
+      on-surface:
+        $value:
+          $ref: "#/theme/color/white/point/$value"
+      primary:
+        $description: 反色主色, 比如 media-play-progress-bar
+        $value: "{corerain.color.main.100}"
+  dimension:
+    interaction:
+      $description: 通过 alpha 通道或透明度控制
+      hover:
+        $type: number
+        $description: 悬浮
+        $value: "{wave.dimension.alpha.100}"
+        $extensions:
+          sketch:
+            property:
+              opacity: true
+      press:
+        $description: 按下
+        $value: "{wave.dimension.alpha.200}"
+        $extensions:
+          sketch:
+            property:
+              opacity: true
+      focus:
+        $type: number
+        $description: 聚焦
+        $value: "{wave.dimension.alpha.100}"
+        $extensions:
+          sketch:
+            property:
+              opacity: true
+      drag:
+        $type: number
+        $description: 拖拽
+        $value: "{wave.dimension.alpha.500}"
+        $extensions:
+          sketch:
+            property:
+              opacity: true
+    shadow:
+      1:
+        $type: shadow
+        $value:
+          color:
+            $ref: "#/theme/color/shadow/$value"
+            alpha: 0.12
+          offsetX: 0
+          offsetY: "{wave.dimension.px.1}"
+          blur: "{wave.dimension.px.2}"
+          spread: 0
+        $extensions:
+          smoothShadow:
+            cubicBezier: "{wave.dimension.cubicBezier.easeOutQuad}"
+            step: 3
+      2:
+        $type: shadow
+        $value:
+          color:
+            $ref: "#/theme/color/shadow/$value"
+            alpha: 0.08
+          offsetX: 0
+          offsetY: "{wave.dimension.px.2}"
+          blur: "{wave.dimension.px.4}"
+          spread: -1
+        $extensions:
+          smoothShadow:
+            cubicBezier: "{wave.dimension.cubicBezier.easeOutQuad}"
+            step: 3
+      3:
+        $type: shadow
+        $value:
+          color:
+            $ref: "#/theme/color/shadow/$value"
+            alpha: 0.08
+          offsetX: 0
+          offsetY: "{wave.dimension.px.3}"
+          blur: "{wave.dimension.px.6}"
+          spread: -2
+        $extensions:
+          smoothShadow:
+            cubicBezier: "{wave.dimension.cubicBezier.easeOutQuad}"
+            step: 3
+      4:
+        $type: shadow
+        $value:
+          color:
+            $ref: "#/theme/color/shadow/$value"
+            alpha: 0.08
+          offsetX: 0
+          offsetY: "{wave.dimension.px.4}"
+          blur: "{wave.dimension.px.8}"
+          spread: -3
+        $extensions:
+          smoothShadow:
+            cubicBezier: "{wave.dimension.cubicBezier.easeOutQuad}"
+            step: 3
+    gradient-mask-smooth:
+      $description: 平滑渐变遮罩层
+      $type: gradient
+      $value:
+        - color:
+            $ref: "#/theme/color/black/point/$value"
+            alpha: 0
+          position: 0
+        - color:
+            $ref: "#/theme/color/black/point/$value"
+            alpha: 1
+          position: 0.5
+      $extensions:
+        smoothGradient:
+          cubicBezier: "{wave.dimension.cubicBezier.easeInQuad}"
+          step: 9
+    gradient-mask-smooth-media:
+      $description: 平滑渐变遮罩层, 播放器使用
+      $type: gradient
+      $value:
+        - color:
+            $ref: "#/theme/color/shadow/$value"
+            alpha: 0
+          position: 0
+        - color:
+            $ref: "#/theme/color/black/point/$value"
+            alpha: 1
+          position: 1
+      $extensions:
+        smoothGradient:
+          cubicBezier: "{wave.dimension.cubicBezier.easeOutQuad}"
+          step: 9
+    border:
+      width:
+        xl:
+          $type: dimension
+          $value: "{wave.dimension.px.2}"
+        lg:
+          $type: dimension
+          $value: "{wave.dimension.px.1}"
+        md:
+          $type: dimension
+          $value: "{wave.dimension.px.0}"
+    radius:
+      max:
+        $type: dimension
+        $value:
+          value: 9999
+          unit: px
+      zero:
+        $type: dimension
+        $value:
+          value: 0
+          unit: px
+      xxl:
+        $type: dimension
+        $value: "{wave.dimension.px.8}"
+      xl:
+        $type: dimension
+        $value: "{wave.dimension.px.7}"
+      lg:
+        $type: dimension
+        $value: "{wave.dimension.px.6}"
+      md:
+        $type: dimension
+        $value: "{wave.dimension.px.4}"
+      sm:
+        $type: dimension
+        $value: "{wave.dimension.px.3}"
+      xs:
+        $type: dimension
+        $value: "{wave.dimension.px.2}"

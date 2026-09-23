@@ -1,0 +1,71 @@
+mobile-assistant:
+  color:
+    $type: color
+    main:
+      50:
+        $description: ~
+        $value: "#F6F9FF"
+      100:
+        $description: ~
+        $value: "#CBDFFF"
+      200:
+        $description: ~
+        $value: "#9FC5FF"
+      300:
+        $description: ~
+        $value: "#71AAFF"
+      400:
+        $description: ~
+        $value: "#458EFF"
+      500:
+        $description: ~
+        $value: "#176EFC"
+      600:
+        $description: "基线色值"
+        $value: "#0052E5"
+      700:
+        $description: ~
+        $value: "#0052E5"
+      800:
+        $description: ~
+        $value: "#003BBA"
+      900:
+        $description: ~
+        $value: "#00298A"
+      950:
+        $description: ~
+        $value: "#001956"
+    sub:
+      50:
+        $description: ~
+        $value: "#fdeded"
+      100:
+        $description: ~
+        $value: "#fbd2d1"
+      200:
+        $description: ~
+        $value: "#f8a6a4"
+      300:
+        $description: ~
+        $value: "#f67a77"
+      400:
+        $description: "基线色值"
+        $value: "#f5433d"
+      500:
+        $description: ~
+        $value: "#e12f27"
+      600:
+        $description: ~
+        $value: "#bc261f"
+      700:
+        $description: ~
+        $value: "#931b16"
+      800:
+        $description: ~
+        $value: "#69100d"
+      900:
+        $description: ~
+        $value: "#400605"
+      950:
+        $description: ~
+        $value: "#2a0302"
