@@ -45,6 +45,13 @@ wave dt build
 wave dt wcag
 ```
 
+维护 token 身份和旧写法迁移时运行（两者默认只输出报告，加 `--write` 才写回文件）：
+
+```bash
+wave dt ids
+wave dt migrate-extensions
+```
+
 需要刷新本地 resource cache 时运行 `wave dt update`。
 
 `wave design-token` 与 `wave dt` 等价。

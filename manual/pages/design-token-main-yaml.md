@@ -133,10 +133,33 @@ theme:
 | `$type` | group 或 token | token 类型，可被子节点继承 |
 | `$value` | token | token 值 |
 | `$description` | group 或 token | 输出到 jsonc/css 注释 |
+| `$id` | main.yaml 根部、token | 身份字段，见下节 |
 | `$deprecated` | token | 标记废弃 |
 | `$ref` | token | JSON Pointer 引用，例如 `#/theme/color/primary/$value` |
 | `$extends` | group | 继承另一个 group，格式 `{theme.group.path}` |
 | `$extensions` | group 或 token | Wave 扩展字段 |
+
+## 身份字段 $id
+
+`$id` 是 Wave 的身份字段，用于让 token 改名或移动后仍能被 Sketch 同步识别。它分两级：
+
+- 文档级：写在 `main.yaml` 根部，作为主题身份，随 Sketch 输出的 `themeId` 交付。只能写在 `main.yaml`，profile 与 night 文件声明会报错；必须是空字符串以外的字符串。
+- token 级：写在 token 上。三种状态：不写表示未登记；写成空值（`null` 或空白字符串）表示预留槽位；写成非空字符串即登记身份。token 身份在同一主题内必须唯一；group 不能声明 `$id`。
+
+推荐用 `wave dt ids` 维护 token 身份：默认只输出报告，加 `--write` 才会把生成或同步的 `$id` 写回文件。`$id` 的值不影响 json、jsonc、css 和 md-yml 输出；Sketch 输出只用它做资产关联，不改变 key。
+
+```yaml
+$id: 6f1c2a54b7d84e0f9a1c32d45e6b70f8
+
+$config:
+  theme: example
+
+theme:
+  color:
+    primary:
+      $id: 0f8e6d5c4b3a29180f7e6d5c4b3a2918
+      $value: "#2563eb"
+```
 
 Wave 支持 DTCG 2025.10 的全部标准 `$type`：
 
@@ -145,7 +168,7 @@ Wave 支持 DTCG 2025.10 的全部标准 `$type`：
 | 基础值 | `color`、`dimension`、`fontFamily`、`fontWeight`、`duration`、`cubicBezier`、`number`、`strokeStyle` |
 | 复合值 | `border`、`transition`、`shadow`、`gradient`、`typography` |
 
-`opacity` 不是标准 `$type`。透明度使用 `number` token；`inheritColor.property.opacity` 和 `$extensions.sketch.property.opacity` 是 Wave 扩展字段，写法见“扩展与输出”。未知自定义 `$type` 会产生 warning；JSON/JSONC 保留其值，md-yml 保留 YAML-safe 值，CSS 只输出 scalar，自定义 object 或 array 会在 CSS 构建时失败。
+`opacity` 不是标准 `$type`。透明度使用 `number` token；`inheritColor.property.opacity` 和 `$extensions.platform.sketch.property.opacity` 是 Wave 扩展字段，写法见“扩展与输出”。未知自定义 `$type` 会产生 warning；JSON/JSONC 保留其值，md-yml 保留 YAML-safe 值，CSS 只输出 scalar，自定义 object 或 array 会在 CSS 构建时失败。
 
 ## Dimension 写法
 

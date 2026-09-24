@@ -70,17 +70,17 @@ theme:
           unit: px
 ```
 
-`fontFamily` 可以是一个字符串或字符串数组。DTCG schema 保留标准结构；CSS 平台要求值能形成非空 font stack。CSS 把数组输出为合法 font stack：简单 CSS identifier 不加引号；其他名称会去掉一层已有配对引号，再用双引号包裹并转义。`inherit`、`initial`、`unset`、`revert` 和 `revert-layer` 始终加引号。若已有输出的 `fontFamily` token 与 typography 的 font stack 等值，CSS shorthand 直接引用该全局变量，不再为每个 typography token 重复输出完整 family；没有等值 token 时仍输出局部 `--<token>-family`。Sketch 不解析系统别名；数组含 `PingFang SC` 时优先使用它，否则选择第一个具体字体。`system`、`system-ui`、`-apple-system`、`BlinkMacSystemFont` 和 CSS generic family 不属于具体字体；数组只有这些值时，Sketch 不输出 `fontFamily`。字符串值保持原有行为。
+`fontFamily` 可以是一个字符串或字符串数组。DTCG schema 保留标准结构；CSS 平台要求值能形成非空 font stack。CSS 把数组输出为合法 font stack：简单 CSS identifier 不加引号；其他名称会去掉一层已有配对引号，再用双引号包裹并转义。`inherit`、`initial`、`unset`、`revert` 和 `revert-layer` 始终加引号。Typography token 在 CSS 中只输出字段变量（`-family`、`-size`、`-weight`、`-line-height`、`-letter-spacing`、可选 `-color`），不输出聚合 shorthand 变量。若已有输出的 `fontFamily` token 与 typography 的 font stack 等值，CSS 省略局部 `--<token>-family` 字段变量，由使用方取用该 family token 自身的变量；没有等值 token 时仍输出局部 `--<token>-family`。Sketch 不解析系统别名；数组含 `PingFang SC` 时优先使用它，否则选择第一个具体字体。`system`、`system-ui`、`-apple-system`、`BlinkMacSystemFont` 和 CSS generic family 不属于具体字体；数组只有这些值时，Sketch 不输出 `fontFamily`。字符串值保持原有行为。
 
 `lineHeight` 必须大于 0。无单位 number 或纯数字字符串表示倍率；`{ value }` 不表示倍率，必须带单位。CSS 保留倍率和绝对单位；Sketch 的最终 lineHeight 无论倍率、`px`、`pt` 还是 `rem` 都向上取整为整数。`fontSize`、绝对 `lineHeight` 和 `letterSpacing` 使用 rem 时默认使用 16，也可由 `theme.font.$extensions.typography.baseFontSize` 覆盖。Wave 不换算 px 和 pt。
 
 ### Sketch 颜色引用
 
-Sketch color slot 的默认真值是 `#RRGGBBAA`。只有同一份主题中直接引用当前 `theme.color.*` token，且目标会输出到同一份 Sketch JSON 时，Wave 才会在 typography 的 `textStyle.textColor`、普通 border 的 `value.color` 或 outline ring 的第一层 `shadow[0].color` 输出 `@/<full-output-path>`。
+Sketch 输出中，每条颜色资产的 `color` 字段都是 `#RRGGBBAA` HEX8 快照；带 alpha 或 opacity override 的颜色会把透明度折入快照的 alpha 通道。layer 资产里的颜色位置（`shadows[].color`、`gradient.color`）可以写成 `{ "$ref": "<uuid>" }`，绑定同一份输出中某条颜色资产的 uuid，由 Sync Token 生成 Swatch 并在图层间复用；只有已登记 `$id` 的颜色 token 会被绑定。
 
-`@` 后的内容是 RFC 6901 JSON Pointer，直接指向 `{ "color": ... }` 所在的 emitted color token node。完整路径同时包含 `sketch.path` 和经 `filterLayer` 处理的叶子 key；`~` 编码为 `~0`，`/` 编码为 `~1`。旧短引用合同不再兼容。
+目标 token 没有登记 `$id`，或引用指向外部资源时，该颜色位置降级为 HEX8 快照；引用在主题内部却解析不到已输出的颜色资产时，构建会报错。被 `sketch.skip` 跳过或被 root 选择排除的目标同样报错，不会自动降级。outline 的 gap 层固定为 `#ffffffff`。
 
-color token 本身、shadow、gradient、`inheritColor`、外部引用、字面量和带 alpha override 的颜色始终输出 HEX8；outline 的 gap 层固定为 `#ffffffff`。直接引用的目标被 `sketch.skip` 跳过或被 root 选择排除时，Sketch 构建会报错，不会自动降级为 HEX8。Sync Token 对 `@` 的导入属于独立后续工作，不影响 Wave 的构建结果。
+`$ref` 绑定是试用期合同：若 Sync Token 实测写入不稳定，Wave 会整体降级为 HEX8 快照，主题文件无需改动。旧版的 `@/<路径>` 字符串引用已不再输出。
 
 ## 虚线 border
 
@@ -103,4 +103,4 @@ antline:
 
 字符串 style 支持 `solid`、`dashed`、`dotted`、`double`、`groove`、`ridge`、`outset` 和 `inset`。object style 必须同时包含非空 `dashArray` 和 `lineCap`；`lineCap` 只接受 `round`、`butt`、`square`。`dashArray` 成员使用 dimension 合同，也接受 Wave dimension 简写和扩展单位。奇数长度数组会重复一次，所有平台输出相同的偶数数组。
 
-DTCG schema 不限制 dash 成员的正负或全零组合；CSS 无法表示负值或全零 pattern 时会显示 token path、type 和 value shape 后失败。CSS 为 object style 输出可用的 `dashed` shorthand，并额外输出 `-dash-array` 和 `-line-cap` companion variables。例如 `--border-antline: 1px dashed #1872f0`、`--border-antline-dash-array: 4px 8px` 和 `--border-antline-line-cap: butt`。companion 名称与真实 token key 冲突时构建失败。Sketch 在 `{ value }` 中保留完整的 `style.dashArray` 和 `style.lineCap`。
+DTCG schema 不限制 dash 成员的正负或全零组合；CSS 无法表示负值或全零 pattern 时会显示 token path、type 和 value shape 后失败。CSS 为 object style 输出可用的 `dashed` shorthand，并额外输出 `-dash-array` 和 `-line-cap` companion variables。例如 `--border-antline: 1px dashed #1872f0`、`--border-antline-dash-array: 4px 8px` 和 `--border-antline-line-cap: butt`。companion 名称与真实 token key 冲突时构建失败。Sketch 输出只包含可同步资产，虚线 border 不产生 Sketch 记录。

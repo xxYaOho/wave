@@ -71,6 +71,8 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - `wave dt status`：查看本地 resource cache/state 状态
 - `wave dt doctor`：design-token workspace 健康检查入口
 - `wave dt wcag`：运行 WCAG 对比度检查
+- `wave dt ids`：token `$id` 身份维护（填充空槽位、生成新身份、跨文件同步）；默认 dry-run 报告，`--write` 才写回
+- `wave dt migrate-extensions`：一次性把 legacy `$extensions` sketch 家族改名为 `platform.sketch` 新形态；默认 dry-run 报告，`--write` 才写回
 - `wave doctor`：核心运行环境和本地工具链健康检查
 - `wave doctor --contrast`：WCAG 对比度检查
 - `wave install`：通过 mise 安装推荐工具链
@@ -102,6 +104,8 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - `wave dt show [category] [name]`：浏览内置资源
 - `wave dt doctor`：运行 design-token 健康检查
 - `wave dt wcag [scope]`：运行 WCAG 对比度检查
+- `wave dt ids`：token 身份维护命令；`-f, --file` 指定 `main.yaml`，默认 dry-run，`--write` 写回，写回要求 git 工作区清洁（`--allow-dirty` 显式豁免）
+- `wave dt migrate-extensions`：legacy `$extensions` 一次性迁移命令；`-f, --file` 指定 `main.yaml`，默认 dry-run，`--write` 应用到 `main.yaml` 与 `profiles/*.yaml`
 
 `wave dt wcag` 规则：
 
@@ -197,7 +201,7 @@ Wave 识别 DTCG Format Module 2025.10 的全部标准 `$type`：
 | `gradient` | stop array | clamp position，并物化缺失的 `0`、`1` 端点 |
 | `typography` | `{ fontFamily, fontSize, fontWeight, letterSpacing, lineHeight }` | 递归规范化 composite |
 
-`opacity` 不是 DTCG 标准 `$type`。它作为 token type 时按未知自定义类型处理；`inheritColor.property.opacity` 和 `$extensions.sketch.property.opacity` 仍是有效 Wave extension。
+`opacity` 不是 DTCG 标准 `$type`。它作为 token type 时按未知自定义类型处理；`inheritColor.property.opacity` 和 `$extensions.platform.sketch.property.opacity` 仍是有效 Wave extension。
 
 标准 composite 是闭合结构。缺少必需字段、出现未声明字段或引用到不兼容类型时，schema/resolved validation 失败。有效类型可以来自 token `$type`、最近父 group `$type` 或完整 token alias 的目标类型。
 
@@ -241,9 +245,9 @@ JSON 和 JSONC 使用 flat platform output。md-yml 使用相同的 formatter-re
 
 CSS 为每种标准类型提供专用 formatter。`fontFamily` 输出合法 font stack；`duration`、`cubicBezier`、`transition` 输出可直接消费的 CSS value；object `strokeStyle` 和使用它的 `border` 输出 `dash-array`、`line-cap` companion variables。gradient 使用规范化端点，shadow 保留 `inset`。CSS 无法表达的 color、空 font family、负或全零 dash pattern，以及未知自定义 object/array 会显示 token path、type 和 value shape 后失败，禁止输出 `[object Object]`。
 
-Sketch 对 color、shadow、gradient 和 typography 使用既有原生 payload。没有原生语义的标准值使用 `{ value }`：generic dimension 保留单位字符串，primitive 保留规范化值，strokeStyle、border 和 transition 保留完整结构。该 shape 只承诺 Wave generator 输出，不代表下游 Sync Token 已支持这些 payload。不可转换且无 fallback 的 color，以及无法投影到原生数值属性的单位会明确失败。
+Sketch 平台输出 payload v2 资产清单（合同见「输出格式 → sketch」）。只有可同步资产进入 payload：color 与 inheritColor 产生 `kind: color` 记录，typography 产生 `kind: text` 记录，outline border、shadow、gradient、radius 维度和 sketch property 维度产生 `kind: layer` 记录；普通 border、generic dimension、transition 与未知 payload 不产生记录。不可转换且无 fallback 的 color，以及无法投影到原生数值属性的单位会明确失败。
 
-未知自定义 `$type` 继续产生 warning。JSON/JSONC 保留其值，md-yml 保留 YAML-safe 值，CSS 只接受 scalar，Sketch 使用 `{ value: ... }` 保存可表示值。该兼容行为不属于 DTCG 标准类型支持。
+未知自定义 `$type` 继续产生 warning。JSON/JSONC 保留其值，md-yml 保留 YAML-safe 值，CSS 只接受 scalar，Sketch payload 不为未知类型产生记录。该兼容行为不属于 DTCG 标准类型支持。
 
 ### show 命令
 
@@ -836,6 +840,54 @@ theme:
 
 ---
 
+## Token 身份（$id）
+
+Wave 为 theme 引入两层稳定身份。`$` 属性命名空间被 DTCG 预留给未来规范属性（DTCG Format 2025.10 §5.1.1），两层 `$id` 因此都是显式登记的 Wave 方言：只做加法，不改标准语义；文档级 `$schema` 是同型先例。若 DTCG 未来标准化身份属性，Wave 将迁移对齐，不把本方言固化为私有标准。
+
+### 文档级 `$id`（主题身份）
+
+- 只允许声明在 `main.yaml` 根部，与 `$config.theme` 同待遇；named profile 或 night overlay 根部声明 `$id` 报错。
+- 声明时必须是非空字符串，否则 `FORMAT_ERROR`；`$id` 在进入 token 树前被剥离，不参与任何 token 输出。
+- 主题身份经 config 合并流入所有 profile 构建；sketch payload 的 `meta.themeId` 取自该值，未声明时为 `null`。
+- 其他格式（json / jsonc / css / md-yml）不携带任何 id。
+
+### token 级 `$id`（token 身份）
+
+三态合同：
+
+| 状态 | 含义 | 后果 |
+| --- | --- | --- |
+| 缺省（无 `$id` 键） | 未入账 | 无身份；sketch 记录省略 `uuid` |
+| 空值（`null` 或空白字符串） | 预声明槽位 | 等待显式命令填充 |
+| 非空字符串 | 已入账身份 | 参与 payload 与同步 |
+
+- 合同为「非空 + theme 内唯一」，不锁编码语义。wave 生成的规范形态是 32 位小写 hex（`crypto.randomBytes(16).toString('hex')`，等价 `openssl rand -hex 16`）；非规范形态不报错，只产生 doctor 提示核对是否手误，且不会被命令改写。
+- 入账范围是全部 theme token；group 不持有身份；resource 与外部 namespace 不参与入账。
+- `$id` 只存在于文档根与 token 节点两级，group 声明 `$id` 报错。
+- `$id` 写在 `$description` 与 `$value` 之间仅为文档示例惯例，规范展示位置不进协议。
+- build 保持只读：身份的生成与写回只发生在显式命令 `wave dt ids`。
+
+### 校验阶梯
+
+- build 报错：token/group 混合体（DTCG §6.1 MUST）；组级 `$id`；night override 携带与 base 不同的非空 `$id`（身份永不静默重分配）；引用悬空/循环。
+- build 降级：单 pass 内重复 uuid 时按文档序首个保留，其余本 pass 无 id 并告警；未入账 token 的 payload 记录省略 `uuid`。
+- doctor（严格健康项）：跨文件身份冲突为 error，影响退出码；「类型不可判定」（DTCG §5.2.2）落位为 doctor error，build 保持宽容——判定通道为 `$type`、组继承、reference 解析类型、`color` 根名通道、`$extends` 延迟，五路皆无且值非引用非 null 才报；另报未入账清单、空 `$id` 槽位、非生成形态提示，以及疑似笔误的空节点（无 `$value` 且无子节点，DTCG §6.5 SHOULD 的落实）。
+- 单 pass 构建只校验本 pass 可见范围；跨文件一致性归 `wave dt ids` 与 doctor。
+- night overlay：override 的 `$id` 与 base 相同或缺省时继承 base 身份；同路径同 id（跨文件）= 一致，是 ids 同步后的健康终态，不是冲突。
+
+### `wave dt ids` 命令合同
+
+- 职责：填充空 `$id` 槽位、为新增 token 生成身份、把路径权威 id 同步进各文件共享路径节点、跨文件身份冲突报错、单文件重复 id 修复。节点式身份下「悬空」状态类不存在，无清理职责。
+- 加载面：`main.yaml` + `profiles/*.yaml`（day 文件）。night overlay 不在加载面内：override 身份在加载时继承 base，从不物理写入。
+- 安全语义：默认（无参）= dry-run 仅输出报告；显式 `--write` 才执行写回；写回前要求 git 工作区清洁，不清洁时拒绝并提示 `--allow-dirty` 显式豁免。dry-run 完全不经过 git gate；非 git 目录产生 warning 并照常写入。
+- 认养与生成：已入账（非空）`$id` 保持不变，是该路径的权威；空槽位与未入账 token 认养所在路径的权威（`main.yaml` 是 workspace 权威，main 未入账时反向认养 profile 的已入账 id）；路径在全部文件中都无已入账身份时，在首个出现处生成新 id，同 run 内后续出现处认养它。报告计数：`added` = 新生成身份原点，`synced` = 认养权威 id 的出现处。
+- 冲突三分语义：同 id 不同路径（跨文件）= 冲突；同路径不同 id（跨文件）= 冲突；同路径同 id（跨文件）= 一致。任何冲突都是硬阻塞：全 workspace 零写入（all-or-nothing）。
+- 单文件重复 id 修复：文档序首个保留，副本重新生成 id 并在报告中可见。
+- 写回为手术式插入/填充（复用 migrate 的 CST 写回机制）：保留注释、空行、缩进与既有键序；文件无法字节级 round-trip 时报错并要求手工迁移；第二次运行是 no-op（幂等）。
+- 入口合同：`-f, --file` 必须指向 `main.yaml`；缺失返回 `FILE_NOT_FOUND`，非 main 文件返回 `INVALID_PARAMETER`。
+
+---
+
 ## DTCG 色彩空间支持
 
 Wave 接受 DTCG Color Module 2025.10 风格颜色对象：
@@ -873,6 +925,29 @@ $value:
 ---
 
 ## Wave 扩展
+
+### $extensions 形态与迁移（platform.sketch）
+
+`$extensions` 家族归拢为两个挂载点：
+
+- `platform.sketch.{ path, property, skip, outline }`：Sketch 平台专属字段
+- `typography.baseFontSize`：跨平台语义基准，保持顶层（唯一允许位置 `theme.font`）
+
+规则：
+
+- 位置语义沿用：`path` 与 `skip` 可写在 group 或 token 上（`skip` 按最近声明继承，token 显式 boolean 覆盖祖先；`path` 解析优先级为 token 自身 > 最近父级 group > 更上层祖先 group）；`property` 只能在 token 上；`outline` 只在 token 上生效，group 级静默忽略（与 legacy 行为对齐）。
+- 未知 `platform.<key>`（如 `figma`）产生 warning，不报错——这是为未来平台预留的前瞻兼容姿态；`platform.sketch` 下未知字段、未知 property 与非法值仍然报错。
+- legacy 形态（`$extensions.sketch.*`、`$extensions.outline`）在 schema 层直接拒绝，无兼容层；错误信息带 `wave dt migrate-extensions` 指引。legacy `$extensions.sketchMap` 同样不再作为 Sketch property 映射来源。
+- `$extends` 继承时 `$extensions` 按顶层浅合并：子 group 的 `platform` 键整体覆盖父 group 的 `platform`，不做 `platform.sketch` 子键级深度合并。
+- 输出后 `$extensions` 被消费，不泄漏到 json / jsonc / css / sketch / md-yml。
+
+**`wave dt migrate-extensions` 命令合同：**
+
+- 一次性机械改名：`$extensions.sketch.*` → `$extensions.platform.sketch.*`；`$extensions.outline` → `$extensions.platform.sketch.outline`。`typography` 保持顶层，不参与迁移。
+- 默认 dry-run 仅输出报告；显式 `--write` 才写回。
+- 扫描面 = `main.yaml` + `profiles/*.yaml`。根级 night 文件不在扫描面：night 的身份与覆盖经 merge 继承在加载时消化，源文件中不产生需要迁移的新形态。
+- 混合形态文件（同文件内 legacy 与新形态并存）报错，不做猜测或部分合并；文件无法字节级 round-trip 时同样报 `unsupported`，需手工处理。阻塞文件存在时全 workspace 零写入。
+- 改写是手术式的（注释、空行、缩进、键序保持不变），第二次运行是 no-op（幂等）。
 
 ### composite（v0.13.0）
 
@@ -1148,31 +1223,26 @@ wave dt wcag --profile mobile --night
   - 输出 public roots：`color`、`state`、`shadow`、`gradient`、`border`、`radius`、`font`
   - 不输出 `theme.dimension`
   - 长度类数值自动补浏览器需要的 `px`
-  - `$type: typography` token 仅输出 materialized 字段变量（`-family`、`-size`、`-weight`、`-line-height`、`-letter-spacing`、可选 `-color`），不输出聚合 shorthand 变量；group `typography.defaults` 按祖先到 token 浅合并，数组 font family 按 CSS stack 规则序列化；与已输出 `fontFamily` token 等值时省略局部 `-family` 字段变量，由 consumer 取用该 family token 自身的变量，否则保留局部 family；倍率 line height 保持无单位；可选 color 独立输出，直接引用已输出的 `theme.color.*` 时保留 CSS variable 引用
+  - `$type: typography` token 仅输出 materialized 字段变量（`-family`、`-size`、`-weight`、`-line-height`、`-letter-spacing`、可选 `-color`），不输出聚合 shorthand 变量（本合同取代已移除的每 token 聚合 shorthand 输出：shorthand 在字段缺失时引用未定义变量，计算值阶段失效）；group `typography.defaults` 按祖先到 token 浅合并，数组 font family 按 CSS stack 规则序列化；与已输出 `fontFamily` token 等值时省略局部 `-family` 字段变量，由 consumer 取用该 family token 自身的变量，否则保留局部 family；倍率 line height 保持无单位；可选 color 独立输出，直接引用已输出的 `theme.color.*` 时保留 CSS variable 引用
   - typography 支持 `px`、`pt`、`rem`。`rem` 默认使用 16px；可在唯一允许的位置 `theme.font.$extensions.typography.baseFontSize` 以大于 0 的无单位 CSS px 数值覆盖。使用 rem 时 CSS 在 `:root` 输出有效 `font-size`，并保留 token 中的 rem 值。此内部 metadata 不输出到 JSON、JSONC 或 md-yml
   - DTCG border `style.dashArray` 输出 `dashed` shorthand 和 `-dash-array` companion variable
-  - 带 `$extensions.outline.offset` 的 border token 输出 outline value 变量和 offset companion 变量
-- `sketch`：输出 Sketch API 兼容格式 `{theme}2sketch.json`
-  - 默认按 `filterLayer` 后的 flat-json key 输出到根级对象
-  - `$extensions.sketch.path` 作为分组路径；可写在 group 或 token 上，叶子节点仍使用 `filterLayer` 后的 flat-json key，例如 `{ "aaa": { "bbb": { "shadow-1": { "shadow": [...] } } } }`
-  - `sketch.path` 优先级为 token 自身 > 最近父级 group > 更上层祖先 group
-  - Sketch 输出不固定包裹 `color`、`style`、`dimension` 或 `component` 顶层对象
-  - `$extensions.sketch.property.opacity: true` 生成 `{ opacity: value }`
-  - `$extensions.sketch.property.cornerRadius: true` 生成 `{ corners: { radii: value } }`
-  - `sketch.property` 不继承；`opacity` 可用于 `theme.state.*`，`cornerRadius` 可用于 dimension/radius 类 token
-  - legacy `$extensions.sketchMap` 不再作为 Sketch property 映射来源，新内容使用 `$extensions.sketch.property`
-  - `$extensions.sketch` 在 `$extends` 中按普通 extension 覆盖，不再深层合并
-  - `sketch.skip` 从 group 向后代继承，最近 group 或 token 的显式 boolean 覆盖；仅从 Sketch emission list 过滤，其他平台不受影响
-  - component token 不再映射为 Sketch component 样式；component 逻辑后续单独设计
-  - inheritColor 通过 siblingSlot 查找兄弟 token 颜色，但其输出始终 materialize 为 HEX8
-  - `$type: typography` token 生成 text shared style payload；数组 font family 优先选择 `PingFang SC`。rem 的 `fontSize`、绝对 `lineHeight` 和 `letterSpacing` 使用有效基准（默认 16，或 `baseFontSize`）换算；fontSize 与 letterSpacing 最多保留三位小数。Sketch 最终 lineHeight 始终向上取整为整数：倍率使用换算后字号计算，绝对 px/pt/rem 使用数值或换算结果后取整
-  - Sketch composite color-slot 合同：`#RRGGBBAA` 是所有 color slot 的真值和非变量 fallback。仅当值是同文档、直接的 current-theme color reference，且目标 color token 在同一 Sketch emission list 中时，才输出 `@/<full-output-path>`；支持的 consumer 仅为 typography `textStyle.textColor`、普通 border `value.color` 和 outline ring `shadow[0].color`
-  - `@` 后的 payload 是 RFC 6901 JSON Pointer，直接指向 emitted color token node。路径由目标 token 的 `buildOutputPath()` 生成，包含 `sketch.path` 和 `filterLayer` 后叶子 key；不同完整路径可以使用相同叶子 key
-  - 所有实际可写 Sketch token 在 formatter 写入前统一检查 exact/prefix output path collision；检测与 token 顺序无关，失败时 `generateTokens()` 不写本次 pending outputs
-  - color token 自身、shadow、gradient、inheritColor、external reference、literal color 与 alpha override 均输出 HEX8；outline `shadow[1].color` 是固定 gap `#ffffffff`
-  - 内部直接 color reference 的 target 若被 `sketch.skip` 跳过，或被 root selection 排除，Sketch build 必须报错，不得以 HEX8 降级；外部 reference 与不符合直接引用条件的值正常 materialize 为 HEX8
-  - 普通 DTCG dashed border 保留结构化 `style.dashArray`
-  - 带 `$extensions.outline.offset` 的 border token 生成两层 shadow 模拟 outline；最终 JSON 顺序为 ring layer 在前、gap layer 在后
+  - 带 `$extensions.platform.sketch.outline.offset` 的 border token 输出 outline value 变量和 offset companion 变量
+- `sketch`：输出 sync-token 协议 payload v2 资产清单 `{theme}2sketch.json`。硬切换，无 v1 兼容路径；v1 嵌套树与 composite color-slot `@/` 引用合同由本节取代，simple-wiki 2026-07-13 sketch 系列的旧合同描述一并作废
+  - 根部为 `meta` 与 `assets`：`meta` 始终存在，形如 `{ themeId, version: 2 }`；`themeId` 取自 `main.yaml` 文档级 `$id`，未入账主题为 `null`（由插件侧 notice 提示补登记，与 `uuid` 缺失同待遇）
+  - `assets` 是一行一资产的扁平数组，记录形如 `{ uuid?, name, kind, <载荷> }`；记录排序按源顺序，保持 diff 稳定；未入账 token 的记录省略 `uuid`
+  - `kind` 三分：`color`（color token 与 inheritColor token，对应插件 Swatch）、`text`（typography token，对应 Shared Text Style）、`layer`（outline border、shadow、gradient、radius 路径维度、sketch property 维度，对应 Shared Layer Style）
+  - payload 范围 = 可同步资产：普通 border、generic dimension、transition、strokeStyle 与未知 payload 不产生记录（v1 的 `{ value }` 保存形态随之废止）；`sketch.skip` 命中与无值槽位在组装前排除
+  - text 载荷为 5 个纯字体字段：`fontFamily`（可选）、`fontSize`、`fontWeight`、`lineHeight`、`kerning`。v1 `textStyle.textColor` 退役：文字颜色不再内嵌于 text 记录，颜色表达统一走颜色资产。`fontWeight` 仅接受 100-900 整百刻度——这是 sketch pass 的 formatter 层平台合同，不上升为 token 输入限制；非整百值在 sketch pass 构建报错（wave 侧 fail-fast，不等插件 preflight），CSS/JSON 等平台不受影响
+  - layer 载荷为可组合字段：`fills` / `shadows` / `gradient` / `opacity` / `corners`；单记录同类 key 至多一次，`fills` 与 `gradient` 互斥；`fills` 为协议预留，wave 当前无生产者（color token 走 `kind: color`）
+  - swatch 引用：layer 记录中的颜色位置（`shadows[].color`、`gradient.color`）写 `{ "$ref": "<uuid>" }` = 绑定同清单 color 记录产生的 Swatch，取代 v1 `@/<路径>` 字符串合同。仅绑定同清单已入账 color 记录；目标未入账或属外部 namespace 时降级为 HEX8 快照；内部引用解析不到 emitted 记录时 build 报错。layer `$ref` 为试用期：插件实测 update 不稳时降级，单点切换开关为 `src/core/generator/formats/sketch.ts` 的 `SKETCH_SWATCH_REF_MODE`（`'ref'` | `'hex'`），翻转为 `'hex'` 即整份 payload 退化为 HEX8 快照
+  - 插件侧认养规则（跨仓合同注记）：记录 uuid 对插件关系表未知且 name 命中未登记资产时，插件按 name 认养并补登记；name 命中已登记于其它 uuid 的资产时 duplicate 零写入
+  - 含 alpha/opacity override 的颜色保持 HEX8（折入 alpha 通道）；未绑定 `$ref` 的颜色位置输出 HEX8 快照；outline ring 的 gap 层固定 `#ffffffff`
+  - name 生成规则：`platform.sketch.path` 前缀 + `filterLayer` 处理后的叶子 key，以 `/` 连接；`platform.sketch.path` 优先级为 token 自身 > 最近父级 group > 更上层祖先 group。name 是扁平数据，不构成树，前缀重叠合法（如 `shadow` 与 `shadow/elevation-1` 共存）。name 在单份 payload 内唯一，精确重复 = build 报错（继承 v1 输出路径硬报错语义）；检测与 token 顺序无关，失败时不写本次 pending outputs
+  - shadow layer 的 `inset: true` 随载荷输出。这是 wave 对插件协议 10b key 表之外的加法，登记于此，跨仓以插件仓确认为准
+  - 带 `platform.sketch.outline.offset` 的 border token 生成 `shadows` 载荷模拟 outline，最终 JSON 顺序为 ring layer 在前、gap layer 在后；普通 DTCG dashed border 不是可同步资产，不产生记录
+  - inheritColor 通过 siblingSlot 查找兄弟 token 颜色，但输出始终 materialize 为 HEX8；内部 color reference 的目标被 `sketch.skip` 跳过或被 root selection 排除时，build 必须报错，不得以 HEX8 降级
+  - `$type: typography` 生成 text 记录；数组 font family 优先选择 `PingFang SC`。rem 的 `fontSize`、绝对 `lineHeight` 和 `letterSpacing` 使用有效基准（默认 16，或 `baseFontSize`）换算；fontSize 与 letterSpacing 最多保留三位小数。最终 lineHeight 始终向上取整为整数：倍率使用换算后字号计算，绝对 px/pt/rem 使用数值或换算结果后取整
+  - component token 不映射为 Sketch component 样式；component 逻辑后续单独设计
 - `md-yml`：输出 `{theme}2md.yml`，供用户复制到 Markdown frontmatter
   - 输出是 YAML fragment，不包含 `---` delimiter、注释、token wrapper 或 `$type` / `$value` / `$description` metadata
   - `filterLayer` 后的第一段是 namespace，剩余 source path 用 `-` 连接成 local key；过滤后必须至少保留 namespace 和 local key
@@ -1183,7 +1253,7 @@ wave dt wcag --profile mobile --night
   - source segment 不能为空或含 `.`；hyphen-join 后的重名、direct/composite 重名或 composite property 重名都会失败，不会改写该 pass 的其他平台产物
 - 多平台：`json,jsonc,css,sketch,md-yml` 可同时输出多种格式
 
-CSS 不使用 Sketch 的 `@` 合同，保持既有颜色引用行为，包括 typography color 对已输出 `theme.color.*` 的 `var(--<color-token>)` 引用。Sync Token 的 `@` importer 属于独立后续仓库工作，不是 Wave 构建 gate。
+CSS 不使用 Sketch 的 swatch `$ref` 绑定，保持既有颜色引用行为，包括 typography color 对已输出 `theme.color.*` 的 `var(--<color-token>)` 引用。v1 的 `@` importer 合同已随 payload v2 废止，Sketch 颜色绑定改在 payload 内部以 `$ref` 表达。
 
 **备注位置（v0.3.0+）：**
 
@@ -1238,7 +1308,7 @@ design-token 的 DTCG 解析、引用解析和输出格式化分层保持分离�
 
 当前专属模块：
 
-- `sketch-extension.ts`：归一化 `$extensions.sketch.path` 与 `$extensions.sketch.property`，只输出 `_sketch` 元数据
+- `sketch-extension.ts`：归一化 `$extensions.platform.sketch.{path, property, skip}` 与 outline，只输出 `_sketch` 元数据
 - `inherit-color-extension.ts`：归一化 `$extensions.inheritColor`，只输出 inheritColor 相关元数据和必要的 value 替换
 
 新增 Sketch 或设计工具特例时，不要把平台命名规则写进 parser 或 resource resolver；优先在 transformer 生成平台元数据，再由对应 generator 消费。

@@ -47,6 +47,15 @@ wave dt doctor --profile mobile
 
 顶层 `wave doctor` 只检查通用工具链，不要求当前目录存在 `main.yaml`。使用 `--file` 或 `--contrast` 时，入口必须是有效的 `main.yaml`。
 
+`wave dt doctor` 和 `wave doctor --file` 还会输出 token 身份报告（`Token Identity` 段）：登记数量、未登记清单、空 `$id` 槽位和跨文件身份冲突。跨文件身份冲突（同一个 `$id` 用在不同 token 上，或同一路径在不同文件有不同 `$id`）会让检查以非零退出码结束；用 `wave dt ids` 的报告确认差异后修正。常见身份问题：
+
+| 现象 | 处理 |
+| --- | --- |
+| `unregistered` 数量很大 | 正常现象；需要 Sketch 资产原地更新时运行 `wave dt ids --write` 补登记 |
+| 空 `$id` 槽位 | 预留的占位；`wave dt ids --write` 会自动填充 |
+| `non-canonical id form` 提示 | 检查是否手写错了 `$id`；提示不会改写文件 |
+| `Cross-file token $id conflict` | 按报告核对两个文件中的同名 token，保留正确的一个；冲突时 `wave dt ids --write` 拒绝写任何文件 |
+
 ## Profile 和 Night Mode
 
 默认构建只构建 `main.yaml`：

@@ -4,6 +4,7 @@ description: $extensions 扩展字段与 json、jsonc、css、sketch、md-yml �
 category: Design Token
 commands:
   - wave dt doctor
+  - wave dt migrate-extensions
 appliesTo:
   - 本地 CLI
 ---
@@ -15,34 +16,32 @@ appliesTo:
 | `json` | `{theme}.json` | 扁平 JSON |
 | `jsonc` | `{theme}.jsonc` | 带注释 JSONC |
 | `css` | `{theme}.css` | CSS 变量 |
-| `sketch` | `{theme}2sketch.json` | Sketch JSON |
+| `sketch` | `{theme}2sketch.json` | Sketch 资产清单（payload v2） |
 | `md-yml` | `{theme}2md.yml` | Markdown frontmatter 用 YAML token fragment |
 
 CSS 输出包含 `color`、`state`、`shadow`、`gradient`、`border`、`radius` 和 `font` roots。`theme.dimension` 不再作为 public output root；构建时会提示迁移，完整建议由 `wave dt doctor` 输出。
 
-Typography token 会在 CSS 中输出字段变量和 shorthand 变量，在 Sketch 中输出 text shared style payload。带 `outline` extension 的 border token 会在 CSS 中输出 outline value 和 offset companion，在 Sketch 中用两层 shadow 模拟 outline。
+Typography token 在 CSS 中输出字段变量（`-family`、`-size`、`-weight`、`-line-height`、`-letter-spacing`、可选 `-color`），不输出聚合 shorthand 变量；在 Sketch 中输出 text 资产记录。带 `$extensions.platform.sketch.outline` 的 border token 会在 CSS 中输出 outline value 和 offset companion，在 Sketch 中生成双层 shadow 模拟 outline。
 
 ### 标准类型的平台输出
 
-JSON 和 JSONC 输出扁平 key/value；dimension 和 composite 内的 dimension 字段保留单位字符串。md-yml 使用同样的最终值，但按 namespace 分组。CSS 输出可直接消费的值。Sketch 对 color、shadow、gradient 和 typography 使用原生 payload；其他标准类型使用 `{ value }` 保存规范化值。
+JSON 和 JSONC 输出扁平 key/value；dimension 和 composite 内的 dimension 字段保留单位字符串。md-yml 使用同样的最终值，但按 namespace 分组。CSS 输出可直接消费的值。Sketch 输出是一份资产清单，只有可同步资产会生成记录：
 
 | `$type` | JSON / JSONC | CSS | Sketch |
 | --- | --- | --- | --- |
-| `color` | 目标色彩空间字符串，或 clean DTCG color object | CSS Color 4 value | `{ color: "#rrggbbaa" }` |
-| `dimension` | `"8px"` | `8px` | `{ value: "8px" }`；原生数值属性输出 number |
-| `fontFamily` | string 或 string array | font stack | `{ value: ... }` |
-| `fontWeight` | number | number | `{ value: number }` |
-| `duration` | `"200ms"` | `200ms` | `{ value: "200ms" }` |
-| `cubicBezier` | number array | `cubic-bezier(...)` | `{ value: [...] }` |
-| `number` | number | number | `{ value: number }` |
-| `strokeStyle` | string 或 `{ dashArray, lineCap }` | 主变量与 dash/line-cap companion | `{ value: ... }` |
-| `border` | `{ color, width, style }` | border shorthand 与必要 companion | `{ value: ... }` |
-| `transition` | `{ duration, delay, timingFunction }` | transition value | `{ value: ... }` |
-| `shadow` | 单层 object 或 layer array | box-shadow value | `{ shadow: [...] }` |
-| `gradient` | stop array | linear-gradient value | `{ gradient: [...] }` |
-| `typography` | 五个标准字段与可选 Wave `color` | 字段变量与 shorthand | `{ textStyle: ... }` |
-
-Sketch 的 generic `{ value }` 是 Wave generator 合同，不代表 Sync Token 已消费对应类型。
+| `color` | 目标色彩空间字符串，或 clean DTCG color object | CSS Color 4 value | `kind: color` 记录，HEX8 颜色 |
+| `dimension` | `"8px"` | `8px` | radius 分组或 sketch property 维度生成 `kind: layer` 记录；其余不产生记录 |
+| `fontFamily` | string 或 string array | font stack | 不产生记录 |
+| `fontWeight` | number | number | 不产生记录（text 记录内仅接受 100-900 整百） |
+| `duration` | `"200ms"` | `200ms` | 不产生记录 |
+| `cubicBezier` | number array | `cubic-bezier(...)` | 不产生记录 |
+| `number` | number | number | radius 分组或 sketch property 维度生成 `kind: layer` 记录；其余不产生记录 |
+| `strokeStyle` | string 或 `{ dashArray, lineCap }` | 主变量与 dash/line-cap companion | 不产生记录 |
+| `border` | `{ color, width, style }` | border shorthand 与必要 companion | 仅带 `platform.sketch.outline` 的 border 生成 `kind: layer` 记录 |
+| `transition` | `{ duration, delay, timingFunction }` | transition value | 不产生记录 |
+| `shadow` | 单层 object 或 layer array | box-shadow value | `kind: layer` 记录（`shadows` 字段） |
+| `gradient` | stop array | linear-gradient value | `kind: layer` 记录（`gradient` 字段） |
+| `typography` | 五个标准字段与可选 Wave `color` | 字段变量 | `kind: text` 记录 |
 
 平台不能表达输入时，Wave 会停止构建，并报告 token path、type 和失败原因。典型失败包括：CSS 或 Sketch 无法转换且没有 `hex` fallback 的 color、CSS 的空 font family 和负或全零 dash pattern，以及 Sketch 原生数值属性无法表示的相对单位。CSS 对未知自定义 `$type` 只接受 scalar；object 或 array 会明确失败，禁止输出 `[object Object]`。
 
@@ -101,13 +100,19 @@ md-yml 会保留可投影到同一文件的 theme direct reference，并把路�
 | `smoothShadow` | token | `shadow` | 从单层阴影派生多层平滑阴影 |
 | `smoothGradient` | token | `gradient` | 从 2 个 stop 派生平滑渐变 |
 | `inheritColor` | token | `color` | 输出继承上下文颜色 |
-| `sketch.path` | group 或 token | 任意 token | 调整 Sketch 输出路径 |
-| `sketch.skip` | group 或 token | 任意 token | 仅跳过 Sketch 输出 |
-| `sketch.property.opacity` | token | `theme.state.*` 下的 `number` | 输出 Sketch opacity 字段 |
-| `sketch.property.cornerRadius` | token | radius/dimension 类 token | 输出 Sketch corners.radii 字段 |
-| `outline` | border token | `border` | 输出 CSS outline 和 Sketch 双层 shadow 模拟 |
+| `platform.sketch.path` | group 或 token | 任意 token | 调整 Sketch 资产 name 的分组前缀 |
+| `platform.sketch.skip` | group 或 token | 任意 token | 仅跳过 Sketch 输出 |
+| `platform.sketch.property.opacity` | token | `theme.state.*` 下的 `number` | 输出 Sketch opacity 字段 |
+| `platform.sketch.property.cornerRadius` | token | radius/dimension 类 token | 输出 Sketch corners.radii 字段 |
+| `platform.sketch.outline` | border token | `border` | 输出 CSS outline 和 Sketch 双层 shadow 模拟 |
 | `composite` | group | 直接子节点必须是 token | 把一组 token 合并为组件对象 |
 | `currentColor` | token | legacy | 旧项目兼容字段，新内容使用 `inheritColor` |
+
+旧写法 `$extensions.sketch.*` 和 `$extensions.outline` 会被构建直接拒绝，并提示迁移命令。在项目目录运行一次即可完成改名（默认只预览，加 `--write` 写回）：
+
+```bash
+wave dt migrate-extensions --write
+```
 
 ## smoothShadow
 
@@ -222,17 +227,18 @@ theme:
 | `json` / `jsonc` / `md-yml` | `$COLOR_FOREGROUND` 或 `{ color: "$COLOR_FOREGROUND", opacity: X }` |
 | `sketch` | 写入 Sketch 颜色、`opacity` 或 `alpha` 字段 |
 
-## sketch
+## platform.sketch
 
-`$extensions.sketch` 只控制 Sketch JSON 输出，不影响 `json`、`jsonc`、`css` 或 `md-yml` 的 key。`sketch.path` 和 `sketch.skip` 可以写在 group 或 token 上；写在 group 上时，会应用到后代 token。
+`$extensions.platform.sketch` 只控制 Sketch JSON 输出，不影响 `json`、`jsonc`、`css` 或 `md-yml` 的 key。`path` 和 `skip` 可以写在 group 或 token 上；写在 group 上时，会应用到后代 token。
 
 ```yaml
 theme:
   color:
     $type: color
     $extensions:
-      sketch:
-        path: foundation/color
+      platform:
+        sketch:
+          path: foundation/color
     primary:
       $value: "#1872f0"
   state:
@@ -240,85 +246,79 @@ theme:
       $type: number
       $value: 0.16
       $extensions:
-        sketch:
-          path: foundation/interaction
-          property:
-            opacity: true
+        platform:
+          sketch:
+            path: foundation/interaction
+            property:
+              opacity: true
   radius:
     card:
       $type: dimension
       $value: "12px"
       $extensions:
-        sketch:
-          property:
-            cornerRadius: true
+        platform:
+          sketch:
+            property:
+              cornerRadius: true
 ```
 
 字段：
 
 | 字段 | 说明 |
 | --- | --- |
-| `sketch.path` | Sketch 输出中的嵌套路径，例如 `foundation/color`；可写在 group 或 token 上 |
-| `sketch.skip` | `true` 时不输出到 Sketch；后代 group 或 token 可以显式写 `false` 恢复输出 |
-| `sketch.property.opacity` | 在 Sketch 输出中写 `{ opacity: value }` |
-| `sketch.property.cornerRadius` | 在 Sketch 输出中写 `{ corners: { radii: value } }` |
+| `platform.sketch.path` | Sketch 资产 name 的 slash 分组前缀，例如 `foundation/color`；可写在 group 或 token 上 |
+| `platform.sketch.skip` | `true` 时不输出到 Sketch；后代 group 或 token 可以显式写 `false` 恢复输出 |
+| `platform.sketch.property.opacity` | 在 layer 记录中写 `opacity` 数值 |
+| `platform.sketch.property.cornerRadius` | 在 layer 记录中写 `corners.radii` 数值 |
+| `platform.sketch.outline` | border token 专用；按 `offset` 生成双层 shadow 模拟 outline，并让 CSS 输出 outline 变量 |
 
-`sketch.path` 使用 slash 分组。Wave 会把它写成嵌套对象，而不是把 slash 当成一个 flat key：
-
-```yaml
-color:
-  $type: color
-  $extensions:
-    sketch:
-      path: foundation/color
-  primary:
-    $value: "#1872f0"
-```
-
-Sketch 输出：
-
-```json
-{
-  "foundation": {
-    "color": {
-      "primary-main": {
-        "color": "#1872f0ff"
-      }
-    }
-  }
-}
-```
-
-Sketch 颜色引用使用目标 token 的完整输出路径，因此不同 `sketch.path` 下可以存在相同叶子名，例如 `v1/color/foo` 与 `v2/color/foo`。引用会分别写为 `@/v1/color/foo` 与 `@/v2/color/foo`。
-
-所有实际输出的 Sketch token 必须组成无冲突的对象树。两个 token 的完整输出路径相同，或一个路径是另一个路径的严格前缀时，构建会在写文件前失败。
-
-`sketch.path` 只定义分组路径，叶子名仍使用 `filterLayer` 处理后的 flat-json key。没有 `sketch.path` 时，Sketch 输出保持根级 flat-json。
+`path` 使用 slash 分组，作为资产 name 的前缀。假设 `filterLayer: 1`，上面的 color token 会生成 name 为 `foundation/color/primary-main` 的资产；没有 `path` 时，name 就是 `filterLayer` 处理后的叶子 key。
 
 优先级：
 
-1. token 自己的 `sketch.path`
-2. 最近父级 group 的 `sketch.path`
-3. 更上层祖先 group 的 `sketch.path`
+1. token 自己的 `path`
+2. 最近父级 group 的 `path`
+3. 更上层祖先 group 的 `path`
 
-`sketch.property` 不继承。需要输出 `{ opacity: value }` 或 `{ corners: { radii: value } }` 时，仍要写在对应 token 上。
+`property` 不继承。需要输出 `opacity` 或 `corners.radii` 时，仍要写在对应 token 上。
 
-`sketch.skip` 只接受 boolean，按最近声明继承，token 自己的值优先。显式 `false` 会覆盖祖先 group 的 `true`。这个开关只过滤 Sketch JSON，CSS、JSON、JSONC 和 md-yml 仍会输出该 token。
-
-Sketch 输出不再固定包裹 `color`、`style`、`dimension` 或 `component` 顶层对象。位置由 `sketch.path` 控制，值形态由 `$type` 和 `sketch.property` 控制。
+`skip` 只接受 boolean，按最近声明继承，token 自己的值优先。显式 `false` 会覆盖祖先 group 的 `true`。这个开关只过滤 Sketch 输出，CSS、JSON、JSONC 和 md-yml 仍会输出该 token。
 
 限制：
 
-- `sketch.path` 必须是普通 slash 分组路径，例如 `foundation/color`。
-- `sketch.path` 不能包含首尾 slash、空分段或 `.`。
-- `sketch.property` 只支持 `opacity` 和 `cornerRadius`。
-- `sketch.property.*` 的值必须是 `true`。
-- `sketch.property.opacity` 可用于 `theme.state.*` 下的 `number` token。
-- `sketch.property.cornerRadius` 可用于 `theme.radius.*` 或 `theme.dimension.*` 下的 radius/dimension 类 token。
-- `sketch.property` 只能写在 token 上，不能写在 group 上。
-- 两个 token 经过 `sketch.path` 和 `filterLayer` 后不能输出到同一路径；冲突会报错。
-- 例如 `$type: number` 搭配 `sketch.property.fillColor: true` 会报错，因为 `fillColor` 不是支持的 Sketch property。
-- 例如 `$type: color` 搭配 `sketch.property.opacity: true` 会报错，因为 `opacity` 只接受 state number token。
+- `path` 必须是普通 slash 分组路径，例如 `foundation/color`；不能包含首尾 slash、空分段或 `.`。
+- `property` 只支持 `opacity` 和 `cornerRadius`，值必须是 `true`，且只能写在 token 上。
+- `property.opacity` 可用于 `theme.state.*` 下的 `number` token。
+- `property.cornerRadius` 可用于 `theme.radius.*` 或 `theme.dimension.*` 下的 radius/dimension 类 token。
+- `outline` 只在 border token 上生效。
+- 未知字段、未知 property 或用错位置的写法都会构建报错。例如 `$type: number` 搭配 `property.fillColor: true` 会报错，因为 `fillColor` 不是支持的 Sketch property；`$type: color` 搭配 `property.opacity: true` 会报错，因为 `opacity` 只接受 state number token。
+- `platform.*` 下的未知平台（例如 `platform.figma`）只会产生 warning，不影响构建；这是为未来平台预留的兼容位。
+
+## Sketch 资产清单
+
+`sketch` 平台输出一份 JSON 资产清单：根部是 `meta` 和 `assets`，`assets` 里一行一条资产，方便人工审阅和 git diff。
+
+```json
+{
+  "meta": { "themeId": "6f1c2a54b7d84e0f9a1c32d45e6b70f8", "version": 2 },
+  "assets": [
+    { "uuid": "0f8e6d5c4b3a29180f7e6d5c4b3a2918", "name": "foundation/color/primary-main", "kind": "color", "color": "#1872f0ff" },
+    { "name": "foundation/interaction/hover", "kind": "layer", "opacity": 0.16 }
+  ]
+}
+```
+
+- `meta.themeId` 来自 `main.yaml` 根部的文档级 `$id`；未声明时为 `null`，Sync Token 会提示补登记。`version` 固定为 `2`。
+- 每条记录携带 `name` 与 `kind`；token 已登记 token 级 `$id` 时还会携带 `uuid`，未登记则省略该字段。
+- `kind` 只有三种：`color`（颜色 token，对应 Swatch）、`text`（typography token，对应共享文字样式）、`layer`（阴影、渐变、outline border、圆角维度等，对应共享图层样式）。
+- 只有可同步资产进入清单：普通 border、普通 dimension、transition 等不产生记录。
+- text 记录只含字体字段（`fontFamily`、`fontSize`、`fontWeight`、`lineHeight`、`kerning`），不含文字颜色；`fontWeight` 只接受 100-900 的整百刻度，其他值在 Sketch 构建时直接报错，CSS 和 JSON 不受影响。
+- layer 记录由 `shadows`、`gradient`、`opacity`、`corners` 等字段组合而成；同一记录内 `fills` 与 `gradient` 互斥。
+- 记录按 token 在主题文件中的顺序排列，改名或调整 `path` 之外的内容不会打乱顺序。
+
+资产 name 在同一份清单内必须唯一：两个 token 生成了完全相同的 name 时构建报错。name 里的 slash 只是普通字符，前缀重叠不算冲突，例如 `shadow` 与 `shadow/elevation-1` 可以共存。
+
+已登记 `$id` 的颜色 token 之间会在 layer 记录的颜色位置用 `{ "$ref": "<uuid>" }` 相互绑定，由 Sync Token 生成 Swatch；未登记的目标降级为 HEX8 颜色快照。详见[颜色与字体](/design-token/color-typography)。
 
 ## composite
 
