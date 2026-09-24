@@ -308,7 +308,7 @@ theme:
 }
 ```
 
-- `meta.themeId` 来自 `main.yaml` 根部的文档级 `$id`；未声明时为 `null`，Sync Token 会提示补登记。`version` 固定为 `2`。
+- `meta.themeId` 来自 `main.yaml` 根部的文档级 `$id`；未声明时为 `null`，Sync Token 会提示补登记——用 `wave dt ids --write` 登记身份时会自动生成（写在 `main.yaml` 首行，已有 `$schema` 时排其后），无需手改。`version` 固定为 `2`。
 - 每条记录携带 `name` 与 `kind`；token 已登记 token 级 `$id` 时还会携带 `uuid`，未登记则省略该字段。
 - `kind` 只有三种：`color`（颜色 token，对应 Swatch）、`text`（typography token，对应共享文字样式）、`layer`（阴影、渐变、outline border、圆角维度等，对应共享图层样式）。
 - 只有可同步资产进入清单：普通 border、普通 dimension、transition 等不产生记录。

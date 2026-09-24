@@ -55,6 +55,7 @@ wave dt doctor --profile mobile
 | 空 `$id` 槽位 | 预留的占位；`wave dt ids --write` 会自动填充 |
 | `non-canonical id form` 提示 | 检查是否手写错了 `$id`；提示不会改写文件 |
 | `Cross-file token $id conflict` | 按报告核对两个文件中的同名 token，保留正确的一个；冲突时 `wave dt ids --write` 拒绝写任何文件 |
+| Sketch 输出里 `themeId` 是 `null` | 主题还没登记身份；`wave dt ids --write` 会在 `main.yaml` 自动生成文档级 `$id`（首行，已有 `$schema` 时排其后） |
 
 ## Profile 和 Night Mode
 
