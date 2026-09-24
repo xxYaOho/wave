@@ -8,6 +8,7 @@ import { ExitCode } from '../../types/index.ts';
 import { createDesignTokenBuildCommand } from './build.ts';
 import { createDoctorCommand } from './doctor.ts';
 import { createDesignTokenInitCommand } from './dt-init.ts';
+import { createMigrateExtensionsCommand } from './dt-migrate-extensions.ts';
 import { createShowCommand } from './show.ts';
 
 const DESIGN_TOKEN_HELP = `Wave Design Token
@@ -24,6 +25,7 @@ const DESIGN_TOKEN_HELP = `Wave Design Token
     update          Update local design-token resources
     status          Show local resource cache status
     init            Create a starter workspace
+    migrate-extensions  One-shot $extensions legacy rename (sketch -> platform.sketch)
 
   Options:
     -f, --file <path>    main.yaml path. Default: ./main.yaml
@@ -173,6 +175,7 @@ export function createDesignTokenCommand(name = 'design-token'): Command {
 		.addCommand(createUpdateCommand())
 		.addCommand(createStatusCommand())
 		.addCommand(createDesignTokenInitCommand('init'))
+		.addCommand(createMigrateExtensionsCommand())
 		.action(showDesignTokenHelp);
 }
 
