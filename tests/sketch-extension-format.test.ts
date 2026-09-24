@@ -600,7 +600,6 @@ describe('sketch extension format', () => {
 			type: 'border',
 			value: { color: '#112233', width: 1, style: 'solid' },
 			_outline: { offset: 2 },
-			_sketchColorReference: '{theme.color.text.default}',
 			_order: 2,
 		});
 		const ringColorOf = (payloadText: string): unknown =>
@@ -636,7 +635,6 @@ describe('sketch extension format', () => {
 			type: 'typography',
 			value: typography,
 			_typographyColor: '#112233',
-			_sketchColorReference: '{theme.color.text.default}',
 			_order: 1,
 		});
 		const plainBorder = token({
@@ -644,7 +642,6 @@ describe('sketch extension format', () => {
 			path: ['theme', 'border', 'focus'],
 			type: 'border',
 			value: { color: '#112233', width: 1, style: 'solid' },
-			_sketchColorReference: '{theme.color.text.default}',
 			_order: 2,
 		});
 		const parsed = JSON.parse(sketchFormat([target, body, plainBorder]));

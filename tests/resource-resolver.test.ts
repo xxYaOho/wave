@@ -489,11 +489,9 @@ describe('generalized resolver', () => {
 		).body as {
 			$value: { color: string };
 			_colorReference?: string;
-			_sketchColorReference?: string;
 		};
 		expect(body.$value.color).toBe('#112233');
 		expect(body._colorReference).toBe('{theme.color.text}');
-		expect(body._sketchColorReference).toBe('{theme.color.text}');
 	});
 
 	test('preserves composite color source metadata through internal passes', () => {
@@ -536,23 +534,19 @@ describe('generalized resolver', () => {
 		const outline = theme.border?.outline as {
 			$value: { color: string };
 			_colorReference?: string;
-			_sketchColorReference?: string;
 		};
 		const alias = theme.font?.alias as {
 			$value: { color: string };
 			_colorReference?: string;
-			_sketchColorReference?: string;
 		};
 
 		expect(outline.$value.color).toBe('#112233');
 		expect(outline._colorReference).toBe('{theme.color.outline.ring}');
-		expect(outline._sketchColorReference).toBe('{theme.color.outline.ring}');
 		expect(alias.$value.color).toBe('#112233');
 		expect(alias._colorReference).toBe('{theme.color.direct-alias}');
-		expect(alias._sketchColorReference).toBe('{theme.color.direct-alias}');
 	});
 
-	test('preserves Sketch color metadata only for unmodified references', () => {
+	test('preserves direct color source metadata through resolution', () => {
 		const tree: DtcgTokenGroup = {
 			theme: {
 				color: {
@@ -588,13 +582,12 @@ describe('generalized resolver', () => {
 			Record<string, unknown>
 		>;
 
-		expect(font.brace?._sketchColorReference).toBe('{theme.color.text}');
-		expect(font.pointer?._sketchColorReference).toBe('#/theme/color/text');
-		expect(font.pointerValue?._sketchColorReference).toBe(
+		expect(font.brace?._colorReference).toBe('{theme.color.text}');
+		expect(font.pointer?._colorReference).toBe('#/theme/color/text');
+		expect(font.pointerValue?._colorReference).toBe(
 			'#/theme/color/text/$value',
 		);
 		expect(font.alphaOverride?._colorReference).toBe('#/theme/color/text');
-		expect(font.alphaOverride?._sketchColorReference).toBeUndefined();
 	});
 
 	test('preserves alpha from an un-suffixed pointer through transformation', () => {
@@ -625,7 +618,6 @@ describe('generalized resolver', () => {
 
 		expect(token?._typographyColor).toBe('#11223380');
 		expect(token?._colorReference).toBe('#/theme/color/text');
-		expect(token?._sketchColorReference).toBeUndefined();
 	});
 
 	test('keeps token-node identity out of full-object $ref materialization', () => {

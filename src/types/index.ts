@@ -350,8 +350,6 @@ export interface ResolvedDtcgToken {
 	_swatchName?: string;
 	/** Direct reference authored at a composite token's `$value.color`. */
 	_colorReference?: string;
-	/** Direct, unmodified composite color reference for Sketch variable mapping. */
-	_sketchColorReference?: string;
 }
 
 export interface ResolvedTokenGroup {
@@ -486,8 +484,6 @@ export interface WaveToken {
 	_swatchName?: string;
 	/** direct reference authored at a composite token's color field */
 	_colorReference?: string;
-	/** direct, unmodified composite color reference for Sketch variable mapping */
-	_sketchColorReference?: string;
 	/** requested output color space retained when a DTCG color object cannot be converted */
 	_targetColorSpace?: ColorSpaceFormat;
 	/** formatter-ready typography color in the active target color space */

@@ -781,10 +781,6 @@ function transformToken(
 	let preserveReferenceLineage = true;
 	let sourceValue: DtcgValue = token.$value;
 	let typographyUsesRem = false;
-	const sketchColorReference =
-		typeValue === 'typography' || typeValue === 'border'
-			? token._sketchColorReference
-			: undefined;
 	if (typeValue === 'typography') {
 		const materialized = materializeTypographyValue(
 			inheritedExtensions.typographyDefaults,
@@ -975,9 +971,6 @@ function transformToken(
 		...(token._swatchName !== undefined && { _swatchName: token._swatchName }),
 		...(token._colorReference !== undefined && {
 			_colorReference: token._colorReference,
-		}),
-		...(sketchColorReference !== undefined && {
-			_sketchColorReference: sketchColorReference,
 		}),
 		...(hasPreservedColorObject(processedValue, typeValue) && {
 			_targetColorSpace: targetColorSpace,

@@ -740,7 +740,6 @@ describe('sketchFormat (payload v2)', () => {
 				path: ['theme', 'font', 'referenced'],
 				type: 'typography',
 				value: typography,
-				_sketchColorReference: '{theme.color.text.default}',
 				_typographyColor: '#112233',
 				_order: 2,
 			},
@@ -749,7 +748,6 @@ describe('sketchFormat (payload v2)', () => {
 				path: ['theme', 'font', 'external'],
 				type: 'typography',
 				value: typography,
-				_sketchColorReference: '#/palette/text/default',
 				_typographyColor: '#112233',
 				_order: 3,
 			},
@@ -1165,8 +1163,7 @@ describe('sketchFormat (payload v2)', () => {
 		});
 	});
 
-	test('formats outline ring colors as HEX8 snapshots for every reference form', () => {
-		const border = { color: '#112233', width: 1, style: 'solid' };
+	test('formats outline ring colors as HEX8 snapshots', () => {
 		const tokens: WaveToken[] = [
 			colorAsset({
 				name: 'theme-color-text-default',
@@ -1174,95 +1171,45 @@ describe('sketchFormat (payload v2)', () => {
 				value: '#112233',
 				id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
 			}),
-			colorAsset({
-				name: 'theme-color-unregistered',
-				path: ['theme', 'color', 'unregistered'],
-				value: '#445566',
-				_order: 1,
-			}),
-			...(
-				[
-					['curly', '{theme.color.text.default}'],
-					['pointer', '#/theme/color/text/default'],
-					['pointer-value', '#/theme/color/text/default/$value'],
-					['alias', '{theme.color.alias}'],
-				] as const
-			).map(([name, reference], index) => ({
-				name: `theme-border-outline-${name}`,
-				path: ['theme', 'border', 'outline', name],
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
 				type: 'border',
-				value: border,
+				value: { color: '#112233', width: 1, style: 'solid' },
 				_outline: { offset: 2 },
-				_sketchColorReference: reference,
-				_order: index * 2 + 2,
-			})),
-			colorAsset({
-				name: 'theme-color-alias',
-				path: ['theme', 'color', 'alias'],
-				value: '#112233',
-				id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
-				_order: 11,
-			}),
+				_order: 1,
+			},
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		for (const key of ['curly', 'pointer', 'pointer-value', 'alias']) {
-			const asset = assetByName(parsed, `outline-${key}`) as Extract<
-				SketchAsset,
-				{ kind: 'layer' }
-			>;
-			// 颜色位置一律写具体值，不再绑定同清单 color 记录的 uuid。
-			expect(asset.shadows?.[0]?.color).toBe('#112233ff');
-			expect(asset.shadows?.[1]?.color).toBe('#ffffffff');
-		}
+		const asset = assetByName(parsed, 'outline-focus') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		// 颜色位置写具体值：目标 color 资产即使登记了 $id 也不再被绑定。
+		expect(asset.shadows?.[0]?.color).toBe('#112233ff');
+		expect(asset.shadows?.[1]?.color).toBe('#ffffffff');
 	});
 
-	test('degrades ring colors to HEX8 for unregistered and external targets', () => {
-		const border = { color: '#11223380', width: 1, style: 'solid' };
+	test('keeps alpha overrides folded into the ring HEX8 snapshot', () => {
 		const tokens: WaveToken[] = [
-			colorAsset({
-				name: 'theme-color-unregistered',
-				path: ['theme', 'color', 'unregistered'],
-				value: '#445566',
-			}),
 			{
-				name: 'theme-border-outline-unregistered',
-				path: ['theme', 'border', 'outline', 'unregistered'],
+				name: 'theme-border-outline-alpha',
+				path: ['theme', 'border', 'outline', 'alpha'],
 				type: 'border',
-				value: border,
+				value: { color: '#11223380', width: 1, style: 'solid' },
 				_outline: { offset: 2 },
-				_sketchColorReference: '{theme.color.unregistered}',
 				_order: 1,
-			},
-			{
-				name: 'theme-border-outline-external',
-				path: ['theme', 'border', 'outline', 'external'],
-				type: 'border',
-				value: border,
-				_outline: { offset: 2 },
-				_sketchColorReference: '#/palette/text/default',
-				_order: 2,
-			},
-			{
-				name: 'theme-border-outline-literal',
-				path: ['theme', 'border', 'outline', 'literal'],
-				type: 'border',
-				value: border,
-				_outline: { offset: 2 },
-				_order: 3,
 			},
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		for (const key of ['unregistered', 'external', 'literal']) {
-			const asset = assetByName(parsed, `outline-${key}`) as Extract<
-				SketchAsset,
-				{ kind: 'layer' }
-			>;
-			// HEX8 snapshots keep alpha overrides; no $ref is emitted.
-			expect(asset.shadows?.[0]?.color).toBe('#11223380');
-			expect(asset.shadows?.[1]?.color).toBe('#ffffffff');
-		}
+		const asset = assetByName(parsed, 'outline-alpha') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		expect(asset.shadows?.[0]?.color).toBe('#11223380');
+		expect(asset.shadows?.[1]?.color).toBe('#ffffffff');
 	});
 
 	test('builds outline rings whose color target is skipped or out of scope', () => {
@@ -1279,7 +1226,6 @@ describe('sketchFormat (payload v2)', () => {
 				type: 'border',
 				value: { color: '#112233', width: 1, style: 'solid' },
 				_outline: { offset: 2 },
-				_sketchColorReference: '{theme.color.skipped}',
 				_order: 1,
 			},
 		];
@@ -1316,7 +1262,6 @@ describe('sketchFormat (payload v2)', () => {
 				value: '#112233',
 				inheritColor: true,
 				inheritColorSiblingSlot: 'base',
-				_sketchColorReference: '{theme.color.base}',
 				_order: 1,
 			}),
 			{
@@ -1324,7 +1269,6 @@ describe('sketchFormat (payload v2)', () => {
 				path: ['theme', 'shadow', 'raised'],
 				type: 'shadow',
 				value: { color: '#112233', offsetX: 0, offsetY: 1, blur: 2, spread: 0 },
-				_sketchColorReference: '{theme.color.base}',
 				_order: 2,
 			},
 			{
@@ -1335,7 +1279,6 @@ describe('sketchFormat (payload v2)', () => {
 					{ color: '#112233', position: 0 },
 					{ color: '#112233', position: 1 },
 				],
-				_sketchColorReference: '{theme.color.base}',
 				_order: 3,
 			},
 		];
@@ -1534,7 +1477,6 @@ describe('sketchFormat (payload v2)', () => {
 				type: 'border',
 				value: { color: '#112233', width: 1, style: 'solid' },
 				_outline: { offset: 2 },
-				_sketchColorReference: '{theme.color.text.default}',
 				_order: 1,
 			},
 		];

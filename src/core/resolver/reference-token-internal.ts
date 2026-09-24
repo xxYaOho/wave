@@ -14,7 +14,6 @@ import {
 	deriveSwatchNameFromDtcgRef,
 	deriveSwatchNameFromStringRef,
 	extractDirectColorReference,
-	extractSketchColorReference,
 } from './reference-utils.ts';
 import {
 	type NestedValue,
@@ -67,8 +66,6 @@ export function processTokenInternal(
 	}
 	const colorReference =
 		token._colorReference ?? extractDirectColorReference(token.$value);
-	const sketchColorReference =
-		token._sketchColorReference ?? extractSketchColorReference(token.$value);
 
 	const resolvedExtensions = token.$extensions
 		? Object.fromEntries(
@@ -104,9 +101,6 @@ export function processTokenInternal(
 		}),
 		...(swatchName !== undefined && { _swatchName: swatchName }),
 		...(colorReference !== undefined && { _colorReference: colorReference }),
-		...(sketchColorReference !== undefined && {
-			_sketchColorReference: sketchColorReference,
-		}),
 	};
 }
 
