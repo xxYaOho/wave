@@ -1,0 +1,14 @@
+$schema: "https://www.designtokens.org/tr/2025.10/format/"
+
+$config:
+  theme: root-id-in-profile-invalid
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+
+theme:
+  color:
+    $type: color
+    primary:
+      $value: "#0066cc"

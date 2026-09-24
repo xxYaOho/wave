@@ -1,0 +1,12 @@
+theme:
+  color:
+    $type: color
+    alpha:
+      $id: cccccccccccccccccccccccccccccccc
+      $value: "#ff0000"
+    gamma:
+      $id: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      $value: "#112233"
+    shared:
+      $id: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+      $value: "#0033dd"

@@ -1,0 +1,19 @@
+$config:
+  theme: identity-conflict
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+
+theme:
+  color:
+    $type: color
+    alpha:
+      $id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      $value: "#0066cc"
+    beta:
+      $id: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      $value: "#3366cc"
+    shared:
+      $id: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+      $value: "#0044cc"
