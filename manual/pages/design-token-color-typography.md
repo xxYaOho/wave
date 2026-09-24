@@ -74,13 +74,11 @@ theme:
 
 `lineHeight` 必须大于 0。无单位 number 或纯数字字符串表示倍率；`{ value }` 不表示倍率，必须带单位。CSS 保留倍率和绝对单位；Sketch 的最终 lineHeight 无论倍率、`px`、`pt` 还是 `rem` 都向上取整为整数。`fontSize`、绝对 `lineHeight` 和 `letterSpacing` 使用 rem 时默认使用 16，也可由 `theme.font.$extensions.typography.baseFontSize` 覆盖。Wave 不换算 px 和 pt。
 
-### Sketch 颜色引用
+### Sketch 颜色输出
 
-Sketch 输出中，每条颜色资产的 `color` 字段都是 `#RRGGBBAA` HEX8 快照；带 alpha 或 opacity override 的颜色会把透明度折入快照的 alpha 通道。layer 资产里的颜色位置（`shadows[].color`、`gradient.color`）可以写成 `{ "$ref": "<uuid>" }`，绑定同一份输出中某条颜色资产的 uuid，由 Sync Token 生成 Swatch 并在图层间复用；只有已登记 `$id` 的颜色 token 会被绑定。
+Sketch 输出中，每条颜色资产的 `color` 字段都是 `#RRGGBBAA` HEX8 快照；带 alpha 或 opacity override 的颜色会把透明度折入快照的 alpha 通道。layer 资产里的颜色位置（`shadows[].color`、`gradient.color`）同样是 HEX8 快照，不做 Swatch 绑定：颜色 token 是否登记 `$id`、是否被 `sketch.skip` 跳过，只影响它自己是否作为颜色资产出现在清单里，不影响颜色位置的值。
 
-目标 token 没有登记 `$id`，或引用指向外部资源时，该颜色位置降级为 HEX8 快照；引用在主题内部却解析不到已输出的颜色资产时，构建会报错。被 `sketch.skip` 跳过或被 root 选择排除的目标同样报错，不会自动降级。outline 的 gap 层固定为 `#ffffffff`。
-
-`$ref` 绑定是试用期合同：若 Sync Token 实测写入不稳定，Wave 会整体降级为 HEX8 快照，主题文件无需改动。旧版的 `@/<路径>` 字符串引用已不再输出。
+outline 的 gap 层固定为 `#ffffffff`。旧版的 `@/<路径>` 字符串引用与试用期的 `{ "$ref": "<uuid>" }` 绑定都已不再输出；Sketch 侧改色需要重新导入 payload。
 
 ## 虚线 border
 

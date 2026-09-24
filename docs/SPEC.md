@@ -1234,13 +1234,13 @@ wave dt wcag --profile mobile --night
   - payload 范围 = 可同步资产：普通 border、generic dimension、transition、strokeStyle 与未知 payload 不产生记录（v1 的 `{ value }` 保存形态随之废止）；`sketch.skip` 命中与无值槽位在组装前排除
   - text 载荷为 5 个纯字体字段：`fontFamily`（可选）、`fontSize`、`fontWeight`、`lineHeight`、`kerning`。v1 `textStyle.textColor` 退役：文字颜色不再内嵌于 text 记录，颜色表达统一走颜色资产。`fontWeight` 仅接受 100-900 整百刻度——这是 sketch pass 的 formatter 层平台合同，不上升为 token 输入限制；非整百值在 sketch pass 构建报错（wave 侧 fail-fast，不等插件 preflight），CSS/JSON 等平台不受影响
   - layer 载荷为可组合字段：`fills` / `shadows` / `gradient` / `opacity` / `corners`；单记录同类 key 至多一次，`fills` 与 `gradient` 互斥；`fills` 为协议预留，wave 当前无生产者（color token 走 `kind: color`）
-  - swatch 引用：layer 记录中的颜色位置（`shadows[].color`、`gradient.color`）写 `{ "$ref": "<uuid>" }` = 绑定同清单 color 记录产生的 Swatch，取代 v1 `@/<路径>` 字符串合同。仅绑定同清单已入账 color 记录；目标未入账或属外部 namespace 时降级为 HEX8 快照；内部引用解析不到 emitted 记录时 build 报错。layer `$ref` 为试用期：插件实测 update 不稳时降级，单点切换开关为 `src/core/generator/formats/sketch.ts` 的 `SKETCH_SWATCH_REF_MODE`（`'ref'` | `'hex'`），翻转为 `'hex'` 即整份 payload 退化为 HEX8 快照
+  - 颜色位置不做 Swatch 绑定：layer 记录中的颜色位置（`shadows[].color`、`gradient[].color`）一律写具体值 HEX8 快照，不写 `{ "$ref": "<uuid>" }`。swatch 绑定（v1 的 `@/<路径>` 与 v2 试用期的 `$ref`）已整体撤回：颜色 token 是否登记 `$id`、是否被 `sketch.skip` 跳过或被 root selection 排除，都不影响颜色位置能否输出，也不会让 build 失败
   - 插件侧认养规则（跨仓合同注记）：记录 uuid 对插件关系表未知且 name 命中未登记资产时，插件按 name 认养并补登记；name 命中已登记于其它 uuid 的资产时 duplicate 零写入
-  - 含 alpha/opacity override 的颜色保持 HEX8（折入 alpha 通道）；未绑定 `$ref` 的颜色位置输出 HEX8 快照；outline ring 的 gap 层固定 `#ffffffff`
+  - 含 alpha/opacity override 的颜色把透明度折入 HEX8 快照的 alpha 通道；outline ring 的 gap 层固定 `#ffffffff`
   - name 生成规则：`platform.sketch.path` 前缀 + `filterLayer` 处理后的叶子 key，以 `/` 连接；`platform.sketch.path` 优先级为 token 自身 > 最近父级 group > 更上层祖先 group。name 是扁平数据，不构成树，前缀重叠合法（如 `shadow` 与 `shadow/elevation-1` 共存）。name 在单份 payload 内唯一，精确重复 = build 报错（继承 v1 输出路径硬报错语义）；检测与 token 顺序无关，失败时不写本次 pending outputs
   - shadow layer 的 `inset: true` 随载荷输出。这是 wave 对插件协议 10b key 表之外的加法，登记于此，跨仓以插件仓确认为准
   - 带 `platform.sketch.outline.offset` 的 border token 生成 `shadows` 载荷模拟 outline，最终 JSON 顺序为 ring layer 在前、gap layer 在后；普通 DTCG dashed border 不是可同步资产，不产生记录
-  - inheritColor 通过 siblingSlot 查找兄弟 token 颜色，但输出始终 materialize 为 HEX8；内部 color reference 的目标被 `sketch.skip` 跳过或被 root selection 排除时，build 必须报错，不得以 HEX8 降级
+  - inheritColor 通过 siblingSlot 查找兄弟 token 颜色，输出始终 materialize 为 HEX8；兄弟颜色缺失、被 `sketch.skip` 跳过或不在当前 pass 范围内时，该颜色记录回退到合成色 `#ff00ff`，不使 build 失败
   - `$type: typography` 生成 text 记录；数组 font family 优先选择 `PingFang SC`。rem 的 `fontSize`、绝对 `lineHeight` 和 `letterSpacing` 使用有效基准（默认 16，或 `baseFontSize`）换算；fontSize 与 letterSpacing 最多保留三位小数。最终 lineHeight 始终向上取整为整数：倍率使用换算后字号计算，绝对 px/pt/rem 使用数值或换算结果后取整
   - component token 不映射为 Sketch component 样式；component 逻辑后续单独设计
 - `md-yml`：输出 `{theme}2md.yml`，供用户复制到 Markdown frontmatter
@@ -1253,7 +1253,7 @@ wave dt wcag --profile mobile --night
   - source segment 不能为空或含 `.`；hyphen-join 后的重名、direct/composite 重名或 composite property 重名都会失败，不会改写该 pass 的其他平台产物
 - 多平台：`json,jsonc,css,sketch,md-yml` 可同时输出多种格式
 
-CSS 不使用 Sketch 的 swatch `$ref` 绑定，保持既有颜色引用行为，包括 typography color 对已输出 `theme.color.*` 的 `var(--<color-token>)` 引用。v1 的 `@` importer 合同已随 payload v2 废止，Sketch 颜色绑定改在 payload 内部以 `$ref` 表达。
+CSS 与 Sketch 的颜色引用彼此独立：CSS 保持既有颜色引用行为，包括 typography color 对已输出 `theme.color.*` 的 `var(--<color-token>)` 引用；Sketch payload 不做任何颜色绑定，颜色位置一律是 HEX8 快照。v1 的 `@` importer 合同与 v2 试用期的 `$ref` 绑定均已废止。
 
 **备注位置（v0.3.0+）：**
 

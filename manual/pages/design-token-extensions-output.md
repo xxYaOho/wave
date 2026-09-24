@@ -318,7 +318,7 @@ theme:
 
 资产 name 在同一份清单内必须唯一：两个 token 生成了完全相同的 name 时构建报错。name 里的 slash 只是普通字符，前缀重叠不算冲突，例如 `shadow` 与 `shadow/elevation-1` 可以共存。
 
-已登记 `$id` 的颜色 token 之间会在 layer 记录的颜色位置用 `{ "$ref": "<uuid>" }` 相互绑定，由 Sync Token 生成 Swatch；未登记的目标降级为 HEX8 颜色快照。详见[颜色与字体](/design-token/color-typography)。
+layer 记录中的颜色位置一律写 `#RRGGBBAA` HEX8 颜色快照，不做 Swatch 绑定；同清单里的颜色资产仍按自己的 `$id` 携带 `uuid`，供 Sync Token 认养。详见[颜色与字体](/design-token/color-typography)。
 
 ## composite
 
