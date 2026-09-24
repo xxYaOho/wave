@@ -7,6 +7,7 @@ import {
 } from '../../core/doctor/dimension-migration.ts';
 import {
 	collectThemeIdentityReport,
+	describeIdentityConflict,
 	identityBlockingFindings,
 	loadIdentityInputs,
 } from '../../core/doctor/identity.ts';
@@ -247,23 +248,7 @@ async function renderThemeIdentityReport(
 	for (const conflict of report.conflicts) {
 		const prefix = conflict.crossFile ? '✗' : '·';
 		const label = conflict.crossFile ? 'cross-file' : 'within-file';
-		if (conflict.kind === 'duplicate-id') {
-			console.log(
-				`  ${prefix} ${label} $id conflict "${conflict.id}": ${conflict.occurrences
-					.map((occurrence) => `${occurrence.file}:${occurrence.path}`)
-					.join(', ')}`,
-			);
-			continue;
-		}
-		console.log(
-			`  ${prefix} ${label} $id conflict at "${
-				conflict.occurrences[0]?.path ?? ''
-			}": ${conflict.occurrences
-				.map((occurrence) => occurrence.file)
-				.join(', ')} (${(conflict.ids ?? [])
-				.map((id) => `"${id}"`)
-				.join(' vs ')})`,
-		);
+		console.log(`  ${prefix} ${label} ${describeIdentityConflict(conflict)}`);
 	}
 	return identityBlockingFindings(report).length === 0;
 }

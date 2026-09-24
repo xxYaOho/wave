@@ -367,6 +367,22 @@ export function collectThemeIdentityReport(
 }
 
 /**
+ * Single source for identity conflict message text. Doctor findings prefix
+ * it with `Cross-file token`; the CLI identity report prefixes it with the
+ * cross-file/within-file label, keeping one wording for both renderers.
+ */
+export function describeIdentityConflict(conflict: IdentityConflict): string {
+	if (conflict.kind === 'duplicate-id') {
+		return `$id conflict "${conflict.id}": ${conflict.occurrences
+			.map((occurrence) => `${occurrence.file}:${occurrence.path}`)
+			.join(', ')}`;
+	}
+	return `$id conflict at "${conflict.occurrences[0]?.path ?? ''}": ${conflict.occurrences
+		.map((occurrence) => occurrence.file)
+		.join(', ')} (${(conflict.ids ?? []).map((id) => `"${id}"`).join(' vs ')})`;
+}
+
+/**
  * Blocking findings: cross-file id conflicts and DTCG §5.2.2 undecidable
  * token types are doctor errors (build keeps tolerance).
  */
@@ -376,21 +392,9 @@ export function identityBlockingFindings(
 	const conflictFindings = report.conflicts
 		.filter((conflict) => conflict.crossFile)
 		.map((conflict): DoctorFinding => {
-			if (conflict.kind === 'duplicate-id') {
-				return {
-					level: 'error' as const,
-					message: `Cross-file token $id conflict "${conflict.id}": ${conflict.occurrences
-						.map((occurrence) => `${occurrence.file}:${occurrence.path}`)
-						.join(', ')}`,
-				};
-			}
 			return {
 				level: 'error' as const,
-				message: `Cross-file token $id conflict at "${conflict.occurrences[0]?.path ?? ''}": ${conflict.occurrences
-					.map((occurrence) => occurrence.file)
-					.join(
-						', ',
-					)} (${(conflict.ids ?? []).map((id) => `"${id}"`).join(' vs ')})`,
+				message: `Cross-file token ${describeIdentityConflict(conflict)}`,
 			};
 		});
 	const typeFindings = report.undecidableTypes.map(
