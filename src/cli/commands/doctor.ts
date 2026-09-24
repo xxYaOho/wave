@@ -1,9 +1,16 @@
 import { Command } from 'commander';
+import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import {
 	findDimensionMigrationFindings,
 	renderDimensionMigrationAdvice,
 } from '../../core/doctor/dimension-migration.ts';
+import {
+	collectThemeIdentityReport,
+	identityBlockingFindings,
+	loadIdentityInputs,
+} from '../../core/doctor/identity.ts';
+import { detectThemeFiles } from '../../core/doctor/theme-context.ts';
 import { runThemeContrastCheck } from '../../core/doctor/registry.ts';
 import { validateDeclaredResources } from '../../core/doctor/resource-validator.ts';
 import { createThemeDoctorContextFromContent } from '../../core/doctor/theme-context.ts';
@@ -155,6 +162,105 @@ function renderWorkspaceLoadFailure(
 	process.exitCode = result.exitCode;
 }
 
+/**
+ * Scan every theme file of the workspace for token identity health, print the
+ * report, and return whether no blocking finding (cross-file id conflict,
+ * DTCG §5.2.2 undecidable token type) exists. Detail lists are capped unless
+ * --verbose is set.
+ */
+async function renderThemeIdentityReport(
+	themeDir: string,
+	verbose = false,
+): Promise<boolean> {
+	const entries = await detectThemeFiles(themeDir);
+	const labelOf = new Map(
+		entries.map((entry) => [entry.name, path.relative(themeDir, entry.path)]),
+	);
+	const inputs = await loadIdentityInputs(
+		entries.map((entry) => {
+			const nightStem = entry.name.endsWith('@night')
+				? entry.name.slice(0, -'@night'.length)
+				: undefined;
+			const baseLabel =
+				nightStem !== undefined ? labelOf.get(nightStem) : undefined;
+			return {
+				label: path.relative(themeDir, entry.path),
+				path: entry.path,
+				baseLabel,
+			};
+		}),
+	);
+	const report = collectThemeIdentityReport(inputs);
+
+	console.log('Token Identity');
+	console.log(
+		`  registered ${report.registered} · unregistered ${report.unregistered.length} · empty slots ${report.emptySlots.length}`,
+	);
+	const detailLimit = verbose ? Number.POSITIVE_INFINITY : 20;
+	const printOccurrences = (
+		header: string,
+		items: Array<{ file: string; path: string; id?: string }>,
+		render: (item: { file: string; path: string; id?: string }) => string,
+	): void => {
+		if (items.length === 0) return;
+		for (const item of items.slice(0, detailLimit)) {
+			console.log(`  · ${header}: ${render(item)}`);
+		}
+		if (items.length > detailLimit) {
+			console.log(
+				`  · ${header}: … and ${items.length - detailLimit} more (use --verbose)`,
+			);
+		}
+	};
+	printOccurrences('unregistered', report.unregistered, (item) =>
+		`${item.path} (${item.file})`,
+	);
+	printOccurrences('empty $id slot', report.emptySlots, (item) =>
+		`${item.path} (${item.file})`,
+	);
+	printOccurrences(
+		'non-canonical id form (hint)',
+		report.nonCanonical,
+		(item) => `${item.path} "${item.id}" (${item.file})`,
+	);
+	for (const occurrence of report.undecidableTypes.slice(0, detailLimit)) {
+		console.log(
+			`  ✗ type cannot be determined (DTCG §5.2.2): ${occurrence.path} (${occurrence.file})`,
+		);
+	}
+	if (report.undecidableTypes.length > detailLimit) {
+		console.log(
+			`  ✗ type cannot be determined (DTCG §5.2.2): … and ${report.undecidableTypes.length - detailLimit} more (use --verbose)`,
+		);
+	}
+	printOccurrences(
+		'suspected typo empty node (no $value, no children)',
+		report.typoEmptyNodes,
+		(item) => `${item.path} (${item.file})`,
+	);
+	for (const conflict of report.conflicts) {
+		const prefix = conflict.crossFile ? '✗' : '·';
+		const label = conflict.crossFile ? 'cross-file' : 'within-file';
+		if (conflict.kind === 'duplicate-id') {
+			console.log(
+				`  ${prefix} ${label} $id conflict "${conflict.id}": ${conflict.occurrences
+					.map((occurrence) => `${occurrence.file}:${occurrence.path}`)
+					.join(', ')}`,
+			);
+			continue;
+		}
+		console.log(
+			`  ${prefix} ${label} $id conflict at "${conflict.occurrences[0]
+				?.path ?? ''}": ${conflict.occurrences
+				.map((occurrence) => occurrence.file)
+				.join(', ')} (${(conflict.ids ?? [])
+				.map((id) => `"${id}"`)
+				.join(' vs ')})`,
+		);
+	}
+	return identityBlockingFindings(report).length === 0;
+}
+
 export function createDoctorCommand(
 	name = 'doctor',
 	commandOptions: CreateDoctorCommandOptions = {},
@@ -187,6 +293,7 @@ export function createDoctorCommand(
 			}
 			if (!options.contrast) {
 				let workspaceTheme: string | undefined;
+				let identityOk = true;
 				if (
 					commandOptions.defaultMainYaml === true ||
 					options.file !== undefined
@@ -248,6 +355,14 @@ export function createDoctorCommand(
 						process.exitCode = ExitCode.GENERAL_ERROR;
 						return;
 					}
+
+					// Token identity health: multi-pass scan across every theme file.
+					if (!options.json && !options.status) {
+						identityOk = await renderThemeIdentityReport(
+							loadResult.workspace.workspaceDir,
+							options.verbose === true,
+						);
+					}
 				}
 
 				const toolchain = await runToolchainDoctor({ module: 'core' });
@@ -286,7 +401,7 @@ export function createDoctorCommand(
 					`${icon} Bun Version: ${bunPassed ? `v${currentVersion}` : `v${currentVersion} (requires >= v${minVersion})`}`,
 				);
 
-				const allPassed = bunPassed;
+				const allPassed = bunPassed && identityOk;
 				console.log(
 					workspaceTheme
 						? `✓ Config File: Valid (${workspaceTheme})`
@@ -366,6 +481,11 @@ export function createDoctorCommand(
 							)
 						: { ok: false as const, message: NIGHT_SKIP_MESSAGE };
 				if (!merged.ok) {
+					if ('error' in merged) {
+						console.log(`✗ ${merged.error}`);
+						process.exitCode = ExitCode.FORMAT_ERROR;
+						return;
+					}
 					console.log(NIGHT_SKIP_MESSAGE);
 					process.exitCode = ExitCode.SUCCESS;
 					return;
