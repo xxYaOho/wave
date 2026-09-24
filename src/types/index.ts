@@ -280,6 +280,12 @@ export interface DtcgToken {
 	$type?: string;
 	$description?: string;
 	$deprecated?: boolean | string;
+	/**
+	 * Token-level identity. Three states: key absent (unregistered), null or
+	 * empty/whitespace string (pre-declared empty slot), non-empty string
+	 * (identity of any form).
+	 */
+	$id?: string | null;
 	$extensions?: Record<string, unknown>;
 }
 
@@ -338,6 +344,8 @@ export interface ResolvedDtcgToken {
 	$type?: string;
 	$description?: string;
 	$deprecated?: boolean | string;
+	/** Token identity carried through resolution; see DtcgToken.$id. */
+	$id?: string | null;
 	$extensions?: Record<string, unknown>;
 	_swatchName?: string;
 	/** Direct reference authored at a composite token's `$value.color`. */
@@ -384,6 +392,12 @@ export interface WaveToken {
 	value: unknown;
 	/** DTCG $type or inherited group $type (color | shadow | gradient | dimension | ...) */
 	type?: string;
+	/**
+	 * Source-side token identity from `$id`, carried through the resolver.
+	 * Present only for non-empty identities; empty slots stay a source-level
+	 * concern and never surface as `id`.
+	 */
+	id?: string;
 	/** $description copied from the source token */
 	comment?: string;
 	/** $deprecated flag */

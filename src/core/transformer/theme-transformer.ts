@@ -8,6 +8,7 @@ import {
 	type TypographyDefaults,
 	type WaveToken,
 } from '../../types/index.ts';
+import { logger } from '../../utils/logger.ts';
 import { parseDimension } from '../token-values/dimension.ts';
 import { parseDuration } from '../token-values/duration.ts';
 import { normalizeFontWeight } from '../token-values/font-weight.ts';
@@ -994,6 +995,12 @@ function transformToken(
 		sdValue.type = typeValue;
 	}
 
+	// Token identity: only non-empty $id strings count; empty slots stay a
+	// source-level concern and never surface as WaveToken.id.
+	if (typeof token.$id === 'string' && token.$id.trim() !== '') {
+		sdValue.id = token.$id;
+	}
+
 	if (token.$description !== undefined) {
 		sdValue.comment = token.$description;
 	}
@@ -1229,5 +1236,24 @@ export function transformToWaveTokens(
 	}
 
 	walk(resolved, parentType, []);
+
+	// Single-pass identity uniqueness: a duplicated $id keeps its first
+	// occurrence in document order; later occurrences are cleared with a
+	// warning. Derived expansions (smoothShadow / inheritColor) are not
+	// separate records and never participate in this check.
+	const firstById = new Map<string, WaveToken>();
+	for (const token of tokens) {
+		if (token.id === undefined) continue;
+		const first = firstById.get(token.id);
+		if (first === undefined) {
+			firstById.set(token.id, token);
+			continue;
+		}
+		logger.warn(
+			`Duplicate token $id "${token.id}": keeping "${first.path.join('.')}", clearing "${token.path.join('.')}"`,
+		);
+		token.id = undefined;
+	}
+
 	return { tokens, groupComments };
 }

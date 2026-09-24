@@ -384,6 +384,35 @@ describe('transformToWaveTokens', () => {
 		expect(radius._composite).toBe('component.button');
 	});
 
+	test('composite authored property nodes carry $id through the transformToken path', () => {
+		const input: ResolvedTokenGroup = {
+			component: {
+				button: {
+					$extensions: { composite: true },
+					fill: {
+						$id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+						$type: 'color',
+						$value: '#ff0000',
+					},
+					radius: { $type: 'dimension', $value: 8 },
+				},
+			},
+		};
+
+		const result = transformToWaveTokens(input);
+		const fill = result.tokens.find(
+			(token) => token.name === 'component-button-fill',
+		)!;
+		// Authored $id on the composite property node flows to WaveToken.id
+		// via the same transformToken path as ordinary tokens.
+		expect(fill.id).toBe('a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6');
+		expect(fill._composite).toBe('component.button');
+		const radius = result.tokens.find(
+			(token) => token.name === 'component-button-radius',
+		)!;
+		expect(radius.id).toBeUndefined();
+	});
+
 	test('materializes inherited typography defaults with nearest and token overrides', () => {
 		const input: ResolvedTokenGroup = {
 			theme: {

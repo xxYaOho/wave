@@ -94,6 +94,7 @@ export function processTokenInternal(
 	return {
 		$value: resolvedValue,
 		...(token.$type !== undefined && { $type: token.$type }),
+		...(token.$id !== undefined && { $id: token.$id }),
 		...(token.$description !== undefined && {
 			$description: token.$description,
 		}),
