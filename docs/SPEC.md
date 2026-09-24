@@ -1148,7 +1148,7 @@ wave dt wcag --profile mobile --night
   - 输出 public roots：`color`、`state`、`shadow`、`gradient`、`border`、`radius`、`font`
   - 不输出 `theme.dimension`
   - 长度类数值自动补浏览器需要的 `px`
-  - `$type: typography` token 输出 materialized 字段变量和一个 shorthand 变量；group `typography.defaults` 按祖先到 token 浅合并，数组 font family 按 CSS stack 规则序列化；与已输出 `fontFamily` token 等值时 shorthand 复用全局变量，否则保留局部 family；倍率 line height 保持无单位；可选 color 独立输出，直接引用已输出的 `theme.color.*` 时保留 CSS variable 引用
+  - `$type: typography` token 仅输出 materialized 字段变量（`-family`、`-size`、`-weight`、`-line-height`、`-letter-spacing`、可选 `-color`），不输出聚合 shorthand 变量；group `typography.defaults` 按祖先到 token 浅合并，数组 font family 按 CSS stack 规则序列化；与已输出 `fontFamily` token 等值时省略局部 `-family` 字段变量，由 consumer 取用该 family token 自身的变量，否则保留局部 family；倍率 line height 保持无单位；可选 color 独立输出，直接引用已输出的 `theme.color.*` 时保留 CSS variable 引用
   - typography 支持 `px`、`pt`、`rem`。`rem` 默认使用 16px；可在唯一允许的位置 `theme.font.$extensions.typography.baseFontSize` 以大于 0 的无单位 CSS px 数值覆盖。使用 rem 时 CSS 在 `:root` 输出有效 `font-size`，并保留 token 中的 rem 值。此内部 metadata 不输出到 JSON、JSONC 或 md-yml
   - DTCG border `style.dashArray` 输出 `dashed` shorthand 和 `-dash-array` companion variable
   - 带 `$extensions.outline.offset` 的 border token 输出 outline value 变量和 offset companion 变量

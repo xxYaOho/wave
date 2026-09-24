@@ -223,7 +223,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).not.toContain('--shadow-legacy');
 	});
 
-	test('formats typography as field variables and shorthand variable', () => {
+	test('formats typography as field variables without aggregate shorthand', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-font-body-md',
@@ -250,9 +250,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).toContain('--font-body-md-weight: 400;');
 		expect(out).toContain('--font-body-md-line-height: 1.5;');
 		expect(out).toContain('--font-body-md-letter-spacing: 0;');
-		expect(out).toContain(
-			'--font-body-md: var(--font-body-md-weight) var(--font-body-md-size) / var(--font-body-md-line-height) var(--font-body-md-family);',
-		);
+		expect(out).not.toContain('--font-body-md: var(--font-body-md-weight)');
 	});
 
 	test('emits the shared typography base font size and preserves rem values', () => {
@@ -406,11 +404,11 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		const out = cssVariablesFormat(tokens, { filterLayer: 1 });
 		expect(out).toContain('--font-font-family: system-ui, "PingFang SC";');
 		expect(out).not.toContain('--font-heading-h1-family:');
-		expect(out).toContain(
-			'--font-heading-h1-color: var(--color-text-emphasis);',
+		expect(out).not.toContain(
+			'--font-heading-h1: var(--font-heading-h1-weight)',
 		);
 		expect(out).toContain(
-			'--font-heading-h1: var(--font-heading-h1-weight) var(--font-heading-h1-size) / var(--font-heading-h1-line-height) var(--font-font-family);',
+			'--font-heading-h1-color: var(--color-text-emphasis);',
 		);
 	});
 
@@ -445,7 +443,7 @@ describe('cssVariablesFormat (Wave-native)', () => {
 		expect(out).toContain('--font-body-color: var(--color-text-emphasis);');
 	});
 
-	test('selects the first emitted matching font family token', () => {
+	test('suppresses local typography family when an equal font family token is emitted', () => {
 		const family = ['Inter', 'sans-serif'];
 		const makeFamily = (name: string, order: number): WaveToken => ({
 			name,
@@ -476,8 +474,9 @@ describe('cssVariablesFormat (Wave-native)', () => {
 			],
 			{ filterLayer: 1 },
 		);
-		expect(out).toContain('var(--font-primary-family);');
-		expect(out).not.toContain('var(--font-alias-family);');
+		expect(out).toContain('--font-primary-family: Inter, sans-serif;');
+		expect(out).toContain('--font-alias-family: Inter, sans-serif;');
+		expect(out).not.toContain('--font-body-family:');
 	});
 
 	test('escapes quoted font families and rejects invalid array members', () => {

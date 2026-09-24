@@ -1290,7 +1290,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				expect(css).toContain('--shadow-elevation-low: 0 1px 2px 0');
 				expect(css).toContain('--border-outline-focus:');
 				expect(css).toContain('--border-outline-focus-offset: 2px;');
-				expect(css).toContain('--font-heading-h1:');
+				expect(css).toContain('--font-heading-h1-weight:');
 				expect(css).not.toContain('--dimension-');
 				expect(JSON.stringify(sketch)).toContain('textStyle');
 				expect(JSON.stringify(sketch)).toContain('"spread":3');

@@ -398,12 +398,6 @@ function typographyLines(
 	} else if (references.colorValue !== undefined) {
 		lines.push(`  --${key}-color: ${references.colorValue};`);
 	}
-	const familyExpression = references.familyKey
-		? `var(--${references.familyKey})`
-		: `var(--${key}-family)`;
-	lines.push(
-		`  --${key}: var(--${key}-weight) var(--${key}-size) / var(--${key}-line-height) ${familyExpression};`,
-	);
 	return lines;
 }
 
