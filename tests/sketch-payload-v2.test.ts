@@ -135,6 +135,75 @@ describe('sketch payload v2 contract', () => {
 		}
 	});
 
+	test('registered identity coexists with value-level $ref materialization', async () => {
+		const tempThemeDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-id-ref-'),
+		);
+		const outputDir = path.join(tempThemeDir, 'out');
+		try {
+			await fs.writeFile(
+				path.join(tempThemeDir, 'main.yaml'),
+				[
+					'$id: 0f1e2d3c4b5a69788796a5b4c3d2e1f0',
+					'$config:',
+					'  theme: identity-value-ref',
+					'  parameter:',
+					'    outputDir: ./out',
+					'    platform: [json, sketch]',
+					'    filterLayer: 2',
+					'theme:',
+					'  color:',
+					'    $type: color',
+					'    base:',
+					'      $id: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+					'      $value: "#0f172b"',
+					'  shadow:',
+					'    $type: shadow',
+					'    soft:',
+					'      $value:',
+					'        color:',
+					'          $ref: "#/theme/color/base"',
+					'          alpha: 0.06',
+					'        offsetX: 0',
+					'        offsetY: 2',
+					'        blur: 4',
+					'        spread: 0',
+					'',
+				].join('\n'),
+				'utf-8',
+			);
+
+			// 回归目标：ids 登记后，值级 $ref（不带 /$value）物化不得把目标
+			// 节点的 $id 带入值层（schema 值层校验曾以 Unknown field "$id" 拒绝）。
+			const result = await generateTheme({
+				workspacePath: path.join(tempThemeDir, 'main.yaml'),
+				generateOptions: { night: false },
+			});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+
+			const payload = await readSketch(
+				tempThemeDir,
+				path.join('out', 'identity-value-ref2sketch.json'),
+			);
+			const layer = assetByName(payload, 'soft');
+			expect(layer).toMatchObject({ kind: 'layer' });
+			expect(
+				layer && 'shadows' in layer ? layer.shadows?.[0]?.color : undefined,
+			).toBe('#0f172b0f');
+
+			// 决策 8：其余格式不携带任何 id。
+			const json = JSON.parse(
+				await fs.readFile(
+					path.join(outputDir, 'identity-value-ref.json'),
+					'utf-8',
+				),
+			) as Record<string, unknown>;
+			expect(JSON.stringify(json)).not.toContain('$id');
+		} finally {
+			await fs.rm(tempThemeDir, { recursive: true, force: true });
+		}
+	});
+
 	test('fontWeight scale fails only the sketch pass, not css/json', async () => {
 		const tempThemeDir = await fs.mkdtemp(
 			path.join(os.tmpdir(), 'wave-weight-'),

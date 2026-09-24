@@ -628,6 +628,55 @@ describe('generalized resolver', () => {
 		expect(token?._sketchColorReference).toBeUndefined();
 	});
 
+	test('keeps token-node identity out of full-object $ref materialization', () => {
+		const { tree: result } = resolveReferences(
+			{
+				theme: {
+					color: {
+						base: {
+							$id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+							$value: '#112233',
+						},
+					},
+					font: {
+						pointer: {
+							$value: { color: { $ref: '#/theme/color/base' } },
+						},
+						alphaOverride: {
+							$value: {
+								color: { $ref: '#/theme/color/base', alpha: 0.5 },
+							},
+						},
+					},
+				},
+			},
+			{},
+		);
+		const theme = result.theme as Record<string, unknown>;
+		const base = (theme.color as Record<string, unknown>).base as Record<
+			string,
+			unknown
+		>;
+		const font = theme.font as Record<
+			string,
+			{ $value: Record<string, unknown> }
+		>;
+		const pointerColor = font.pointer?.$value.color as
+			| Record<string, unknown>
+			| undefined;
+		const overrideColor = font.alphaOverride?.$value.color as
+			| Record<string, unknown>
+			| undefined;
+
+		// 被引用 token 在自己的节点上保留身份。
+		expect(base.$id).toBe('a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6');
+		// 物化进值位的对象不携带节点身份，$value 语义不变。
+		expect(pointerColor?.$id).toBeUndefined();
+		expect(pointerColor?.$value).toBe('#112233');
+		expect(overrideColor?.$id).toBeUndefined();
+		expect(overrideColor?.alpha).toBe(0.5);
+	});
+
 	test('reports the full group extension path for unresolved references', () => {
 		const tree: DtcgTokenGroup = {
 			theme: {

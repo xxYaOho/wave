@@ -22,6 +22,19 @@ import {
 	REFERENCE_PATTERN,
 } from './reference-utils.ts';
 
+/**
+ * Token-node identity never enters value positions: a `#/path` ref without
+ * `/$value` materializes the whole target token, and the copied object must
+ * not carry the target's `$id` (identity is node-level, Decision 1/3; the
+ * target keeps its own `$id` on its node). `$value` / `$type` /
+ * `$extensions` keep their historical value-layer tolerance.
+ */
+function withoutNodeIdentity<T extends object>(value: T): T {
+	const body = { ...value } as Record<string, unknown>;
+	delete body.$id;
+	return body as T;
+}
+
 export function resolveDtcgRef(
 	refValue: DtcgRefValue,
 	sources: ReferenceDataSources,
@@ -146,7 +159,7 @@ export function resolveDtcgRef(
 			!Array.isArray(extractedValue)
 		) {
 			return {
-				...extractedValue,
+				...withoutNodeIdentity(extractedValue),
 				...(valueSwatchName !== undefined && {
 					_swatchName: valueSwatchName,
 				}),
@@ -162,7 +175,7 @@ export function resolveDtcgRef(
 		!Array.isArray(extractedValue)
 	) {
 		return {
-			...extractedValue,
+			...withoutNodeIdentity(extractedValue),
 			...resolvedOverrides,
 			...(valueSwatchName !== undefined && {
 				_swatchName: valueSwatchName,
