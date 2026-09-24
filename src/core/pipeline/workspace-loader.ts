@@ -14,6 +14,8 @@ export interface LoadedDesignTokenWorkspace {
 	path: string;
 	workspaceDir: string;
 	config: DesignTokenBuildConfig;
+	/** Document-level `$id` (theme identity) read from the main.yaml root. */
+	themeId?: string | undefined;
 	tokenContent: string;
 }
 
@@ -139,8 +141,24 @@ export async function loadDesignTokenWorkspace(
 		);
 	}
 
+	// Document-level $id is taken from the root before the token tree is
+	// serialized, so it never enters the token tree (take-then-strip).
+	let themeId: string | undefined;
+	if (Object.hasOwn(root, '$id')) {
+		const rawThemeId = root.$id;
+		if (typeof rawThemeId !== 'string' || rawThemeId.trim() === '') {
+			return failure(
+				workspacePath,
+				ExitCode.FORMAT_ERROR,
+				'Invalid main.yaml $id; expected a non-empty string when present',
+			);
+		}
+		themeId = rawThemeId;
+	}
+
 	const tokenRoot = { ...root };
 	delete tokenRoot.$config;
+	delete tokenRoot.$id;
 
 	return {
 		ok: true,
@@ -148,6 +166,7 @@ export async function loadDesignTokenWorkspace(
 			path: workspacePath,
 			workspaceDir: path.dirname(workspacePath),
 			config: configResult.config,
+			themeId,
 			tokenContent: yaml.dump(tokenRoot, { lineWidth: -1 }),
 		},
 	};

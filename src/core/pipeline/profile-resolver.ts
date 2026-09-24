@@ -19,6 +19,8 @@ export interface ProfileDocument {
 	entry: ProfileEntry;
 	config: DesignTokenBuildConfig;
 	buildDir: string;
+	/** Document-level `$id` (theme identity); only main.yaml may declare one. */
+	themeId?: string | undefined;
 	tokenContent: string;
 }
 
@@ -30,10 +32,14 @@ export interface ProfileParseOptions {
 
 const PROFILE_STEM_RE = /^[A-Za-z0-9 _-]+$/;
 export const NIGHT_SKIP_MESSAGE = 'Night Mode unavailable/invalid and skipped';
+export const PROFILE_ROOT_ID_MESSAGE = '$id is only supported in main.yaml';
+export const NIGHT_ROOT_ID_MESSAGE =
+	'$id is only supported in main.yaml (document identity), not in night overlays';
 
 type MergeNightResult =
 	| { ok: true; tree: Record<string, unknown> }
-	| { ok: false; message: typeof NIGHT_SKIP_MESSAGE };
+	| { ok: false; message: typeof NIGHT_SKIP_MESSAGE }
+	| { ok: false; error: string };
 
 function exists(filePath: string): Promise<boolean> {
 	return fs
@@ -189,10 +195,92 @@ function walkNightLeaves(
 	}
 }
 
+function dayNodeAt(
+	dayTree: Record<string, unknown>,
+	pathParts: string[],
+): Record<string, unknown> | undefined {
+	let current: unknown = dayTree;
+	for (const part of pathParts) {
+		if (typeof current !== 'object' || current === null || Array.isArray(current)) {
+			return undefined;
+		}
+		current = (current as Record<string, unknown>)[part];
+	}
+	return typeof current === 'object' && current !== null && !Array.isArray(current)
+		? (current as Record<string, unknown>)
+		: undefined;
+}
+
+function isNonEmptyIdentity(value: unknown): value is string {
+	return typeof value === 'string' && value.trim() !== '';
+}
+
+/**
+ * Enforce the night identity contract on a mutable night-tree clone:
+ * - group nodes must not carry `$id`
+ * - an override `$id` equal to the base id (or absent) inherits the base id
+ * - an override `$id` that differs from the base id fails the merge
+ * - an override empty slot never strips a non-empty base identity
+ * Returns the first violation message, or undefined when the tree is clean.
+ */
+function enforceNightIdentity(
+	dayTree: Record<string, unknown>,
+	nightTree: Record<string, unknown>,
+): string | undefined {
+	function walk(node: Record<string, unknown>, pathParts: string[]): string | undefined {
+		if ('$value' in node) {
+			if (!('$id' in node)) return undefined;
+			const overrideId = node.$id;
+			const base = dayNodeAt(dayTree, pathParts);
+			const baseId = base?.$id;
+			if (isNonEmptyIdentity(overrideId)) {
+				if (overrideId !== baseId) {
+					const baseLabel = isNonEmptyIdentity(baseId)
+						? `"${baseId}"`
+						: 'no base identity';
+					return `Night overlay token "${pathParts.join('.')}" declares $id "${overrideId}" but the base token has ${baseLabel}; identity is never reassigned by night overlays`;
+				}
+				// Equal to base: inherit by dropping the redundant key.
+				delete node.$id;
+				return undefined;
+			}
+			// Empty slot override: keep it only when the base has no identity.
+			if (isNonEmptyIdentity(baseId)) {
+				delete node.$id;
+			}
+			return undefined;
+		}
+		if ('$id' in node) {
+			return `$id is only supported on the document root and token nodes; remove $id from night group "${pathParts.join('.')}"`;
+		}
+		for (const [key, child] of Object.entries(node)) {
+			if (key.startsWith('$')) continue;
+			if (
+				typeof child !== 'object' ||
+				child === null ||
+				Array.isArray(child)
+			) {
+				continue;
+			}
+			const violation = walk(
+				child as Record<string, unknown>,
+				[...pathParts, key],
+			);
+			if (violation) return violation;
+		}
+		return undefined;
+	}
+
+	return walk(nightTree, []);
+}
+
 export function mergeNightOverlay(
 	dayTree: Record<string, unknown>,
 	nightTree: Record<string, unknown>,
 ): MergeNightResult {
+	if (Object.hasOwn(nightTree, '$id')) {
+		return { ok: false, error: NIGHT_ROOT_ID_MESSAGE };
+	}
 	for (const key of Object.keys(nightTree)) {
 		if (key === '$schema') continue;
 		if (key !== 'theme') return { ok: false, message: NIGHT_SKIP_MESSAGE };
@@ -209,8 +297,15 @@ export function mergeNightOverlay(
 		}
 	}
 
+	const nightClone = cloneJson(nightTree);
+	const identityViolation = enforceNightIdentity(dayTree, nightClone);
+	if (identityViolation) return { ok: false, error: identityViolation };
+
+	const refreshedLeaves: Array<{ path: string[]; value: unknown }> = [];
+	walkNightLeaves(nightClone, [], refreshedLeaves);
+
 	const merged = cloneJson(dayTree);
-	for (const leaf of leaves) assignPath(merged, leaf.path, leaf.value);
+	for (const leaf of refreshedLeaves) assignPath(merged, leaf.path, leaf.value);
 	return { ok: true, tree: merged };
 }
 
@@ -307,13 +402,30 @@ export async function parseProfileDocument(
 	if (!entry.isDefault && configObj.theme !== undefined) {
 		throw new Error('$config.theme is only supported in main.yaml');
 	}
+	// Document-level $id is a main.yaml-only declaration (same style as
+	// $config.theme). Take-then-strip so it never enters the token tree.
+	let themeId: string | undefined;
+	if (Object.hasOwn(root, '$id')) {
+		if (!entry.isDefault) {
+			throw new Error(PROFILE_ROOT_ID_MESSAGE);
+		}
+		const rawThemeId = root.$id;
+		if (typeof rawThemeId !== 'string' || rawThemeId.trim() === '') {
+			throw new Error(
+				'Invalid $id in main.yaml; expected a non-empty string when present',
+			);
+		}
+		themeId = rawThemeId;
+	}
 	if (entry.isDefault && options.defaultConfig) {
 		const tokenRoot = { ...root };
 		delete tokenRoot.$config;
+		delete tokenRoot.$id;
 		return {
 			entry,
 			config: options.defaultConfig,
 			buildDir: options.baseDir,
+			themeId,
 			tokenContent: yaml.dump(tokenRoot, { lineWidth: -1 }),
 		};
 	}
@@ -377,6 +489,7 @@ export async function parseProfileDocument(
 
 	const tokenRoot = { ...root };
 	delete tokenRoot.$config;
+	delete tokenRoot.$id;
 
 	const buildDir = options.baseDir;
 
@@ -393,6 +506,7 @@ export async function parseProfileDocument(
 		entry,
 		buildDir,
 		config: resolvedConfig,
+		themeId,
 		tokenContent: yaml.dump(tokenRoot, { lineWidth: -1 }),
 	};
 }

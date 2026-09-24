@@ -198,6 +198,7 @@ export async function generateTheme(
 		entry: baseProfile,
 		config: workspace.config,
 		buildDir: workspace.workspaceDir,
+		themeId: workspace.themeId,
 		tokenContent: workspace.tokenContent,
 	};
 	const effectiveThemeName = baseDocument.config.theme;
@@ -284,6 +285,11 @@ export async function generateTheme(
 
 		const mergedNight = mergeNightOverlay(dayTree, nightTree);
 		if (!mergedNight.ok) {
+			if ('error' in mergedNight) {
+				const message = `${entry.nightPath}: ${mergedNight.error}`;
+				ctx?.markFailed('parse', message, { phase: 'night merge' });
+				return { ok: false, exitCode: ExitCode.FORMAT_ERROR, message };
+			}
 			warnNightSkipped(entry.name);
 			continue;
 		}

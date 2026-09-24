@@ -269,7 +269,7 @@ describe('profile resolver', () => {
 		const result = mergeNightOverlay(day, night);
 
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
+		if (!result.ok && 'message' in result) {
 			expect(result.message).toBe('Night Mode unavailable/invalid and skipped');
 		}
 	});
@@ -298,8 +298,254 @@ describe('profile resolver', () => {
 		const result = mergeNightOverlay(day, night);
 
 		expect(result.ok).toBe(false);
-		if (!result.ok) {
+		if (!result.ok && 'message' in result) {
 			expect(result.message).toBe('Night Mode unavailable/invalid and skipped');
 		}
+	});
+
+	test('night overlay rejects a root-level $id as a build error', () => {
+		const day = {
+			theme: {
+				color: {
+					primary: { $type: 'color', $value: '#000000' },
+				},
+			},
+		};
+		const night = {
+			$id: 'abc',
+			theme: {
+				color: {
+					primary: { $value: '#ffffff' },
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(false);
+		if (!result.ok && 'error' in result) {
+			expect(result.error).toBe(
+				'$id is only supported in main.yaml (document identity), not in night overlays',
+			);
+		}
+	});
+
+	test('night overlay rejects $id on group nodes', () => {
+		const day = {
+			theme: {
+				color: {
+					primary: { $type: 'color', $value: '#000000' },
+				},
+			},
+		};
+		const night = {
+			theme: {
+				color: {
+					$id: 'group-id',
+					primary: { $value: '#ffffff' },
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(false);
+		if (!result.ok && 'error' in result) {
+			expect(result.error).toContain('night group "theme.color"');
+		}
+	});
+
+	test('night override with the same $id inherits and drops the redundant key', () => {
+		const id = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6';
+		const day = {
+			theme: {
+				color: {
+					primary: { $type: 'color', $value: '#000000', $id: id },
+				},
+			},
+		};
+		const night = {
+			theme: {
+				color: {
+					primary: { $value: '#111111', $id: id },
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			const primary = (
+				result.tree as {
+					theme: { color: { primary: Record<string, unknown> } };
+				}
+			).theme.color.primary;
+			expect(primary.$id).toBe(id);
+			expect(primary.$value).toBe('#111111');
+		}
+	});
+
+	test('night override without $id keeps the base identity', () => {
+		const id = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6';
+		const day = {
+			theme: {
+				color: {
+					primary: { $type: 'color', $value: '#000000', $id: id },
+				},
+			},
+		};
+		const night = {
+			theme: {
+				color: {
+					primary: { $value: '#111111' },
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			const primary = (
+				result.tree as {
+					theme: { color: { primary: Record<string, unknown> } };
+				}
+			).theme.color.primary;
+			expect(primary.$id).toBe(id);
+		}
+	});
+
+	test('night override with a different non-empty $id is a build error', () => {
+		const day = {
+			theme: {
+				color: {
+					primary: {
+						$type: 'color',
+						$value: '#000000',
+						$id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+					},
+				},
+			},
+		};
+		const night = {
+			theme: {
+				color: {
+					primary: {
+						$value: '#111111',
+						$id: 'ffffffffffffffffffffffffffffffff',
+					},
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(false);
+		if (!result.ok && 'error' in result) {
+			expect(result.error).toContain('theme.color.primary');
+			expect(result.error).toContain('never reassigned');
+		}
+	});
+
+	test('night override cannot mint identity for an unregistered base token', () => {
+		const day = {
+			theme: {
+				color: {
+					primary: { $type: 'color', $value: '#000000' },
+				},
+			},
+		};
+		const night = {
+			theme: {
+				color: {
+					primary: {
+						$value: '#111111',
+						$id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+					},
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(false);
+		if (!result.ok && 'error' in result) {
+			expect(result.error).toContain('no base identity');
+		}
+	});
+
+	test('night empty-slot override never strips a non-empty base identity', () => {
+		const id = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6';
+		const day = {
+			theme: {
+				color: {
+					primary: { $type: 'color', $value: '#000000', $id: id },
+				},
+			},
+		};
+		const night = {
+			theme: {
+				color: {
+					primary: { $value: '#111111', $id: null },
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			const primary = (
+				result.tree as {
+					theme: { color: { primary: Record<string, unknown> } };
+				}
+			).theme.color.primary;
+			expect(primary.$id).toBe(id);
+		}
+	});
+
+	test('night empty-slot override keeps the slot when the base is unregistered', () => {
+		const day = {
+			theme: {
+				color: {
+					primary: { $type: 'color', $value: '#000000' },
+				},
+			},
+		};
+		const night = {
+			theme: {
+				color: {
+					primary: { $value: '#111111', $id: null },
+				},
+			},
+		};
+
+		const result = mergeNightOverlay(day, night);
+
+		expect(result.ok).toBe(true);
+		if (result.ok) {
+			const primary = (
+				result.tree as {
+					theme: { color: { primary: Record<string, unknown> } };
+				}
+			).theme.color.primary;
+			expect(primary.$id).toBeNull();
+		}
+	});
+
+	test('named profile root-level $id is rejected like $config.theme', async () => {
+		const invalidDir = path.join(fixtureDir, 'root-id-in-profile-invalid');
+		const profiles = await discoverProfiles(invalidDir);
+		const main = profiles.find((profile) => profile.name === 'main')!;
+		const mobile = profiles.find((profile) => profile.name === 'mobile')!;
+		const base = await parseProfileDocument(main, { baseDir: invalidDir });
+
+		await expect(
+			parseProfileDocument(mobile, {
+				baseConfig: base.config,
+				baseDir: invalidDir,
+			}),
+		).rejects.toThrow('$id is only supported in main.yaml');
 	});
 });

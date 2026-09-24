@@ -256,6 +256,77 @@ theme: {}
 		expect(result.message).toContain('parameter.platform');
 	});
 
+	test('reads document-level $id into themeId and strips it from the token tree', async () => {
+		const dir = await makeTempDir();
+		const id = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6';
+		await writeMain(
+			dir,
+			`$id: ${id}
+$config:
+  theme: orca
+theme:
+  color:
+    ink:
+      $value: "#111111"
+`,
+		);
+
+		const result = await loadDesignTokenWorkspace(undefined, dir);
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(result.workspace.themeId).toBe(id);
+		expect(result.workspace.tokenContent).not.toContain('$id');
+		expect(result.workspace.tokenContent).toContain('theme:');
+	});
+
+	test('builds without a document-level $id (themeId stays undefined)', async () => {
+		const dir = await makeTempDir();
+		await writeMain(dir, '$config:\n  theme: orca\ntheme: {}\n');
+
+		const result = await loadDesignTokenWorkspace(undefined, dir);
+
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(result.workspace.themeId).toBeUndefined();
+	});
+
+	test('rejects a non-string document-level $id as FORMAT_ERROR', async () => {
+		const dir = await makeTempDir();
+		const mainPath = await writeMain(
+			dir,
+			'$id: [not, a, string]\n$config:\n  theme: orca\ntheme: {}\n',
+		);
+
+		const result = await loadDesignTokenWorkspace(mainPath, dir);
+
+		expect(result).toMatchObject({
+			ok: false,
+			exitCode: ExitCode.FORMAT_ERROR,
+			path: mainPath,
+		});
+		if (result.ok) return;
+		expect(result.message).toContain('$id');
+	});
+
+	test('rejects an empty document-level $id as FORMAT_ERROR', async () => {
+		const dir = await makeTempDir();
+		const mainPath = await writeMain(
+			dir,
+			'$id: ""\n$config:\n  theme: orca\ntheme: {}\n',
+		);
+
+		const result = await loadDesignTokenWorkspace(mainPath, dir);
+
+		expect(result).toMatchObject({
+			ok: false,
+			exitCode: ExitCode.FORMAT_ERROR,
+			path: mainPath,
+		});
+		if (result.ok) return;
+		expect(result.message).toContain('$id');
+	});
+
 	test('returns GENERAL_ERROR for a main.yaml that cannot be read', async () => {
 		if (process.platform === 'win32' || process.getuid?.() === 0) return;
 		const cwd = await makeTempDir();
