@@ -39,6 +39,7 @@
 # Node.js
 **/node_modules/
 **/package-lock.json
+**/.pnpm-store/
 
 # Python
 **/__pycache__/
@@ -71,3 +72,5 @@ dist/
 
 # Biome
 .biome/
+
+.foglamp/
