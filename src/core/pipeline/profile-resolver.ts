@@ -201,12 +201,18 @@ function dayNodeAt(
 ): Record<string, unknown> | undefined {
 	let current: unknown = dayTree;
 	for (const part of pathParts) {
-		if (typeof current !== 'object' || current === null || Array.isArray(current)) {
+		if (
+			typeof current !== 'object' ||
+			current === null ||
+			Array.isArray(current)
+		) {
 			return undefined;
 		}
 		current = (current as Record<string, unknown>)[part];
 	}
-	return typeof current === 'object' && current !== null && !Array.isArray(current)
+	return typeof current === 'object' &&
+		current !== null &&
+		!Array.isArray(current)
 		? (current as Record<string, unknown>)
 		: undefined;
 }
@@ -227,7 +233,10 @@ function enforceNightIdentity(
 	dayTree: Record<string, unknown>,
 	nightTree: Record<string, unknown>,
 ): string | undefined {
-	function walk(node: Record<string, unknown>, pathParts: string[]): string | undefined {
+	function walk(
+		node: Record<string, unknown>,
+		pathParts: string[],
+	): string | undefined {
 		if ('$value' in node) {
 			if (!('$id' in node)) return undefined;
 			const overrideId = node.$id;
@@ -255,17 +264,13 @@ function enforceNightIdentity(
 		}
 		for (const [key, child] of Object.entries(node)) {
 			if (key.startsWith('$')) continue;
-			if (
-				typeof child !== 'object' ||
-				child === null ||
-				Array.isArray(child)
-			) {
+			if (typeof child !== 'object' || child === null || Array.isArray(child)) {
 				continue;
 			}
-			const violation = walk(
-				child as Record<string, unknown>,
-				[...pathParts, key],
-			);
+			const violation = walk(child as Record<string, unknown>, [
+				...pathParts,
+				key,
+			]);
 			if (violation) return violation;
 		}
 		return undefined;

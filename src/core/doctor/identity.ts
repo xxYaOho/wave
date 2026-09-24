@@ -99,9 +99,7 @@ function referenceTargetSegments(value: unknown): string[] | undefined {
 		const segments = ref
 			.slice(2)
 			.split('/')
-			.map((segment) =>
-				segment.replace(/~1/g, '/').replace(/~0/g, '~'),
-			);
+			.map((segment) => segment.replace(/~1/g, '/').replace(/~0/g, '~'));
 		return segments.length > 0 ? segments : undefined;
 	}
 	return undefined;
@@ -145,9 +143,8 @@ function resolvableReferenceType(
 			current = next;
 		}
 		if (!found || !isRecord(current) || !('$value' in current)) continue;
-		const explicitType = typeof current.$type === 'string'
-			? (current.$type as string)
-			: undefined;
+		const explicitType =
+			typeof current.$type === 'string' ? (current.$type as string) : undefined;
 		if (explicitType !== undefined) return explicitType;
 		if (inheritedType !== undefined) return inheritedType;
 		return resolvableReferenceType(current.$value, trees, seen);
@@ -241,12 +238,7 @@ export function collectThemeIdentityReport(
 		}
 		for (const [key, child] of Object.entries(node)) {
 			if (key.startsWith('$') || key === 'doctor') continue;
-			walkOverlay(
-				child,
-				path ? `${path}.${key}` : key,
-				file,
-				baseTree,
-			);
+			walkOverlay(child, path ? `${path}.${key}` : key, file, baseTree);
 		}
 	}
 
@@ -262,7 +254,7 @@ export function collectThemeIdentityReport(
 		if ('$value' in node) {
 			const occurrence: IdentityOccurrence = { file, path };
 			const id = node.$id;
-			if (!( '$id' in node)) {
+			if (!('$id' in node)) {
 				report.unregistered.push(occurrence);
 			} else if (isEmptySlot(id)) {
 				report.emptySlots.push(occurrence);
@@ -279,10 +271,10 @@ export function collectThemeIdentityReport(
 			// a resolvable typed reference target, and pending $extends
 			// expansion decide the type; anything else would require guessing.
 			const value = node.$value;
-			const explicitType = typeof node.$type === 'string'
-				? (node.$type as string)
-				: undefined;
-			const referenceTyped = isReferenceValue(value) &&
+			const explicitType =
+				typeof node.$type === 'string' ? (node.$type as string) : undefined;
+			const referenceTyped =
+				isReferenceValue(value) &&
 				resolvableReferenceType(value, scanTrees) !== undefined;
 			const colorRootTyped = path.split('.').slice(0, -1).pop() === 'color';
 			if (
@@ -358,8 +350,7 @@ export function collectThemeIdentityReport(
 			kind: 'divergent-id',
 			id: registrations[0]!.id,
 			occurrences: registrations.map((item) => ({ file: item.file, path })),
-			crossFile:
-				new Set(registrations.map((item) => item.file)).size > 1,
+			crossFile: new Set(registrations.map((item) => item.file)).size > 1,
 			ids,
 		});
 	}
@@ -388,23 +379,18 @@ export function identityBlockingFindings(
 			if (conflict.kind === 'duplicate-id') {
 				return {
 					level: 'error' as const,
-					message: `Cross-file token $id conflict "${conflict.id}": ${
-						conflict.occurrences
-							.map(
-								(occurrence) =>
-									`${occurrence.file}:${occurrence.path}`,
-							)
-							.join(', ')
-					}`,
+					message: `Cross-file token $id conflict "${conflict.id}": ${conflict.occurrences
+						.map((occurrence) => `${occurrence.file}:${occurrence.path}`)
+						.join(', ')}`,
 				};
 			}
 			return {
 				level: 'error' as const,
-				message: `Cross-file token $id conflict at "${conflict.occurrences[0]?.path ?? ''}": ${
-					conflict.occurrences
-						.map((occurrence) => occurrence.file)
-						.join(', ')
-				} (${(conflict.ids ?? []).map((id) => `"${id}"`).join(' vs ')})`,
+				message: `Cross-file token $id conflict at "${conflict.occurrences[0]?.path ?? ''}": ${conflict.occurrences
+					.map((occurrence) => occurrence.file)
+					.join(
+						', ',
+					)} (${(conflict.ids ?? []).map((id) => `"${id}"`).join(' vs ')})`,
 			};
 		});
 	const typeFindings = report.undecidableTypes.map(
@@ -444,7 +430,11 @@ export async function loadIdentityInputs(
 		const tree = trees.get(file.label);
 		if (!tree) continue;
 		const baseTree = file.baseLabel ? trees.get(file.baseLabel) : undefined;
-		inputs.push(baseTree ? { file: file.label, tree, baseTree } : { file: file.label, tree });
+		inputs.push(
+			baseTree
+				? { file: file.label, tree, baseTree }
+				: { file: file.label, tree },
+		);
 	}
 	return inputs;
 }

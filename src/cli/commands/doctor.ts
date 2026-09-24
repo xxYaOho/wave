@@ -1,5 +1,5 @@
-import { Command } from 'commander';
 import * as path from 'node:path';
+import { Command } from 'commander';
 import * as yaml from 'js-yaml';
 import {
 	findDimensionMigrationFindings,
@@ -10,10 +10,12 @@ import {
 	identityBlockingFindings,
 	loadIdentityInputs,
 } from '../../core/doctor/identity.ts';
-import { detectThemeFiles } from '../../core/doctor/theme-context.ts';
 import { runThemeContrastCheck } from '../../core/doctor/registry.ts';
 import { validateDeclaredResources } from '../../core/doctor/resource-validator.ts';
-import { createThemeDoctorContextFromContent } from '../../core/doctor/theme-context.ts';
+import {
+	createThemeDoctorContextFromContent,
+	detectThemeFiles,
+} from '../../core/doctor/theme-context.ts';
 import { runToolchainDoctor } from '../../core/doctor/toolchain.ts';
 import {
 	discoverProfiles,
@@ -212,11 +214,15 @@ async function renderThemeIdentityReport(
 			);
 		}
 	};
-	printOccurrences('unregistered', report.unregistered, (item) =>
-		`${item.path} (${item.file})`,
+	printOccurrences(
+		'unregistered',
+		report.unregistered,
+		(item) => `${item.path} (${item.file})`,
 	);
-	printOccurrences('empty $id slot', report.emptySlots, (item) =>
-		`${item.path} (${item.file})`,
+	printOccurrences(
+		'empty $id slot',
+		report.emptySlots,
+		(item) => `${item.path} (${item.file})`,
 	);
 	printOccurrences(
 		'non-canonical id form (hint)',
@@ -250,8 +256,9 @@ async function renderThemeIdentityReport(
 			continue;
 		}
 		console.log(
-			`  ${prefix} ${label} $id conflict at "${conflict.occurrences[0]
-				?.path ?? ''}": ${conflict.occurrences
+			`  ${prefix} ${label} $id conflict at "${
+				conflict.occurrences[0]?.path ?? ''
+			}": ${conflict.occurrences
 				.map((occurrence) => occurrence.file)
 				.join(', ')} (${(conflict.ids ?? [])
 				.map((id) => `"${id}"`)

@@ -1,10 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import {
-	type ResolvedTokenGroup,
-	type WaveToken,
-} from '../src/types/index.ts';
 import { resolveReferences } from '../src/core/resolver/index.ts';
 import { transformToWaveTokens } from '../src/core/transformer/index.ts';
+import type { ResolvedTokenGroup, WaveToken } from '../src/types/index.ts';
 
 const HEX = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6';
 const HEX_ALT = 'ffffffffffffffffffffffffffffffff';
@@ -22,9 +19,8 @@ describe('token identity through the resolver', () => {
 
 		const { tree: resolved } = resolveReferences(tree as never, {});
 
-		const primary = (
-			(resolved as Record<string, any>).theme.color.primary
-		) as Record<string, unknown>;
+		const primary = (resolved as { theme: { color: Record<string, unknown> } })
+			.theme.color.primary as Record<string, unknown>;
 		expect(primary.$id).toBe(HEX);
 	});
 
@@ -41,7 +37,8 @@ describe('token identity through the resolver', () => {
 
 		const { tree: resolved } = resolveReferences(tree as never, {});
 
-		const color = (resolved as Record<string, any>).theme.color;
+		const color = (resolved as { theme: { color: Record<string, unknown> } })
+			.theme.color;
 		expect((color.primary as Record<string, unknown>).$id).toBe(HEX);
 		// The referencing token keeps its own identity; no silent reassignment.
 		expect((color.alias as Record<string, unknown>).$id).toBe(HEX_ALT);
@@ -65,8 +62,9 @@ describe('token identity through the resolver', () => {
 
 		const { tree: resolved } = resolveReferences(tree as never, {});
 
-		const extended = ((resolved as Record<string, any>).theme.component
-			.extended) as Record<string, unknown>;
+		const extended = (
+			resolved as { theme: { component: Record<string, unknown> } }
+		).theme.component.extended as Record<string, unknown>;
 		expect((extended.fill as Record<string, unknown>).$id).toBe(HEX_ALT);
 	});
 });

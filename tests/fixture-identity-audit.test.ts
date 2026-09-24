@@ -26,7 +26,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isReferenceValue(value: unknown): boolean {
 	return (
-		(typeof value === 'string' && /^\{[a-zA-Z][a-zA-Z0-9-./]*\}$/.test(value)) ||
+		(typeof value === 'string' &&
+			/^\{[a-zA-Z][a-zA-Z0-9-./]*\}$/.test(value)) ||
 		(isRecord(value) && typeof value.$ref === 'string')
 	);
 }
@@ -75,8 +76,7 @@ function walk(
 		return;
 	}
 
-	const groupType =
-		typeof node.$type === 'string' ? node.$type : inheritedType;
+	const groupType = typeof node.$type === 'string' ? node.$type : inheritedType;
 	const nextChainHasExtends = chainHasExtends || '$extends' in node;
 	for (const [key, child] of Object.entries(node)) {
 		if (key.startsWith('$')) continue;

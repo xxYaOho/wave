@@ -260,7 +260,9 @@ describe('dt doctor token identity output', () => {
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Token Identity');
 		expect(stdout).toContain('registered 2');
-		expect(stdout).toContain('empty $id slot: theme.color.reserved (main.yaml)');
+		expect(stdout).toContain(
+			'empty $id slot: theme.color.reserved (main.yaml)',
+		);
 		expect(stdout).toContain(
 			'non-canonical id form (hint): theme.color.custom "brand-legacy-id" (main.yaml)',
 		);
