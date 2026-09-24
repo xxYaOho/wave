@@ -215,7 +215,7 @@ describe('transformToWaveTokens', () => {
 						focus: {
 							$type: 'border',
 							$value: { color: '#000000', width: 1, style: 'solid' },
-							$extensions: { outline: { offset: 2 } },
+							$extensions: { platform: { sketch: { outline: { offset: 2 } } } },
 						},
 					},
 				},
@@ -246,7 +246,7 @@ describe('transformToWaveTokens', () => {
 							width: { value: 2, unit: 'px' },
 							style: 'solid',
 						},
-						$extensions: { outline: { offset: 2 } },
+						$extensions: { platform: { sketch: { outline: { offset: 2 } } } },
 					},
 				},
 			},

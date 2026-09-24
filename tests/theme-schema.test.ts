@@ -62,7 +62,9 @@ describe('theme schema', () => {
 					disabled: {
 						$type: 'number',
 						$value: 0.5,
-						$extensions: { sketch: { property: { opacity: true } } },
+						$extensions: {
+							platform: { sketch: { property: { opacity: true } } },
+						},
 					},
 				},
 			},
@@ -555,8 +557,12 @@ describe('theme schema', () => {
 								style: 'solid',
 							},
 							$extensions: {
-								outline: {
-									offset: 2,
+								platform: {
+									sketch: {
+										outline: {
+											offset: 2,
+										},
+									},
 								},
 							},
 						},
@@ -577,8 +583,12 @@ describe('theme schema', () => {
 						$type: 'color',
 						$value: '#000000',
 						$extensions: {
-							outline: {
-								offset: 2,
+							platform: {
+								sketch: {
+									outline: {
+										offset: 2,
+									},
+								},
 							},
 						},
 					},
@@ -601,8 +611,12 @@ describe('theme schema', () => {
 					focus: {
 						$value: { color: '#000000', width: 1, style: 'solid' },
 						$extensions: {
-							outline: {
-								offset: 2,
+							platform: {
+								sketch: {
+									outline: {
+										offset: 2,
+									},
+								},
 							},
 						},
 					},
@@ -626,8 +640,12 @@ describe('theme schema', () => {
 						$type: 'border',
 						$value: { color: '#000000', width: 1, style: 'solid' },
 						$extensions: {
-							outline: {
-								offset: -1,
+							platform: {
+								sketch: {
+									outline: {
+										offset: -1,
+									},
+								},
 							},
 						},
 					},
@@ -1086,9 +1104,11 @@ describe('theme schema', () => {
 						$type: 'number',
 						$value: 0.16,
 						$extensions: {
-							sketch: {
-								property: {
-									opacity: true,
+							platform: {
+								sketch: {
+									property: {
+										opacity: true,
+									},
 								},
 							},
 						},
@@ -1109,9 +1129,11 @@ describe('theme schema', () => {
 						$type: 'dimension',
 						$value: { value: 8, unit: 'px' },
 						$extensions: {
-							sketch: {
-								property: {
-									cornerRadius: true,
+							platform: {
+								sketch: {
+									property: {
+										cornerRadius: true,
+									},
 								},
 							},
 						},
@@ -1132,9 +1154,11 @@ describe('theme schema', () => {
 						$type: 'number',
 						$value: 8,
 						$extensions: {
-							sketch: {
-								property: {
-									opacity: true,
+							platform: {
+								sketch: {
+									property: {
+										opacity: true,
+									},
 								},
 							},
 						},

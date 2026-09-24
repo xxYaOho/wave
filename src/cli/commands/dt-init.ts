@@ -31,9 +31,10 @@ theme:
       $type: number
       $value: "{TOKEN}"
       $extensions:
-        sketch:
-          property:
-            opacity: true
+        platform:
+          sketch:
+            property:
+              opacity: true
   radius:
     md:
       $type: dimension
@@ -51,8 +52,10 @@ theme:
           width: "{TOKEN}"
           style: solid
         $extensions:
-          outline:
-            offset: "{TOKEN}"
+          platform:
+            sketch:
+              outline:
+                offset: "{TOKEN}"
   shadow:
     elevation:
       low:

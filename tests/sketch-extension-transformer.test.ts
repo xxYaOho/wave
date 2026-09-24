@@ -14,10 +14,14 @@ function tokenByName(
 
 describe('sketch extension transformer', () => {
 	test('parses skip-only extensions and retains explicit false', () => {
-		expect(parseSketchExtension({ sketch: { skip: true } })).toEqual({
+		expect(
+			parseSketchExtension({ platform: { sketch: { skip: true } } }),
+		).toEqual({
 			skip: true,
 		});
-		expect(parseSketchExtension({ sketch: { skip: false } })).toEqual({
+		expect(
+			parseSketchExtension({ platform: { sketch: { skip: false } } }),
+		).toEqual({
 			skip: false,
 		});
 	});
@@ -31,9 +35,11 @@ describe('sketch extension transformer', () => {
 							$type: 'number',
 							$value: 0.16,
 							$extensions: {
-								sketch: {
-									path: 'foundation/interaction/hover',
-									property: { opacity: true },
+								platform: {
+									sketch: {
+										path: 'foundation/interaction/hover',
+										property: { opacity: true },
+									},
 								},
 							},
 						},
@@ -82,7 +88,7 @@ describe('sketch extension transformer', () => {
 							$value: 8,
 							$extensions: {
 								sketchMap: 'opacity',
-								sketch: { property: { cornerRadius: true } },
+								platform: { sketch: { property: { cornerRadius: true } } },
 							},
 						},
 					},
@@ -101,7 +107,7 @@ describe('sketch extension transformer', () => {
 			theme: {
 				color: {
 					$type: 'color',
-					$extensions: { sketch: { path: 'foundation/color' } },
+					$extensions: { platform: { sketch: { path: 'foundation/color' } } },
 					primary: { $value: '#1872f0' },
 				},
 			},
@@ -116,10 +122,10 @@ describe('sketch extension transformer', () => {
 	test('uses nearest group sketch.path over ancestor path', () => {
 		const resolved: ResolvedTokenGroup = {
 			theme: {
-				$extensions: { sketch: { path: 'foundation/theme' } },
+				$extensions: { platform: { sketch: { path: 'foundation/theme' } } },
 				color: {
 					$type: 'color',
-					$extensions: { sketch: { path: 'foundation/color' } },
+					$extensions: { platform: { sketch: { path: 'foundation/color' } } },
 					primary: { $value: '#1872f0' },
 				},
 			},
@@ -136,10 +142,10 @@ describe('sketch extension transformer', () => {
 			theme: {
 				color: {
 					$type: 'color',
-					$extensions: { sketch: { path: 'foundation/color' } },
+					$extensions: { platform: { sketch: { path: 'foundation/color' } } },
 					primary: {
 						$value: '#1872f0',
-						$extensions: { sketch: { path: 'foundation/brand' } },
+						$extensions: { platform: { sketch: { path: 'foundation/brand' } } },
 					},
 				},
 			},
@@ -157,9 +163,11 @@ describe('sketch extension transformer', () => {
 				dimension: {
 					$type: 'number',
 					$extensions: {
-						sketch: {
-							path: 'foundation/interaction',
-							property: { opacity: true },
+						platform: {
+							sketch: {
+								path: 'foundation/interaction',
+								property: { opacity: true },
+							},
 						},
 					},
 					hover: { $value: 0.16 },
@@ -178,10 +186,14 @@ describe('sketch extension transformer', () => {
 			theme: {
 				dimension: {
 					$type: 'number',
-					$extensions: { sketch: { path: 'foundation/interaction' } },
+					$extensions: {
+						platform: { sketch: { path: 'foundation/interaction' } },
+					},
 					hover: {
 						$value: 0.16,
-						$extensions: { sketch: { property: { opacity: true } } },
+						$extensions: {
+							platform: { sketch: { property: { opacity: true } } },
+						},
 					},
 				},
 			},
@@ -202,7 +214,7 @@ describe('sketch extension transformer', () => {
 				button: {
 					$extensions: {
 						composite: true,
-						sketch: { path: 'component/button' },
+						platform: { sketch: { path: 'component/button' } },
 					},
 					fill: { $type: 'color', $value: '#1872f0' },
 					radius: { $type: 'dimension', $value: 8 },
@@ -224,15 +236,15 @@ describe('sketch extension transformer', () => {
 				color: {
 					$type: 'color',
 					$extensions: {
-						sketch: { path: 'foundation/color', skip: true },
+						platform: { sketch: { path: 'foundation/color', skip: true } },
 					},
 					hidden: { $value: '#111111' },
 					keep: {
 						$value: '#222222',
-						$extensions: { sketch: { skip: false } },
+						$extensions: { platform: { sketch: { skip: false } } },
 					},
 					brand: {
-						$extensions: { sketch: { skip: false } },
+						$extensions: { platform: { sketch: { skip: false } } },
 						primary: { $value: '#333333' },
 					},
 				},
@@ -260,13 +272,13 @@ describe('sketch extension transformer', () => {
 				button: {
 					$extensions: {
 						composite: true,
-						sketch: { path: 'component/button', skip: true },
+						platform: { sketch: { path: 'component/button', skip: true } },
 					},
 					fill: { $type: 'color', $value: '#1872f0' },
 					radius: {
 						$type: 'dimension',
 						$value: 8,
-						$extensions: { sketch: { skip: false } },
+						$extensions: { platform: { sketch: { skip: false } } },
 					},
 				},
 			},

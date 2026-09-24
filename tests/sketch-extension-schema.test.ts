@@ -7,10 +7,10 @@ describe('sketch extension schema', () => {
 			theme: {
 				color: {
 					$type: 'color',
-					$extensions: { sketch: { skip: true } },
+					$extensions: { platform: { sketch: { skip: true } } },
 					primary: {
 						$value: '#1872f0',
-						$extensions: { sketch: { skip: false } },
+						$extensions: { platform: { sketch: { skip: false } } },
 					},
 				},
 			},
@@ -25,10 +25,10 @@ describe('sketch extension schema', () => {
 				theme: {
 					color: {
 						$type: 'color',
-						$extensions: { sketch: { skip } },
+						$extensions: { platform: { sketch: { skip } } },
 						primary: {
 							$value: '#1872f0',
-							$extensions: { sketch: { skip } },
+							$extensions: { platform: { sketch: { skip } } },
 						},
 					},
 				},
@@ -52,9 +52,11 @@ describe('sketch extension schema', () => {
 							$type: 'number',
 							$value: 0.16,
 							$extensions: {
-								sketch: {
-									path: 'foundation/interaction/hover',
-									property: { opacity: true },
+								platform: {
+									sketch: {
+										path: 'foundation/interaction/hover',
+										property: { opacity: true },
+									},
 								},
 							},
 						},
@@ -75,7 +77,7 @@ describe('sketch extension schema', () => {
 							$type: 'number',
 							$value: 0.16,
 							$extensions: {
-								sketch: { property: { fillColor: true } },
+								platform: { sketch: { property: { fillColor: true } } },
 							},
 						},
 					},
@@ -99,7 +101,7 @@ describe('sketch extension schema', () => {
 						$type: 'color',
 						$value: '#000000',
 						$extensions: {
-							sketch: { swatch: true },
+							platform: { sketch: { swatch: true } },
 						},
 					},
 				},
@@ -133,7 +135,7 @@ describe('sketch extension schema', () => {
 							$type: 'color',
 							$value: '#000000',
 							$extensions: {
-								sketch: { path: pathValue },
+								platform: { sketch: { path: pathValue } },
 							},
 						},
 					},
@@ -160,7 +162,7 @@ describe('sketch extension schema', () => {
 							$type: 'number',
 							$value: 0.16,
 							$extensions: {
-								sketch: { property: { opacity: 'ture' } },
+								platform: { sketch: { property: { opacity: 'ture' } } },
 							},
 						},
 					},
@@ -185,7 +187,7 @@ describe('sketch extension schema', () => {
 							$type: 'color',
 							$value: '#000000',
 							$extensions: {
-								sketch: { property: { opacity: true } },
+								platform: { sketch: { property: { opacity: true } } },
 							},
 						},
 					},
@@ -212,7 +214,7 @@ describe('sketch extension schema', () => {
 						hover: {
 							$value: '#000000',
 							$extensions: {
-								sketch: { property: { opacity: true } },
+								platform: { sketch: { property: { opacity: true } } },
 							},
 						},
 					},
@@ -239,7 +241,7 @@ describe('sketch extension schema', () => {
 						hover: {
 							$value: 0.16,
 							$extensions: {
-								sketch: { property: { opacity: true } },
+								platform: { sketch: { property: { opacity: true } } },
 							},
 						},
 					},
@@ -258,7 +260,7 @@ describe('sketch extension schema', () => {
 						$type: 'number',
 						$value: 0.16,
 						$extensions: {
-							sketch: { property: { opacity: true } },
+							platform: { sketch: { property: { opacity: true } } },
 						},
 					},
 				},
@@ -279,7 +281,7 @@ describe('sketch extension schema', () => {
 				color: {
 					$type: 'color',
 					$extensions: {
-						sketch: { path: 'foundation/color' },
+						platform: { sketch: { path: 'foundation/color' } },
 					},
 					primary: { $value: '#1872f0' },
 				},
@@ -295,7 +297,7 @@ describe('sketch extension schema', () => {
 				color: {
 					$type: 'color',
 					$extensions: {
-						sketch: { path: 'foundation.color' },
+						platform: { sketch: { path: 'foundation.color' } },
 					},
 					primary: { $value: '#1872f0' },
 				},
@@ -306,7 +308,7 @@ describe('sketch extension schema', () => {
 		expect(
 			result.issues.some(
 				(issue) =>
-					issue.path === 'theme.color.$extensions.sketch.path' &&
+					issue.path === 'theme.color.$extensions.platform.sketch.path' &&
 					issue.message.includes(
 						'sketch.path must be a slash-delimited group path',
 					),
@@ -320,7 +322,7 @@ describe('sketch extension schema', () => {
 				color: {
 					$type: 'color',
 					$extensions: {
-						sketch: { property: { opacity: true } },
+						platform: { sketch: { property: { opacity: true } } },
 					},
 					primary: { $value: '#1872f0' },
 				},
@@ -331,7 +333,7 @@ describe('sketch extension schema', () => {
 		expect(
 			result.issues.some(
 				(issue) =>
-					issue.path === 'theme.color.$extensions.sketch.property' &&
+					issue.path === 'theme.color.$extensions.platform.sketch.property' &&
 					issue.message.includes(
 						'sketch.property is only supported on token extensions',
 					),

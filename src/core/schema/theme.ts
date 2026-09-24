@@ -47,6 +47,10 @@ const KNOWN_EXTENSIONS = new Set([
 	'smoothGradient',
 	'currentColor', // deprecated: use inheritColor instead
 	'inheritColor',
+	'platform',
+	// "sketch" / "outline" are legacy forms: not accepted, but listed here so
+	// the dedicated rejection below carries the migration hint instead of a
+	// generic unknown-extension warning.
 	'sketch',
 	'outline',
 	'typography',
@@ -59,8 +63,36 @@ const EXTENSION_TYPE_MAP: Record<string, string> = {
 };
 
 const SKETCH_PROPERTY_KEYS = new Set(['opacity', 'cornerRadius']);
-const SKETCH_KEYS = new Set(['path', 'property', 'skip']);
+const PLATFORM_SKETCH_KEYS = new Set(['path', 'property', 'skip', 'outline']);
 const SKETCH_PATH_PATTERN = /^[^/.\s][^/.]*(?:\/[^/.\s][^/.]*)*$/;
+
+const MIGRATE_HINT =
+	'run `wave dt migrate-extensions` to rename legacy sketch extensions';
+
+/**
+ * Legacy sketch family (`$extensions.sketch.*` / `$extensions.outline`) is
+ * rejected outright (Decision 9: no compatibility layer).
+ */
+function rejectLegacySketchExtensions(
+	extensions: Record<string, unknown>,
+	tokenPath: string,
+	issues: ThemeSchemaIssue[],
+): void {
+	if ('sketch' in extensions) {
+		issues.push({
+			path: `${tokenPath}.$extensions.sketch`,
+			level: 'error',
+			message: `legacy extension "sketch" is no longer supported; rename it to "platform.sketch" — ${MIGRATE_HINT}`,
+		});
+	}
+	if ('outline' in extensions) {
+		issues.push({
+			path: `${tokenPath}.$extensions.outline`,
+			level: 'error',
+			message: `legacy extension "outline" is no longer supported; rename it to "platform.sketch.outline" — ${MIGRATE_HINT}`,
+		});
+	}
+}
 
 function checkDanglingJsonPointer(
 	value: unknown,
@@ -195,39 +227,32 @@ function sketchPropertyRootMessage(propertyKey: string): string {
 	return `sketch.property.${propertyKey} must be under a dimension or state root for Sketch property output`;
 }
 
-function validateSketchExtension(
-	extensions: Record<string, unknown>,
-	tokenType: string | undefined,
+/**
+ * Sketch-family rule contract for the new `$extensions.platform.sketch`
+ * mount point. Group-level `outline` stays silently ignored — parity with
+ * the legacy behavior, where group validation never inspected outline.
+ */
+function validatePlatformSketchRecord(
+	sketchObj: Record<string, unknown>,
+	prefix: string,
 	tokenPath: string,
+	tokenType: string | undefined,
 	issues: ThemeSchemaIssue[],
-	context: 'token' | 'group' = 'token',
+	context: 'token' | 'group',
 ): void {
-	if (!('sketch' in extensions)) return;
-
-	const sketch = extensions.sketch;
-	if (typeof sketch !== 'object' || sketch === null || Array.isArray(sketch)) {
-		issues.push({
-			path: `${tokenPath}.$extensions.sketch`,
-			level: 'error',
-			message: 'sketch extension must be an object',
-		});
-		return;
-	}
-
-	const sketchObj = sketch as Record<string, unknown>;
 	for (const key of Object.keys(sketchObj)) {
-		if (!SKETCH_KEYS.has(key)) {
+		if (!PLATFORM_SKETCH_KEYS.has(key)) {
 			issues.push({
-				path: `${tokenPath}.$extensions.sketch.${key}`,
+				path: `${prefix}.${key}`,
 				level: 'error',
-				message: `Unknown sketch field "${key}". Supported fields: path, property, skip`,
+				message: `Unknown sketch field "${key}". Supported fields: path, property, skip, outline`,
 			});
 		}
 	}
 
 	if ('skip' in sketchObj && typeof sketchObj.skip !== 'boolean') {
 		issues.push({
-			path: `${tokenPath}.$extensions.sketch.skip`,
+			path: `${prefix}.skip`,
 			level: 'error',
 			message: 'sketch.skip must be a boolean',
 		});
@@ -235,7 +260,7 @@ function validateSketchExtension(
 
 	if (context === 'group' && 'property' in sketchObj) {
 		issues.push({
-			path: `${tokenPath}.$extensions.sketch.property`,
+			path: `${prefix}.property`,
 			level: 'error',
 			message: 'sketch.property is only supported on token extensions',
 		});
@@ -248,12 +273,25 @@ function validateSketchExtension(
 			!SKETCH_PATH_PATTERN.test(sketchObj.path)
 		) {
 			issues.push({
-				path: `${tokenPath}.$extensions.sketch.path`,
+				path: `${prefix}.path`,
 				level: 'error',
 				message:
 					'sketch.path must be a slash-delimited group path without empty segments or dots',
 			});
 		}
+	}
+
+	// Outline lives inside the new-form platform.sketch on tokens only. At group
+	// level it stays silently ignored — parity with the legacy top-level
+	// outline extension, which group validation never inspected.
+	if (context === 'token' && 'outline' in sketchObj) {
+		validateOutlineValue(
+			sketchObj.outline,
+			tokenType,
+			`${prefix}.outline`,
+			`${prefix}.outline`,
+			issues,
+		);
 	}
 
 	if (context === 'group' || !('property' in sketchObj)) return;
@@ -264,7 +302,7 @@ function validateSketchExtension(
 		Array.isArray(property)
 	) {
 		issues.push({
-			path: `${tokenPath}.$extensions.sketch.property`,
+			path: `${prefix}.property`,
 			level: 'error',
 			message: 'sketch.property must be an object',
 		});
@@ -275,7 +313,7 @@ function validateSketchExtension(
 	for (const [key, value] of Object.entries(propertyObj)) {
 		if (!SKETCH_PROPERTY_KEYS.has(key)) {
 			issues.push({
-				path: `${tokenPath}.$extensions.sketch.property.${key}`,
+				path: `${prefix}.property.${key}`,
 				level: 'error',
 				message: `Unknown sketch property "${key}". Supported properties: opacity, cornerRadius`,
 			});
@@ -283,7 +321,7 @@ function validateSketchExtension(
 		}
 		if (value !== true) {
 			issues.push({
-				path: `${tokenPath}.$extensions.sketch.property.${key}`,
+				path: `${prefix}.property.${key}`,
 				level: 'error',
 				message: `sketch.property.${key} must be true`,
 			});
@@ -294,14 +332,14 @@ function validateSketchExtension(
 			tokenType !== 'dimension'
 		) {
 			issues.push({
-				path: `${tokenPath}.$extensions.sketch.property.${key}`,
+				path: `${prefix}.property.${key}`,
 				level: 'error',
 				message: `${key} requires $type "number" or "dimension", got "${tokenType}"`,
 			});
 		}
 		if (!isSketchPropertyPath(key, tokenPath)) {
 			issues.push({
-				path: `${tokenPath}.$extensions.sketch.property.${key}`,
+				path: `${prefix}.property.${key}`,
 				level: 'error',
 				message: sketchPropertyRootMessage(key),
 			});
@@ -309,29 +347,78 @@ function validateSketchExtension(
 	}
 }
 
-function validateOutlineExtension(
+function validatePlatformExtension(
 	extensions: Record<string, unknown>,
 	tokenType: string | undefined,
 	tokenPath: string,
 	issues: ThemeSchemaIssue[],
+	context: 'token' | 'group' = 'token',
 ): void {
-	if (!('outline' in extensions)) return;
+	if (!('platform' in extensions)) return;
+
+	const platform = extensions.platform;
+	if (!isRecord(platform)) {
+		issues.push({
+			path: `${tokenPath}.$extensions.platform`,
+			level: 'error',
+			message: 'platform extension must be an object',
+		});
+		return;
+	}
+
+	for (const key of Object.keys(platform)) {
+		if (key !== 'sketch') {
+			issues.push({
+				path: `${tokenPath}.$extensions.platform.${key}`,
+				level: 'warning',
+				message: `Unknown platform extension "${key}"`,
+			});
+		}
+	}
+
+	const sketch = platform.sketch;
+	if (sketch !== undefined && !isRecord(sketch)) {
+		issues.push({
+			path: `${tokenPath}.$extensions.platform.sketch`,
+			level: 'error',
+			message: 'sketch extension must be an object',
+		});
+		return;
+	}
+	if (sketch === undefined) return;
+
+	validatePlatformSketchRecord(
+		sketch,
+		`${tokenPath}.$extensions.platform.sketch`,
+		tokenPath,
+		tokenType,
+		issues,
+		context,
+	);
+}
+
+function validateOutlineValue(
+	outline: unknown,
+	tokenType: string | undefined,
+	outlinePath: string,
+	typeErrorPath: string,
+	issues: ThemeSchemaIssue[],
+): void {
 	if (tokenType !== 'border') {
 		issues.push({
-			path: tokenPath,
+			path: typeErrorPath,
 			level: 'error',
 			message: `outline can only be used with $type "border", got "${tokenType ?? 'undefined'}"`,
 		});
 		return;
 	}
-	const outline = extensions.outline;
 	if (
 		typeof outline !== 'object' ||
 		outline === null ||
 		Array.isArray(outline)
 	) {
 		issues.push({
-			path: `${tokenPath}.$extensions.outline`,
+			path: outlinePath,
 			level: 'error',
 			message: 'outline extension must be an object',
 		});
@@ -340,7 +427,7 @@ function validateOutlineExtension(
 	const offset = (outline as Record<string, unknown>).offset;
 	if (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0) {
 		issues.push({
-			path: `${tokenPath}.$extensions.outline.offset`,
+			path: `${outlinePath}.offset`,
 			level: 'error',
 			message: 'outline.offset must be a non-negative finite number',
 		});
@@ -536,7 +623,11 @@ function validateToken(
 	}
 
 	// Rule: $id three-state contract (missing key | empty slot | identity string)
-	if (token.$id !== undefined && token.$id !== null && typeof token.$id !== 'string') {
+	if (
+		token.$id !== undefined &&
+		token.$id !== null &&
+		typeof token.$id !== 'string'
+	) {
 		issues.push({
 			path: `${tokenPath}.$id`,
 			level: 'error',
@@ -659,8 +750,8 @@ function validateToken(
 
 		// Validate extension-specific contracts
 		validateInheritColor(extensions, tokenType, tokenPath, issues);
-		validateSketchExtension(extensions, tokenType, tokenPath, issues);
-		validateOutlineExtension(extensions, tokenType, tokenPath, issues);
+		rejectLegacySketchExtensions(extensions, tokenPath, issues);
+		validatePlatformExtension(extensions, tokenType, tokenPath, issues);
 	}
 }
 
@@ -773,7 +864,12 @@ function walkNode(
 				extensions !== null &&
 				!Array.isArray(extensions)
 			) {
-				validateSketchExtension(
+				rejectLegacySketchExtensions(
+					extensions as Record<string, unknown>,
+					path,
+					issues,
+				);
+				validatePlatformExtension(
 					extensions as Record<string, unknown>,
 					nodeType,
 					path,

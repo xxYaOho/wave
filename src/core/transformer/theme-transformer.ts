@@ -38,7 +38,10 @@ import {
 	tokenReferenceLineage,
 	typographyDefaultReferenceLineage,
 } from './reference-lineage.ts';
-import { parseSketchExtension } from './sketch-extension.ts';
+import {
+	getOutlineExtension,
+	parseSketchExtension,
+} from './sketch-extension.ts';
 
 interface InheritedExtensions {
 	sketchPath?: string;
@@ -947,7 +950,7 @@ function transformToken(
 					...sketchExtension,
 				}
 			: sketchExtension;
-	const outlineData = token.$extensions?.outline;
+	const outlineData = getOutlineExtension(token.$extensions);
 	const outline =
 		typeValue === 'border' &&
 		typeof outlineData === 'object' &&

@@ -491,7 +491,7 @@ describe('sketch extension format', () => {
 			theme: {
 				color: {
 					$type: 'color',
-					$extensions: { sketch: { path: 'foundation/color' } },
+					$extensions: { platform: { sketch: { path: 'foundation/color' } } },
 					primary: { $value: '#1872f0' },
 				},
 			},

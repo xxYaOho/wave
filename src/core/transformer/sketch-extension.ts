@@ -13,12 +13,26 @@ function parseProperty(value: unknown): SketchPropertyMap | undefined {
 	return Object.keys(property).length > 0 ? property : undefined;
 }
 
+/**
+ * New-form sketch family: `$extensions.platform.sketch`.
+ * Legacy `$extensions.sketch` / `$extensions.outline` keys are not read —
+ * the schema layer rejects them with a `wave dt migrate-extensions` hint.
+ */
+export function getPlatformSketch(
+	extensions: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+	const platform = isRecord(extensions?.platform)
+		? extensions.platform
+		: undefined;
+	return isRecord(platform?.sketch) ? platform.sketch : undefined;
+}
+
 export function parseSketchExtension(
 	extensions: Record<string, unknown> | undefined,
 ): SketchExtension | undefined {
 	if (!extensions) return undefined;
 
-	const sketch = isRecord(extensions.sketch) ? extensions.sketch : undefined;
+	const sketch = getPlatformSketch(extensions);
 	const normalized: SketchExtension = {};
 
 	if (sketch && typeof sketch.path === 'string' && sketch.path.trim() !== '') {
@@ -34,4 +48,14 @@ export function parseSketchExtension(
 	}
 
 	return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+/**
+ * Outline extension lookup for border tokens: `$extensions.platform.sketch.outline`.
+ */
+export function getOutlineExtension(
+	extensions: Record<string, unknown> | undefined,
+): unknown {
+	if (!extensions) return undefined;
+	return getPlatformSketch(extensions)?.outline;
 }

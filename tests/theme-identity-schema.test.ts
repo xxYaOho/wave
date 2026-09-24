@@ -161,7 +161,7 @@ describe('theme schema token body purity (DTCG §6.1)', () => {
 					primary: {
 						$value: '#0066cc',
 						$description: 'brand',
-						$extensions: { sketch: { skip: true } },
+						$extensions: { platform: { sketch: { skip: true } } },
 					},
 				},
 			},

@@ -2409,8 +2409,9 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 						'  color:',
 						'    $type: color',
 						'    $extensions:',
-						'      sketch:',
-						'        path: foundation/color',
+						'      platform:',
+						'        sketch:',
+						'          path: foundation/color',
 						'    primary:',
 						'      $value:',
 						'        colorSpace: oklch',
@@ -2424,8 +2425,9 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 						'  dimension:',
 						'    $type: dimension',
 						'    $extensions:',
-						'      sketch:',
-						'        path: foundation/space',
+						'      platform:',
+						'        sketch:',
+						'          path: foundation/space',
 						'    spacing:',
 						'      sm:',
 						'        $value: 4',
@@ -2560,47 +2562,47 @@ theme:
       direct-hex:
         $type: border
         $value: { color: "#2563eb", width: 1, style: solid }
-        $extensions: { outline: { offset: 2 } }
+        $extensions: { platform: { sketch: { outline: { offset: 2 } } } }
       token-curly-base:
         $type: border
         $value: { color: "{theme.color.base}", width: 1, style: solid }
-        $extensions: { outline: { offset: 2 } }
+        $extensions: { platform: { sketch: { outline: { offset: 2 } } } }
       token-curly-alias:
         $type: border
         $value: { color: "{theme.color.alias}", width: 1, style: solid }
-        $extensions: { outline: { offset: 2 } }
+        $extensions: { platform: { sketch: { outline: { offset: 2 } } } }
       token-curly-external:
         $type: border
         $value: { color: "{theme.color.external}", width: 1, style: solid }
-        $extensions: { outline: { offset: 2 } }
+        $extensions: { platform: { sketch: { outline: { offset: 2 } } } }
       pointer-token:
         $type: border
         $value:
           color: { $ref: "#/theme/color/base" }
           width: 1
           style: solid
-        $extensions: { outline: { offset: 2 } }
+        $extensions: { platform: { sketch: { outline: { offset: 2 } } } }
       pointer-value:
         $type: border
         $value:
           color: { $ref: "#/theme/color/base/$value" }
           width: 1
           style: solid
-        $extensions: { outline: { offset: 2 } }
+        $extensions: { platform: { sketch: { outline: { offset: 2 } } } }
       pointer-alias-value:
         $type: border
         $value:
           color: { $ref: "#/theme/color/alias/$value" }
           width: 1
           style: solid
-        $extensions: { outline: { offset: 2 } }
+        $extensions: { platform: { sketch: { outline: { offset: 2 } } } }
       ref-width:
         $type: border
         $value:
           color: "{theme.color.base}"
           width: "{wave.dimension.px.2}"
           style: solid
-        $extensions: { outline: { offset: 2 } }
+        $extensions: { platform: { sketch: { outline: { offset: 2 } } } }
 `,
 			);
 
