@@ -710,6 +710,40 @@ describe('wave dt ids CLI', () => {
 		);
 	});
 
+	test('change list longer than 40 collapses into an "and more" hint line', async () => {
+		const tokens = Array.from(
+			{ length: 45 },
+			(_, i) => `    token${i}:
+      $value: "#112233"
+`,
+		).join('');
+		const dir = await makeTempWorkspace({
+			'main.yaml': `$config:
+  theme: ids-flood
+theme:
+  color:
+${tokens}`,
+		});
+
+		const dry = await runWave(['dt', 'ids', '-f', path.join(dir, 'main.yaml')]);
+		expect(dry.exitCode).toBe(0);
+		expect(dry.stdout).toContain('… and 5 more');
+		const plusLines = dry.stdout
+			.split('\n')
+			.filter((line) => line.includes('(new id '));
+		expect(plusLines).toHaveLength(40);
+
+		const written = await runWave([
+			'dt',
+			'ids',
+			'-f',
+			path.join(dir, 'main.yaml'),
+			'--write',
+		]);
+		expect(written.exitCode).toBe(0);
+		expect(written.stdout).toContain('… and 5 more');
+	});
+
 	test('dirty git tree refuses --write; --allow-dirty applies', async () => {
 		const dir = await makeTempWorkspace({ 'main.yaml': MAIN_COMMENTS });
 		await Bun.spawn(['git', 'init', '-q', dir]);

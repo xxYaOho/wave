@@ -9,6 +9,12 @@ import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 
 /**
+ * The ids core lists at most 40 changes (`MAX_LISTED_CHANGES`); the full
+ * plan size is `added + synced`, so a longer plan collapses its tail into an
+ * "… and N more" hint line (same style as the doctor report truncation).
+ */
+
+/**
  * `wave dt ids` — token identity command (Milestone-3). Default is a dry-run
  * report; only an explicit `--write` touches files, and only on a clean git
  * working tree unless `--allow-dirty` is given.
@@ -100,6 +106,11 @@ export function createIdsCommand(name = 'ids'): Command {
 							);
 							break;
 					}
+				}
+				if (report.added + report.synced > report.changes.length) {
+					logger.info(
+						`… and ${report.added + report.synced - report.changes.length} more`,
+					);
 				}
 				for (const warning of report.warnings) {
 					const where =
