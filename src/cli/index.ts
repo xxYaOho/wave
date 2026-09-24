@@ -4,6 +4,7 @@ import { ExitCode } from '../types/index.ts';
 import { createDesignTokenBuildCommand } from './commands/build.ts';
 import { createDoctorCommand } from './commands/doctor.ts';
 import { createStatusCommand, createWcagCommand } from './commands/dt.ts';
+import { createIdsCommand } from './commands/dt-ids.ts';
 import { createDesignTokenInitCommand } from './commands/dt-init.ts';
 import { createMigrateExtensionsCommand } from './commands/dt-migrate-extensions.ts';
 import { createShowCommand } from './commands/show.ts';
@@ -62,6 +63,7 @@ const DESIGN_TOKEN_SUBCOMMANDS = new Set([
 	'init',
 	'update',
 	'status',
+	'ids',
 	'migrate-extensions',
 ]);
 const DESIGN_TOKEN_MODULE_FLAGS = new Set(['--help', '-h']);
@@ -127,9 +129,11 @@ function showDesignTokenSubcommandHelp(argv: string[]): void {
 							? createWcagCommand()
 							: commandName === 'status'
 								? createStatusCommand()
-								: commandName === 'migrate-extensions'
-									? createMigrateExtensionsCommand()
-									: undefined;
+								: commandName === 'ids'
+									? createIdsCommand()
+									: commandName === 'migrate-extensions'
+										? createMigrateExtensionsCommand()
+										: undefined;
 
 	if (command) {
 		command.name(`wave ${argv[2]} ${commandName}`);
