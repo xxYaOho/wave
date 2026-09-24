@@ -2,17 +2,14 @@ import type {
 	SketchAsset,
 	SketchAssetKind,
 	SketchColorAsset,
-	SketchColorSlot,
 	SketchLayerAsset,
 	SketchLayerShadow,
 	SketchPayloadV2,
 	SketchPropertyMap,
-	SketchSwatchRefMode,
 	SketchTextAsset,
 	SketchTextPayload,
 	WaveToken,
 } from '../../../types/index.ts';
-import { REFERENCE_PATTERN } from '../../resolver/reference-utils.ts';
 import {
 	normalizeFontFamilyMember,
 	type ParsedTypographyDimension,
@@ -32,8 +29,6 @@ import {
 export interface SketchPayloadAssembleOptions {
 	themeId?: string | undefined;
 	filterLayer: number;
-	/** Single switch point for the trial-period `$ref` degradation (decision 6). */
-	swatchRefMode: SketchSwatchRefMode;
 }
 
 function findSiblingToken(
@@ -458,88 +453,6 @@ function assertUniqueAssetNames(
 	}
 }
 
-function encodeJsonPointerSegment(segment: string): string {
-	return segment.replaceAll('~', '~0').replaceAll('/', '~1');
-}
-
-function hasSafeCurlyPath(path: string[]): boolean {
-	return (
-		path.every((segment) => !segment.includes('.')) &&
-		REFERENCE_PATTERN.test(`{${path.join('.')}}`)
-	);
-}
-
-function colorReferenceAliases(token: WaveToken): string[] {
-	const pointer = token.path.map(encodeJsonPointerSegment).join('/');
-	const aliases = [`#/${pointer}`, `#/${pointer}/$value`];
-	if (hasSafeCurlyPath(token.path)) {
-		aliases.unshift(`{${token.path.join('.')}}`);
-	}
-	return aliases;
-}
-
-function isInternalSketchColorReference(reference: string): boolean {
-	return reference.startsWith('{theme.') || reference.startsWith('#/theme/');
-}
-
-interface SketchColorReferenceIndex {
-	/** Source-reference vocabulary (curly / JSON Pointer) -> emitted color token. */
-	byAlias: Map<string, WaveToken>;
-}
-
-function buildSketchColorReferenceIndex(
-	writeTokens: WaveToken[],
-): SketchColorReferenceIndex {
-	const byAlias = new Map<string, WaveToken>();
-
-	for (const token of writeTokens) {
-		if (token.type !== 'color') continue;
-		for (const alias of colorReferenceAliases(token)) {
-			const aliasOwner = byAlias.get(alias);
-			if (aliasOwner !== undefined && aliasOwner !== token) {
-				throw new Error(
-					`Duplicate Sketch color reference alias "${alias}" at ${tokenPathLabel(token)}`,
-				);
-			}
-			byAlias.set(alias, token);
-		}
-	}
-
-	return { byAlias };
-}
-
-/**
- * Resolves an outline-ring color position. `$ref` binds only to registered
- * manifest colors; unregistered targets and external namespaces degrade to
- * HEX8 snapshots (mirrors the uuid-omission semantics for unregistered
- * tokens). Internal references that resolve to no emitted record still fail
- * the build.
- */
-function resolveRingColorSlot(
-	token: WaveToken,
-	color: string,
-	index: SketchColorReferenceIndex,
-	swatchRefMode: SketchSwatchRefMode,
-): SketchColorSlot {
-	const reference = token._sketchColorReference;
-	if (reference === undefined) {
-		return formatSketchColorValue(token, color, 'outline color');
-	}
-	const target = index.byAlias.get(reference);
-	if (target === undefined) {
-		if (isInternalSketchColorReference(reference)) {
-			throw new Error(
-				`Sketch color reference target is not emitted at ${tokenPathLabel(token)}`,
-			);
-		}
-		return formatSketchColorValue(token, color, 'outline color');
-	}
-	if (swatchRefMode === 'ref' && target.id !== undefined) {
-		return { $ref: target.id };
-	}
-	return formatSketchColorValue(token, color, 'outline color');
-}
-
 function assembleColorAsset(
 	token: WaveToken,
 	allTokens: WaveToken[],
@@ -637,11 +550,7 @@ function assembleTextAsset(token: WaveToken): SketchTextAsset {
 	};
 }
 
-function assembleLayerAsset(
-	token: WaveToken,
-	index: SketchColorReferenceIndex,
-	swatchRefMode: SketchSwatchRefMode,
-): SketchLayerAsset {
+function assembleLayerAsset(token: WaveToken): SketchLayerAsset {
 	const propertyKey = dimensionPropertyKey(token);
 	const asset: SketchLayerAsset = {
 		...(token.id !== undefined && { uuid: token.id }),
@@ -679,7 +588,7 @@ function assembleLayerAsset(
 				y: 0,
 				blur: 0,
 				spread: width + offset,
-				color: resolveRingColorSlot(token, color, index, swatchRefMode),
+				color: formatSketchColorValue(token, color, 'outline color'),
 			},
 			{ x: 0, y: 0, blur: 0, spread: offset, color: '#ffffffff' },
 		];
@@ -755,9 +664,8 @@ export function assembleSketchPayload(
 	allTokens: WaveToken[],
 	options: SketchPayloadAssembleOptions,
 ): SketchPayloadV2 {
-	const { filterLayer, swatchRefMode } = options;
+	const { filterLayer } = options;
 	assertUniqueAssetNames(writeTokens, filterLayer);
-	const index = buildSketchColorReferenceIndex(writeTokens);
 
 	const assets: SketchAsset[] = [];
 	for (const token of writeTokens) {
@@ -771,7 +679,7 @@ export function assembleSketchPayload(
 		} else if (kind === 'text') {
 			asset = assembleTextAsset(token);
 		} else {
-			asset = assembleLayerAsset(token, index, swatchRefMode);
+			asset = assembleLayerAsset(token);
 		}
 		asset.name = name;
 		assets.push(asset);

@@ -66,23 +66,6 @@ async function exists(filePath: string): Promise<boolean> {
 	}
 }
 
-function collectSwatchRefs(value: unknown, result: string[] = []): string[] {
-	if (typeof value === 'string') return result;
-	if (value && typeof value === 'object') {
-		if (Array.isArray(value)) {
-			for (const item of value) collectSwatchRefs(item, result);
-			return result;
-		}
-		const record = value as Record<string, unknown>;
-		if (typeof record.$ref === 'string') result.push(record.$ref);
-		for (const item of Object.values(record)) {
-			if (item === value) continue;
-			collectSwatchRefs(item, result);
-		}
-	}
-	return result;
-}
-
 function isolatedResourceEnv(tempDir: string): Record<string, string> {
 	return {
 		WAVE_RESOURCE_CACHE_DIR: path.join(tempDir, '.wave-cache'),
@@ -2203,25 +2186,11 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				spread: 2,
 				color: '#ffffffff',
 			});
-			// ring 的目标 color 未登记 uuid 时降级为 HEX8 快照（orca-realistic
-			// fixture 不带 $id，ref 模式下不产生 $ref）。
+			// ring 的颜色位置是 HEX8 快照；整份 payload 不含任何 swatch 引用。
 			expect(
 				ring.shadows?.[0]?.color && typeof ring.shadows[0]!.color === 'string',
 			).toBe(true);
-
-			// payload 内出现的全部 $ref 都必须绑定同清单 color 记录的 uuid。
-			const colorUuids = new Set(
-				sketch.assets
-					.filter(
-						(asset: SketchAsset) =>
-							asset.kind === 'color' && asset.uuid !== undefined,
-					)
-					.map((asset: SketchAsset) => asset.uuid),
-			);
-			const references = collectSwatchRefs(sketch);
-			for (const reference of references) {
-				expect(colorUuids.has(reference)).toBe(true);
-			}
+			expect(JSON.stringify(sketch)).not.toContain('$ref');
 		} finally {
 			restoreResourceEnv(previousEnv);
 			await fs.rm(fixtureDir, { recursive: true, force: true });
@@ -2583,7 +2552,7 @@ ${tokenContent}`,
 	});
 
 	describe('theme root output matrix', () => {
-		test('normalizes shadow lengths and outline border color references', async () => {
+		test('normalizes shadow lengths and outline border colors', async () => {
 			const tempThemeDir = await fs.mkdtemp(
 				path.join(os.tmpdir(), 'wave-root-matrix-'),
 			);
@@ -2717,8 +2686,7 @@ theme:
 				expect(css).not.toContain('[object Object]');
 				expect(css).not.toContain('1px solid currentColor');
 
-				// 本 fixture 的 color 均未登记 uuid：v2 下环色一律降级为 HEX8 快照
-				//（未入账 = 无 $ref 可绑，数值仍正确；curl/pointer 各引用形态同判）。
+				// 颜色位置一律 HEX8 快照，各引用形态的输出值一致。
 				const ringColor = (name: string): unknown =>
 					layerAssetByName(sketch, name).shadows?.[0]?.color;
 				expect(ringColor('border-outline-direct-hex')).toBe('#2563ebff');

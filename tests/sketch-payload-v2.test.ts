@@ -10,13 +10,12 @@ import type { SketchPayloadV2 } from '../src/types/index.ts';
  * - meta.themeId 管道全链路（main.yaml `$id` -> workspace -> pass options -> payload）
  * - 未入账记录省略 uuid、themeId 缺失为 null（决策 5 / 6）
  * - orca-test 缺口内化：扁平 name 前缀共存（hermetic fixture）
- * - outline ring `$ref` 绑定同清单 color uuid（ref 模式）
+ * - outline ring 颜色位置输出 HEX8 快照（不绑定同清单 color uuid）
  * - fontWeight 刻度仅 sketch pass 报错的平台合同（对照测试）
  */
 
 const THEME_ID = '0f1e2d3c4b5a69788796a5b4c3d2e1f0';
 const COLOR_SHADOW_UUID = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6';
-const COLOR_RING_UUID = 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a1';
 
 async function copyFixtureWorkspace(relativePath: string): Promise<string> {
 	const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-v2-'));
@@ -46,7 +45,7 @@ function assetByName(payload: SketchPayloadV2, name: string) {
 }
 
 describe('sketch payload v2 contract', () => {
-	test('main build carries document $id into meta and binds ring $ref', async () => {
+	test('main build carries document $id into meta and snapshots ring color', async () => {
 		const workspaceDir = await copyFixtureWorkspace('themes/sketch-payload-v2');
 		try {
 			const result = await generateTheme({
@@ -79,12 +78,12 @@ describe('sketch payload v2 contract', () => {
 				color: '#1872f0ff',
 			});
 
-			// outline ring 绑定同清单 color uuid。
+			// outline ring 的颜色位置是可直接读取的 HEX8 快照。
 			const ring = assetByName(payload, 'outline-focus');
 			expect(ring).toMatchObject({ kind: 'layer' });
 			expect(
 				ring && 'shadows' in ring ? ring.shadows?.[0]?.color : undefined,
-			).toEqual({ $ref: COLOR_RING_UUID });
+			).toBe('#2563ebff');
 		} finally {
 			await fs.rm(workspaceDir, { recursive: true, force: true });
 		}

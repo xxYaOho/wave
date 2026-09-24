@@ -578,7 +578,7 @@ describe('sketch extension format', () => {
 		});
 	});
 
-	test('validates outline ring references against emitted color targets', () => {
+	test('builds outline rings whose color target is skipped or excluded', () => {
 		const typography = {
 			fontFamily: 'Inter',
 			fontSize: 14,
@@ -603,23 +603,33 @@ describe('sketch extension format', () => {
 			_sketchColorReference: '{theme.color.text.default}',
 			_order: 2,
 		});
+		const ringColorOf = (payloadText: string): unknown =>
+			(
+				assetByName(JSON.parse(payloadText), 'theme-border-outline-focus') as
+					| Extract<SketchAsset, { kind: 'layer' }>
+					| undefined
+			)?.shadows?.[0]?.color;
 
-		// outline ring 的引用仍校验目标必须在清单内。
-		expect(() => sketchFormat([target, ring])).toThrow(
-			'theme.border.outline.focus',
-		);
-		expect(() =>
-			sketchFormat([{ ...target, _sketch: undefined }, ring], {
-				includeRootKeys: ['border'],
-			}),
-		).toThrow('theme.border.outline.focus');
-		const undefinedTarget = { ...target, value: undefined, _sketch: undefined };
-		expect(() => sketchFormat([undefinedTarget, ring])).toThrow(
-			'theme.border.outline.focus',
-		);
+		// 目标被 sketch.skip 跳过、被 root selection 排除、或被过滤后无值：
+		// ring 一律构建成功并输出 HEX8 快照，不再校验目标是否入账。
+		expect(ringColorOf(sketchFormat([target, ring]))).toBe('#112233ff');
+		expect(
+			ringColorOf(
+				sketchFormat([{ ...target, _sketch: undefined }, ring], {
+					includeRootKeys: ['border'],
+				}),
+			),
+		).toBe('#112233ff');
+		expect(
+			ringColorOf(
+				sketchFormat([
+					{ ...target, value: undefined, _sketch: undefined },
+					ring,
+				]),
+			),
+		).toBe('#112233ff');
 
-		// text 与普通 border 的引用随 textColor 退役、payload 范围收窄，
-		// 不再进入校验（引用为死元数据）。
+		// text 与普通 border 不产生 layer 颜色位置。
 		const body = token({
 			name: 'theme-font-body',
 			path: ['theme', 'font', 'body'],
@@ -642,60 +652,6 @@ describe('sketch extension format', () => {
 			kind: 'text',
 		});
 		expect(assetByName(parsed, 'theme-border-focus')).toBeUndefined();
-	});
-
-	test('keeps nested and dotted-key JSON Pointer aliases distinct', () => {
-		const tokens: WaveToken[] = [
-			token({
-				name: 'theme-color-a-b',
-				path: ['theme', 'color', 'a', 'b'],
-				value: '#112233',
-				type: 'color',
-				id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
-			}),
-			token({
-				name: 'theme-color-a-dotted',
-				path: ['theme', 'color', 'a.b'],
-				value: '#445566',
-				type: 'color',
-				id: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a1',
-				_order: 1,
-			}),
-			token({
-				name: 'theme-border-outline-nested',
-				path: ['theme', 'border', 'outline', 'nested'],
-				type: 'border',
-				value: { color: '#112233', width: 1, style: 'solid' },
-				_outline: { offset: 2 },
-				_sketchColorReference: '{theme.color.a.b}',
-				_order: 2,
-			}),
-			token({
-				name: 'theme-border-outline-dotted',
-				path: ['theme', 'border', 'outline', 'dotted'],
-				type: 'border',
-				value: { color: '#445566', width: 1, style: 'solid' },
-				_outline: { offset: 2 },
-				_sketchColorReference: '#/theme/color/a.b',
-				_order: 3,
-			}),
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		const nested = assetByName(parsed, 'outline-nested') as Extract<
-			SketchAsset,
-			{ kind: 'layer' }
-		>;
-		const dotted = assetByName(parsed, 'outline-dotted') as Extract<
-			SketchAsset,
-			{ kind: 'layer' }
-		>;
-		expect(nested.shadows?.[0]?.color).toEqual({
-			$ref: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
-		});
-		expect(dotted.shadows?.[0]?.color).toEqual({
-			$ref: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a1',
-		});
 	});
 
 	test('allows duplicate filtered color keys under distinct names', () => {
@@ -729,28 +685,5 @@ describe('sketch extension format', () => {
 			kind: 'color',
 			color: '#445566ff',
 		});
-	});
-
-	test('rejects duplicate source aliases across distinct names', () => {
-		const tokens: WaveToken[] = [
-			token({
-				name: 'first-color',
-				path: ['theme', 'color', 'shared'],
-				value: '#112233',
-				type: 'color',
-				_sketch: { path: 'foundation/color' },
-			}),
-			token({
-				name: 'second-color',
-				path: ['theme', 'color', 'shared'],
-				value: '#445566',
-				type: 'color',
-				_sketch: { path: 'foundation/state' },
-			}),
-		];
-
-		expect(() => sketchFormat(tokens, { filterLayer: 99 })).toThrow(
-			'Duplicate Sketch color reference alias',
-		);
 	});
 });

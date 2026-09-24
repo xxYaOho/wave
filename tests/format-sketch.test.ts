@@ -7,7 +7,6 @@ import {
 import type {
 	SketchAsset,
 	SketchPayloadV2,
-	SketchSwatchRefMode,
 	WaveToken,
 } from '../src/types/index.ts';
 
@@ -1166,7 +1165,7 @@ describe('sketchFormat (payload v2)', () => {
 		});
 	});
 
-	test('binds outline rings to registered color uuids via $ref', () => {
+	test('formats outline ring colors as HEX8 snapshots for every reference form', () => {
 		const border = { color: '#112233', width: 1, style: 'solid' };
 		const tokens: WaveToken[] = [
 			colorAsset({
@@ -1212,10 +1211,8 @@ describe('sketchFormat (payload v2)', () => {
 				SketchAsset,
 				{ kind: 'layer' }
 			>;
-			// All alias forms bind to the same manifest color uuid.
-			expect(asset.shadows?.[0]?.color).toEqual({
-				$ref: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
-			});
+			// 颜色位置一律写具体值，不再绑定同清单 color 记录的 uuid。
+			expect(asset.shadows?.[0]?.color).toBe('#112233ff');
 			expect(asset.shadows?.[1]?.color).toBe('#ffffffff');
 		}
 	});
@@ -1268,7 +1265,7 @@ describe('sketchFormat (payload v2)', () => {
 		}
 	});
 
-	test('fails when an internal ring reference resolves to no emitted color', () => {
+	test('builds outline rings whose color target is skipped or out of scope', () => {
 		const tokens: WaveToken[] = [
 			colorAsset({
 				name: 'theme-color-skipped',
@@ -1287,23 +1284,23 @@ describe('sketchFormat (payload v2)', () => {
 			},
 		];
 
-		expect(() => sketchFormat(tokens)).toThrow(
-			'Sketch color reference target is not emitted at theme.border.outline.focus',
-		);
-		// Without a reference the ring degrades to a plain HEX8 snapshot.
-		const parsed = JSON.parse(
-			sketchFormat(
-				[tokens[0]!, { ...tokens[1]!, _sketchColorReference: undefined }],
-				{
-					includeRootKeys: ['border'],
-				},
-			),
+		// 目标被 sketch.skip 跳过：ring 仍构建成功，颜色位置输出 HEX8 快照。
+		const skipped = JSON.parse(sketchFormat(tokens)) as SketchPayloadV2;
+		const skippedRing = assetByName(
+			skipped,
+			'theme-border-outline-focus',
+		) as Extract<SketchAsset, { kind: 'layer' }>;
+		expect(skippedRing.shadows?.[0]?.color).toBe('#112233ff');
+
+		// 目标被 root selection 排除：同样不失败。
+		const scoped = JSON.parse(
+			sketchFormat(tokens, { includeRootKeys: ['border'] }),
 		) as SketchPayloadV2;
-		const asset = assetByName(parsed, 'theme-border-outline-focus') as Extract<
-			SketchAsset,
-			{ kind: 'layer' }
-		>;
-		expect(asset.shadows?.[0]?.color).toBe('#112233ff');
+		const scopedRing = assetByName(
+			scoped,
+			'theme-border-outline-focus',
+		) as Extract<SketchAsset, { kind: 'layer' }>;
+		expect(scopedRing.shadows?.[0]?.color).toBe('#112233ff');
 	});
 
 	test('keeps shadow, gradient, and inheritColor output as hex8', () => {
@@ -1523,29 +1520,7 @@ describe('sketchFormat (payload v2)', () => {
 		expect(assetByName(parsed, 'button-radius')).toBeUndefined();
 	});
 
-	test('rejects duplicate source aliases across distinct names', () => {
-		const tokens: WaveToken[] = [
-			colorAsset({
-				name: 'first-color',
-				path: ['theme', 'color', 'shared'],
-				value: '#112233',
-				_sketch: { path: 'foundation/color' },
-			}),
-			colorAsset({
-				name: 'second-color',
-				path: ['theme', 'color', 'shared'],
-				value: '#445566',
-				_sketch: { path: 'foundation/state' },
-			}),
-		];
-
-		expect(() => sketchFormat(tokens, { filterLayer: 99 })).toThrow(
-			'Duplicate Sketch color reference alias',
-		);
-	});
-
-	test('hex swatch mode emits HEX8 snapshots everywhere (single switch)', () => {
-		const modes: SketchSwatchRefMode[] = ['hex', 'ref'];
+	test('assembleSketchPayload emits HEX8 outline ring colors without swatch refs', () => {
 		const writeTokens: WaveToken[] = [
 			colorAsset({
 				name: 'theme-color-text-default',
@@ -1565,33 +1540,24 @@ describe('sketchFormat (payload v2)', () => {
 		];
 		const allTokens = [...writeTokens].sort((a, b) => a._order - b._order);
 
-		const payloads = modes.map((swatchRefMode) =>
-			assembleSketchPayload(
-				buildSketchWriteTokens(allTokens, {
-					filterLayer: 2,
-				}),
-				allTokens,
-				{ filterLayer: 2, swatchRefMode, themeId: undefined },
-			),
+		const payload = assembleSketchPayload(
+			buildSketchWriteTokens(allTokens, {
+				filterLayer: 2,
+			}),
+			allTokens,
+			{ filterLayer: 2, themeId: undefined },
 		);
 
-		const refPayload = payloads[1]!;
-		const hexPayload = payloads[0]!;
-		const refAsset = assetByName(refPayload, 'outline-focus') as Extract<
+		const ring = assetByName(payload, 'outline-focus') as Extract<
 			SketchAsset,
 			{ kind: 'layer' }
 		>;
-		expect(refAsset.shadows?.[0]?.color).toEqual({
-			$ref: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
-		});
-		const hexAsset = assetByName(hexPayload, 'outline-focus') as Extract<
-			SketchAsset,
-			{ kind: 'layer' }
-		>;
-		expect(hexAsset.shadows?.[0]?.color).toBe('#112233ff');
-		// Switching the mode changes only the color-slot form; records stay.
-		expect(hexPayload.assets.map((asset) => asset.name)).toEqual(
-			refPayload.assets.map((asset) => asset.name),
-		);
+		expect(ring.shadows?.[0]?.color).toBe('#112233ff');
+		expect(ring.shadows?.[1]?.color).toBe('#ffffffff');
+		// 记录集合不因颜色表达而改变。
+		expect(payload.assets.map((asset) => asset.name)).toEqual([
+			'text-default',
+			'outline-focus',
+		]);
 	});
 });

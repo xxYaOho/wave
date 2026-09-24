@@ -379,15 +379,8 @@ export interface SketchPropertyMap {
  */
 export type SketchAssetKind = 'color' | 'text' | 'layer';
 
-/**
- * Trial-period swatch binding mode (decision 6): `ref` emits
- * `{ "$ref": "<uuid>" }` at swatch-bindable color positions; `hex` degrades
- * the whole payload to HEX8 snapshots. Single switch point in the assembler.
- */
-export type SketchSwatchRefMode = 'ref' | 'hex';
-
-/** Color position: HEX8 snapshot or a swatch binding to a manifest color uuid. */
-export type SketchColorSlot = string | { $ref: string };
+/** Color position: HEX8 snapshot; alpha overrides stay folded into the hex. */
+export type SketchColorSlot = string;
 
 export interface SketchColorAsset {
 	uuid?: string;
