@@ -21,6 +21,8 @@ export interface GeneratorOptions {
 	groupComments?: Record<string, string>;
 	resolved?: ResolvedTokenGroup;
 	colorSpace?: ColorSpaceFormat;
+	/** Document identity from main.yaml `$id`; consumed by the sketch payload. */
+	themeId?: string;
 }
 
 export interface GeneratorResult {
@@ -152,6 +154,7 @@ export async function generateTokens(
 		groupComments,
 		resolved,
 		colorSpace,
+		themeId,
 	} = options;
 	const generatedFiles: string[] = [];
 	const plan = planTokenOutputs({ themeName, outputDir, platform });
@@ -169,6 +172,7 @@ export async function generateTokens(
 			if (groupComments !== undefined) {
 				formatOptions.groupComments = groupComments;
 			}
+			if (themeId !== undefined) formatOptions.themeId = themeId;
 
 			const out = output.format(
 				tokensForPlatform(output.platform, tokens, resolved, colorSpace),

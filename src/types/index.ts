@@ -373,6 +373,85 @@ export interface SketchPropertyMap {
 	cornerRadius?: true;
 }
 
+/**
+ * Sketch payload v2 asset kinds (sync-token protocol 10a/10b).
+ * color -> Swatch, text -> Shared Text Style, layer -> Shared Layer Style.
+ */
+export type SketchAssetKind = 'color' | 'text' | 'layer';
+
+/**
+ * Trial-period swatch binding mode (decision 6): `ref` emits
+ * `{ "$ref": "<uuid>" }` at swatch-bindable color positions; `hex` degrades
+ * the whole payload to HEX8 snapshots. Single switch point in the assembler.
+ */
+export type SketchSwatchRefMode = 'ref' | 'hex';
+
+/** Color position: HEX8 snapshot or a swatch binding to a manifest color uuid. */
+export type SketchColorSlot = string | { $ref: string };
+
+export interface SketchColorAsset {
+	uuid?: string;
+	name: string;
+	kind: 'color';
+	/** HEX8; alpha overrides stay folded into the hex snapshot. */
+	color: string;
+}
+
+export interface SketchTextPayload {
+	fontFamily?: string;
+	fontSize: number;
+	/** 100-900 integer-hundred scale only (sketch pass platform contract). */
+	fontWeight: number;
+	lineHeight: number;
+	kerning: number;
+}
+
+export interface SketchTextAsset {
+	uuid?: string;
+	name: string;
+	kind: 'text';
+	text: SketchTextPayload;
+}
+
+export interface SketchLayerShadow {
+	x: number;
+	y: number;
+	blur: number;
+	spread: number;
+	color: SketchColorSlot;
+	inset?: boolean;
+}
+
+export interface SketchLayerGradientStop {
+	color: SketchColorSlot;
+	position: number;
+}
+
+export interface SketchLayerAsset {
+	uuid?: string;
+	name: string;
+	kind: 'layer';
+	/** Protocol-reserved; wave currently has no producer. */
+	fills?: Array<{ color: SketchColorSlot; fillType: 'solid' }>;
+	shadows?: SketchLayerShadow[];
+	gradient?: SketchLayerGradientStop[];
+	opacity?: number;
+	corners?: { radii: number };
+}
+
+export type SketchAsset = SketchColorAsset | SketchTextAsset | SketchLayerAsset;
+
+export interface SketchPayloadMeta {
+	/** Document identity from main.yaml `$id`; null when the theme is unregistered. */
+	themeId: string | null;
+	version: 2;
+}
+
+export interface SketchPayloadV2 {
+	meta: SketchPayloadMeta;
+	assets: SketchAsset[];
+}
+
 export interface SketchExtension {
 	path?: string;
 	property?: SketchPropertyMap;

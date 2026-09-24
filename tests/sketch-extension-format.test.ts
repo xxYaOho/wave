@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { sketchFormat } from '../src/core/generator/formats/sketch.ts';
 import { transformToWaveTokens } from '../src/core/transformer/theme-transformer.ts';
-import type { ResolvedTokenGroup, WaveToken } from '../src/types/index.ts';
+import type {
+	ResolvedTokenGroup,
+	SketchAsset,
+	SketchPayloadV2,
+	WaveToken,
+} from '../src/types/index.ts';
 
 function token(partial: Partial<WaveToken> & { name: string }): WaveToken {
 	return {
@@ -12,8 +17,15 @@ function token(partial: Partial<WaveToken> & { name: string }): WaveToken {
 	};
 }
 
+function assetByName(
+	payload: SketchPayloadV2,
+	name: string,
+): SketchAsset | undefined {
+	return payload.assets.find((asset) => asset.name === name);
+}
+
 describe('sketch extension format', () => {
-	test('uses sketch.path as group path and filterLayer key as leaf name', () => {
+	test('uses sketch.path as name prefix and filterLayer key as leaf', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-primary-main',
@@ -26,13 +38,14 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.foundation.color['primary-main']).toEqual({
+		expect(assetByName(parsed, 'foundation/color/primary-main')).toEqual({
+			name: 'foundation/color/primary-main',
+			kind: 'color',
 			color: '#1872f0ff',
 		});
-		expect(parsed.color).toBeUndefined();
 	});
 
-	test('uses root flat-json output when sketch.path is absent', () => {
+	test('uses bare leaf names when sketch.path is absent', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-primary-main',
@@ -45,16 +58,23 @@ describe('sketch extension format', () => {
 				path: ['theme', 'dimension', 'radius', 'card'],
 				value: 8,
 				type: 'dimension',
+				_sketch: { property: { cornerRadius: true } },
 				_order: 1,
 			}),
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed['primary-main']).toEqual({ color: '#1872f0ff' });
-		expect(parsed['radius-card']).toEqual({ value: 8 });
-		expect(parsed.color).toBeUndefined();
-		expect(parsed.dimension).toBeUndefined();
+		expect(assetByName(parsed, 'primary-main')).toEqual({
+			name: 'primary-main',
+			kind: 'color',
+			color: '#1872f0ff',
+		});
+		expect(assetByName(parsed, 'radius-card')).toEqual({
+			name: 'radius-card',
+			kind: 'layer',
+			corners: { radii: 8 },
+		});
 	});
 
 	test('converts object color values to sketch hex8', () => {
@@ -70,7 +90,7 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.foundation.color['primary-main']).toEqual({
+		expect(assetByName(parsed, 'foundation/color/primary-main')).toMatchObject({
 			color: '#1872f0ff',
 		});
 	});
@@ -96,10 +116,16 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed['color-v2']['primary-on-main']).toEqual({
+		expect(assetByName(parsed, 'color-v2/primary-on-main')).toEqual({
+			name: 'color-v2/primary-on-main',
+			kind: 'color',
 			color: '#ffffffff',
 		});
-		expect(parsed['color-v2'].overlay).toEqual({ color: '#00000000' });
+		expect(assetByName(parsed, 'color-v2/overlay')).toEqual({
+			name: 'color-v2/overlay',
+			kind: 'color',
+			color: '#00000000',
+		});
 	});
 
 	test('rejects non-color values in color output', () => {
@@ -136,7 +162,11 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.foundation.interaction['interaction-hover']).toEqual({
+		expect(
+			assetByName(parsed, 'foundation/interaction/interaction-hover'),
+		).toEqual({
+			name: 'foundation/interaction/interaction-hover',
+			kind: 'layer',
 			opacity: 0.16,
 		});
 	});
@@ -157,7 +187,9 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 
-		expect(parsed.foundation.state['state-hover']).toEqual({
+		expect(assetByName(parsed, 'foundation/state/state-hover')).toEqual({
+			name: 'foundation/state/state-hover',
+			kind: 'layer',
 			opacity: 0.16,
 		});
 	});
@@ -175,7 +207,11 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed['radius-card']).toEqual({ corners: { radii: 8 } });
+		expect(assetByName(parsed, 'radius-card')).toEqual({
+			name: 'radius-card',
+			kind: 'layer',
+			corners: { radii: 8 },
+		});
 	});
 
 	test('infers corners output for dimension-v radius path', () => {
@@ -191,7 +227,9 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed['dimension-v2'].radius['radius-md']).toEqual({
+		expect(assetByName(parsed, 'dimension-v2/radius/radius-md')).toEqual({
+			name: 'dimension-v2/radius/radius-md',
+			kind: 'layer',
 			corners: { radii: 8 },
 		});
 	});
@@ -231,7 +269,7 @@ describe('sketch extension format', () => {
 		);
 	});
 
-	test('converts shadow tokens to sketch shadow object', () => {
+	test('converts shadow tokens to composable shadows arrays', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-shadow-1',
@@ -259,15 +297,19 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 
-		expect(parsed.aaa.bbb['shadow-1'].shadow).toHaveLength(2);
-		expect(parsed.aaa.bbb['shadow-1'].shadow[0]).toMatchObject({
+		const asset = assetByName(parsed, 'aaa/bbb/shadow-1') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		expect(asset.shadows).toHaveLength(2);
+		expect(asset.shadows?.[0]).toMatchObject({
 			color: '#0f172b05',
 			y: 0,
 			blur: 2,
 		});
 	});
 
-	test('converts gradient tokens to sketch gradient object', () => {
+	test('converts gradient tokens to composable gradient arrays', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-gradient-brand',
@@ -283,7 +325,9 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
 
-		expect(parsed.foundation.gradient['gradient-brand']).toEqual({
+		expect(assetByName(parsed, 'foundation/gradient/gradient-brand')).toEqual({
+			name: 'foundation/gradient/gradient-brand',
+			kind: 'layer',
 			gradient: [
 				{ color: '#00000000', position: 0 },
 				{ color: '#000000cc', position: 1 },
@@ -291,7 +335,7 @@ describe('sketch extension format', () => {
 		});
 	});
 
-	test('detects duplicate sketch output paths', () => {
+	test('detects duplicate sketch asset names', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-primary-main',
@@ -311,36 +355,47 @@ describe('sketch extension format', () => {
 		];
 
 		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
-			'Duplicate Sketch output path',
+			'Duplicate Sketch asset name "foundation/color/primary-main"',
 		);
 	});
 
-	test('rejects strict-prefix output paths in either token order', () => {
+	test('coexists with strict-prefix names in either token order', () => {
+		// v1 在嵌套树中拒绝前缀路径；v2 扁平 name 中 "group" 与 "group/foo"
+		// 是两条不同记录（orca-test 缺口的根因消解）。
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-dimension-foo',
 				path: ['theme', 'dimension', 'foo'],
 				value: 4,
 				type: 'dimension',
-				_sketch: { path: 'group' },
+				_sketch: { path: 'group', property: { opacity: true } },
 			}),
 			token({
 				name: 'theme-dimension-bar',
 				path: ['theme', 'dimension', 'bar'],
 				value: 8,
 				type: 'dimension',
-				_sketch: { path: 'group/foo' },
+				_sketch: { path: 'group/foo', property: { opacity: true } },
+				_order: 1,
 			}),
 		];
 
 		for (const orderedTokens of [tokens, [...tokens].reverse()]) {
-			expect(() => sketchFormat(orderedTokens, { filterLayer: 2 })).toThrow(
-				'Duplicate Sketch output path',
+			const parsed = JSON.parse(
+				sketchFormat(orderedTokens, { filterLayer: 2 }),
 			);
+			expect(assetByName(parsed, 'group/foo')).toMatchObject({
+				kind: 'layer',
+				opacity: 4,
+			});
+			expect(assetByName(parsed, 'group/foo/bar')).toMatchObject({
+				kind: 'layer',
+				opacity: 8,
+			});
 		}
 	});
 
-	test('rejects mixed-type exact output path collisions', () => {
+	test('rejects exact name collisions across kinds', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-foo',
@@ -354,16 +409,17 @@ describe('sketch extension format', () => {
 				path: ['theme', 'dimension', 'foo'],
 				value: 4,
 				type: 'dimension',
-				_sketch: { path: 'group' },
+				_sketch: { path: 'group', property: { opacity: true } },
+				_order: 1,
 			}),
 		];
 
 		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
-			'Duplicate Sketch output path',
+			'Duplicate Sketch asset name "group/foo"',
 		);
 	});
 
-	test('filters skipped tokens before output path and duplicate checks', () => {
+	test('filters skipped tokens before output name and duplicate checks', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-primary-skipped',
@@ -383,10 +439,14 @@ describe('sketch extension format', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.foundation.color.primary).toEqual({ color: '#1872f0ff' });
+		expect(assetByName(parsed, 'foundation/color/primary')).toEqual({
+			name: 'foundation/color/primary',
+			kind: 'color',
+			color: '#1872f0ff',
+		});
 	});
 
-	test('excludes non-writable tokens from output path preflight', () => {
+	test('excludes non-writable tokens from name collision preflight', () => {
 		const written = token({
 			name: 'theme-color-primary',
 			path: ['theme', 'color', 'primary'],
@@ -407,9 +467,11 @@ describe('sketch extension format', () => {
 				filterLayer: 2,
 			}),
 		);
-		expect(withoutValue.foundation.color.primary).toEqual({
-			color: '#1872f0ff',
-		});
+		expect(assetByName(withoutValue, 'foundation/color/primary')).toMatchObject(
+			{
+				color: '#1872f0ff',
+			},
+		);
 
 		const skipped = JSON.parse(
 			sketchFormat(
@@ -420,7 +482,9 @@ describe('sketch extension format', () => {
 				{ filterLayer: 2 },
 			),
 		);
-		expect(skipped.foundation.color.primary).toEqual({ color: '#1872f0ff' });
+		expect(assetByName(skipped, 'foundation/color/primary')).toMatchObject({
+			color: '#1872f0ff',
+		});
 
 		const rootExcluded = JSON.parse(
 			sketchFormat([conflicting, written], {
@@ -428,9 +492,11 @@ describe('sketch extension format', () => {
 				includeRootKeys: ['color'],
 			}),
 		);
-		expect(rootExcluded.foundation.color.primary).toEqual({
-			color: '#1872f0ff',
-		});
+		expect(assetByName(rootExcluded, 'foundation/color/primary')).toMatchObject(
+			{
+				color: '#1872f0ff',
+			},
+		);
 	});
 
 	test('keeps skipped tokens available to inheritColor sibling lookup', () => {
@@ -454,8 +520,10 @@ describe('sketch extension format', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens));
-		expect(parsed['theme-component-button-label']).toBeUndefined();
-		expect(parsed['theme-component-button-icon']).toEqual({
+		expect(assetByName(parsed, 'theme-component-button-label')).toBeUndefined();
+		expect(assetByName(parsed, 'theme-component-button-icon')).toEqual({
+			name: 'theme-component-button-icon',
+			kind: 'color',
 			color: '#1872f0ff',
 		});
 	});
@@ -481,9 +549,12 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.component).toBeUndefined();
-		expect(parsed['button-background']).toEqual({ color: '#1872f0ff' });
-		expect(parsed['button-radius']).toEqual({ value: 8 });
+		expect(assetByName(parsed, 'button-background')).toEqual({
+			name: 'button-background',
+			kind: 'color',
+			color: '#1872f0ff',
+		});
+		expect(assetByName(parsed, 'button-radius')).toBeUndefined();
 	});
 
 	test('formats inherited group sketch.path after transformer normalization', () => {
@@ -500,11 +571,14 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.foundation.color.primary).toEqual({ color: '#1872f0ff' });
-		expect(parsed.primary).toBeUndefined();
+		expect(assetByName(parsed, 'foundation/color/primary')).toEqual({
+			name: 'foundation/color/primary',
+			kind: 'color',
+			color: '#1872f0ff',
+		});
 	});
 
-	test('rejects composite references to skipped or root-excluded color targets', () => {
+	test('validates outline ring references against emitted color targets', () => {
 		const typography = {
 			fontFamily: 'Inter',
 			fontSize: 14,
@@ -520,6 +594,32 @@ describe('sketch extension format', () => {
 			type: 'color',
 			_sketch: { skip: true },
 		});
+		const ring = token({
+			name: 'theme-border-outline-focus',
+			path: ['theme', 'border', 'outline', 'focus'],
+			type: 'border',
+			value: { color: '#112233', width: 1, style: 'solid' },
+			_outline: { offset: 2 },
+			_sketchColorReference: '{theme.color.text.default}',
+			_order: 2,
+		});
+
+		// outline ring 的引用仍校验目标必须在清单内。
+		expect(() => sketchFormat([target, ring])).toThrow(
+			'theme.border.outline.focus',
+		);
+		expect(() =>
+			sketchFormat([{ ...target, _sketch: undefined }, ring], {
+				includeRootKeys: ['border'],
+			}),
+		).toThrow('theme.border.outline.focus');
+		const undefinedTarget = { ...target, value: undefined, _sketch: undefined };
+		expect(() => sketchFormat([undefinedTarget, ring])).toThrow(
+			'theme.border.outline.focus',
+		);
+
+		// text 与普通 border 的引用随 textColor 退役、payload 范围收窄，
+		// 不再进入校验（引用为死元数据）。
 		const body = token({
 			name: 'theme-font-body',
 			path: ['theme', 'font', 'body'],
@@ -529,7 +629,7 @@ describe('sketch extension format', () => {
 			_sketchColorReference: '{theme.color.text.default}',
 			_order: 1,
 		});
-		const border = token({
+		const plainBorder = token({
 			name: 'theme-border-focus',
 			path: ['theme', 'border', 'focus'],
 			type: 'border',
@@ -537,77 +637,68 @@ describe('sketch extension format', () => {
 			_sketchColorReference: '{theme.color.text.default}',
 			_order: 2,
 		});
-
-		expect(() => sketchFormat([target, body])).toThrow('theme.font.body');
-		expect(() => sketchFormat([target, border])).toThrow('theme.border.focus');
-		expect(() =>
-			sketchFormat([{ ...target, _sketch: undefined }, body], {
-				includeRootKeys: ['font'],
-			}),
-		).toThrow('theme.font.body');
-		expect(() =>
-			sketchFormat([{ ...target, _sketch: undefined }, border], {
-				includeRootKeys: ['border'],
-			}),
-		).toThrow('theme.border.focus');
-		const undefinedTarget = { ...target, value: undefined, _sketch: undefined };
-		expect(() => sketchFormat([undefinedTarget, body])).toThrow(
-			'theme.font.body',
-		);
-		expect(() => sketchFormat([undefinedTarget, border])).toThrow(
-			'theme.border.focus',
-		);
+		const parsed = JSON.parse(sketchFormat([target, body, plainBorder]));
+		expect(assetByName(parsed, 'theme-font-body')).toMatchObject({
+			kind: 'text',
+		});
+		expect(assetByName(parsed, 'theme-border-focus')).toBeUndefined();
 	});
 
 	test('keeps nested and dotted-key JSON Pointer aliases distinct', () => {
-		const typography = {
-			fontFamily: 'Inter',
-			fontSize: 14,
-			fontWeight: 400,
-			lineHeight: 1.5,
-			letterSpacing: 0,
-			color: '#112233',
-		};
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-a-b',
 				path: ['theme', 'color', 'a', 'b'],
 				value: '#112233',
 				type: 'color',
+				id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
 			}),
 			token({
-				name: 'theme-color-a.dotted',
+				name: 'theme-color-a-dotted',
 				path: ['theme', 'color', 'a.b'],
 				value: '#445566',
 				type: 'color',
+				id: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a1',
 				_order: 1,
 			}),
 			token({
-				name: 'theme-font-nested',
-				path: ['theme', 'font', 'nested'],
-				type: 'typography',
-				value: typography,
-				_typographyColor: '#112233',
+				name: 'theme-border-outline-nested',
+				path: ['theme', 'border', 'outline', 'nested'],
+				type: 'border',
+				value: { color: '#112233', width: 1, style: 'solid' },
+				_outline: { offset: 2 },
 				_sketchColorReference: '{theme.color.a.b}',
 				_order: 2,
 			}),
 			token({
-				name: 'theme-font-dotted',
-				path: ['theme', 'font', 'dotted'],
-				type: 'typography',
-				value: { ...typography, color: '#445566' },
-				_typographyColor: '#445566',
+				name: 'theme-border-outline-dotted',
+				path: ['theme', 'border', 'outline', 'dotted'],
+				type: 'border',
+				value: { color: '#445566', width: 1, style: 'solid' },
+				_outline: { offset: 2 },
 				_sketchColorReference: '#/theme/color/a.b',
 				_order: 3,
 			}),
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.nested.textStyle.textColor).toBe('@/a-b');
-		expect(parsed.dotted.textStyle.textColor).toBe('@/a.b');
+		const nested = assetByName(parsed, 'outline-nested') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		const dotted = assetByName(parsed, 'outline-dotted') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		expect(nested.shadows?.[0]?.color).toEqual({
+			$ref: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+		});
+		expect(dotted.shadows?.[0]?.color).toEqual({
+			$ref: 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a1',
+		});
 	});
 
-	test('allows duplicate filtered color keys under distinct output paths', () => {
+	test('allows duplicate filtered color keys under distinct names', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-color-text-default',
@@ -628,15 +719,19 @@ describe('sketch extension format', () => {
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
 
-		expect(parsed.foundation.color['text-default']).toEqual({
+		expect(assetByName(parsed, 'foundation/color/text-default')).toEqual({
+			name: 'foundation/color/text-default',
+			kind: 'color',
 			color: '#112233ff',
 		});
-		expect(parsed.foundation.state['text-default']).toEqual({
+		expect(assetByName(parsed, 'foundation/state/text-default')).toEqual({
+			name: 'foundation/state/text-default',
+			kind: 'color',
 			color: '#445566ff',
 		});
 	});
 
-	test('rejects duplicate source aliases across distinct output paths', () => {
+	test('rejects duplicate source aliases across distinct names', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'first-color',

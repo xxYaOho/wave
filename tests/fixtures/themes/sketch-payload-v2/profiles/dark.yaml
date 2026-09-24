@@ -1,0 +1,39 @@
+theme:
+  color:
+    $type: color
+    shadow:
+      $id: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+      $value: "#e2e8f0"
+    unregistered:
+      $value: "#0ea5e9"
+    ring:
+      $id: b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a1
+      $value: "#2563eb"
+  shadow:
+    $description: "层级投影"
+    $extensions:
+      platform:
+        sketch:
+          path: shadow
+    elevation:
+      high:
+        $type: shadow
+        $value:
+          color: "#e2e8f00f"
+          offsetX: 0
+          offsetY: 2
+          blur: 4
+          spread: -1
+  border:
+    outline:
+      focus:
+        $type: border
+        $value:
+          color: "{theme.color.ring}"
+          width: 1
+          style: solid
+        $extensions:
+          platform:
+            sketch:
+              outline:
+                offset: 2

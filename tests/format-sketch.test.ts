@@ -1,57 +1,180 @@
 import { describe, expect, test } from 'bun:test';
 import { sketchFormat } from '../src/core/generator/formats/sketch.ts';
-import type { WaveToken } from '../src/types/index.ts';
+import {
+	assembleSketchPayload,
+	buildSketchWriteTokens,
+} from '../src/core/generator/formats/sketch-payload.ts';
+import type {
+	SketchAsset,
+	SketchPayloadV2,
+	SketchSwatchRefMode,
+	WaveToken,
+} from '../src/types/index.ts';
 
-describe('sketchFormat (Wave-native)', () => {
-	test('emits root flat-json keys with sketch color conversion', () => {
+function assetByName(
+	payload: SketchPayloadV2,
+	name: string,
+): SketchAsset | undefined {
+	return payload.assets.find((asset) => asset.name === name);
+}
+
+function expectNoAsset(payload: SketchPayloadV2, name: string): void {
+	expect(assetByName(payload, name)).toBeUndefined();
+}
+
+function colorAsset(
+	partial: Partial<WaveToken> & { name: string; path: string[] },
+): WaveToken {
+	return {
+		value: '#000000',
+		type: 'color',
+		_order: 0,
+		...partial,
+	};
+}
+
+describe('sketchFormat (payload v2)', () => {
+	test('emits meta with themeId passthrough and version 2', () => {
 		const tokens: WaveToken[] = [
+			colorAsset({ name: 'theme-color-x', path: ['theme', 'color', 'x'] }),
+		];
+
+		const withoutThemeId = JSON.parse(sketchFormat(tokens)) as SketchPayloadV2;
+		expect(withoutThemeId.meta).toEqual({ themeId: null, version: 2 });
+
+		const withThemeId = JSON.parse(
+			sketchFormat(tokens, { themeId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0' }),
+		) as SketchPayloadV2;
+		expect(withThemeId.meta).toEqual({
+			themeId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
+			version: 2,
+		});
+	});
+
+	test('carries token uuid into the record and omits unregistered tokens', () => {
+		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-color-registered',
+				path: ['theme', 'color', 'registered'],
+				id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+			}),
+			colorAsset({
+				name: 'theme-color-unregistered',
+				path: ['theme', 'color', 'unregistered'],
+				_order: 1,
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens)) as SketchPayloadV2;
+		expect(parsed.assets).toEqual([
 			{
+				uuid: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+				name: 'theme-color-registered',
+				kind: 'color',
+				color: '#000000ff',
+			},
+			{
+				name: 'theme-color-unregistered',
+				kind: 'color',
+				color: '#000000ff',
+			},
+		]);
+	});
+
+	test('builds names from sketch.path prefix and filterLayer-trimmed leaf', () => {
+		const tokens: WaveToken[] = [
+			colorAsset({
 				name: 'theme-color-primary-main',
 				path: ['theme', 'color', 'primary', 'main'],
 				value: '#ff0000',
-				type: 'color',
-				_order: 0,
-			},
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-
-		expect(parsed).toEqual({ 'primary-main': { color: '#ff0000ff' } });
-	});
-
-	test('emits dimension tokens with default value key', () => {
-		const tokens: WaveToken[] = [
-			{
-				name: 'theme-dimension-gap-small',
-				path: ['theme', 'dimension', 'gap', 'small'],
-				value: '4px',
-				type: 'dimension',
-				_order: 0,
-			},
-			{
-				name: 'theme-dimension-gap-relative',
-				path: ['theme', 'dimension', 'gap', 'relative'],
-				value: '0.5rem',
-				type: 'dimension',
+				_sketch: { path: 'foundation/color' },
+			}),
+			colorAsset({
+				name: 'theme-color-scrim',
+				path: ['theme', 'color', 'scrim'],
+				value: '#000000',
 				_order: 1,
-			},
+			}),
 		];
 
-		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-
-		expect(parsed['gap-small']).toEqual({ value: '4px' });
-		expect(parsed['gap-relative']).toEqual({ value: '0.5rem' });
+		const parsed = JSON.parse(
+			sketchFormat(tokens, { filterLayer: 2 }),
+		) as SketchPayloadV2;
+		expect(assetByName(parsed, 'foundation/color/primary-main')).toEqual({
+			name: 'foundation/color/primary-main',
+			kind: 'color',
+			color: '#ff0000ff',
+		});
+		expect(assetByName(parsed, 'scrim')).toEqual({
+			name: 'scrim',
+			kind: 'color',
+			color: '#000000ff',
+		});
 	});
 
-	test('emits exact payloads for every standard type', () => {
+	test('keeps raw slashes and dots in names without path encoding', () => {
 		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-color-escaped',
+				path: ['theme', 'color', 'text', 'escaped.key/~color'],
+				value: '#112233',
+				_sketch: { path: 'foundation/color' },
+			}),
+		];
+
+		const parsed = JSON.parse(
+			sketchFormat(tokens, { filterLayer: 2 }),
+		) as SketchPayloadV2;
+		// RFC 6901 encoding is gone with the v1 tree: the name is plain data.
+		expect(parsed.assets.map((asset) => asset.name)).toEqual([
+			'foundation/color/text-escaped.key/~color',
+		]);
+	});
+
+	test('orders records by source order', () => {
+		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-color-last',
+				path: ['theme', 'color', 'last'],
+				_order: 9,
+			}),
 			{
+				name: 'theme-font-body',
+				path: ['theme', 'font', 'body'],
+				type: 'typography',
+				value: {
+					fontFamily: 'Inter',
+					fontSize: 12,
+					fontWeight: 400,
+					lineHeight: '16px',
+					letterSpacing: 0,
+				},
+				_order: 2,
+			},
+			colorAsset({
+				name: 'theme-color-first',
+				path: ['theme', 'color', 'first'],
+				value: '#112233',
+				_order: 1,
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens)) as SketchPayloadV2;
+		expect(parsed.assets.map((asset) => asset.name)).toEqual([
+			'theme-color-first',
+			'theme-font-body',
+			'theme-color-last',
+		]);
+	});
+
+	test('emits exact payloads for every syncable type and exits the rest', () => {
+		const tokens: WaveToken[] = [
+			colorAsset({
 				name: 'theme-color-brand',
 				path: ['theme', 'color', 'brand'],
-				type: 'color',
 				value: '#112233',
 				_order: 0,
-			},
+			}),
 			...[
 				['dimension', '8px'],
 				['fontFamily', ['Inter', 'sans-serif']],
@@ -84,7 +207,6 @@ describe('sketchFormat (Wave-native)', () => {
 					width: '1px',
 					style: { dashArray: ['4px', '8px'], lineCap: 'butt' },
 				},
-				_sketchColorReference: '{theme.color.brand}',
 				_order: 9,
 			},
 			{
@@ -128,33 +250,26 @@ describe('sketchFormat (Wave-native)', () => {
 			},
 		];
 
-		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.brand).toEqual({ color: '#112233ff' });
-		expect(parsed.dimension).toEqual({ value: '8px' });
-		expect(parsed.fontFamily).toEqual({ value: ['Inter', 'sans-serif'] });
-		expect(parsed.fontWeight).toEqual({ value: 700 });
-		expect(parsed.duration).toEqual({ value: '200ms' });
-		expect(parsed.cubicBezier).toEqual({ value: [0.4, 0, 0.2, 1] });
-		expect(parsed.number).toEqual({ value: 0.5 });
-		expect(parsed.strokeStyle).toEqual({
-			value: { dashArray: ['4px', '8px'], lineCap: 'butt' },
+		const parsed = JSON.parse(
+			sketchFormat(tokens, { filterLayer: 2 }),
+		) as SketchPayloadV2;
+		// Only syncable assets produce records; ordinary borders, generic
+		// dimensions, transitions, and scalar payloads exit the manifest.
+		expect(parsed.assets.map((asset) => asset.name)).toEqual([
+			'brand',
+			'shadow',
+			'gradient',
+			'typography',
+		]);
+		expect(assetByName(parsed, 'brand')).toEqual({
+			name: 'brand',
+			kind: 'color',
+			color: '#112233ff',
 		});
-		expect(parsed.transition).toEqual({
-			value: {
-				duration: '200ms',
-				delay: '0ms',
-				timingFunction: [0.4, 0, 0.2, 1],
-			},
-		});
-		expect(parsed.border).toEqual({
-			value: {
-				color: '@/brand',
-				width: '1px',
-				style: { dashArray: ['4px', '8px'], lineCap: 'butt' },
-			},
-		});
-		expect(parsed.shadow).toEqual({
-			shadow: [
+		expect(assetByName(parsed, 'shadow')).toEqual({
+			name: 'shadow',
+			kind: 'layer',
+			shadows: [
 				{
 					x: 0,
 					y: 4,
@@ -165,14 +280,18 @@ describe('sketchFormat (Wave-native)', () => {
 				},
 			],
 		});
-		expect(parsed.gradient).toEqual({
+		expect(assetByName(parsed, 'gradient')).toEqual({
+			name: 'gradient',
+			kind: 'layer',
 			gradient: [
 				{ color: '#112233ff', position: 0 },
 				{ color: '#445566ff', position: 1 },
 			],
 		});
-		expect(parsed.typography).toEqual({
-			textStyle: {
+		expect(assetByName(parsed, 'typography')).toEqual({
+			name: 'typography',
+			kind: 'text',
+			text: {
 				fontFamily: 'Inter',
 				fontSize: 16,
 				fontWeight: 400,
@@ -180,22 +299,19 @@ describe('sketchFormat (Wave-native)', () => {
 				kerning: 0,
 			},
 		});
-	});
-
-	test('preserves unknown structured values in the generic value payload', () => {
-		const value = { custom: ['a', { nested: true }] };
-		const parsed = JSON.parse(
-			sketchFormat([
-				{
-					name: 'theme-custom-payload',
-					path: ['theme', 'custom', 'payload'],
-					type: 'vendorCustom',
-					value,
-					_order: 0,
-				},
-			]),
-		);
-		expect(parsed['theme-custom-payload']).toEqual({ value });
+		for (const exited of [
+			'dimension',
+			'fontFamily',
+			'fontWeight',
+			'duration',
+			'cubicBezier',
+			'number',
+			'strokeStyle',
+			'transition',
+			'border',
+		]) {
+			expectNoAsset(parsed, exited);
+		}
 	});
 
 	test('sketch output excludes public dimension root', () => {
@@ -214,7 +330,7 @@ describe('sketchFormat (Wave-native)', () => {
 				value: 8,
 				type: 'dimension',
 				_order: 1,
-				_sketch: { path: 'radius/v2' },
+				_sketch: { property: { cornerRadius: true } },
 			},
 			{
 				name: 'style-shadow-legacy',
@@ -246,7 +362,7 @@ describe('sketchFormat (Wave-native)', () => {
 		expect(out).not.toContain('shadow-legacy');
 	});
 
-	test('emits shadow tokens as sketch shadow objects', () => {
+	test('emits shadow tokens as composable shadows arrays', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-shadow-1',
@@ -266,8 +382,12 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
-
-		expect(parsed['shadow-1'].shadow[0]).toMatchObject({
+		const asset = assetByName(parsed, 'shadow-1') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		expect(asset.kind).toBe('layer');
+		expect(asset.shadows?.[0]).toMatchObject({
 			x: 0,
 			y: 4,
 			blur: 8,
@@ -276,7 +396,7 @@ describe('sketchFormat (Wave-native)', () => {
 		});
 	});
 
-	test('formats outline border as sketch shadow simulation', () => {
+	test('formats outline border as a two-layer shadows record', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-border-outline-focus',
@@ -289,38 +409,14 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
-
-		expect(parsed['border-outline-focus'].shadow).toEqual([
+		const asset = assetByName(parsed, 'border-outline-focus') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		expect(asset.shadows).toEqual([
 			{ x: 0, y: 0, blur: 0, spread: 3, color: '#000000ff' },
 			{ x: 0, y: 0, blur: 0, spread: 2, color: '#ffffffff' },
 		]);
-	});
-
-	test('preserves structured dashArray on ordinary borders', () => {
-		const dashArray = ['0px', '4px', '8px', '2pt'];
-		const tokens: WaveToken[] = [
-			{
-				name: 'theme-border-antline',
-				path: ['theme', 'border', 'antline'],
-				type: 'border',
-				value: {
-					color: '#000000',
-					width: 1,
-					style: { dashArray, lineCap: 'round' },
-				},
-				_order: 0,
-			},
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
-
-		expect(parsed['border-antline']).toEqual({
-			value: {
-				color: '#000000ff',
-				width: 1,
-				style: { dashArray, lineCap: 'round' },
-			},
-		});
 	});
 
 	test('throws instead of falling back for object outline color', () => {
@@ -382,7 +478,11 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
-		const shadow = parsed['shadow-multi'].shadow;
+		const asset = assetByName(parsed, 'shadow-multi') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		const shadow = asset.shadows ?? [];
 
 		expect(shadow[0]).toMatchObject({ blur: 16, y: 8 });
 		expect(shadow[1]).toMatchObject({ blur: 8, y: 4 });
@@ -392,13 +492,11 @@ describe('sketchFormat (Wave-native)', () => {
 
 	test('throws when sketch receives non-hex color string', () => {
 		const tokens: WaveToken[] = [
-			{
+			colorAsset({
 				name: 'theme-color-primary-main',
 				path: ['theme', 'color', 'primary', 'main'],
 				value: 'oklch(52% 0.25 263)',
-				type: 'color',
-				_order: 0,
-			},
+			}),
 		];
 
 		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
@@ -412,7 +510,7 @@ describe('sketchFormat (Wave-native)', () => {
 			components: ['none', 0.2, 260],
 			alpha: 1,
 		};
-		const tokens: WaveToken[] = [
+		const cases: WaveToken[] = [
 			{
 				name: 'theme-color-none',
 				path: ['theme', 'color', 'none'],
@@ -420,14 +518,6 @@ describe('sketchFormat (Wave-native)', () => {
 				value: preservedColor,
 				_targetColorSpace: 'oklch',
 				_order: 0,
-			},
-			{
-				name: 'theme-border-none',
-				path: ['theme', 'border', 'none'],
-				type: 'border',
-				value: { color: preservedColor, width: '1px', style: 'solid' },
-				_targetColorSpace: 'oklch',
-				_order: 1,
 			},
 			{
 				name: 'theme-shadow-none',
@@ -441,7 +531,7 @@ describe('sketchFormat (Wave-native)', () => {
 					spread: '0px',
 				},
 				_targetColorSpace: 'oklch',
-				_order: 2,
+				_order: 1,
 			},
 			{
 				name: 'theme-gradient-none',
@@ -452,26 +542,11 @@ describe('sketchFormat (Wave-native)', () => {
 					{ color: preservedColor, position: 1 },
 				],
 				_targetColorSpace: 'oklch',
-				_order: 3,
-			},
-			{
-				name: 'theme-font-none',
-				path: ['theme', 'font', 'none'],
-				type: 'typography',
-				value: {
-					fontFamily: 'Inter',
-					fontSize: '16px',
-					fontWeight: 400,
-					letterSpacing: '0px',
-					lineHeight: 1.5,
-					color: preservedColor,
-				},
-				_targetColorSpace: 'oklch',
-				_order: 4,
+				_order: 2,
 			},
 		];
 
-		for (const token of tokens) {
+		for (const token of cases) {
 			let message = '';
 			try {
 				sketchFormat([token]);
@@ -484,6 +559,44 @@ describe('sketchFormat (Wave-native)', () => {
 			expect(message).toContain('contains "none"');
 			expect(message).toContain('hex fallback');
 		}
+	});
+
+	test('text payloads retire textColor instead of failing on preserved colors', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-font-none',
+				path: ['theme', 'font', 'none'],
+				type: 'typography',
+				value: {
+					fontFamily: 'Inter',
+					fontSize: '16px',
+					fontWeight: 400,
+					letterSpacing: '0px',
+					lineHeight: 1.5,
+					color: {
+						colorSpace: 'oklch',
+						components: ['none', 0.2, 260],
+						alpha: 1,
+					},
+				},
+				_targetColorSpace: 'oklch',
+				_order: 0,
+			},
+		];
+
+		// Text carries the 5 pure font fields only; the color slot is gone.
+		const parsed = JSON.parse(sketchFormat([tokens[0]!]));
+		expect(assetByName(parsed, 'theme-font-none')).toEqual({
+			name: 'theme-font-none',
+			kind: 'text',
+			text: {
+				fontFamily: 'Inter',
+				fontSize: 16,
+				fontWeight: 400,
+				lineHeight: 24,
+				kerning: 0,
+			},
+		});
 	});
 
 	test('rejects units without a Sketch numeric projection contract', () => {
@@ -547,11 +660,19 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
-		expect(parsed['shadow-raised'].shadow[0].color).toBe('#ff00ff80');
-		expect(parsed['gradient-accent'].gradient[0].color).toBe('#ff000040');
+		const raised = assetByName(parsed, 'shadow-raised') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		const accent = assetByName(parsed, 'gradient-accent') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		expect(raised.shadows?.[0]?.color).toBe('#ff00ff80');
+		expect(accent.gradient?.[0]?.color).toBe('#ff000040');
 	});
 
-	test('formats typography as sketch text style payload', () => {
+	test('formats typography as a 5-field text payload without color keys', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-font-heading-h1',
@@ -560,7 +681,7 @@ describe('sketchFormat (Wave-native)', () => {
 				value: {
 					fontFamily: 'Helvetica',
 					fontSize: '32px',
-					fontWeight: 9,
+					fontWeight: 400,
 					lineHeight: '40px',
 					letterSpacing: 0,
 				},
@@ -570,22 +691,91 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
-
-		expect(parsed.font.v2['font-heading-h1']).toEqual({
-			textStyle: {
-				fontFamily: 'Helvetica',
-				fontSize: 32,
-				fontWeight: 9,
-				lineHeight: 40,
-				kerning: 0,
-			},
+		const asset = assetByName(parsed, 'font/v2/font-heading-h1') as Extract<
+			SketchAsset,
+			{ kind: 'text' }
+		>;
+		expect(asset.kind).toBe('text');
+		expect(Object.keys(asset.text).sort()).toEqual([
+			'fontFamily',
+			'fontSize',
+			'fontWeight',
+			'kerning',
+			'lineHeight',
+		]);
+		expect(asset.text).toEqual({
+			fontFamily: 'Helvetica',
+			fontSize: 32,
+			fontWeight: 400,
+			lineHeight: 40,
+			kerning: 0,
 		});
-		expect(JSON.stringify(parsed.font.v2['font-heading-h1'])).not.toContain(
-			'color',
-		);
-		expect(JSON.stringify(parsed.font.v2['font-heading-h1'])).not.toContain(
-			'alignment',
-		);
+	});
+
+	test('retires textColor: typography color metadata emits no color key', () => {
+		const typography = {
+			fontFamily: 'Inter',
+			fontSize: 14,
+			fontWeight: 400,
+			lineHeight: 1.5,
+			letterSpacing: 0,
+			color: '#112233',
+		};
+		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-color-text-default',
+				path: ['theme', 'color', 'text', 'default'],
+				value: '#112233',
+			}),
+			{
+				name: 'theme-font-literal',
+				path: ['theme', 'font', 'literal'],
+				type: 'typography',
+				value: typography,
+				_colorReference: '{theme.color.text.default}',
+				_typographyColor: '#112233',
+				_order: 1,
+			},
+			{
+				name: 'theme-font-referenced',
+				path: ['theme', 'font', 'referenced'],
+				type: 'typography',
+				value: typography,
+				_sketchColorReference: '{theme.color.text.default}',
+				_typographyColor: '#112233',
+				_order: 2,
+			},
+			{
+				name: 'theme-font-external',
+				path: ['theme', 'font', 'external'],
+				type: 'typography',
+				value: typography,
+				_sketchColorReference: '#/palette/text/default',
+				_typographyColor: '#112233',
+				_order: 3,
+			},
+			{
+				name: 'theme-font-alpha',
+				path: ['theme', 'font', 'alpha'],
+				type: 'typography',
+				value: typography,
+				_colorReference: '#/theme/color/text/default',
+				_typographyColor: '#11223380',
+				_order: 4,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		for (const name of ['literal', 'referenced', 'external', 'alpha']) {
+			const asset = assetByName(parsed, name) as Extract<
+				SketchAsset,
+				{ kind: 'text' }
+			>;
+			expect(asset?.kind).toBe('text');
+			expect(JSON.stringify(asset)).not.toContain('color');
+			expect(JSON.stringify(asset)).not.toContain('$ref');
+			expect(JSON.stringify(asset)).not.toContain('@/');
+		}
 	});
 
 	test('prefers PingFang SC and resolves multiplier line height', () => {
@@ -608,14 +798,14 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens));
-		expect(parsed['theme-font-body']).toEqual({
-			textStyle: {
+		expect(assetByName(parsed, 'theme-font-body')).toMatchObject({
+			kind: 'text',
+			text: {
 				fontFamily: 'PingFang SC',
 				fontSize: 14,
 				fontWeight: 400,
 				lineHeight: 19,
 				kerning: -0.2,
-				textColor: '#112233ff',
 			},
 		});
 	});
@@ -637,7 +827,11 @@ describe('sketchFormat (Wave-native)', () => {
 		};
 
 		const parsed = JSON.parse(sketchFormat([token]));
-		expect(parsed['theme-font-body'].textStyle).toMatchObject({
+		const asset = assetByName(parsed, 'theme-font-body') as Extract<
+			SketchAsset,
+			{ kind: 'text' }
+		>;
+		expect(asset.text).toMatchObject({
 			fontSize: 12.25,
 			lineHeight: 18,
 			kerning: 1.4,
@@ -661,29 +855,45 @@ describe('sketchFormat (Wave-native)', () => {
 		};
 
 		const parsed = JSON.parse(sketchFormat([token]));
-		expect(parsed['theme-font-body'].textStyle.lineHeight).toBe(19);
+		const asset = assetByName(parsed, 'theme-font-body') as Extract<
+			SketchAsset,
+			{ kind: 'text' }
+		>;
+		expect(asset.text.lineHeight).toBe(19);
 		expect(() =>
 			sketchFormat([{ ...token, _typographyBaseFontSize: undefined }]),
 		).toThrow('theme.font.body');
 	});
 
-	test('rejects typography color without normalized formatter metadata', () => {
-		const token: WaveToken = {
-			name: 'theme-font-body',
-			path: ['theme', 'font', 'body'],
+	test('accepts exactly the 100-900 integer-hundred fontWeight scale', () => {
+		const makeToken = (weight: number): WaveToken => ({
+			name: `font-weight-${weight}`,
+			path: ['theme', 'font', `weight-${weight}`],
 			type: 'typography',
 			value: {
 				fontFamily: 'Inter',
 				fontSize: 14,
-				fontWeight: 400,
+				fontWeight: weight,
 				lineHeight: 1.5,
 				letterSpacing: 0,
-				color: '#112233',
 			},
 			_order: 0,
-		};
+		});
 
-		expect(() => sketchFormat([token])).toThrow('theme.font.body');
+		for (const weight of [100, 400, 700, 900]) {
+			const parsed = JSON.parse(sketchFormat([makeToken(weight)]));
+			const asset = assetByName(parsed, `font-weight-${weight}`) as Extract<
+				SketchAsset,
+				{ kind: 'text' }
+			>;
+			expect(asset.text.fontWeight).toBe(weight);
+		}
+
+		for (const weight of [50, 250, 425, 950, 1000]) {
+			expect(() => sketchFormat([makeToken(weight)])).toThrow(
+				`fontWeight ${weight} is off the Sketch 100-900 integer-hundred scale`,
+			);
+		}
 	});
 
 	test('ceilings fractional absolute line height', () => {
@@ -703,9 +913,11 @@ describe('sketchFormat (Wave-native)', () => {
 			};
 
 			const parsed = JSON.parse(sketchFormat([token]));
-			expect(parsed[`font-caption-${lineHeight}`].textStyle.lineHeight).toBe(
-				19,
-			);
+			const asset = assetByName(
+				parsed,
+				`font-caption-${lineHeight}`,
+			) as Extract<SketchAsset, { kind: 'text' }>;
+			expect(asset.text.lineHeight).toBe(19);
 		}
 	});
 
@@ -729,9 +941,19 @@ describe('sketchFormat (Wave-native)', () => {
 				makeTypography(['sans-serif', '-APPLE-SYSTEM'], 1),
 			]),
 		);
-		expect(parsed['font-0'].textStyle.fontFamily).toBe('Inter');
-		expect(parsed['font-1'].textStyle.fontFamily).toBeUndefined();
-		expect(parsed['font-0'].textStyle.lineHeight).toBe(16);
+		const first = assetByName(parsed, 'font-0') as Extract<
+			SketchAsset,
+			{ kind: 'text' }
+		>;
+		const second = assetByName(parsed, 'font-1') as Extract<
+			SketchAsset,
+			{ kind: 'text' }
+		>;
+		expect(first.text.fontFamily).toBe('Inter');
+		// fontFamily 缺失按插件 defaults 回退（协议 10b），wave 侧省略字段。
+		expect(second.text.fontFamily).toBeUndefined();
+		expect('fontFamily' in second.text).toBe(false);
+		expect(first.text.lineHeight).toBe(16);
 	});
 
 	test('throws with token path when multiplier line height cannot use font size', () => {
@@ -766,7 +988,11 @@ describe('sketchFormat (Wave-native)', () => {
 			_order: 0,
 		};
 		const parsed = JSON.parse(sketchFormat([token]));
-		expect(parsed['font-body'].textStyle.fontFamily).toBe('Inter');
+		const asset = assetByName(parsed, 'font-body') as Extract<
+			SketchAsset,
+			{ kind: 'text' }
+		>;
+		expect(asset.text.fontFamily).toBe('Inter');
 
 		for (const fontFamily of ['\u0000Inter', 'Inter\u007f', '\u0085Inter']) {
 			expect(() =>
@@ -798,7 +1024,7 @@ describe('sketchFormat (Wave-native)', () => {
 		expect(() => sketchFormat([token])).toThrow('lineHeight');
 	});
 
-	test('formats theme radius cornerRadius property as corners radii', () => {
+	test('formats sketch property dimension tokens as layer records', () => {
 		const tokens: WaveToken[] = [
 			{
 				name: 'theme-radius-md',
@@ -808,351 +1034,294 @@ describe('sketchFormat (Wave-native)', () => {
 				_order: 0,
 				_sketch: { property: { cornerRadius: true } },
 			},
+			{
+				name: 'theme-state-hover',
+				path: ['theme', 'state', 'hover'],
+				type: 'number',
+				value: 0.16,
+				_order: 1,
+				_sketch: { property: { opacity: true } },
+			},
+			{
+				name: 'theme-dimension-radius-card',
+				path: ['theme', 'dimension', 'radius', 'card'],
+				type: 'dimension',
+				value: 24,
+				_order: 2,
+				_sketch: { path: 'foundation/radius' },
+			},
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 1 }));
-
-		expect(parsed['radius-md']).toEqual({ corners: { radii: 8 } });
+		expect(assetByName(parsed, 'radius-md')).toEqual({
+			name: 'radius-md',
+			kind: 'layer',
+			corners: { radii: 8 },
+		});
+		expect(assetByName(parsed, 'state-hover')).toEqual({
+			name: 'state-hover',
+			kind: 'layer',
+			opacity: 0.16,
+		});
+		// radius 终段的 sketch.path 同样按 corners 收敛。
+		expect(
+			assetByName(parsed, 'foundation/radius/dimension-radius-card'),
+		).toEqual({
+			name: 'foundation/radius/dimension-radius-card',
+			kind: 'layer',
+			corners: { radii: 24 },
+		});
 	});
 
-	test('maps safe curly typography color references to emitted Sketch keys', () => {
-		const typography = {
-			fontFamily: 'Inter',
-			fontSize: 14,
-			fontWeight: 400,
-			lineHeight: 1.5,
-			letterSpacing: 0,
-			color: '#112233',
-		};
+	test('folds opacity and alpha overrides into HEX8 color records', () => {
 		const tokens: WaveToken[] = [
-			{
-				name: 'theme-color-text-default',
-				path: ['theme', 'color', 'text', 'default'],
-				type: 'color',
+			colorAsset({
+				name: 'theme-color-plain',
+				path: ['theme', 'color', 'plain'],
 				value: '#112233',
-				_order: 0,
-			},
-			{
-				name: 'theme-color-2x',
-				path: ['theme', 'color', '2x'],
-				type: 'color',
-				value: '#445566',
+			}),
+			colorAsset({
+				name: 'theme-color-alpha-value',
+				path: ['theme', 'color', 'alpha-value'],
+				value: '#11223380',
 				_order: 1,
-			},
+			}),
 			{
-				name: 'theme-font-body',
-				path: ['theme', 'font', 'body'],
-				type: 'typography',
-				value: typography,
-				_typographyColor: '#112233',
-				_sketchColorReference: '{theme.color.text.default}',
+				name: 'theme-color-derived',
+				path: ['theme', 'color', 'derived'],
+				value: { _color: '#ff00ff' },
+				type: 'color',
+				inheritColor: true,
+				inheritColorSiblingSlot: 'plain',
+				inheritColorOpacity: 0.36,
 				_order: 2,
 			},
 			{
-				name: 'theme-font-numeric-reference',
-				path: ['theme', 'font', 'numeric-reference'],
-				type: 'typography',
-				value: { ...typography, color: '#445566' },
-				_typographyColor: '#445566',
-				_sketchColorReference: '{theme.color.2x}',
+				name: 'theme-color-derived-alpha',
+				path: ['theme', 'color', 'derived-alpha'],
+				value: { _color: '#ff00ff' },
+				type: 'color',
+				inheritColor: true,
+				inheritColorSiblingSlot: 'plain',
+				inheritColorAlpha: 0.5,
 				_order: 3,
 			},
+			{
+				name: 'theme-color-stacked',
+				path: ['theme', 'color', 'stacked'],
+				value: { color: '#11223380', opacity: 0.5 },
+				type: 'color',
+				_order: 4,
+			},
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.body.textStyle.textColor).toBe('@/text-default');
-		expect(parsed['numeric-reference'].textStyle.textColor).toBe('@/2x');
+		expect(assetByName(parsed, 'plain')).toEqual({
+			name: 'plain',
+			kind: 'color',
+			color: '#112233ff',
+		});
+		expect(assetByName(parsed, 'alpha-value')).toEqual({
+			name: 'alpha-value',
+			kind: 'color',
+			color: '#11223380',
+		});
+		// opacity 0.36 folds onto the sibling color: 255 * 0.36 -> 0x5c.
+		expect(assetByName(parsed, 'derived')).toEqual({
+			name: 'derived',
+			kind: 'color',
+			color: '#1122335c',
+		});
+		expect(assetByName(parsed, 'derived-alpha')).toEqual({
+			name: 'derived-alpha',
+			kind: 'color',
+			color: '#11223380',
+		});
+		// existing alpha composes: 0x80 * 0.5 -> 0x40.
+		expect(assetByName(parsed, 'stacked')).toEqual({
+			name: 'stacked',
+			kind: 'color',
+			color: '#11223340',
+		});
 	});
 
-	test('maps both JSON Pointer typography color reference forms', () => {
-		const typography = {
-			fontFamily: 'Inter',
-			fontSize: 14,
-			fontWeight: 400,
-			lineHeight: 1.5,
-			letterSpacing: 0,
-			color: '#112233',
-		};
+	test('falls back to diagnostic pink when the inherit sibling is missing', () => {
 		const tokens: WaveToken[] = [
 			{
-				name: 'theme-color-brand-main',
-				path: ['theme', 'color', 'brand', 'main'],
+				name: 'theme-style-interaction-danger-border',
+				path: ['theme', 'style', 'interaction', 'danger', 'border'],
+				value: { _color: '#ff0000' },
 				type: 'color',
-				value: '#112233',
+				inheritColor: true,
+				inheritColorSiblingSlot: 'nonexistent',
 				_order: 0,
 			},
-			{
-				name: 'theme-font-pointer',
-				path: ['theme', 'font', 'pointer'],
-				type: 'typography',
-				value: typography,
-				_typographyColor: '#112233',
-				_sketchColorReference: '#/theme/color/brand/main',
-				_order: 1,
-			},
-			{
-				name: 'theme-font-pointer-value',
-				path: ['theme', 'font', 'pointer-value'],
-				type: 'typography',
-				value: typography,
-				_typographyColor: '#112233',
-				_sketchColorReference: '#/theme/color/brand/main/$value',
-				_order: 2,
-			},
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.pointer.textStyle.textColor).toBe('@/brand-main');
-		expect(parsed['pointer-value'].textStyle.textColor).toBe('@/brand-main');
+		expect(assetByName(parsed, 'interaction-danger-border')).toEqual({
+			name: 'interaction-danger-border',
+			kind: 'color',
+			color: '#ff00ffff',
+		});
 	});
 
-	test('references same-leaf colors through distinct full output paths', () => {
-		const v1Target = {
-			name: 'theme-color-v1-foo',
-			path: ['theme', 'color', 'v1', 'foo'],
-			value: '#112233',
-			type: 'color',
-			_sketch: { path: 'v1/color' },
-			_order: 0,
-		} satisfies WaveToken;
-		const v2Target = {
-			name: 'theme-color-v2-foo',
-			path: ['theme', 'color', 'v2', 'foo'],
-			value: '#445566',
-			type: 'color',
-			_sketch: { path: 'v2/color' },
-			_order: 1,
-		} satisfies WaveToken;
-		const typography = {
-			fontFamily: 'Inter',
-			fontSize: 14,
-			fontWeight: 400,
-			lineHeight: 1.5,
-			letterSpacing: 0,
-			color: '#112233',
-		};
-		const tokens: WaveToken[] = [
-			v1Target,
-			v2Target,
-			{
-				name: 'theme-font-style-body-v1',
-				path: ['theme', 'font', 'style', 'body-v1'],
-				type: 'typography',
-				value: typography,
-				_typographyColor: '#112233',
-				_sketchColorReference: '{theme.color.v1.foo}',
-				_order: 2,
-			},
-			{
-				name: 'theme-font-style-body-v2',
-				path: ['theme', 'font', 'style', 'body-v2'],
-				type: 'typography',
-				value: { ...typography, color: '#445566' },
-				_typographyColor: '#445566',
-				_sketchColorReference: '{theme.color.v2.foo}',
-				_order: 3,
-			},
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 3 }));
-
-		expect(parsed.v1.color.foo).toEqual({ color: '#112233ff' });
-		expect(parsed.v2.color.foo).toEqual({ color: '#445566ff' });
-		expect(parsed['body-v1'].textStyle.textColor).toBe('@/v1/color/foo');
-		expect(parsed['body-v2'].textStyle.textColor).toBe('@/v2/color/foo');
-	});
-
-	test('encodes special full-path segments as RFC 6901', () => {
-		const tokens: WaveToken[] = [
-			{
-				name: 'theme-color-text-escaped',
-				path: ['theme', 'color', 'text', 'escaped.key/~color'],
-				value: '#112233',
-				type: 'color',
-				_sketch: { path: 'foundation/color' },
-				_order: 0,
-			},
-			{
-				name: 'theme-font-escaped',
-				path: ['theme', 'font', 'escaped'],
-				type: 'typography',
-				value: {
-					fontFamily: 'Inter',
-					fontSize: 14,
-					fontWeight: 400,
-					lineHeight: 1.5,
-					letterSpacing: 0,
-					color: '#112233',
-				},
-				_typographyColor: '#112233',
-				_sketchColorReference: '#/theme/color/text/escaped.key~1~0color',
-				_order: 1,
-			},
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-
-		expect(parsed.escaped.textStyle.textColor).toBe(
-			'@/foundation/color/text-escaped.key~1~0color',
-		);
-	});
-
-	test('preserves HEX8 typography colors without a matching Sketch reference', () => {
-		const typography = {
-			fontFamily: 'Inter',
-			fontSize: 14,
-			fontWeight: 400,
-			lineHeight: 1.5,
-			letterSpacing: 0,
-			color: '#112233',
-		};
-		const tokens: WaveToken[] = [
-			{
-				name: 'theme-color-text-default',
-				path: ['theme', 'color', 'text', 'default'],
-				type: 'color',
-				value: '#112233',
-				_order: 0,
-			},
-			{
-				name: 'theme-font-literal',
-				path: ['theme', 'font', 'literal'],
-				type: 'typography',
-				value: typography,
-				_colorReference: '{theme.color.text.default}',
-				_typographyColor: '#112233',
-				_order: 1,
-			},
-			{
-				name: 'theme-font-external',
-				path: ['theme', 'font', 'external'],
-				type: 'typography',
-				value: typography,
-				_sketchColorReference: '#/palette/text/default',
-				_typographyColor: '#112233',
-				_order: 2,
-			},
-			{
-				name: 'theme-font-alpha',
-				path: ['theme', 'font', 'alpha'],
-				type: 'typography',
-				value: typography,
-				_colorReference: '#/theme/color/text/default',
-				_typographyColor: '#11223380',
-				_order: 3,
-			},
-		];
-
-		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.literal.textStyle.textColor).toBe('#112233ff');
-		expect(parsed.external.textStyle.textColor).toBe('#112233ff');
-		expect(parsed.alpha.textStyle.textColor).toBe('#11223380');
-	});
-
-	test('maps curly and JSON Pointer color references in border and outline slots', () => {
+	test('binds outline rings to registered color uuids via $ref', () => {
 		const border = { color: '#112233', width: 1, style: 'solid' };
 		const tokens: WaveToken[] = [
-			{
+			colorAsset({
 				name: 'theme-color-text-default',
 				path: ['theme', 'color', 'text', 'default'],
-				type: 'color',
 				value: '#112233',
-				_order: 0,
-			},
-			...[
-				['curly', '{theme.color.text.default}'],
-				['pointer', '#/theme/color/text/default'],
-				['pointer-value', '#/theme/color/text/default/$value'],
-			].flatMap(([name, reference], index) => [
-				{
-					name: `theme-border-${name}`,
-					path: ['theme', 'border', name!],
-					type: 'border',
-					value: border,
-					_sketchColorReference: reference,
-					_order: index * 2 + 1,
-				},
-				{
-					name: `theme-border-outline-${name}`,
-					path: ['theme', 'border', 'outline', name!],
-					type: 'border',
-					value: border,
-					_outline: { offset: 2 },
-					_sketchColorReference: reference,
-					_order: index * 2 + 2,
-				},
-			]),
+				id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+			}),
+			colorAsset({
+				name: 'theme-color-unregistered',
+				path: ['theme', 'color', 'unregistered'],
+				value: '#445566',
+				_order: 1,
+			}),
+			...(
+				[
+					['curly', '{theme.color.text.default}'],
+					['pointer', '#/theme/color/text/default'],
+					['pointer-value', '#/theme/color/text/default/$value'],
+					['alias', '{theme.color.alias}'],
+				] as const
+			).map(([name, reference], index) => ({
+				name: `theme-border-outline-${name}`,
+				path: ['theme', 'border', 'outline', name],
+				type: 'border',
+				value: border,
+				_outline: { offset: 2 },
+				_sketchColorReference: reference,
+				_order: index * 2 + 2,
+			})),
+			colorAsset({
+				name: 'theme-color-alias',
+				path: ['theme', 'color', 'alias'],
+				value: '#112233',
+				id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+				_order: 11,
+			}),
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		for (const key of ['curly', 'pointer', 'pointer-value']) {
-			expect(parsed[key].value.color).toBe('@/text-default');
-			expect(parsed[`outline-${key}`].shadow[0].color).toBe('@/text-default');
-			expect(parsed[`outline-${key}`].shadow[1].color).toBe('#ffffffff');
+		for (const key of ['curly', 'pointer', 'pointer-value', 'alias']) {
+			const asset = assetByName(parsed, `outline-${key}`) as Extract<
+				SketchAsset,
+				{ kind: 'layer' }
+			>;
+			// All alias forms bind to the same manifest color uuid.
+			expect(asset.shadows?.[0]?.color).toEqual({
+				$ref: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+			});
+			expect(asset.shadows?.[1]?.color).toBe('#ffffffff');
 		}
 	});
 
-	test('keeps literal, external, and alpha-override border colors as hex8', () => {
+	test('degrades ring colors to HEX8 for unregistered and external targets', () => {
+		const border = { color: '#11223380', width: 1, style: 'solid' };
 		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-color-unregistered',
+				path: ['theme', 'color', 'unregistered'],
+				value: '#445566',
+			}),
 			{
-				name: 'theme-color-text-default',
-				path: ['theme', 'color', 'text', 'default'],
-				type: 'color',
-				value: '#112233',
-				_order: 0,
-			},
-			{
-				name: 'theme-border-literal',
-				path: ['theme', 'border', 'literal'],
+				name: 'theme-border-outline-unregistered',
+				path: ['theme', 'border', 'outline', 'unregistered'],
 				type: 'border',
-				value: { color: '#112233', width: 1, style: 'solid' },
+				value: border,
+				_outline: { offset: 2 },
+				_sketchColorReference: '{theme.color.unregistered}',
 				_order: 1,
 			},
 			{
-				name: 'theme-border-external',
-				path: ['theme', 'border', 'external'],
+				name: 'theme-border-outline-external',
+				path: ['theme', 'border', 'outline', 'external'],
 				type: 'border',
-				value: { color: '#112233', width: 1, style: 'solid' },
+				value: border,
+				_outline: { offset: 2 },
 				_sketchColorReference: '#/palette/text/default',
 				_order: 2,
 			},
 			{
-				name: 'theme-border-outline-alpha',
-				path: ['theme', 'border', 'outline', 'alpha'],
+				name: 'theme-border-outline-literal',
+				path: ['theme', 'border', 'outline', 'literal'],
 				type: 'border',
-				value: { color: '#11223380', width: 1, style: 'solid' },
+				value: border,
 				_outline: { offset: 2 },
-				_colorReference: '#/theme/color/text/default',
 				_order: 3,
 			},
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.literal.value.color).toBe('#112233ff');
-		expect(parsed.external.value.color).toBe('#112233ff');
-		expect(parsed['outline-alpha'].shadow[0].color).toBe('#11223380');
-		expect(parsed['outline-alpha'].shadow[1].color).toBe('#ffffffff');
+		for (const key of ['unregistered', 'external', 'literal']) {
+			const asset = assetByName(parsed, `outline-${key}`) as Extract<
+				SketchAsset,
+				{ kind: 'layer' }
+			>;
+			// HEX8 snapshots keep alpha overrides; no $ref is emitted.
+			expect(asset.shadows?.[0]?.color).toBe('#11223380');
+			expect(asset.shadows?.[1]?.color).toBe('#ffffffff');
+		}
+	});
+
+	test('fails when an internal ring reference resolves to no emitted color', () => {
+		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-color-skipped',
+				path: ['theme', 'color', 'skipped'],
+				value: '#112233',
+				_sketch: { skip: true },
+			}),
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: { color: '#112233', width: 1, style: 'solid' },
+				_outline: { offset: 2 },
+				_sketchColorReference: '{theme.color.skipped}',
+				_order: 1,
+			},
+		];
+
+		expect(() => sketchFormat(tokens)).toThrow(
+			'Sketch color reference target is not emitted at theme.border.outline.focus',
+		);
+		// Without a reference the ring degrades to a plain HEX8 snapshot.
+		const parsed = JSON.parse(
+			sketchFormat(
+				[tokens[0]!, { ...tokens[1]!, _sketchColorReference: undefined }],
+				{
+					includeRootKeys: ['border'],
+				},
+			),
+		) as SketchPayloadV2;
+		const asset = assetByName(parsed, 'theme-border-outline-focus') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		expect(asset.shadows?.[0]?.color).toBe('#112233ff');
 	});
 
 	test('keeps shadow, gradient, and inheritColor output as hex8', () => {
 		const tokens: WaveToken[] = [
-			{
+			colorAsset({
 				name: 'theme-color-base',
 				path: ['theme', 'color', 'base'],
-				type: 'color',
 				value: '#112233',
-				_order: 0,
-			},
-			{
+			}),
+			colorAsset({
 				name: 'theme-color-derived',
 				path: ['theme', 'color', 'derived'],
-				type: 'color',
 				value: '#112233',
 				inheritColor: true,
 				inheritColorSiblingSlot: 'base',
 				_sketchColorReference: '{theme.color.base}',
 				_order: 1,
-			},
+			}),
 			{
 				name: 'theme-shadow-raised',
 				path: ['theme', 'shadow', 'raised'],
@@ -1175,8 +1344,254 @@ describe('sketchFormat (Wave-native)', () => {
 		];
 
 		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
-		expect(parsed.derived.color).toBe('#112233ff');
-		expect(parsed.raised.shadow[0].color).toBe('#112233ff');
-		expect(parsed.accent.gradient[0].color).toBe('#112233ff');
+		// inheritColor 派生形态归类为 color 记录（Swatch），不升格 layer。
+		expect(assetByName(parsed, 'derived')).toEqual({
+			name: 'derived',
+			kind: 'color',
+			color: '#112233ff',
+		});
+		const raised = assetByName(parsed, 'raised') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		const accent = assetByName(parsed, 'accent') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		expect(raised.shadows?.[0]?.color).toBe('#112233ff');
+		expect(accent.gradient?.[0]?.color).toBe('#112233ff');
+	});
+
+	test('hard-fails on duplicate asset names inside one payload', () => {
+		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-color-primary-main',
+				path: ['theme', 'color', 'primary', 'main'],
+				value: '#1872f0',
+				_sketch: { path: 'foundation/color' },
+			}),
+			colorAsset({
+				name: 'theme-color-primary-main-copy',
+				path: ['theme', 'color', 'primary', 'main'],
+				value: '#0f172b',
+				_sketch: { path: 'foundation/color' },
+				_order: 1,
+			}),
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
+			'Duplicate Sketch asset name "foundation/color/primary-main"',
+		);
+	});
+
+	test('detects name collisions across kinds and filter extremes', () => {
+		const tokens: WaveToken[] = [
+			{
+				name: 'theme-color-foo',
+				path: ['theme', 'color', 'foo'],
+				value: '#112233',
+				type: 'color',
+				_sketch: { path: 'group' },
+				_order: 0,
+			},
+			{
+				name: 'theme-shadow-foo',
+				path: ['theme', 'shadow', 'foo'],
+				type: 'shadow',
+				value: { color: '#112233', offsetX: 0, offsetY: 0, blur: 0, spread: 0 },
+				_sketch: { path: 'group' },
+				_order: 1,
+			},
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 2 })).toThrow(
+			'Duplicate Sketch asset name',
+		);
+	});
+
+	test('coexists with prefix-overlapping names (flat data, not a tree)', () => {
+		// orca-test 形态内化：color 名 "shadow" 与 layer 名 "shadow/elevation-high"
+		// 在 v1 嵌套树中是前缀冲突；v2 扁平 name 中两者互不碰撞。
+		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-color-shadow',
+				path: ['theme', 'color', 'shadow'],
+				value: '#0f172b',
+			}),
+			{
+				name: 'theme-shadow-elevation-high',
+				path: ['theme', 'shadow', 'elevation', 'high'],
+				type: 'shadow',
+				value: [
+					{ color: '#0f172b0f', offsetX: 0, offsetY: 2, blur: 4, spread: -1 },
+				],
+				_sketch: { path: 'shadow' },
+				_order: 1,
+			},
+		];
+
+		const parsed = JSON.parse(
+			sketchFormat(tokens, { filterLayer: 2 }),
+		) as SketchPayloadV2;
+		expect(assetByName(parsed, 'shadow')).toMatchObject({
+			kind: 'color',
+			color: '#0f172bff',
+		});
+		expect(assetByName(parsed, 'shadow/elevation-high')).toMatchObject({
+			kind: 'layer',
+		});
+		expect(parsed.assets).toHaveLength(2);
+	});
+
+	test('filters skipped tokens before name checks', () => {
+		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-color-primary',
+				path: ['theme', 'color', 'primary'],
+				value: '#111111',
+				_sketch: { path: 'foundation/color', skip: true },
+			}),
+			colorAsset({
+				name: 'theme-color-primary-copy',
+				path: ['theme', 'color', 'primary'],
+				value: '#1872f0',
+				_sketch: { path: 'foundation/color' },
+				_order: 1,
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		expect(assetByName(parsed, 'foundation/color/primary')).toEqual({
+			name: 'foundation/color/primary',
+			kind: 'color',
+			color: '#1872f0ff',
+		});
+	});
+
+	test('keeps skipped tokens available to inheritColor sibling lookup', () => {
+		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-component-button-label',
+				path: ['theme', 'component', 'button', 'label'],
+				value: '#1872f0',
+				_sketch: { skip: true },
+			}),
+			colorAsset({
+				name: 'theme-component-button-icon',
+				path: ['theme', 'component', 'button', 'icon'],
+				value: '#000000',
+				inheritColor: true,
+				inheritColorSiblingSlot: 'label',
+				_order: 1,
+			}),
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens));
+		expect(assetByName(parsed, 'theme-component-button-label')).toBeUndefined();
+		expect(assetByName(parsed, 'theme-component-button-icon')).toEqual({
+			name: 'theme-component-button-icon',
+			kind: 'color',
+			color: '#1872f0ff',
+		});
+	});
+
+	test('does not map composite tokens through component special cases', () => {
+		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-component-button-background',
+				path: ['theme', 'component', 'button', 'background'],
+				value: '#1872f0',
+				_composite: 'theme.component.button',
+			}),
+			{
+				name: 'theme-component-button-radius',
+				path: ['theme', 'component', 'button', 'radius'],
+				value: 8,
+				type: 'dimension',
+				_composite: 'theme.component.button',
+				_order: 1,
+			},
+		];
+
+		const parsed = JSON.parse(sketchFormat(tokens, { filterLayer: 2 }));
+		expect(assetByName(parsed, 'button-background')).toEqual({
+			name: 'button-background',
+			kind: 'color',
+			color: '#1872f0ff',
+		});
+		// generic dimension 退出 payload。
+		expect(assetByName(parsed, 'button-radius')).toBeUndefined();
+	});
+
+	test('rejects duplicate source aliases across distinct names', () => {
+		const tokens: WaveToken[] = [
+			colorAsset({
+				name: 'first-color',
+				path: ['theme', 'color', 'shared'],
+				value: '#112233',
+				_sketch: { path: 'foundation/color' },
+			}),
+			colorAsset({
+				name: 'second-color',
+				path: ['theme', 'color', 'shared'],
+				value: '#445566',
+				_sketch: { path: 'foundation/state' },
+			}),
+		];
+
+		expect(() => sketchFormat(tokens, { filterLayer: 99 })).toThrow(
+			'Duplicate Sketch color reference alias',
+		);
+	});
+
+	test('hex swatch mode emits HEX8 snapshots everywhere (single switch)', () => {
+		const modes: SketchSwatchRefMode[] = ['hex', 'ref'];
+		const writeTokens: WaveToken[] = [
+			colorAsset({
+				name: 'theme-color-text-default',
+				path: ['theme', 'color', 'text', 'default'],
+				value: '#112233',
+				id: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+			}),
+			{
+				name: 'theme-border-outline-focus',
+				path: ['theme', 'border', 'outline', 'focus'],
+				type: 'border',
+				value: { color: '#112233', width: 1, style: 'solid' },
+				_outline: { offset: 2 },
+				_sketchColorReference: '{theme.color.text.default}',
+				_order: 1,
+			},
+		];
+		const allTokens = [...writeTokens].sort((a, b) => a._order - b._order);
+
+		const payloads = modes.map((swatchRefMode) =>
+			assembleSketchPayload(
+				buildSketchWriteTokens(allTokens, {
+					filterLayer: 2,
+				}),
+				allTokens,
+				{ filterLayer: 2, swatchRefMode, themeId: undefined },
+			),
+		);
+
+		const refPayload = payloads[1]!;
+		const hexPayload = payloads[0]!;
+		const refAsset = assetByName(refPayload, 'outline-focus') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		expect(refAsset.shadows?.[0]?.color).toEqual({
+			$ref: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+		});
+		const hexAsset = assetByName(hexPayload, 'outline-focus') as Extract<
+			SketchAsset,
+			{ kind: 'layer' }
+		>;
+		expect(hexAsset.shadows?.[0]?.color).toBe('#112233ff');
+		// Switching the mode changes only the color-slot form; records stay.
+		expect(hexPayload.assets.map((asset) => asset.name)).toEqual(
+			refPayload.assets.map((asset) => asset.name),
+		);
 	});
 });

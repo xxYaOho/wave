@@ -13,6 +13,7 @@ import {
 	generateTheme,
 	type ThemeGenerationInput,
 } from '../../src/core/pipeline/theme-service.ts';
+import type { SketchAsset, SketchPayloadV2 } from '../../src/types/index.ts';
 import { ExitCode } from '../../src/types/index.ts';
 import { BuildContext } from '../../src/utils/receipt.ts';
 import {
@@ -21,6 +22,31 @@ import {
 	loadTestTheme,
 	type TestTheme,
 } from '../utils/fixture-loader.ts';
+
+function assetByName(
+	payload: SketchPayloadV2,
+	name: string,
+): SketchAsset | undefined {
+	return payload.assets.find((asset) => asset.name === name);
+}
+
+function layerAssetByName(
+	payload: SketchPayloadV2,
+	name: string,
+): Extract<SketchAsset, { kind: 'layer' }> {
+	const asset = assetByName(payload, name);
+	expect(asset, `layer asset "${name}" should exist`).toBeDefined();
+	return asset as Extract<SketchAsset, { kind: 'layer' }>;
+}
+
+function textAssetByName(
+	payload: SketchPayloadV2,
+	name: string,
+): Extract<SketchAsset, { kind: 'text' }> {
+	const asset = assetByName(payload, name);
+	expect(asset, `text asset "${name}" should exist`).toBeDefined();
+	return asset as Extract<SketchAsset, { kind: 'text' }>;
+}
 
 function createTempOutputDir(): string {
 	const dir = path.join(
@@ -40,44 +66,21 @@ async function exists(filePath: string): Promise<boolean> {
 	}
 }
 
-function decodeJsonPointerSegment(segment: string): string {
-	if (/~(?:[^01]|$)/.test(segment)) {
-		throw new Error(`Invalid JSON Pointer escape in segment "${segment}"`);
-	}
-	return segment.replaceAll('~1', '/').replaceAll('~0', '~');
-}
-
-function collectSketchReferences(
-	value: unknown,
-	result: string[] = [],
-): string[] {
-	if (typeof value === 'string') {
-		if (value.startsWith('@')) result.push(value);
-		return result;
-	}
-	if (Array.isArray(value)) {
-		for (const item of value) collectSketchReferences(item, result);
-		return result;
-	}
-	if (typeof value === 'object' && value !== null) {
-		for (const item of Object.values(value)) {
-			collectSketchReferences(item, result);
+function collectSwatchRefs(value: unknown, result: string[] = []): string[] {
+	if (typeof value === 'string') return result;
+	if (value && typeof value === 'object') {
+		if (Array.isArray(value)) {
+			for (const item of value) collectSwatchRefs(item, result);
+			return result;
+		}
+		const record = value as Record<string, unknown>;
+		if (typeof record.$ref === 'string') result.push(record.$ref);
+		for (const item of Object.values(record)) {
+			if (item === value) continue;
+			collectSwatchRefs(item, result);
 		}
 	}
 	return result;
-}
-
-function resolveJsonPointer(root: unknown, pointer: string): unknown {
-	if (!pointer.startsWith('/')) return undefined;
-	return pointer
-		.slice(1)
-		.split('/')
-		.map(decodeJsonPointerSegment)
-		.reduce<unknown>((current, segment) => {
-			if (typeof current !== 'object' || current === null) return undefined;
-			if (!Object.hasOwn(current, segment)) return undefined;
-			return (current as Record<string, unknown>)[segment];
-		}, root);
 }
 
 function isolatedResourceEnv(tempDir: string): Record<string, string> {
@@ -1107,7 +1110,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				expect(css).toContain('--font-body-size: 0.875rem;');
 				expect(css).toContain('--font-body-line-height: 1.5rem;');
 				expect(css).toContain('--font-body-letter-spacing: 0.1rem;');
-				expect(sketch['font-body'].textStyle).toMatchObject({
+				expect(textAssetByName(sketch, 'font-body').text).toMatchObject({
 					fontSize: 12.25,
 					lineHeight: 21,
 					kerning: 1.4,
@@ -1202,7 +1205,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					);
 
 					expect(css).toContain(':root {\n  font-size: 16px;');
-					expect(sketch['font-body'].textStyle).toMatchObject({
+					expect(textAssetByName(sketch, 'font-body').text).toMatchObject({
 						fontSize: 14,
 						lineHeight: 24,
 						kerning: 1.6,
@@ -1240,7 +1243,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					),
 				);
 				expect(css).toContain(':root {\n  font-size: 16px;');
-				expect(sketch['font-body'].textStyle).toMatchObject({
+				expect(textAssetByName(sketch, 'font-body').text).toMatchObject({
 					fontSize: 14,
 					lineHeight: 24,
 					kerning: 1.6,
@@ -1292,7 +1295,8 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				expect(css).toContain('--border-outline-focus-offset: 2px;');
 				expect(css).toContain('--font-heading-h1-weight:');
 				expect(css).not.toContain('--dimension-');
-				expect(JSON.stringify(sketch)).toContain('textStyle');
+				expect(JSON.stringify(sketch)).toContain('"kind":"text"');
+				expect(JSON.stringify(sketch)).toContain('"version":2');
 				expect(JSON.stringify(sketch)).toContain('"spread":3');
 			}
 			await fs.rm(outputDir, { recursive: true, force: true });
@@ -1635,14 +1639,26 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			expect(css).toContain(
 				'--theme-color-interaction-inheritfull: color-mix(in srgb, currentColor 30%, transparent);',
 			);
-			expect(sketch['theme-color-interaction-inheritwithsibling']).toEqual({
+			expect(
+				assetByName(sketch, 'theme-color-interaction-inheritwithsibling'),
+			).toEqual({
+				name: 'theme-color-interaction-inheritwithsibling',
+				kind: 'color',
 				color: '#00cc00ff',
 			});
-			expect(sketch['theme-color-interaction-inheritfull']).toEqual({
-				color: '#00cc00ff',
-				opacity: 0.3,
+			// opacity 折入 HEX8（255 * 0.3 -> 0x4d），color 记录无独立 opacity 字段。
+			expect(
+				assetByName(sketch, 'theme-color-interaction-inheritfull'),
+			).toEqual({
+				name: 'theme-color-interaction-inheritfull',
+				kind: 'color',
+				color: '#00cc004d',
 			});
-			expect(sketch['theme-color-interaction-inheritmissingsibling']).toEqual({
+			expect(
+				assetByName(sketch, 'theme-color-interaction-inheritmissingsibling'),
+			).toEqual({
+				name: 'theme-color-interaction-inheritmissingsibling',
+				kind: 'color',
 				color: '#ff00ffff',
 			});
 		});
@@ -1733,7 +1749,11 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 				'4px',
 			);
 			expect(css).toBe(':root {\n}');
-			expect(sketch).toEqual({});
+			// 可同步资产为空：v2 payload 仍保留 meta 结构，assets 为空清单。
+			expect(sketch).toEqual({
+				meta: { themeId: null, version: 2 },
+				assets: [],
+			});
 		});
 	});
 
@@ -1777,16 +1797,27 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					),
 				);
 
-				expect(sketch.foundation.color['color-primary-main']).toEqual({
-					color: '#1872f0ff',
-				});
-				expect(sketch.foundation.interaction).toBeUndefined();
-				expect(sketch.foundation.radius).toBeUndefined();
-				expect(sketch.aaa.bbb['shadow-1'].shadow).toHaveLength(4);
-				expect(sketch['aaa/bbb']).toBeUndefined();
-				expect(sketch.color).toBeUndefined();
-				expect(sketch.dimension).toBeUndefined();
-				expect(sketch.component).toBeUndefined();
+				const assetNames: string[] = sketch.assets.map(
+					(asset: SketchAsset) => asset.name,
+				);
+
+				expect(assetNames).toContain('foundation/color/color-primary-main');
+				expect(assetNames).toContain('color-shadow');
+				expect(
+					assetNames.some((name) => name.startsWith('foundation/interaction')),
+				).toBe(false);
+				expect(
+					assetNames.some((name) => name.startsWith('foundation/radius')),
+				).toBe(false);
+				expect(
+					layerAssetByName(sketch, 'aaa/bbb/shadow-1').shadows,
+				).toHaveLength(4);
+				expect(assetNames).not.toContain('aaa/bbb');
+				expect(assetNames.some((name) => name === 'color')).toBe(false);
+				expect(assetNames.some((name) => name === 'dimension')).toBe(false);
+				expect(assetNames.some((name) => name.startsWith('component'))).toBe(
+					false,
+				);
 				expect(json['color-primary-main']).toBe('#1872f0');
 				expect(JSON.stringify(json)).not.toContain('_sketch');
 			} finally {
@@ -1920,44 +1951,47 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			expect(css).toContain('--state-body-wave-line-height: 24px;');
 			expect(css).not.toContain('[object Object]');
 
-			expect(sketch['state-source-color']).toEqual({ color: '#336699ff' });
-			expect(sketch['state-spacing-alias']).toEqual({ value: '8px' });
-			expect(sketch['state-antline-style']).toEqual({
-				value: json['state-antline-style'],
+			expect(assetByName(sketch, 'state-source-color')).toEqual({
+				name: 'state-source-color',
+				kind: 'color',
+				color: '#336699ff',
 			});
-			expect(sketch['state-antline']).toEqual({
-				value: {
-					color: '@/state-source-color',
-					width: '8px',
-					style: json['state-antline-style'],
+			// 普通 border、generic dimension、transition、strokeStyle 退出 payload。
+			expect(assetByName(sketch, 'state-spacing-alias')).toBeUndefined();
+			expect(assetByName(sketch, 'state-antline-style')).toBeUndefined();
+			expect(assetByName(sketch, 'state-antline')).toBeUndefined();
+			expect(assetByName(sketch, 'state-emphasis')).toBeUndefined();
+			expect(layerAssetByName(sketch, 'state-raised').shadows).toEqual([
+				{
+					x: 0,
+					y: 4,
+					blur: 12,
+					spread: -2,
+					color: '#336699ff',
+					inset: true,
 				},
-			});
-			expect(sketch['state-emphasis']).toEqual({
-				value: json['state-emphasis'],
-			});
-			expect(sketch['state-raised']).toEqual({
-				shadow: [
-					{
-						x: 0,
-						y: 4,
-						blur: 12,
-						spread: -2,
-						color: '#336699ff',
-						inset: true,
-					},
-				],
-			});
-			expect(sketch['state-focus-gradient'].gradient).toHaveLength(4);
-			expect(sketch['state-body'].textStyle).toEqual({
+			]);
+			expect(
+				layerAssetByName(sketch, 'state-focus-gradient').gradient,
+			).toHaveLength(4);
+			expect(textAssetByName(sketch, 'state-body').text).toEqual({
 				fontFamily: 'Inter',
 				fontSize: 16,
 				fontWeight: 400,
 				lineHeight: 24,
 				kerning: 0,
 			});
-			expect(sketch['state-body-wave'].textStyle.textColor).toBe(
-				'@/state-source-color',
-			);
+			// textColor 退役：text 记录只含 5 个纯字体字段。
+			expect(textAssetByName(sketch, 'state-body-wave').text).toEqual({
+				fontFamily: 'Inter',
+				fontSize: 16,
+				fontWeight: 400,
+				lineHeight: 24,
+				kerning: 0,
+			});
+			expect(
+				JSON.stringify(assetByName(sketch, 'state-body-wave')),
+			).not.toContain('color');
 		} finally {
 			restoreResourceEnv(previousEnv);
 			await fs.rm(fixture.dir, { recursive: true, force: true });
@@ -2087,55 +2121,68 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					'utf-8',
 				),
 			);
-			expect(sketch.foundation.color['orcaFallback-main']).toEqual({
-				color: '#0052f5ff',
-			});
-			expect(sketch.foundation.shadow.raised.shadow).toEqual(
+			expect(assetByName(sketch, 'foundation/color/orcaFallback-main')).toEqual(
+				{
+					name: 'foundation/color/orcaFallback-main',
+					kind: 'color',
+					color: '#0052f5ff',
+				},
+			);
+			expect(
+				layerAssetByName(sketch, 'foundation/shadow/raised').shadows,
+			).toEqual(
 				expect.arrayContaining([
 					expect.objectContaining({ color: '#0052f580' }),
 				]),
 			);
-			expect(sketch.foundation.gradient.fallback.gradient[0].color).toBe(
-				'#0052f540',
-			);
-			expect(sketch.foundation.color['outline-default']).toEqual({
-				color: '#ff00ffff',
-				opacity: 0.36,
+			expect(
+				layerAssetByName(sketch, 'foundation/gradient/fallback').gradient?.[0]
+					?.color,
+			).toBe('#0052f540');
+			// inheritColor + opacity 0.36 -> 折入 HEX8（255 * 0.36 -> 0x5c）。
+			expect(assetByName(sketch, 'foundation/color/outline-default')).toEqual({
+				name: 'foundation/color/outline-default',
+				kind: 'color',
+				color: '#ff00ff5c',
 			});
-			expect(sketch.foundation.font.body.textStyle).toEqual({
+			expect(textAssetByName(sketch, 'foundation/font/body').text).toEqual({
 				fontFamily: 'PingFang SC',
 				fontSize: 14,
 				fontWeight: 400,
 				lineHeight: 21,
 				kerning: 0,
-				textColor: '@/foundation/color/text-default',
 			});
-			expect(sketch.v2.heading['heading-h1'].textStyle.textColor).toBe(
-				'@/foundation/color/text-emphasis',
-			);
-			expect(sketch.v2.heading['heading-escaped'].textStyle.textColor).toBe(
-				'@/foundation/color/text-escaped.key~1~0color',
-			);
-			expect(sketch.v2.heading['heading-external'].textStyle.textColor).toBe(
-				'#3695fbff',
-			);
-			expect(sketch.v2.heading['heading-literal'].textStyle.textColor).toBe(
-				'#d12f6aff',
-			);
-			expect(sketch.v2.heading['heading-alpha'].textStyle.textColor).toBe(
-				'#0f172b80',
-			);
-			expect(sketch.v2.display['display-body'].textStyle.textColor).toBe(
-				'@/foundation/color/text-default',
-			);
-			expect(sketch.v2.display['display-footnote'].textStyle.textColor).toBe(
-				'@/foundation/color/text-subtlest',
-			);
-			expect(sketch.v2.display['display-alias'].textStyle.textColor).toBe(
-				'@/foundation/color/direct-alias',
-			);
-			expect(sketch.foundation.font.label.textStyle.lineHeight).toBe(20);
-			expect(sketch.foundation.font.internal).toBeUndefined();
+			// textColor 退役：heading/display 的 color 引用不再出现在 payload。
+			expect(JSON.stringify(sketch)).not.toContain('textColor');
+			expect(JSON.stringify(sketch)).not.toContain('"@/');
+			expect(
+				textAssetByName(sketch, 'v2/heading/heading-h1').text,
+			).toMatchObject({ fontFamily: 'PingFang SC', fontWeight: 400 });
+			expect(
+				textAssetByName(sketch, 'v2/heading/heading-escaped').text,
+			).toBeDefined();
+			expect(
+				textAssetByName(sketch, 'v2/heading/heading-external').text,
+			).toBeDefined();
+			expect(
+				textAssetByName(sketch, 'v2/heading/heading-literal').text,
+			).toBeDefined();
+			expect(
+				textAssetByName(sketch, 'v2/heading/heading-alpha').text,
+			).toBeDefined();
+			expect(
+				textAssetByName(sketch, 'v2/display/display-body').text,
+			).toBeDefined();
+			expect(
+				textAssetByName(sketch, 'v2/display/display-footnote').text,
+			).toBeDefined();
+			expect(
+				textAssetByName(sketch, 'v2/display/display-alias').text,
+			).toBeDefined();
+			expect(
+				textAssetByName(sketch, 'foundation/font/label').text.lineHeight,
+			).toBe(20);
+			expect(assetByName(sketch, 'foundation/font/internal')).toBeUndefined();
 			expect(json['font-internal']).toBeDefined();
 			const fontBodyJsoncLine = jsonc
 				.split('\n')
@@ -2145,37 +2192,35 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			);
 			expect(jsonc).toContain('"font-internal"');
 			expect(css).toContain('--internal-line-height: 1.25;');
-			expect(sketch.foundation.border.antline).toEqual({
-				value: {
-					color: '@/foundation/color/primary-main',
-					width: '1px',
-					style: {
-						dashArray: ['4px', '8px'],
-						lineCap: 'butt',
-					},
-				},
+			// 普通 border（蚂蚁线）退出 payload；outline ring 保持双层 shadows。
+			expect(assetByName(sketch, 'foundation/border/antline')).toBeUndefined();
+			const ring = layerAssetByName(sketch, 'foundation/border/outline');
+			expect(ring.shadows?.[0]).toMatchObject({ spread: 3 });
+			expect(ring.shadows?.[1]).toEqual({
+				x: 0,
+				y: 0,
+				blur: 0,
+				spread: 2,
+				color: '#ffffffff',
 			});
-			expect(sketch.foundation.border.outline.shadow).toEqual([
-				{
-					x: 0,
-					y: 0,
-					blur: 0,
-					spread: 3,
-					color: '@/foundation/color/outline-ring',
-				},
-				{ x: 0, y: 0, blur: 0, spread: 2, color: '#ffffffff' },
-			]);
+			// ring 的目标 color 未登记 uuid 时降级为 HEX8 快照（orca-realistic
+			// fixture 不带 $id，ref 模式下不产生 $ref）。
+			expect(
+				ring.shadows?.[0]?.color && typeof ring.shadows[0]!.color === 'string',
+			).toBe(true);
 
-			const references = collectSketchReferences(sketch);
-			expect(references.length).toBeGreaterThan(0);
+			// payload 内出现的全部 $ref 都必须绑定同清单 color 记录的 uuid。
+			const colorUuids = new Set(
+				sketch.assets
+					.filter(
+						(asset: SketchAsset) =>
+							asset.kind === 'color' && asset.uuid !== undefined,
+					)
+					.map((asset: SketchAsset) => asset.uuid),
+			);
+			const references = collectSwatchRefs(sketch);
 			for (const reference of references) {
-				expect(reference.startsWith('@/')).toBe(true);
-				const target = resolveJsonPointer(sketch, reference.slice(1));
-				expect(target).toEqual(
-					expect.objectContaining({
-						color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
-					}),
-				);
+				expect(colorUuids.has(reference)).toBe(true);
 			}
 		} finally {
 			restoreResourceEnv(previousEnv);
@@ -2257,7 +2302,13 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					),
 				);
 				expect(css).toContain('oklch(');
-				expect(sketch['theme-color-primary']).toEqual({ color: '#fb2c36ff' });
+				expect(sketch.assets).toEqual([
+					{
+						name: 'theme-color-primary',
+						kind: 'color',
+						color: '#fb2c36ff',
+					},
+				]);
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });
 			}
@@ -2501,13 +2552,25 @@ ${tokenContent}`,
 				);
 				expect(css).toBe(firstCss);
 				expect(currentSketch).toBe(firstSketch);
-				expect(sketch.foundation.color['theme-color-primary']).toEqual({
+				expect(
+					assetByName(sketch, 'foundation/color/theme-color-primary'),
+				).toMatchObject({
+					kind: 'color',
 					color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
 				});
-				expect(sketch.foundation.color['theme-color-secondary']).toEqual({
+				expect(
+					assetByName(sketch, 'foundation/color/theme-color-secondary'),
+				).toEqual({
+					name: 'foundation/color/theme-color-secondary',
+					kind: 'color',
 					color: '#0052f5ff',
 				});
-				expect(sketch.foundation.space).toBeUndefined();
+				// generic dimension 退出 payload：space 前缀不产生记录。
+				expect(
+					sketch.assets.some((asset: SketchAsset) =>
+						asset.name.startsWith('foundation/space'),
+					),
+				).toBe(false);
 				expect(
 					await Bun.file(
 						path.join(outputDir, 'mixed-branches-night.css'),
@@ -2654,31 +2717,27 @@ theme:
 				expect(css).not.toContain('[object Object]');
 				expect(css).not.toContain('1px solid currentColor');
 
-				expect(sketch['border-outline-direct-hex'].shadow[0].color).toBe(
+				// 本 fixture 的 color 均未登记 uuid：v2 下环色一律降级为 HEX8 快照
+				//（未入账 = 无 $ref 可绑，数值仍正确；curl/pointer 各引用形态同判）。
+				const ringColor = (name: string): unknown =>
+					layerAssetByName(sketch, name).shadows?.[0]?.color;
+				expect(ringColor('border-outline-direct-hex')).toBe('#2563ebff');
+				expect(ringColor('border-outline-token-curly-base')).toBe('#2563ebff');
+				expect(ringColor('border-outline-token-curly-alias')).toBe('#2563ebff');
+				expect(ringColor('border-outline-token-curly-external')).toBe(
+					'#1d293dff',
+				);
+				expect(ringColor('border-outline-pointer-token')).toBe('#2563ebff');
+				expect(ringColor('border-outline-pointer-value')).toBe('#2563ebff');
+				expect(ringColor('border-outline-pointer-alias-value')).toBe(
 					'#2563ebff',
 				);
-				expect(sketch['border-outline-token-curly-base'].shadow[0].color).toBe(
-					'@/color-base',
-				);
-				expect(sketch['border-outline-token-curly-alias'].shadow[0].color).toBe(
-					'@/color-alias',
-				);
 				expect(
-					sketch['border-outline-token-curly-external'].shadow[0].color,
-				).toBe('@/color-external');
-				expect(sketch['border-outline-pointer-token'].shadow[0].color).toBe(
-					'@/color-base',
-				);
-				expect(sketch['border-outline-pointer-value'].shadow[0].color).toBe(
-					'@/color-base',
-				);
-				expect(
-					sketch['border-outline-pointer-alias-value'].shadow[0].color,
-				).toBe('@/color-alias');
-				expect(sketch['border-outline-ref-width'].shadow[0]).toMatchObject({
+					layerAssetByName(sketch, 'border-outline-ref-width').shadows?.[0],
+				).toMatchObject({
 					spread: 6,
-					color: '@/color-base',
 				});
+				expect(ringColor('border-outline-ref-width')).toBe('#2563ebff');
 			} finally {
 				await fs.rm(tempThemeDir, { recursive: true, force: true });
 			}

@@ -3,6 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
+import type { SketchPayloadV2 } from '../src/types/index.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 const cliEntry = path.join(rootDir, 'src/index.ts');
@@ -838,22 +839,38 @@ theme:
 					path.join(outputDir, 'sketch', 'sketch-extensions2sketch.json'),
 					'utf-8',
 				),
-			);
+			) as SketchPayloadV2;
+			const assetNames = sketchOutput.assets.map((asset) => asset.name);
 
-			expect(sketchOutput.foundation.color['color-primary-main']).toEqual({
-				color: '#1872f0ff',
-			});
-			expect(sketchOutput.foundation.interaction).toBeUndefined();
-			expect(sketchOutput.foundation.radius).toBeUndefined();
-			expect(sketchOutput.aaa.bbb['shadow-1'].shadow).toHaveLength(4);
-			expect(sketchOutput.aaa.bbb['shadow-1'].shadow[0]).toMatchObject({
+			// meta 随 v2 落地；主题未登记身份时 themeId 为 null。
+			expect(sketchOutput.meta).toEqual({ themeId: null, version: 2 });
+			expect(assetNames).toContain('foundation/color/color-primary-main');
+			expect(assetNames).toContain('color-shadow');
+			expect(
+				assetNames.some((name) => name.startsWith('foundation/interaction')),
+			).toBe(false);
+			expect(
+				assetNames.some((name) => name.startsWith('foundation/radius')),
+			).toBe(false);
+			const shadowAsset = sketchOutput.assets.find(
+				(asset) => asset.name === 'aaa/bbb/shadow-1',
+			);
+			expect(shadowAsset).toMatchObject({ kind: 'layer' });
+			const shadows =
+				shadowAsset && 'shadows' in shadowAsset
+					? shadowAsset.shadows
+					: undefined;
+			expect(shadows).toHaveLength(4);
+			expect(shadows?.[0]).toMatchObject({
 				color: '#0f172b0f',
 				y: 4,
 				blur: 8,
 				spread: -2,
 			});
-			expect(sketchOutput['aaa/bbb']).toBeUndefined();
-			expect(sketchOutput.component).toBeUndefined();
+			expect(assetNames).not.toContain('aaa/bbb');
+			expect(assetNames.some((name) => name.startsWith('component'))).toBe(
+				false,
+			);
 
 			const jsonOutput = JSON.parse(
 				await fs.readFile(

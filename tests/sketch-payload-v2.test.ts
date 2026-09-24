@@ -1,0 +1,202 @@
+import { describe, expect, test } from 'bun:test';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { generateTheme } from '../src/core/pipeline/theme-service.ts';
+import type { SketchPayloadV2 } from '../src/types/index.ts';
+
+/**
+ * sketch payload v2 合同集成测试（Milestone-4）：
+ * - meta.themeId 管道全链路（main.yaml `$id` -> workspace -> pass options -> payload）
+ * - 未入账记录省略 uuid、themeId 缺失为 null（决策 5 / 6）
+ * - orca-test 缺口内化：扁平 name 前缀共存（hermetic fixture）
+ * - outline ring `$ref` 绑定同清单 color uuid（ref 模式）
+ * - fontWeight 刻度仅 sketch pass 报错的平台合同（对照测试）
+ */
+
+const THEME_ID = '0f1e2d3c4b5a69788796a5b4c3d2e1f0';
+const COLOR_SHADOW_UUID = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6';
+const COLOR_RING_UUID = 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a1';
+
+async function copyFixtureWorkspace(relativePath: string): Promise<string> {
+	const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-v2-'));
+	await fs.cp(
+		path.join(import.meta.dir, 'fixtures', relativePath),
+		workspaceDir,
+		{
+			recursive: true,
+			filter: (source) =>
+				!['.DS_Store', 'dist', 'theme'].includes(path.basename(source)),
+		},
+	);
+	return workspaceDir;
+}
+
+async function readSketch(
+	workspaceDir: string,
+	relativePath: string,
+): Promise<SketchPayloadV2> {
+	return JSON.parse(
+		await fs.readFile(path.join(workspaceDir, relativePath), 'utf-8'),
+	) as SketchPayloadV2;
+}
+
+function assetByName(payload: SketchPayloadV2, name: string) {
+	return payload.assets.find((asset) => asset.name === name);
+}
+
+describe('sketch payload v2 contract', () => {
+	test('main build carries document $id into meta and binds ring $ref', async () => {
+		const workspaceDir = await copyFixtureWorkspace('themes/sketch-payload-v2');
+		try {
+			const result = await generateTheme({
+				workspacePath: path.join(workspaceDir, 'main.yaml'),
+				generateOptions: { night: false },
+			});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+
+			const payload = await readSketch(
+				workspaceDir,
+				path.join('dist', 'sketch-payload-v22sketch.json'),
+			);
+			expect(payload.meta).toEqual({ themeId: THEME_ID, version: 2 });
+
+			// 名字前缀共存：color "shadow" 与 layer "shadow/elevation-high"。
+			expect(assetByName(payload, 'shadow')).toEqual({
+				uuid: COLOR_SHADOW_UUID,
+				name: 'shadow',
+				kind: 'color',
+				color: '#0f172bff',
+			});
+			expect(assetByName(payload, 'shadow/elevation-high')).toMatchObject({
+				kind: 'layer',
+			});
+
+			// 未入账记录省略 uuid。
+			expect(assetByName(payload, 'unregistered')).toEqual({
+				name: 'unregistered',
+				kind: 'color',
+				color: '#1872f0ff',
+			});
+
+			// outline ring 绑定同清单 color uuid。
+			const ring = assetByName(payload, 'outline-focus');
+			expect(ring).toMatchObject({ kind: 'layer' });
+			expect(
+				ring && 'shadows' in ring ? ring.shadows?.[0]?.color : undefined,
+			).toEqual({ $ref: COLOR_RING_UUID });
+		} finally {
+			await fs.rm(workspaceDir, { recursive: true, force: true });
+		}
+	});
+
+	test('profile build inherits the main document $id without declaring one', async () => {
+		const workspaceDir = await copyFixtureWorkspace('themes/sketch-payload-v2');
+		try {
+			const result = await generateTheme({
+				workspacePath: path.join(workspaceDir, 'main.yaml'),
+				generateOptions: { night: false, profile: 'dark' },
+			});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+
+			const payload = await readSketch(
+				workspaceDir,
+				path.join('dist', 'sketch-payload-v2-dark2sketch.json'),
+			);
+			expect(payload.meta).toEqual({ themeId: THEME_ID, version: 2 });
+			expect(assetByName(payload, 'shadow')).toMatchObject({
+				uuid: COLOR_SHADOW_UUID,
+				color: '#e2e8f0ff',
+			});
+			expect(assetByName(payload, 'shadow/elevation-high')).toMatchObject({
+				kind: 'layer',
+			});
+		} finally {
+			await fs.rm(workspaceDir, { recursive: true, force: true });
+		}
+	});
+
+	test('unregistered theme yields meta.themeId null', async () => {
+		const workspaceDir = await copyFixtureWorkspace('themes/sketch-extensions');
+		try {
+			const result = await generateTheme({
+				workspacePath: path.join(workspaceDir, 'main.yaml'),
+				generateOptions: { night: false },
+			});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+
+			const payload = await readSketch(
+				workspaceDir,
+				path.join('theme', 'sketch', 'sketch-extensions2sketch.json'),
+			);
+			expect(payload.meta).toEqual({ themeId: null, version: 2 });
+		} finally {
+			await fs.rm(workspaceDir, { recursive: true, force: true });
+		}
+	});
+
+	test('fontWeight scale fails only the sketch pass, not css/json', async () => {
+		const tempThemeDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-weight-'),
+		);
+		const outputDir = path.join(tempThemeDir, 'out');
+		try {
+			await fs.writeFile(
+				path.join(tempThemeDir, 'main.yaml'),
+				[
+					'$config:',
+					'  theme: weight-scale',
+					'  parameter:',
+					'    outputDir: ./out',
+					'    platform: [json, css, sketch]',
+					'theme:',
+					'  font:',
+					'    body:',
+					'      $type: typography',
+					'      $value:',
+					'        fontFamily: Inter',
+					'        fontSize: 14',
+					'        fontWeight: 250',
+					'        lineHeight: 1.5',
+					'        letterSpacing: 0',
+					'',
+				].join('\n'),
+				'utf-8',
+			);
+
+			// CSS / JSON 平台不受 sketch 平台合同约束。
+			const permissive = await generateTheme({
+				workspacePath: path.join(tempThemeDir, 'main.yaml'),
+				cliPlatform: 'json,css',
+				generateOptions: { night: false },
+			});
+			expect(
+				permissive.ok,
+				permissive.ok ? undefined : permissive.message,
+			).toBe(true);
+			const json = JSON.parse(
+				await fs.readFile(path.join(outputDir, 'weight-scale.json'), 'utf-8'),
+			);
+			expect(json['theme-font-body'].fontWeight).toBe(250);
+			const css = await fs.readFile(
+				path.join(outputDir, 'weight-scale.css'),
+				'utf-8',
+			);
+			expect(css).toContain('--theme-font-body-weight: 250;');
+
+			// sketch pass fail-fast。
+			const sketchPass = await generateTheme({
+				workspacePath: path.join(tempThemeDir, 'main.yaml'),
+				generateOptions: { night: false },
+			});
+			expect(sketchPass.ok).toBe(false);
+			if (!sketchPass.ok) {
+				expect(sketchPass.message).toContain(
+					'fontWeight 250 is off the Sketch 100-900 integer-hundred scale',
+				);
+			}
+		} finally {
+			await fs.rm(tempThemeDir, { recursive: true, force: true });
+		}
+	});
+});

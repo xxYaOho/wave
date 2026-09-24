@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { sketchFormat } from '../src/core/generator/formats/sketch.ts';
-import type { WaveToken } from '../src/types/index.ts';
+import type { SketchPayloadV2, WaveToken } from '../src/types/index.ts';
 
 function token(partial: Partial<WaveToken> & { name: string }): WaveToken {
 	return {
@@ -9,6 +9,10 @@ function token(partial: Partial<WaveToken> & { name: string }): WaveToken {
 		_order: 0,
 		...partial,
 	};
+}
+
+function assetByName(payload: SketchPayloadV2, name: string) {
+	return payload.assets.find((asset) => asset.name === name);
 }
 
 describe('inheritColor Sketch Format', () => {
@@ -32,9 +36,12 @@ describe('inheritColor Sketch Format', () => {
 		];
 
 		const result = sketchFormat(tokens, { filterLayer: 2 });
-		const parsed = JSON.parse(result);
+		const parsed = JSON.parse(result) as SketchPayloadV2;
 
-		expect(parsed['interaction-danger-border']).toEqual({
+		// inheritColor 派生形态归类为 color 记录。
+		expect(assetByName(parsed, 'interaction-danger-border')).toEqual({
+			name: 'interaction-danger-border',
+			kind: 'color',
 			color: '#cc0000ff',
 		});
 	});
@@ -52,14 +59,16 @@ describe('inheritColor Sketch Format', () => {
 		];
 
 		const result = sketchFormat(tokens, { filterLayer: 2 });
-		const parsed = JSON.parse(result);
+		const parsed = JSON.parse(result) as SketchPayloadV2;
 
-		expect(parsed['interaction-danger-border']).toEqual({
+		expect(assetByName(parsed, 'interaction-danger-border')).toEqual({
+			name: 'interaction-danger-border',
+			kind: 'color',
 			color: '#ff00ffff',
 		});
 	});
 
-	test('should include opacity when inheritColor has opacity', () => {
+	test('should fold inheritColor opacity into the HEX8 alpha channel', () => {
 		const tokens: WaveToken[] = [
 			token({
 				name: 'theme-style-interaction-interaction-danger-label',
@@ -80,10 +89,14 @@ describe('inheritColor Sketch Format', () => {
 		];
 
 		const result = sketchFormat(tokens, { filterLayer: 2 });
-		const parsed = JSON.parse(result);
+		const parsed = JSON.parse(result) as SketchPayloadV2;
 
-		expect(parsed['interaction-danger-border'].color).toBe('#cc0000ff');
-		expect(parsed['interaction-danger-border'].opacity).toBe(0.3);
+		// color 记录只有 color 字段：opacity 折入 HEX8（255 * 0.3 -> 0x4d）。
+		expect(assetByName(parsed, 'interaction-danger-border')).toEqual({
+			name: 'interaction-danger-border',
+			kind: 'color',
+			color: '#cc00004d',
+		});
 	});
 
 	test('should not leak inheritColor metadata into output', () => {

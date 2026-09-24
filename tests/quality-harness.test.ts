@@ -416,14 +416,44 @@ theme:
 			const sketchOutput = JSON.parse(
 				await fs.readFile(mainSketch!.path, 'utf-8'),
 			);
-			expect(sketchOutput.foundation.color['primary-main']).toEqual({
+			const assetNames = sketchOutput.assets.map(
+				(asset: { name: string }) => asset.name,
+			);
+			expect(
+				sketchOutput.assets.find(
+					(asset: { name: string }) =>
+						asset.name === 'foundation/color/primary-main',
+				),
+			).toEqual({
+				name: 'foundation/color/primary-main',
+				kind: 'color',
 				color: '#0052f5ff',
 			});
-			expect(sketchOutput['primary-main']).toBeUndefined();
-			expect(sketchOutput.foundation.interaction).toBeUndefined();
-			expect(sketchOutput.foundation.radius).toBeUndefined();
-			expect(sketchOutput.foundation.shadow.raised.shadow).toBeArray();
-			expect(sketchOutput.foundation.gradient.mask.gradient).toBeArray();
+			expect(assetNames).not.toContain('primary-main');
+			expect(
+				assetNames.some((name: string) =>
+					name.startsWith('foundation/interaction'),
+				),
+			).toBe(false);
+			expect(
+				assetNames.some((name: string) => name.startsWith('foundation/radius')),
+			).toBe(false);
+			const raisedShadow = sketchOutput.assets.find(
+				(asset: { name: string }) => asset.name === 'foundation/shadow/raised',
+			);
+			expect(
+				raisedShadow && 'shadows' in raisedShadow
+					? raisedShadow.shadows
+					: undefined,
+			).toBeArray();
+			const maskGradient = sketchOutput.assets.find(
+				(asset: { name: string }) => asset.name === 'foundation/gradient/mask',
+			);
+			expect(
+				maskGradient && 'gradient' in maskGradient
+					? maskGradient.gradient
+					: undefined,
+			).toBeArray();
 			expect(result.tokensCount).toBeGreaterThan(0);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });

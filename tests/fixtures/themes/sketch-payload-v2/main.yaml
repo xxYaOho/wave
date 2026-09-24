@@ -1,0 +1,52 @@
+$id: 0f1e2d3c4b5a69788796a5b4c3d2e1f0
+
+$config:
+  theme: sketch-payload-v2
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+      - sketch
+    filterLayer: 2
+
+theme:
+  color:
+    $type: color
+    # orca-test 缺口形态内化：color 叶名 "shadow" 与 sketch.path 前缀
+    # "shadow" 的 layer 记录在 v2 扁平 name 中共存（v1 嵌套树中是前缀冲突）。
+    shadow:
+      $id: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6
+      $value: "#0f172b"
+    unregistered:
+      $value: "#1872f0"
+    ring:
+      $id: b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a1
+      $value: "#2563eb"
+  shadow:
+    $description: "层级投影"
+    $extensions:
+      platform:
+        sketch:
+          path: shadow
+    elevation:
+      high:
+        $type: shadow
+        $value:
+          color: "#0f172b0f"
+          offsetX: 0
+          offsetY: 2
+          blur: 4
+          spread: -1
+  border:
+    outline:
+      focus:
+        $type: border
+        $value:
+          color: "{theme.color.ring}"
+          width: 1
+          style: solid
+        $extensions:
+          platform:
+            sketch:
+              outline:
+                offset: 2

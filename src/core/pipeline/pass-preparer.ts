@@ -10,6 +10,8 @@ import { processThemeDocument } from './theme-pipeline.ts';
 export interface PrepareBuildPassInput {
 	id: string;
 	themeName: string;
+	/** Document identity from main.yaml `$id`; flows into the sketch payload. */
+	themeId?: string;
 	yamlPath: string;
 	yamlContent: string;
 	dict: DependencyDict;
@@ -19,6 +21,7 @@ export interface PrepareBuildPassInput {
 export interface PreparedBuildPass {
 	id: string;
 	themeName: string;
+	themeId?: string;
 	outputDir: string;
 	platforms: string[];
 	filterLayer: number | undefined;
@@ -46,6 +49,7 @@ export async function prepareBuildPass(
 		prepared: {
 			id: input.id,
 			themeName: input.themeName,
+			themeId: input.themeId,
 			outputDir: input.pass.outputDir,
 			platforms: input.pass.platforms,
 			filterLayer: input.pass.filterLayer,

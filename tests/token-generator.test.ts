@@ -8,8 +8,14 @@ import { transformToWaveTokens } from '../src/core/transformer/theme-transformer
 import type {
 	DtcgTokenGroup,
 	ResolvedTokenGroup,
+	SketchAsset,
+	SketchPayloadV2,
 	WaveToken,
 } from '../src/types/index.ts';
+
+function assetByName(payload: SketchPayloadV2, name: string) {
+	return payload.assets.find((asset) => asset.name === name);
+}
 
 async function withTempDir(fn: (dir: string) => Promise<void>): Promise<void> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-gen-test-'));
@@ -185,7 +191,16 @@ describe('generateTokens (Wave-native)', () => {
 				'utf-8',
 			);
 			const parsed = JSON.parse(content);
-			expect(parsed['theme-color-bg']).toEqual({ color: '#abcdefff' });
+			expect(parsed).toEqual({
+				meta: { themeId: null, version: 2 },
+				assets: [
+					{
+						name: 'theme-color-bg',
+						kind: 'color',
+						color: '#abcdefff',
+					},
+				],
+			});
 		});
 	});
 
@@ -206,7 +221,7 @@ describe('generateTokens (Wave-native)', () => {
 					value: 8,
 					type: 'dimension',
 					_order: 1,
-					_sketch: { path: 'radius/v2' },
+					_sketch: { property: { cornerRadius: true } },
 				},
 				{
 					name: 'style-shadow-legacy',
@@ -383,24 +398,23 @@ describe('generateTokens (Wave-native)', () => {
 		});
 	});
 
-	test('writes no platform outputs when sketch path preflight fails', async () => {
+	test('writes no platform outputs when the sketch preflight fails', async () => {
 		await withTempDir(async (outputDir) => {
+			// fontWeight 刻度是 sketch 平台合同：CSS/JSON 正常，sketch 报错，
+			// 多平台写入保持原子性（全部不落盘）。
 			const tokens: WaveToken[] = [
 				{
-					name: 'theme-radius-foo',
-					path: ['theme', 'radius', 'foo'],
-					value: 4,
-					type: 'dimension',
-					_sketch: { path: 'group' },
+					name: 'theme-font-body',
+					path: ['theme', 'font', 'body'],
+					type: 'typography',
+					value: {
+						fontFamily: 'Inter',
+						fontSize: 14,
+						fontWeight: 250,
+						lineHeight: 1.5,
+						letterSpacing: 0,
+					},
 					_order: 0,
-				},
-				{
-					name: 'theme-radius-bar',
-					path: ['theme', 'radius', 'bar'],
-					value: 8,
-					type: 'dimension',
-					_sketch: { path: 'group/foo' },
-					_order: 1,
 				},
 			];
 
@@ -409,12 +423,13 @@ describe('generateTokens (Wave-native)', () => {
 				outputDir,
 				tokens,
 				platform: ['json', 'css', 'sketch'],
-				filterLayer: 2,
 			});
 
 			expect(result.success).toBe(false);
 			expect(result.files).toEqual([]);
-			expect(result.error).toContain('Duplicate Sketch output path');
+			expect(result.error).toContain(
+				'fontWeight 250 is off the Sketch 100-900 integer-hundred scale',
+			);
 			expect(await fs.readdir(outputDir)).toEqual([]);
 		});
 	});
@@ -618,14 +633,20 @@ describe('generateTokens (Wave-native)', () => {
 					path.join(outputDir, 'multi-platform2sketch.json'),
 					'utf-8',
 				),
-			);
+			) as SketchPayloadV2;
 			expect(css).toContain('oklch(');
 			expect(css).toContain('font-size: 14px;');
 			expect(css).toContain('--theme-font-body-size: 0.875rem;');
-			expect(sketch['theme-color-primary']).toEqual({
+			const colorAsset = assetByName(sketch, 'theme-color-primary');
+			expect(colorAsset).toMatchObject({
+				kind: 'color',
 				color: expect.stringMatching(/^#[0-9a-f]{8}$/i),
 			});
-			expect(sketch['theme-font-body'].textStyle).toMatchObject({
+			const textAsset = assetByName(sketch, 'theme-font-body') as Extract<
+				SketchAsset,
+				{ kind: 'text' }
+			>;
+			expect(textAsset.text).toMatchObject({
 				fontSize: 12.25,
 				lineHeight: 21,
 				kerning: 1.4,

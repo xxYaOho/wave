@@ -83,7 +83,7 @@ theme:
           fontSize:
             value: 32
             unit: px
-          fontWeight: 9
+          fontWeight: 900
           lineHeight:
             value: 40
             unit: px

@@ -9,12 +9,11 @@ import {
 } from '../src/core/pipeline/theme-service.ts';
 
 /**
- * M2 Task-4 行为快照：迁移前固化，迁移后必须逐字段不变。
+ * Sketch 扩展 fixture 行为快照（M2 建立，M4 随 payload v2 合法重生成）。
  *
  * 快照对象 = 真实构建（generateTheme）产出的 sketch payload（按键排序的
- * 确定性序列化）。sketch 扩展的全部行为面都落在 payload 形状里：
- * group 级 path/skip 继承、outline 模拟（shadow 记录）、property 白名单
- * （opacity / cornerRadius）。
+ * 确定性序列化）。M4 起 payload 为 v2 形态（meta + assets 清单），四个
+ * workspace 均以 --profiles all 组合构建，orca-test 不再有失败模式豁免。
  *
  * 附：形态计数测试锁定迁移后的 `$extensions.platform.sketch` 节点数
  * （131 sketch + 7 outline）且旧形态清零。
@@ -27,10 +26,10 @@ const WORKSPACES: Array<{
 	{ theme: 'sketch-extensions', profiles: 'main' },
 	{ theme: 'profile-model', profiles: 'main' },
 	{ theme: 'orca-realistic', profiles: 'all' },
-	// orca-test 的 --profiles all 组合构建在基线即报 Duplicate Sketch output
-	// path（与本里程碑无关的生成器命名问题，见 M2 报告 ESCALATE），
-	// 快照采用 main + 逐 profile 构建，覆盖面等价。
-	{ theme: 'orca-test', profiles: 'per-profile' },
+	// M4 起 orca-test 的 --profiles all 组合构建随 payload v2 扁平 name 规则
+	// 恢复成功（v1 的 "shadow" 前缀树冲突在扁平 name 中不存在），快照
+	// 与全仓一致的 all 模式构建。
+	{ theme: 'orca-test', profiles: 'all' },
 ];
 
 const CLEANUP_DIRS: string[] = [];
@@ -159,23 +158,9 @@ async function buildWorkspace(
 		for (const input of builds) {
 			const result = await generateTheme(input);
 			if (!result.ok) {
-				const known =
-					typeof result.message === 'string' &&
-					result.message.includes('Duplicate Sketch output path');
-				if (!known) {
-					throw new Error(
-						`generateTheme failed for ${theme} (${JSON.stringify(input.generateOptions)}): ${result.message ?? 'unknown'}`,
-					);
-				}
-				// 基线既有的组合/单 profile 构建失败：作为失败模式锁定进快照，
-				// 迁移前后必须逐字一致（见报告 ESCALATE）。
-				const profileName =
-					'profile' in input.generateOptions && input.generateOptions.profile
-						? `orca-${input.generateOptions.profile}`
-						: theme;
-				digests[`${profileName}2sketch.json`] =
-					`__PRE_EXISTING_FAILURE__: ${result.message}`;
-				continue;
+				throw new Error(
+					`generateTheme failed for ${theme} (${JSON.stringify(input.generateOptions)}): ${result.message ?? 'unknown'}`,
+				);
 			}
 			Object.assign(digests, await collectSketchDigests(workspaceDir));
 		}

@@ -111,6 +111,7 @@ async function generatePreparedPass(
 		groupComments: prepared.document.groupComments,
 		resolved: prepared.document.resolved,
 		colorSpace: prepared.colorSpace,
+		themeId: prepared.themeId,
 	});
 
 	if (!mainResult.success) {
@@ -163,6 +164,9 @@ export async function generateTheme(
 	}
 
 	const { workspace } = loadResult;
+	// Document identity (main.yaml `$id`) scopes the whole build: named
+	// profiles merge config from main and never declare their own `$id`.
+	const documentThemeId = workspace.themeId;
 	const generatedFiles: string[] = [];
 	const preparedPasses: PreparedServicePass[] = [];
 	const recordedResources = new Set<string>();
@@ -239,6 +243,7 @@ export async function generateTheme(
 			const prepared = await prepareBuildPass({
 				id: `${profileId}:day:${pass.groupName ?? `pass-${passIndex + 1}`}`,
 				themeName: profileThemeName(effectiveThemeName, document),
+				themeId: documentThemeId,
 				yamlPath: entry.path,
 				yamlContent: document.tokenContent,
 				dict: profileDepResult.dict,
@@ -300,6 +305,7 @@ export async function generateTheme(
 			const prepared = await prepareBuildPass({
 				id: `${profileId}:night:${pass.groupName ?? `pass-${passIndex + 1}`}`,
 				themeName: `${profileThemeName(effectiveThemeName, document)}-night`,
+				themeId: documentThemeId,
 				yamlPath: entry.nightPath,
 				yamlContent: nightContent,
 				dict: profileDepResult.dict,
