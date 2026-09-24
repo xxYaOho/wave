@@ -34,8 +34,9 @@ theme:
   color:
     $type: color
     $extensions:
-      sketch:
-        path: "foundation/color"
+      platform:
+        sketch:
+          path: "foundation/color"
     transparent:
       $value: "#00000000"
     primary:
@@ -51,8 +52,9 @@ theme:
       main:
         $value: "{orca-brand.color.main.600-fallback}"
         $extensions:
-          sketch:
-            path: "foundation/color"
+          platform:
+            sketch:
+              path: "foundation/color"
     text:
       default:
         $value: "{tailwindcss.color.slate.900}"
@@ -94,33 +96,38 @@ theme:
   dimension:
     interaction:
       $extensions:
-        sketch:
-          path: "foundation/interaction"
+        platform:
+          sketch:
+            path: "foundation/interaction"
       hover:
         $type: number
         $value: "{wave.dimension.alpha.100}"
         $extensions:
-          sketch:
-            property:
-              opacity: true
+          platform:
+            sketch:
+              property:
+                opacity: true
       press:
         $type: number
         $value: "{wave.dimension.alpha.200}"
         $extensions:
-          sketch:
-            property:
-              opacity: true
+          platform:
+            sketch:
+              property:
+                opacity: true
     radius:
       $extensions:
-        sketch:
-          path: "foundation/radius"
+        platform:
+          sketch:
+            path: "foundation/radius"
       card:
         $type: dimension
         $value: 8
         $extensions:
-          sketch:
-            property:
-              cornerRadius: true
+          platform:
+            sketch:
+              property:
+                cornerRadius: true
   font:
     $type: typography
     $extensions:
@@ -132,21 +139,24 @@ theme:
             unit: pt
           fontWeight: 400
           letterSpacing: 0
-      sketch:
-        path: "foundation/font"
-        skip: true
+      platform:
+        sketch:
+          path: "foundation/font"
+          skip: true
     body:
       $value:
         lineHeight: 1.5
         color: "{theme.color.text.default}"
       $extensions:
-        sketch:
-          skip: false
+        platform:
+          sketch:
+            skip: false
     heading:
       $extensions:
-        sketch:
-          path: "v2/heading"
-          skip: false
+        platform:
+          sketch:
+            path: "v2/heading"
+            skip: false
       h1:
         $value:
           lineHeight: 1.5
@@ -172,9 +182,10 @@ theme:
             $ref: "#/theme/color/text/escaped.key~1~0color"
     display:
       $extensions:
-        sketch:
-          path: "v2/display"
-          skip: false
+        platform:
+          sketch:
+            path: "v2/display"
+            skip: false
       body:
         $value:
           lineHeight: 1.5
@@ -195,16 +206,18 @@ theme:
           value: 20
           unit: px
       $extensions:
-        sketch:
-          skip: false
+        platform:
+          sketch:
+            skip: false
     internal:
       $value:
         lineHeight: 1.25
   border:
     $type: border
     $extensions:
-      sketch:
-        path: "foundation/border"
+      platform:
+        sketch:
+          path: "foundation/border"
     antline:
       $value:
         color: "{theme.color.primary.main}"
@@ -226,12 +239,15 @@ theme:
           unit: px
         style: solid
       $extensions:
-        outline:
-          offset: 2
+        platform:
+          sketch:
+            outline:
+              offset: 2
   shadow:
     $extensions:
-      sketch:
-        path: "foundation/shadow"
+      platform:
+        sketch:
+          path: "foundation/shadow"
     raised:
       $type: shadow
       $value:
@@ -255,8 +271,9 @@ theme:
   gradient:
     $type: gradient
     $extensions:
-      sketch:
-        path: "foundation/gradient"
+      platform:
+        sketch:
+          path: "foundation/gradient"
     mask:
       $value:
         - color:

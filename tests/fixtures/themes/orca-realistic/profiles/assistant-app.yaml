@@ -5,13 +5,15 @@ theme:
       main:
         $value: "{tailwindcss.color.sky.600}"
         $extensions:
-          sketch:
-            path: "foundation/color"
+          platform:
+            sketch:
+              path: "foundation/color"
       on-main:
         $value: "{tailwindcss.color.white}"
         $extensions:
-          sketch:
-            path: "foundation/color"
+          platform:
+            sketch:
+              path: "foundation/color"
       container:
         $value: "{tailwindcss.color.sky.50}"
       on-container:

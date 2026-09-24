@@ -7,13 +7,15 @@ theme:
           colorSpace: hsl
           components: [220, 85, 52]
         $extensions:
-          sketch:
-            path: "foundation/color"
+          platform:
+            sketch:
+              path: "foundation/color"
       on-main:
         $value: "{tailwindcss.color.white}"
         $extensions:
-          sketch:
-            path: "foundation/color"
+          platform:
+            sketch:
+              path: "foundation/color"
       container:
         $value:
           colorSpace: hsl

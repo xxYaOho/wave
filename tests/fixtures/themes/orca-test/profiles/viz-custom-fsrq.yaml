@@ -221,32 +221,36 @@ theme:
         $description: 悬浮
         $value: "{wave.dimension.alpha.100}"
         $extensions:
-          sketch:
-            property:
-              opacity: true
+          platform:
+            sketch:
+              property:
+                opacity: true
       press:
         $description: 按下
         $value: "{wave.dimension.alpha.200}"
         $extensions:
-          sketch:
-            property:
-              opacity: true
+          platform:
+            sketch:
+              property:
+                opacity: true
       focus:
         $type: number
         $description: 聚焦
         $value: "{wave.dimension.alpha.100}"
         $extensions:
-          sketch:
-            property:
-              opacity: true
+          platform:
+            sketch:
+              property:
+                opacity: true
       drag:
         $type: number
         $description: 拖拽
         $value: "{wave.dimension.alpha.500}"
         $extensions:
-          sketch:
-            property:
-              opacity: true
+          platform:
+            sketch:
+              property:
+                opacity: true
     shadow:
       1:
         $type: shadow

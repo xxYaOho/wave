@@ -37,8 +37,9 @@ theme:
     $type: color
     $description: light mode
     $extensions:
-      sketch:
-        path: "v2/color"
+      platform:
+        sketch:
+          path: "v2/color"
     transparent:
       $description: 透明, 对应开发中的 `transparent` 值
       $value: "#00000000"
@@ -223,44 +224,50 @@ theme:
   state:
     $description: "状态交互"
     $extensions:
-      sketch:
-        path: "v2/state"
+      platform:
+        sketch:
+          path: "v2/state"
     hover:
       $type: number
       $description: 悬浮
       $value: "{wave.dimension.alpha.100}"
       $extensions:
-        sketch:
-          property:
-            opacity: true
+        platform:
+          sketch:
+            property:
+              opacity: true
     press:
       $description: 按下
       $value: "{wave.dimension.alpha.200}"
       $extensions:
-        sketch:
-          property:
-            opacity: true
+        platform:
+          sketch:
+            property:
+              opacity: true
     focus:
       $type: number
       $description: 聚焦
       $value: "{wave.dimension.alpha.100}"
       $extensions:
-        sketch:
-          property:
-            opacity: true
+        platform:
+          sketch:
+            property:
+              opacity: true
     drag:
       $type: number
       $description: 拖拽
       $value: "{wave.dimension.alpha.500}"
       $extensions:
-        sketch:
-          property:
-            opacity: true
+        platform:
+          sketch:
+            property:
+              opacity: true
   shadow:
     $description: "层级投影"
     $extensions:
-      sketch:
-        path: "v2/shadow"
+      platform:
+        sketch:
+          path: "v2/shadow"
     elevation:
       "low":
         $type: shadow
@@ -350,8 +357,9 @@ theme:
     $description: "渐变色"
     mask:
       $extensions:
-        sketch:
-          path: "v2/mask"
+        platform:
+          sketch:
+            path: "v2/mask"
       soft:
         $description: 平滑渐变遮罩层
         $type: gradient
@@ -388,8 +396,9 @@ theme:
     $description: "圆角"
     $type: dimension
     $extensions:
-      sketch:
-        path: "v2/radius"
+      platform:
+        sketch:
+          path: "v2/radius"
     max:
       $value:
         value: 9999
@@ -416,8 +425,9 @@ theme:
     $description: "边框"
     width:
       $extensions:
-        sketch:
-          skip: true
+        platform:
+          sketch:
+            skip: true
       sm:
         $type: dimension
         $value: "{wave.dimension.px.0}"
@@ -437,8 +447,9 @@ theme:
               unit: px
           lineCap: butt
       $extensions:
-        sketch:
-          skip: true
+        platform:
+          sketch:
+            skip: true
     sm:
       $type: border
       $value:
@@ -446,8 +457,9 @@ theme:
         width: "{theme.border.width.sm}"
         style: solid
       $extensions:
-        sketch:
-          skip: true
+        platform:
+          sketch:
+            skip: true
     md:
       $type: border
       $value:
@@ -455,8 +467,9 @@ theme:
         width: "{theme.border.width.sm}"
         style: solid
       $extensions:
-        sketch:
-          skip: true
+        platform:
+          sketch:
+            skip: true
     outline:
       ring:
         $type: border
@@ -465,10 +478,11 @@ theme:
           width: "{theme.border.width.md}"
           style: solid
         $extensions:
-          outline:
-            offset: 2
-          sketch:
-            path: "v2/outline"
+          platform:
+            sketch:
+              outline:
+                offset: 2
+              path: "v2/outline"
   font:
     $type: typography
     $description: "文本"
@@ -482,19 +496,22 @@ theme:
       $type: fontFamily
       $value: "{wave.dimension.fontFamily}"
       $extensions:
-        sketch:
-          skip: true
+        platform:
+          sketch:
+            skip: true
     font-size:
       $type: fontSize
       $value: 14px
       $extensions:
-        sketch:
-          skip: true
+        platform:
+          sketch:
+            skip: true
     heading:
       $description: "顶部标题文本"
       $extensions:
-        sketch:
-          path: "v2/heading"
+        platform:
+          sketch:
+            path: "v2/heading"
       h1:
         $value:
           color: "{theme.color.text.emphasis}"
@@ -528,8 +545,9 @@ theme:
     text:
       $description: "正文"
       $extensions:
-        sketch:
-          path: "v2/display"
+        platform:
+          sketch:
+            path: "v2/display"
       hinting:
         $value:
           color: "{theme.color.text.default}"
@@ -564,8 +582,9 @@ theme:
     mono:
       $description: "等宽字体"
       $extensions:
-        sketch:
-          path: "v2/display"
+        platform:
+          sketch:
+            path: "v2/display"
       hinting:
         $value:
           color: "{theme.color.text.default}"

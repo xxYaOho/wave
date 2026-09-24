@@ -30,9 +30,10 @@ theme:
       $type: number
       $value: "{wave.dimension.alpha.100}"
       $extensions:
-        sketch:
-          property:
-            opacity: true
+        platform:
+          sketch:
+            property:
+              opacity: true
   radius:
     md:
       $type: dimension
@@ -50,8 +51,10 @@ theme:
           width: "{theme.border.width.medium}"
           style: solid
         $extensions:
-          outline:
-            offset: 2
+          platform:
+            sketch:
+              outline:
+                offset: 2
   shadow:
     elevation:
       low:

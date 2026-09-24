@@ -33,8 +33,9 @@ theme:
       main:
         $value: "#1872f0"
         $extensions:
-          sketch:
-            path: "foundation/color"
+          platform:
+            sketch:
+              path: "foundation/color"
     shadow:
       $value: "#0f172b"
   shadow:
@@ -49,8 +50,9 @@ theme:
         blur: 2
         spread: 1
       $extensions:
-        sketch:
-          path: "aaa/bbb"
+        platform:
+          sketch:
+            path: "aaa/bbb"
         smoothShadow:
           cubicBezier: "{wave.dimension.cubicBezier.easeInQuad}"
           step: 4
@@ -66,19 +68,21 @@ theme:
         $type: number
         $value: 0.16
         $extensions:
-          sketch:
-            path: "foundation/interaction"
-            property:
-              opacity: true
+          platform:
+            sketch:
+              path: "foundation/interaction"
+              property:
+                opacity: true
     radius:
       card:
         $type: dimension
         $value: 8
         $extensions:
-          sketch:
-            path: "foundation/radius"
-            property:
-              cornerRadius: true
+          platform:
+            sketch:
+              path: "foundation/radius"
+              property:
+                cornerRadius: true
   component:
     button:
       $type: color

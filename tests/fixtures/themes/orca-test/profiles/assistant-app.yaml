@@ -196,8 +196,9 @@ theme:
     $description: "圆角"
     $type: dimension
     $extensions:
-      sketch:
-        path: "radius"
+      platform:
+        sketch:
+          path: "radius"
     max:
       $value:
         value: 9999
@@ -230,8 +231,9 @@ theme:
     title:
       $description: "页面与内容层级标题"
       $extensions:
-        sketch:
-          path: "title"
+        platform:
+          sketch:
+            path: "title"
       large:
         $description: "页面主标题"
         $value:
@@ -275,8 +277,9 @@ theme:
     text:
       $description: "正文、标签与辅助信息"
       $extensions:
-        sketch:
-          path: "display"
+        platform:
+          sketch:
+            path: "display"
       headline:
         $description: "强调正文与列表标题"
         $value:
@@ -351,8 +354,9 @@ theme:
   shadow:
     $description: "层级投影"
     $extensions:
-      sketch:
-        path: "shadow"
+      platform:
+        sketch:
+          path: "shadow"
     elevation:
       "lowest":
         $type: shadow
