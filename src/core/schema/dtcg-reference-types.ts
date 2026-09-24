@@ -257,7 +257,8 @@ function assertReferenceType(
 	const expectedTypes = Array.isArray(expectedType)
 		? expectedType
 		: [expectedType];
-	// Untyped legacy targets remain shape-validated after resolution.
+	// Untyped legacy targets (builtin resources are untyped scalar data) remain
+	// shape-validated after resolution; doctor reports undecidable types.
 	if (!target?.type || expectedTypes.includes(target.type)) return;
 	const expectedLabel = expectedTypes.map((type) => `"${type}"`).join(' or ');
 	throw new DtcgReferenceTypeError(

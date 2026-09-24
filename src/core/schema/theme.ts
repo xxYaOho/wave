@@ -535,6 +535,34 @@ function validateToken(
 		});
 	}
 
+	// Rule: $id three-state contract (missing key | empty slot | identity string)
+	if (token.$id !== undefined && token.$id !== null && typeof token.$id !== 'string') {
+		issues.push({
+			path: `${tokenPath}.$id`,
+			level: 'error',
+			message: `$id must be a string or null, got ${typeof token.$id}`,
+		});
+	}
+
+	// Rule (DTCG §6.1): $value and authored child nodes are mutually exclusive.
+	// `_`-prefixed keys are Wave runtime metadata injected during resolution,
+	// not authored children.
+	const childKeys = Object.keys(token).filter(
+		(key) => !key.startsWith('$') && !key.startsWith('_'),
+	);
+	if (childKeys.length > 0) {
+		issues.push({
+			path: tokenPath,
+			level: 'error',
+			message: `token cannot mix $value with child nodes (${childKeys.join(', ')}) at "${tokenPath}"`,
+		});
+	}
+
+	// Rule (DTCG §5.2.2): type must not be guessed. Tokens whose type cannot be
+	// determined when consumed through the typed-reference contract are
+	// rejected there (dtcg-reference-types.ts); the raw walk keeps legacy
+	// untyped literal tolerance.
+
 	// Rule 2: $ref format
 	if ('$ref' in token && typeof token.$ref === 'string') {
 		const ref = token.$ref;
@@ -723,6 +751,15 @@ function walkNode(
 				inheritedTypographyBaseFontSize,
 			);
 			return;
+		}
+
+		// Rule: $id only exists on the document root and token nodes, never on groups
+		if ('$id' in obj) {
+			issues.push({
+				path: `${path}.$id`,
+				level: 'error',
+				message: `$id is only supported on the document root and token nodes; remove $id from group "${path}"`,
+			});
 		}
 
 		// Group node — validate $extends and recurse into non-meta children
