@@ -42,7 +42,9 @@ import { detectWriteOptions } from '../migrate/extensions.ts';
  * Report counters: `added` = freshly generated identity origins written;
  * `synced` = occurrences adopting an authority id; `warnings` = advisory
  * findings (non-canonical id form, unverifiable git state). `added +
- * synced` equals the number of `$id` lines inserted or value-filled.
+ * synced` equals the number of `$id` lines inserted or value-filled,
+ * including the document-root `$id` of main.yaml, which participates as a
+ * document-level slot.
  *
  * Conflicts are hard blockers: any blocker yields ZERO writes across the
  * whole workspace (all-or-nothing, mirroring the M2 migration posture).
@@ -279,6 +281,32 @@ function generateId(): string {
 	return randomBytes(16).toString('hex');
 }
 
+/** Sentinel token path for the main.yaml document-root `$id` slot. */
+const DOCUMENT_PATH = '(theme)';
+
+type RootIdSlotState =
+	| { kind: 'committed' }
+	| { kind: 'empty'; pair: Pair }
+	| { kind: 'none' }
+	| { kind: 'invalid'; value: unknown };
+
+/**
+ * The main.yaml document root carries the theme identity (Decision 1).
+ * Missing or empty roots are document-level slots this command fills; a
+ * committed root is never reassigned.
+ */
+function rootIdSlotState(doc: Document): RootIdSlotState {
+	const root = doc.contents;
+	if (!isMap(root)) return { kind: 'committed' };
+	const pair = findPair(root, '$id');
+	if (!pair) return { kind: 'none' };
+	const value = (pair.value as Scalar | undefined)?.value;
+	if (value === null || value === undefined) return { kind: 'empty', pair };
+	if (typeof value !== 'string') return { kind: 'invalid', value };
+	if (value.trim() === '') return { kind: 'empty', pair };
+	return { kind: 'committed' };
+}
+
 export interface IdsRunOptions {
 	write?: boolean;
 	allowDirty?: boolean;
@@ -416,6 +444,26 @@ export async function runIdsWorkspace(
 		});
 	}
 
+	// --- Document slot: main.yaml root `$id` (theme identity, Decision 1) ---
+	const main = scanned[0];
+	let rootChange: IdsChange | undefined;
+	if (main) {
+		const rootState = rootIdSlotState(main.doc);
+		if (rootState.kind === 'invalid') {
+			report.problems.push({
+				message: `${main.label}: root $id must be a string or null, got ${typeof rootState.value}`,
+			});
+		} else if (rootState.kind !== 'committed') {
+			rootChange = {
+				file: main.label,
+				tokenPath: DOCUMENT_PATH,
+				kind: 'generate',
+				mode: rootState.kind === 'empty' ? 'fill' : 'insert',
+				id: generateId(),
+			};
+		}
+	}
+
 	if (report.problems.length > 0) {
 		fillFileResults(report, scanned, new Map());
 		return report;
@@ -480,6 +528,13 @@ export async function runIdsWorkspace(
 		}
 	}
 
+	// Document root precedes every token in document order.
+	if (rootChange) {
+		const list = changesByFile.get(rootChange.file);
+		if (list) list.unshift(rootChange);
+		else changesByFile.set(rootChange.file, [rootChange]);
+	}
+
 	const changes = [...changesByFile.values()].flat();
 	report.changes = changes.slice(0, MAX_LISTED_CHANGES);
 	report.added = changes.filter((change) => change.kind === 'generate').length;
@@ -502,6 +557,10 @@ export async function runIdsWorkspace(
 			continue;
 		}
 		for (const change of fileChanges) {
+			if (change.tokenPath === DOCUMENT_PATH) {
+				applyRootIdChange(file.doc, change.id);
+				continue;
+			}
 			const token = file.tokens.find(
 				(candidate) => candidate.tokenPath === change.tokenPath,
 			);
@@ -572,6 +631,30 @@ function applyIdChange(token: ScannedToken, id: string): void {
 		0,
 		new Pair(new Scalar('$id'), new Scalar(id)),
 	);
+}
+
+/** In-place CST edit: fill the root `$id` scalar or insert it as the first document key. */
+function applyRootIdChange(doc: Document, id: string): void {
+	const root = doc.contents;
+	if (!isMap(root)) return;
+	const pair = findPair(root, '$id');
+	if (pair) {
+		const value = pair.value;
+		if (isScalar(value)) {
+			value.value = id;
+			value.type = Scalar.PLAIN;
+		} else {
+			pair.value = new Scalar(id);
+		}
+		return;
+	}
+	// Insertion keeps the `$schema` declaration first when present (the
+	// document-level precedent for `$` keys), otherwise the very top.
+	const schemaIndex = root.items.findIndex(
+		(item) => pairKey(item) === '$schema',
+	);
+	const atIndex = schemaIndex >= 0 ? schemaIndex + 1 : 0;
+	root.items.splice(atIndex, 0, new Pair(new Scalar('$id'), new Scalar(id)));
 }
 
 function fillFileResults(

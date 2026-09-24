@@ -84,11 +84,20 @@ describe('wave dt ids — diff and plan', () => {
 		const report = await runIdsWorkspace(path.join(dir, 'main.yaml'));
 		expect(report.write).toBe(false);
 		expect(report.written).toBe(false);
-		// Origins: main primary, main secondary, profile accent; profile
-		// primary adopts the path identity minted at main (synced).
-		expect(report.added).toBe(3);
+		// Origins: document root, main primary, main secondary, profile
+		// accent; profile primary adopts the path identity minted at main
+		// (synced).
+		expect(report.added).toBe(4);
 		expect(report.synced).toBe(1);
 		expect(report.problems).toEqual([]);
+
+		// Document slot first: main.yaml root $id precedes every token.
+		expect(report.changes[0]).toMatchObject({
+			file: 'main.yaml',
+			tokenPath: '(theme)',
+			kind: 'generate',
+			mode: 'insert',
+		});
 
 		const primary = report.changes.find(
 			(change) =>
@@ -112,7 +121,7 @@ describe('wave dt ids — diff and plan', () => {
 		expect(await read(dir, 'main.yaml')).toBe(MAIN_COMMENTS);
 		expect(await read(dir, 'profiles/mobile.yaml')).toBe(PROFILE_SHARED);
 		expect(report.files).toEqual([
-			{ file: 'main.yaml', status: 'pending', added: 2, synced: 0 },
+			{ file: 'main.yaml', status: 'pending', added: 3, synced: 0 },
 			{
 				file: 'profiles/mobile.yaml',
 				status: 'pending',
@@ -159,8 +168,9 @@ describe('wave dt ids — diff and plan', () => {
 		expect(report.problems).toEqual([]);
 		// gamma: both slots empty on a shared path -> one minted identity
 		// (main origin added, profile copy synced). alpha and beta adopt the
-		// committed authorities in both directions.
-		expect(report.added).toBe(1);
+		// committed authorities in both directions. The document root adds
+		// one more minted identity.
+		expect(report.added).toBe(2);
 		expect(report.synced).toBe(3);
 
 		const alpha = report.changes.find(
@@ -234,9 +244,14 @@ describe('wave dt ids — surgical write-back', () => {
 		expect(main).toContain('# workspace 头注释');
 		expect(main).toContain('# token 注释必须原样保留');
 
+		// Document root $id is minted as the first key of main.yaml.
+		expect(main).toMatch(/^\$id: [0-9a-f]{32}\n/);
+
 		// Shared path carries the same identity in both files.
-		const mainPrimary = main.match(/\$id: ([0-9a-f]{32})/) ?? [];
-		expect(profile).toContain(`$id: ${mainPrimary[1]}`);
+		const mainPrimary = main.match(
+			/ {6}\$description: "brand primary"\n {6}\$id: ([0-9a-f]{32})/,
+		);
+		expect(profile).toContain(`$id: ${mainPrimary?.[1]}`);
 
 		// Idempotent: second run is a no-op with byte-identical files.
 		const second = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
@@ -262,14 +277,16 @@ describe('wave dt ids — surgical write-back', () => {
 			write: true,
 			allowDirty: true,
 		});
-		expect(report.added).toBe(1);
+		expect(report.added).toBe(2);
 		const main = await read(dir, 'main.yaml');
 		expect(stripIdLines(main)).toBe(
 			stripIdLines(
 				'theme:\n  color:\n    reserved:\n      $id: ""\n      $value: "#00ff55"\n',
 			),
 		);
-		const filled = report.changes[0]?.id;
+		const filled = report.changes.find(
+			(change) => change.tokenPath === 'theme.color.reserved',
+		)?.id;
 		expect(main).toContain(`$id: ${filled}`);
 		expect(filled).toMatch(GENERATED_ID);
 	});
@@ -412,10 +429,12 @@ describe('wave dt ids — conflicts are hard blockers', () => {
 			allowDirty: true,
 		});
 		expect(report.problems).toEqual([]);
-		expect(report.added).toBe(1);
-		const reissue = report.changes[0];
-		expect(reissue?.mode).toBe('reissue');
-		expect(reissue?.tokenPath).toBe('theme.color.two');
+		// Document root + the reissued duplicate.
+		expect(report.added).toBe(2);
+		const reissue = report.changes.find(
+			(change) =>
+				change.tokenPath === 'theme.color.two' && change.mode === 'reissue',
+		);
 
 		const main = await read(dir, 'main.yaml');
 		expect(main).toContain('$id: cccccccccccccccccccccccccccccccc'); // one keeps
@@ -455,11 +474,13 @@ describe('wave dt ids — conflicts are hard blockers', () => {
 			allowDirty: true,
 		});
 		expect(report.problems).toEqual([]);
-		expect(report.added).toBe(1);
-		const reissue = report.changes[0];
-		expect(reissue?.mode).toBe('reissue');
+		// Document root + the reissued duplicate.
+		expect(report.added).toBe(2);
+		const reissue = report.changes.find(
+			(change) =>
+				change.tokenPath === 'theme.color.two' && change.mode === 'reissue',
+		);
 		expect(reissue?.file).toBe('main.yaml');
-		expect(reissue?.tokenPath).toBe('theme.color.two');
 
 		const main = await read(dir, 'main.yaml');
 		const profile = await read(dir, 'profiles/mobile.yaml');
@@ -586,7 +607,7 @@ describe('wave dt ids — git cleanliness gate', () => {
 		expect(dirty.refusal).toBe('dirty-worktree');
 		expect(dirty.written).toBe(false);
 		// Changes were planned but nothing was written.
-		expect(dirty.added).toBe(2);
+		expect(dirty.added).toBe(3);
 		expect(await read(dir, 'main.yaml')).toBe(MAIN_COMMENTS);
 
 		const allowed = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
@@ -604,7 +625,7 @@ describe('wave dt ids — git cleanliness gate', () => {
 
 		const report = await runIdsWorkspace(path.join(dir, 'main.yaml'));
 		expect(report.git).toBe('unchecked');
-		expect(report.added).toBe(2);
+		expect(report.added).toBe(3);
 		expect(await read(dir, 'main.yaml')).toBe(MAIN_COMMENTS);
 	});
 
@@ -651,10 +672,11 @@ describe('wave dt ids CLI', () => {
 
 		const dry = await runWave(['dt', 'ids', '-f', path.join(dir, 'main.yaml')]);
 		expect(dry.exitCode).toBe(0);
-		expect(dry.stdout).toContain('Token IDs report: 3 to add, 1 to sync');
+		expect(dry.stdout).toContain('Token IDs report: 4 to add, 1 to sync');
 		expect(dry.stdout).toContain('(dry-run)');
 		expect(dry.stdout).toContain('Dry run only');
 		expect(dry.stdout).toContain('(synced from main.yaml)');
+		expect(dry.stdout).toContain('(theme)');
 		expect(await read(dir, 'main.yaml')).toBe(MAIN_COMMENTS);
 
 		const write = await runWave([
@@ -665,7 +687,7 @@ describe('wave dt ids CLI', () => {
 			'--write',
 		]);
 		expect(write.exitCode).toBe(0);
-		expect(write.stdout).toContain('Token IDs written: 3 added, 1 synced');
+		expect(write.stdout).toContain('Token IDs written: 4 added, 1 synced');
 		expect(await read(dir, 'main.yaml')).not.toBe(MAIN_COMMENTS);
 
 		const again = await runWave([
@@ -727,7 +749,8 @@ ${tokens}`,
 
 		const dry = await runWave(['dt', 'ids', '-f', path.join(dir, 'main.yaml')]);
 		expect(dry.exitCode).toBe(0);
-		expect(dry.stdout).toContain('… and 5 more');
+		// 45 tokens + the document root = 46 changes; 40 listed, 6 collapsed.
+		expect(dry.stdout).toContain('… and 6 more');
 		const plusLines = dry.stdout
 			.split('\n')
 			.filter((line) => line.includes('(new id '));
@@ -741,7 +764,7 @@ ${tokens}`,
 			'--write',
 		]);
 		expect(written.exitCode).toBe(0);
-		expect(written.stdout).toContain('… and 5 more');
+		expect(written.stdout).toContain('… and 6 more');
 	});
 
 	test('dirty git tree refuses --write; --allow-dirty applies', async () => {
@@ -792,5 +815,91 @@ ${tokens}`,
 			path.join(dir, 'missing', 'main.yaml'),
 		]);
 		expect(missing.exitCode).toBe(10);
+	});
+});
+
+describe('wave dt ids — document-root $id slot', () => {
+	test('missing root $id is minted as the first key and never reassigned', async () => {
+		const dir = await makeTempWorkspace({ 'main.yaml': MAIN_COMMENTS });
+		const dry = await runIdsWorkspace(path.join(dir, 'main.yaml'));
+		expect(dry.changes[0]).toMatchObject({
+			file: 'main.yaml',
+			tokenPath: '(theme)',
+			kind: 'generate',
+			mode: 'insert',
+		});
+
+		const report = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+			write: true,
+		});
+		expect(report.written).toBe(true);
+		const main = await read(dir, 'main.yaml');
+		const rootId = main.match(/^\$id: ([0-9a-f]{32})$/m)?.[1];
+		expect(rootId).toMatch(GENERATED_ID);
+
+		// Idempotent: committed roots are never reassigned.
+		const second = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+			write: true,
+		});
+		expect(second.added).toBe(0);
+		expect(second.changes.some((c) => c.tokenPath === '(theme)')).toBe(false);
+		expect(await read(dir, 'main.yaml')).toBe(main);
+	});
+
+	test('root $id insertion keeps a $schema declaration first', async () => {
+		const dir = await makeTempWorkspace({
+			'main.yaml': `$schema: "https://www.designtokens.org/tr/2025.10/format/"
+
+$config:
+  theme: ids-schema
+theme:
+  color:
+    primary:
+      $value: "#1872f0"
+`,
+		});
+		const report = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+			write: true,
+		});
+		expect(report.written).toBe(true);
+		const main = await read(dir, 'main.yaml');
+		const lines = main.split('\n');
+		expect(lines[0]).toMatch(/^\$schema:/);
+		expect(lines[1]).toMatch(/^\$id: [0-9a-f]{32}$/);
+	});
+
+	test('empty root $id is filled in place; non-string roots block the write', async () => {
+		const dir = await makeTempWorkspace({
+			'main.yaml': `$id: ""
+$config:
+  theme: ids-root
+theme:
+  color:
+    primary:
+      $value: "#1872f0"
+`,
+		});
+		const report = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+			write: true,
+			allowDirty: true,
+		});
+		const root = report.changes.find(
+			(change) => change.tokenPath === '(theme)',
+		);
+		expect(root?.mode).toBe('fill');
+		const main = await read(dir, 'main.yaml');
+		expect(main).toMatch(/^\$id: [0-9a-f]{32}\n\$config:/);
+
+		// A non-string root is a hard blocker.
+		await Bun.write(
+			path.join(dir, 'main.yaml'),
+			main.replace(/^\$id: .*/m, '$id: 12345'),
+		);
+		const blocked = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+			write: true,
+			allowDirty: true,
+		});
+		expect(blocked.problems[0]?.message).toContain('root $id must be a string');
+		expect(blocked.written).toBe(false);
 	});
 });

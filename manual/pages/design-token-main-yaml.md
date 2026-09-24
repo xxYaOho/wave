@@ -143,10 +143,10 @@ theme:
 
 `$id` 是 Wave 的身份字段，用于让 token 改名或移动后仍能被 Sketch 同步识别。它分两级：
 
-- 文档级：写在 `main.yaml` 根部，作为主题身份，随 Sketch 输出的 `themeId` 交付。只能写在 `main.yaml`，profile 与 night 文件声明会报错；必须是空字符串以外的字符串。
+- 文档级：写在 `main.yaml` 根部，作为主题身份，随 Sketch 输出的 `themeId` 交付。只能写在 `main.yaml`，profile 与 night 文件声明会报错；必须是空字符串以外的字符串。不写或留空也没关系：`wave dt ids --write` 会自动生成一个并写在文件首行，已写好的不会被改动。
 - token 级：写在 token 上。三种状态：不写表示未登记；写成空值（`null` 或空白字符串）表示预留槽位；写成非空字符串即登记身份。token 身份在同一主题内必须唯一；group 不能声明 `$id`。
 
-推荐用 `wave dt ids` 维护 token 身份：默认只输出报告，加 `--write` 才会把生成或同步的 `$id` 写回文件。`$id` 的值不影响 json、jsonc、css 和 md-yml 输出；Sketch 输出只用它做资产关联，不改变 key。
+推荐用 `wave dt ids` 维护两级身份：默认只输出报告，加 `--write` 才会把生成或同步的 `$id` 写回文件。`$id` 的值不影响 json、jsonc、css 和 md-yml 输出；Sketch 输出只用它做资产关联，不改变 key。
 
 ```yaml
 $id: 6f1c2a54b7d84e0f9a1c32d45e6b70f8
