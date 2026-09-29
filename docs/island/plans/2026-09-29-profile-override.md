@@ -1,7 +1,7 @@
 ---
 date: 2026-09-29
 state: 施工中
-dispatch: M1 DONE（gate PASS，HEAD 70ba4b6）
+dispatch: M1/M2 DONE（gate PASS，HEAD e930694）
 ---
 
 # profile-override Plan
@@ -102,7 +102,7 @@ dispatch: M1 DONE（gate PASS，HEAD 70ba4b6）
 - 施工注记 M1-2（human 裁决，coder-plus 上报 orca-test 非值分歧）：四类 profile 非值分歧的处置——typography defaults 分歧按决策 14 配方保留：base 将分歧字段下沉为已入账 token 并引用化（嵌套 `defaults:` 形态内引用，M2 再拍平），profile 异值改 `$override`；smoothShadow target、sketch.path、inheritColor opacity 三类分歧属冻结模型的结构性范畴，fixture 迁移一律丢弃（profile 继承 base 扩展），受影响快照经 diff 审计后重生成，丢弃清单在 DEVIATIONS 全量披露。真实项目若依赖后三类差异，属新 base 或未来模型扩展，不在本计划。
 - 施工注记 M1-3（human 指示，验证收尾补强）：M5 增加 fixture 实例完整性巡检——`tests/fixtures/themes/` 下每个含合法 `main.yaml` 的目录以 `--profiles all`（存在 night 文件时追加 `--night`）构建到受控临时目录，断言成功且各 parameterGroup 产物齐备；invalid-case 夹具断言预期错误出口码。巡检与 M1 格式核验分层（格式合法 ≠ 构建通过），执行时 identity-ladder/identity-conflict 已经 M4 迁移、无豁免死角。`tests/fixtures/themes/orca-*`（orca-realistic 与 orca-test）是 example-derived 真实实例，由 canary、parity、quality-harness 与本巡检四路覆盖；用户真实 Orca 项目的迁移与冒烟在交付后由用户侧执行，不列入本计划验收。
 - 施工注记 M1-4（orchestrator 授权，benchmark 证据处置）：(a) `benchmarks/design-token/synthetic.ts` 的两个 `$extensions.sketch` legacy 发射器（:85/:117）为**先于本计划的存量破损**（schema 早已硬切拒绝 legacy 形态），授权就地转为 `platform.sketch` 形态（独立原子提交，DEVIATIONS 披露），不触碰 formatter。(b) 既有 ignored baseline（July/Bun1.3.14）经 coder 举证已过时（pre-Sketch-v2、pre-dimension 归一化），不可作 diff 参照；批准以只读 `git archive` 起始 HEAD 到受控临时目录（node_modules symlink、零 worktree/历史变更）生成**同期 pre-M1 baseline**，新 baseline 与之对比出证；存量 synthetic 失败与 provenance drift 在交付报告中单列。orca 等价 diff 中 token 数增长（153→324）为 base 继承的预期效果，属预期变化而非回归。
-- 施工进展：M1 完成（2026-09-29）。提交 `c0ecea3`（synthetic 存量修复）、`9df7d3a`（M1 集成）、`70ba4b6`（B1 修正）；critic-gate 初审 FAIL（B1 下游错误丢来源路径）→ 修正轮 PASS，41 份成功产物 SHA256 与首轮一致。gate carry-forward：M2 拍平 defaults、M4 两延期 identity 夹具 + doctor 矩阵、M5 实例完整性巡检。
+- 施工进展：M1 完成（2026-09-29）。提交 `c0ecea3`（synthetic 存量修复）、`9df7d3a`（M1 集成）、`70ba4b6`（B1 修正）；critic-gate 初审 FAIL（B1 下游错误丢来源路径）→ 修正轮 PASS，41 份成功产物 SHA256 与首轮一致。gate carry-forward：M2 拍平 defaults、M4 两延期 identity 夹具 + doctor 矩阵、M5 实例完整性巡检。 M2 完成（2026-09-29）：`e930694`（typography 六字段平铺硬切 + lineage 补漏 + dt-init 模板）；gate 一轮 PASS（零阻断），夹具深等值无值漂移、41 产物 SHA256 与 M1 一致。carry-forward：M4 两延期 identity 夹具 + doctor 矩阵；M5 实例巡检 + 文档。
 
 ## Draft Plan
 
@@ -321,10 +321,10 @@ schema 拍平与旧形态拒绝（来源：决策 13；US-6）
 - 依赖：M1 闸门通过。
 - 固有风险：`baseFontSize` 与 `fontSize` 兄弟键的报错消息需能明确区分两者（SPEC 同步由 M5 负责）。
 
-- [ ] 刻画拍平校验测试（含 defaults 拒绝，红）
-- [ ] 实现 schema 拍平（绿）
-- [ ] `bun test` 相关文件 + `pnpm typecheck`
-- [ ] 原子提交
+- [x] 刻画拍平校验测试（含 defaults 拒绝，红）
+- [x] 实现 schema 拍平（绿）
+- [x] `bun test` 相关文件 + `pnpm typecheck`
+- [x] 原子提交
 
 ### Task-2
 
@@ -335,10 +335,10 @@ transformer 与消费端适配（来源：决策 13；US-6）
 - 依赖：Task-1。
 - 固有风险：继承合并的键源从 defaults 袋子改为白名单挑选；`$extends` 的 `$extensions` 顶层浅合并规则（`platform` 键整体覆盖）不得受影响。
 
-- [ ] 刻画继承/materialize 等价测试（红）
-- [ ] 实现适配（绿）
-- [ ] `bun test` 相关文件 + `pnpm typecheck`
-- [ ] 原子提交
+- [x] 刻画继承/materialize 等价测试（红）
+- [x] 实现适配（绿）
+- [x] `bun test` 相关文件 + `pnpm typecheck`
+- [x] 原子提交
 
 ### Task-3
 
@@ -349,10 +349,10 @@ typography 测试与 fixture 清扫（来源：Testing Decisions；决策 11）
 - 依赖：Task-2。
 - 固有风险：fixture 散布面以 grep 实测为准；漏改会表现为 schema 拒绝，按测试失败清单驱动补改。
 
-- [ ] grep 清单盘点
-- [ ] 逐处改写并转绿
-- [ ] 全量 `bun test` + `pnpm typecheck`
-- [ ] 原子提交
+- [x] grep 清单盘点
+- [x] 逐处改写并转绿
+- [x] 全量 `bun test` + `pnpm typecheck`
+- [x] 原子提交
 
 > [!IMPORTANT]
 > Milestone-2 闸门：typography 相关测试全绿、无 defaults 残留、`pnpm typecheck`；未通过不进入 Milestone-3。
