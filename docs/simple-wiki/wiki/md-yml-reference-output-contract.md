@@ -2,8 +2,8 @@
 title: md-yml Reference Output Contract
 type: decision
 created: 2026-08-31
-updated: 2026-08-31
-sources: [raw/2026-08-31-md-yml-reference-output-contract.md]
+updated: 2026-09-29
+sources: [raw/2026-08-31-md-yml-reference-output-contract.md, raw/2026-09-29-profile-override-contract.md]
 topic: md-yml output
 tags: [md-yml, reference, formatter, output-contract]
 context: 2
@@ -22,7 +22,9 @@ status: current
 
 同一 theme 内的 direct reference 只有在 target 确实是当前 payload 输出的 direct token、consumer slot 经 resolver/transformer 后与 target 的 formatter-ready value 语义等价、且路径能投影成当前 payload 的 `{namespace.local-key}` 时才可保留。[md-yml 引用输出合同](../raw/2026-08-31-md-yml-reference-output-contract.md)
 
-这条边界覆盖完整 token、composite 子字段、数组成员和 typography defaults 继承的引用。Typography 仍输出完整 materialized 字段集合；即使 `fontFamily` 来自 defaults 的 `{theme.font.font-family}`，字段也保留为 `{font.font-family}`。[md-yml 引用输出合同](../raw/2026-08-31-md-yml-reference-output-contract.md)
+这条边界覆盖完整 token、composite 子字段、数组成员和 typography 平铺 group 兜底字段继承的引用。当前 `$extensions.typography` 的五个 composite 兜底字段与 `baseFontSize` 平铺为六个兄弟字段，旧 `defaults:` 嵌套硬拒绝；`fontSize` 是字段兜底，`baseFontSize` 是 rem 基准。Typography 仍输出完整 materialized 五字段集合；若平铺 `fontFamily` 引用 `{theme.font.font-family}` 且满足上述条件，继承后的字段保留为 `{font.font-family}`。metadata 基准不成为 composite 字段，下沉的 number token 仍正常输出；profile 按该 token ID 覆写基准不改变 reference 保留判据。详见 [Sketch Typography Output Contract](sketch-typography-output-contract.md)。[md-yml 引用输出合同](../raw/2026-08-31-md-yml-reference-output-contract.md) [Profile 差量与平铺 Typography 合同](../raw/2026-09-29-profile-override-contract.md)
+
+历史 md-yml 合同把这类引用称为“typography defaults 继承的引用”，示例来自嵌套 defaults。旧 authoring 形状已被平铺合同取代；target 必须存在于 payload、consumer slot 与 formatter-ready target 语义等价、路径可投影的引用规则仍保留。[md-yml 引用输出合同](../raw/2026-08-31-md-yml-reference-output-contract.md) [Profile 差量与平铺 Typography 合同](../raw/2026-09-29-profile-override-contract.md)
 
 外部 resource reference 必须输出最终值，因为 resource 不属于文档可使用的 theme token namespace。`$ref + override`、alpha override、`smoothShadow`、`smoothGradient`、`inheritColor`、实际发生替换的 legacy `currentColor`，以及其他改变 consumer slot 语义的 computed reference，也必须输出最终值。[md-yml 引用输出合同](../raw/2026-08-31-md-yml-reference-output-contract.md)
 

@@ -2,15 +2,27 @@
 title: Sketch Extensions Contract
 type: decision
 created: 2026-08-31
-updated: 2026-08-31
-sources: [raw/2026-06-18-sketch-extensions-prd.md, raw/2026-06-18-sketch-extensions.md, raw/2026-06-22-group-sketch-path-inheritance.md, raw/2026-06-23-sketch-sync-token-output.md, raw/2026-07-13-typography-stroke-skip-design.md, raw/2026-07-13-typography-stroke-skip.md, raw/wave-dt-profile-model.md, raw/2026-06-18-wave-manual-design.md]
+updated: 2026-09-29
+sources: [raw/2026-06-18-sketch-extensions-prd.md, raw/2026-06-18-sketch-extensions.md, raw/2026-06-22-group-sketch-path-inheritance.md, raw/2026-06-23-sketch-sync-token-output.md, raw/2026-07-13-typography-stroke-skip-design.md, raw/2026-07-13-typography-stroke-skip.md, raw/wave-dt-profile-model.md, raw/2026-06-18-wave-manual-design.md, raw/2026-09-24-sketch-swatch-ref-retirement.md, raw/2026-09-29-profile-override-contract.md]
 topic: Sketch output
 tags: [Sketch, extensions, swatch, formatter]
-context: 2
-status: current
+context: 3
+status: superseded
 ---
 
 # Sketch Extensions Contract
+
+## 取代说明
+
+本页整体保留旧 Sketch extension 与 plugin-facing 设计史，不再作为当前 authoring namespace 或 payload 色彩绑定的入口。以下正文中的 `$extensions.sketch`、`$extensions.outline`、`_swatchName` 与 legacy `sketchMap` 都是历史表述；其中旧 namespace 已被运行时拒绝，不能照抄为当前输入。
+
+当前差量 profile 冻结已有 group/token 扩展，继承 base 的 `platform.sketch.path` 等结构；值覆盖、双身份与已验证的当前 Outline namespace 见 [Wave DT Profile Model](wave-dt-profile-model.md)。该页的运行时核验不等同于为本页旧来源补造一份 namespace 迁移 raw；完整迁移来源尚未编译，故本页标为 superseded 而不冒充完整现行合同。[Profile 差量与平铺 Typography 合同](../raw/2026-09-29-profile-override-contract.md)
+
+Swatch 绑定及其配套颜色引用元数据已经撤回，layer 颜色位置统一为 HEX8 快照，v1 字符串引用和 v2 `$ref` 都不恢复；旧 `_swatchName` 论断只能用于追溯当时设计。当前颜色边界见 [Sketch Swatch Binding Retirement](sketch-swatch-binding-retirement.md)，typography/rem 与 skip 边界见 [Sketch Typography Output Contract](sketch-typography-output-contract.md)。[Sketch Swatch `$ref` 撤回（实施计划决策层）](../raw/2026-09-24-sketch-swatch-ref-retirement.md)
+
+## 历史正文
+
+以下章节保留旧论断与各自来源；“当前”“第一版”“MVP”等措辞均指来源所述阶段，不是本页更新日的运行时状态。
 
 ## 设计意图
 

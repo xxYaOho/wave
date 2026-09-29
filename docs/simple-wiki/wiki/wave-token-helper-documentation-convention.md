@@ -2,11 +2,11 @@
 title: Wave Token Helper 文档约定
 type: decision
 created: 2026-08-31
-updated: 2026-08-31
-sources: [raw/wave-token-helper-private.md, raw/wave-dt-profile-model.md, raw/handoff.md]
+updated: 2026-09-29
+sources: [raw/wave-token-helper-private.md, raw/wave-dt-profile-model.md, raw/handoff.md, raw/2026-09-29-profile-override-contract.md]
 topic: Wave DT workspace model
 tags: [$helper, authoring, taxonomy, provisional]
-context: 1
+context: 2
 status: current
 ---
 
@@ -17,6 +17,10 @@ status: current
 `$helper` 目前只能作为 documentation-only、provisional authoring convention：它用于说明 source-like、需要参与 authoring 思考但不应成为公共 `theme` API 的值。Wave 当前没有 `$helper` reference namespace，parser、resolver 和 exporter 也没有执行 helper 语义；top-level `$helper` 会被 schema/token transform 跳过。因此不能把它当作已实现的 private token 或可引用功能。[Wave Token Helper Notes](../raw/wave-token-helper-private.md)
 
 handoff 的 0.16.0 current decision summary 也明确 `$helper` remains documentation-only；这和 profile taxonomy 中“calibration values 不属于 public `theme.color` API”的方向一致。[Wave DT Research Handoff](../raw/handoff.md) [Wave DT Profile Model Notes](../raw/wave-dt-profile-model.md)
+
+当前 profile 根只消费 `$schema`、自身 `$id`、`$config`、`$override`；未知 `$` 前缀根键，包括 `$helper` 与文档级 `$extensions`，被跳过。`$helper` 没有引用 namespace、合并执行或导出语义，也不进入 token 身份索引，不能充当 `$override` 目标。根文档 `$id` 同样不是 token ID，不能把保留根元数据包装成可执行 token。[Profile 差量与平铺 Typography 合同](../raw/2026-09-29-profile-override-contract.md)
+
+需要可引用、可按系列覆写的 rem 基准，应定义真正的已入账 number token，使平铺 `theme.font.$extensions.typography.baseFontSize` 引用它，再由 profile 按 token ID 覆写数值；不能用 helper 躲过 token 合同，也不能重声明已有 group 扩展。详见 [Wave DT Profile Model](wave-dt-profile-model.md) 和 [Sketch Typography Output Contract](sketch-typography-output-contract.md)。[Profile 差量与平铺 Typography 合同](../raw/2026-09-29-profile-override-contract.md)
 
 ## 暂行 authoring 形状
 

@@ -12,8 +12,8 @@
 
 ## Wave DT workspace model
 
-- [Wave DT Profile Model](wave-dt-profile-model.md) | 3k | main-only/profile/night 选择、reference-gated resource 与公共 theme taxonomy 的决策边界 | profile, main.yaml, night, taxonomy
-- [Wave Token Helper 文档约定](wave-token-helper-documentation-convention.md) | 1k | `$helper` 仅作为暂行文档约定，当前不具备解析、引用或导出语义 | $helper, authoring, provisional
+- [Wave DT Profile Model](wave-dt-profile-model.md) | 5k | main-only/profile/night 选择、profile 差量 $override 与双身份、reference-gated resource 与公共 theme taxonomy 的决策边界 | profile, main.yaml, night, taxonomy
+- [Wave Token Helper 文档约定](wave-token-helper-documentation-convention.md) | 2k | `$helper` 仅作为暂行文档约定，当前不具备解析、引用或导出语义 | $helper, authoring, provisional
 
 ## Wave Workspace
 
@@ -22,12 +22,12 @@
 ## Sketch output
 
 - [Sketch Swatch Binding Retirement](sketch-swatch-binding-retirement.md) | 2k | Sketch payload v2 撤回 swatch $ref 绑定与元数据链路、layer 颜色位置统一输出 HEX8 的决策与边界 | Sketch, swatch, color-slot, HEX8, output-contract
-- [Sketch Extensions Contract](sketch-extensions-contract.md) | 2k | Sketch path/property、group inheritance、whole-namespace override 与 plugin leaf 边界 | Sketch, extensions, swatch
+- [Sketch Extensions Contract](sketch-extensions-contract.md) | 3k | Sketch path/property、group inheritance、whole-namespace override 与 plugin leaf 边界 | Sketch, extensions, swatch
 - [Sketch Color Reference Contract](sketch-color-reference-contract.md) | 2k | 已 superseded：同文档颜色引用的 RFC 6901 完整输出路径、可信 alias 与冲突预检合同（v1，未跟进 v2） | Sketch, color-reference, RFC6901
 
 ## Typography
 
-- [Sketch Typography Output Contract](sketch-typography-output-contract.md) | 2k | typography defaults、font-family、rem 基准、lineHeight 与 Sketch-only skip 的演进合同 | typography, rem, lineHeight
+- [Sketch Typography Output Contract](sketch-typography-output-contract.md) | 3k | 平铺 typography 六字段、base-size 引用基准、font-family、lineHeight 与 Sketch-only skip 的演进合同 | typography, rem, lineHeight
 
 ## md-yml output
 
