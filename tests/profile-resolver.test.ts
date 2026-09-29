@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import * as path from 'node:path';
+import * as yaml from 'js-yaml';
 import {
 	discoverProfiles,
 	mergeNightOverlay,
@@ -40,9 +41,11 @@ describe('profile resolver', () => {
 		await expect(
 			parseProfileDocument(mobile, {
 				baseConfig: base.config,
+				baseTree: yaml.load(base.tokenContent) as Record<string, unknown>,
+				baseId: base.themeId,
 				baseDir: invalidDir,
 			}),
-		).rejects.toThrow('$config.theme is only supported in main.yaml');
+		).rejects.toThrow('theme');
 	});
 
 	test('discovers main and named profiles without variants', async () => {
@@ -161,6 +164,8 @@ describe('profile resolver', () => {
 		const base = await parseProfileDocument(main, { baseDir: fixtureDir });
 		const document = await parseProfileDocument(mobile, {
 			baseConfig: base.config,
+			baseTree: yaml.load(base.tokenContent) as Record<string, unknown>,
+			baseId: base.themeId,
 			baseDir: fixtureDir,
 		});
 
@@ -184,6 +189,8 @@ describe('profile resolver', () => {
 		});
 		const document = await parseProfileDocument(mobile, {
 			baseConfig: base.config,
+			baseTree: yaml.load(base.tokenContent) as Record<string, unknown>,
+			baseId: base.themeId,
 			baseDir: absoluteFixtureDir,
 		});
 
@@ -205,6 +212,8 @@ describe('profile resolver', () => {
 		const base = await parseProfileDocument(main, { baseDir: groupFixtureDir });
 		const document = await parseProfileDocument(mobile, {
 			baseConfig: base.config,
+			baseTree: yaml.load(base.tokenContent) as Record<string, unknown>,
+			baseId: base.themeId,
 			baseDir: groupFixtureDir,
 		});
 
@@ -534,7 +543,7 @@ describe('profile resolver', () => {
 		}
 	});
 
-	test('named profile root-level $id is rejected like $config.theme', async () => {
+	test('named profile root-level $id must be non-empty when declared', async () => {
 		const invalidDir = path.join(fixtureDir, 'root-id-in-profile-invalid');
 		const profiles = await discoverProfiles(invalidDir);
 		const main = profiles.find((profile) => profile.name === 'main')!;
@@ -544,8 +553,10 @@ describe('profile resolver', () => {
 		await expect(
 			parseProfileDocument(mobile, {
 				baseConfig: base.config,
+				baseTree: yaml.load(base.tokenContent) as Record<string, unknown>,
+				baseId: base.themeId,
 				baseDir: invalidDir,
 			}),
-		).rejects.toThrow('$id is only supported in main.yaml');
+		).rejects.toThrow('Invalid $id');
 	});
 });

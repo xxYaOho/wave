@@ -1,5 +1,5 @@
-theme:
-  color:
-    $type: color
-    primary:
-      $value: "#00ff00"
+$config:
+  base: eafbddcb4d33ee61655ad110b859e02f
+$override:
+  f4e5f70472b1e93d7d65a3eca47f913b:
+    $value: "#00ff00"

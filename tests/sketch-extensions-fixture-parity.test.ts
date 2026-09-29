@@ -16,7 +16,7 @@ import {
  * workspace 均以 --profiles all 组合构建，orca-test 不再有失败模式豁免。
  *
  * 附：形态计数测试锁定迁移后的 `$extensions.platform.sketch` 节点数
- * （131 sketch + 7 outline）且旧形态清零。
+ * （54 个去重后的 platform.sketch 节点）且旧形态清零。
  */
 
 const WORKSPACES: Array<{
@@ -198,7 +198,7 @@ describe('sketch extensions fixture parity (M2 Task-4)', () => {
 		});
 	}
 
-	test('post-migration form counts: legacy zero, platform.sketch 131+7', async () => {
+	test('post-migration form counts: legacy zero, deduplicated platform.sketch declarations', async () => {
 		let legacyTotal = 0;
 		let platformTotal = 0;
 		const perWorkspace: Record<string, { legacy: number; platform: number }> =
@@ -231,15 +231,13 @@ describe('sketch extensions fixture parity (M2 Task-4)', () => {
 
 		// 旧形态清零（Task-5 之后保持）
 		expect(legacyTotal).toBe(0);
-		// 平台形态节点数 = 清点基准的唯一节点数：138 处提及中 5 处为
-		// outline+sketch 同节点（orca-test main/app-dsh/viz-global/viz-jzy/
-		// viz-sdjy），合并后 133 个 platform.sketch 节点
-		expect(platformTotal).toBe(133);
+		// Delta profiles inherit base extensions rather than repeating them.
+		expect(platformTotal).toBe(54);
 		expect(perWorkspace).toEqual({
 			'sketch-extensions': { legacy: 0, platform: 4 },
 			'profile-model': { legacy: 0, platform: 2 },
-			'orca-realistic': { legacy: 0, platform: 20 },
-			'orca-test': { legacy: 0, platform: 107 },
+			'orca-realistic': { legacy: 0, platform: 16 },
+			'orca-test': { legacy: 0, platform: 32 },
 		});
 	});
 });

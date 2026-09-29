@@ -428,6 +428,7 @@ theme:
 				name: 'foundation/color/primary-main',
 				kind: 'color',
 				color: '#0052f5ff',
+				uuid: 'd71c9cd0622054bdc71331fc8cde72b4',
 			});
 			expect(assetNames).not.toContain('primary-main');
 			expect(

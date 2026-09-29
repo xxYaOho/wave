@@ -1,0 +1,26 @@
+$id: "11111111111111111111111111111111"
+
+$config:
+  theme: profile-overrides
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+
+theme:
+  color:
+    $type: color
+    $description: Base colors
+    primary:
+      $id: "22222222222222222222222222222222"
+      $value: "#0066cc"
+    on-primary:
+      $id: "33333333333333333333333333333333"
+      $value: "#ffffff"
+  spacing:
+    $type: dimension
+    md:
+      $id: "44444444444444444444444444444444"
+      $value:
+        value: 8
+        unit: px

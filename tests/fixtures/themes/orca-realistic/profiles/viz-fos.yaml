@@ -1,36 +1,28 @@
-theme:
-  color:
-    $type: color
-    primary:
-      main:
-        $value:
-          colorSpace: hsl
-          components: [220, 85, 52]
-        $extensions:
-          platform:
-            sketch:
-              path: "foundation/color"
-      on-main:
-        $value: "{tailwindcss.color.white}"
-        $extensions:
-          platform:
-            sketch:
-              path: "foundation/color"
-      container:
-        $value:
-          colorSpace: hsl
-          components: [220, 100, 96]
-      on-container:
-        $value: "{tailwindcss.color.blue.700}"
-    text:
-      default:
-        $value: "{tailwindcss.color.slate.950}"
-      disabled:
-        $value:
-          $ref: "#/theme/color/text/default/$value"
-          alpha: "{wave.dimension.alpha.400}"
-    surface:
-      default:
-        $value:
-          colorSpace: hsl
-          components: [215, 12, 95]
+$config:
+  base: f9e81cabc8c38cf88c696bc01b45c5f9
+$override:
+  d71c9cd0622054bdc71331fc8cde72b4:
+    $value:
+      colorSpace: hsl
+      components:
+        - 220
+        - 85
+        - 52
+  55140dc8abf58803dc2c83ee791f7c89:
+    $value:
+      colorSpace: hsl
+      components:
+        - 220
+        - 100
+        - 96
+  b6f27c8ff340492febcb7ab929d2a191:
+    $value: "{tailwindcss.color.blue.700}"
+  981a618d03df2659457b4910b78fdaec:
+    $value: "{tailwindcss.color.slate.950}"
+  e91bcb043d53e0594a8c744020da33a5:
+    $value:
+      colorSpace: hsl
+      components:
+        - 215
+        - 12
+        - 95

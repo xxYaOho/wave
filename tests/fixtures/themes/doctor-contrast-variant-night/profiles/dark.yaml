@@ -1,14 +1,7 @@
-theme:
-  color:
-    primary:
-      main:
-        $type: color
-        $value: "#1f2937"
-      on-main:
-        $type: color
-        $value: "#f3f4f6"
-doctor:
-  wcagPairs:
-    primary-main:
-      foreground: "{theme.color.primary.on-main}"
-      background: "{theme.color.primary.main}"
+$config:
+  base: fd8dc741fabf27a5881c32a25db8390c
+$override:
+  db6b9758f5120e7fc05bf55fffe4109a:
+    $value: "#1f2937"
+  5fc695936319bfe88a9f59fabd3f2302:
+    $value: "#f3f4f6"

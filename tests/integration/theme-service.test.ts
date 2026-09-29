@@ -234,7 +234,8 @@ ${tokenYaml}`,
 			await fs.mkdir(path.join(dir, 'profiles'), { recursive: true });
 			await fs.writeFile(
 				path.join(dir, 'main.yaml'),
-				`$config:
+				`$id: planning-base
+$config:
   theme: demo
   parameter: { outputDir: ./out, platform: [json] }
 ${tokenYaml}`,
@@ -248,7 +249,10 @@ ${tokenYaml}`,
       $value: ${nightValue}
 `,
 			);
-			await fs.writeFile(path.join(dir, 'profiles', 'night.yaml'), tokenYaml);
+			await fs.writeFile(
+				path.join(dir, 'profiles', 'night.yaml'),
+				'$config: { base: planning-base }\n',
+			);
 		}
 
 		test('rejects default night colliding with a profile named night day output', async () => {
@@ -525,7 +529,8 @@ theme:
 			await fs.mkdir(path.join(dir, 'profiles'));
 			await fs.writeFile(
 				path.join(dir, 'main.yaml'),
-				`$config:
+				`$id: profile-doc-base
+$config:
   theme: profile-doc
   parameter: { filterLayer: 1 }
   parameterGroup:
@@ -534,20 +539,19 @@ theme:
 theme:
   color:
     $type: color
-    primary: { $value: "#1a72f0" }
+    primary: { $id: primary-id, $value: "#1a72f0" }
 `,
 			);
 			await fs.writeFile(
 				path.join(dir, 'profiles', 'mobile.yaml'),
 				`$config:
+  base: profile-doc-base
   parameter: { filterLayer: 1 }
   parameterGroup:
     css: { platform: [css], filterLayer: 2 }
     sketch: { platform: [sketch], filterLayer: 2 }
-theme:
-  color:
-    $type: color
-    primary: { $value: "#22c55e" }
+$override:
+  primary-id: { $value: "#22c55e" }
 `,
 			);
 
@@ -1113,7 +1117,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			}
 		});
 
-		test('uses a standalone profile base and carries it into its night build', async () => {
+		test('overrides the base-size token and carries its value into the profile night build', async () => {
 			const themeDir = await fs.mkdtemp(
 				path.join(os.tmpdir(), 'wave-typography-rem-profile-'),
 			);
@@ -1121,27 +1125,36 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 
 			try {
 				await writeTypographyTheme(themeDir, 14);
+				const mainPath = path.join(themeDir, 'main.yaml');
+				const main = yaml.load(await fs.readFile(mainPath, 'utf8')) as {
+					$id?: string;
+					theme: {
+						font: Record<string, unknown>;
+						color: { primary: Record<string, unknown> };
+					};
+				};
+				main.$id = 'typography-base';
+				main.theme.color.primary.$id = 'primary-id';
+				main.theme.font['base-size'] = {
+					$id: 'base-size-id',
+					$type: 'number',
+					$value: 14,
+				};
+				(
+					main.theme.font.$extensions as {
+						typography: { baseFontSize: string };
+					}
+				).typography.baseFontSize = '{theme.font.base-size}';
+				await fs.writeFile(mainPath, yaml.dump(main));
 				await fs.mkdir(path.join(themeDir, 'profiles'), { recursive: true });
 				await fs.writeFile(
 					path.join(themeDir, 'profiles', 'compact.yaml'),
-					`theme:
-  color:
-    $type: color
-    primary:
-      $value: "#0f766e"
-  font:
-    $type: typography
-    $extensions:
-      typography:
-        baseFontSize: 16
-        defaults:
-          fontFamily: Inter
-          fontWeight: 400
-    body:
-      $value:
-        fontSize: { value: 0.875, unit: rem }
-        lineHeight: { value: 1.5, unit: rem }
-        letterSpacing: { value: 0.1, unit: rem }
+					`$id: compact-theme
+$config:
+  base: typography-base
+$override:
+  primary-id: { $value: "#0f766e" }
+  base-size-id: { $value: 16 }
 `,
 					'utf-8',
 				);
@@ -1734,7 +1747,7 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 			expect(css).toBe(':root {\n}');
 			// 可同步资产为空：v2 payload 仍保留 meta 结构，assets 为空清单。
 			expect(sketch).toEqual({
-				meta: { themeId: null, version: 2 },
+				meta: { themeId: null, baseId: null, version: 2 },
 				assets: [],
 			});
 		});
@@ -2104,13 +2117,13 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					'utf-8',
 				),
 			);
-			expect(assetByName(sketch, 'foundation/color/orcaFallback-main')).toEqual(
-				{
-					name: 'foundation/color/orcaFallback-main',
-					kind: 'color',
-					color: '#0052f5ff',
-				},
-			);
+			expect(
+				assetByName(sketch, 'foundation/color/orcaFallback-main'),
+			).toMatchObject({
+				name: 'foundation/color/orcaFallback-main',
+				kind: 'color',
+				color: '#0052f5ff',
+			});
 			expect(
 				layerAssetByName(sketch, 'foundation/shadow/raised').shadows,
 			).toEqual(
@@ -2123,7 +2136,9 @@ ${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}  
 					?.color,
 			).toBe('#0052f540');
 			// inheritColor + opacity 0.36 -> 折入 HEX8（255 * 0.36 -> 0x5c）。
-			expect(assetByName(sketch, 'foundation/color/outline-default')).toEqual({
+			expect(
+				assetByName(sketch, 'foundation/color/outline-default'),
+			).toMatchObject({
 				name: 'foundation/color/outline-default',
 				kind: 'color',
 				color: '#ff00ff5c',

@@ -26,9 +26,12 @@ theme:
     $type: color
     primary:
       $value: "{tailwindcss.color.indigo.600}"
+      $id: 7ae10b9c205c427341c567717d7906cc
   dimension:
     $type: dimension
     alpha:
       $type: number
       sm:
         $value: "{wave.dimension.alpha.200}"
+        $id: de33eabef3631a94301d9581dca004e1
+$id: 7613c7379865fd565cf2d5f2c1ef2383

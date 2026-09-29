@@ -1,5 +1,5 @@
-theme:
-  color:
-    $type: color
-    primary:
-      $value: "{tailwindcss.color.purple.600}"
+$config:
+  base: 055fcaf422e9e6cd88e04c1ee40687dd
+$override:
+  d6415f350bfb1a8cc87012b7d11c8f7c:
+    $value: "{tailwindcss.color.purple.600}"

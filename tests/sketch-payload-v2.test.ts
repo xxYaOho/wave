@@ -7,14 +7,15 @@ import type { SketchPayloadV2 } from '../src/types/index.ts';
 
 /**
  * sketch payload v2 合同集成测试（Milestone-4）：
- * - meta.themeId 管道全链路（main.yaml `$id` -> workspace -> pass options -> payload）
- * - 未入账记录省略 uuid、themeId 缺失为 null（决策 5 / 6）
+ * - meta.themeId / baseId 管道全链路（当前文档身份 / named profile 的 main 身份）
+ * - 未入账记录省略 uuid、缺失身份为 null（决策 5 / 6）
  * - orca-test 缺口内化：扁平 name 前缀共存（hermetic fixture）
  * - outline ring 颜色位置输出 HEX8 快照（不绑定同清单 color uuid）
  * - fontWeight 刻度仅 sketch pass 报错的平台合同（对照测试）
  */
 
 const THEME_ID = '0f1e2d3c4b5a69788796a5b4c3d2e1f0';
+const PROFILE_ID = '102132435465768798a9bacbdcedfe0f';
 const COLOR_SHADOW_UUID = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6';
 
 async function copyFixtureWorkspace(relativePath: string): Promise<string> {
@@ -58,7 +59,11 @@ describe('sketch payload v2 contract', () => {
 				workspaceDir,
 				path.join('dist', 'sketch-payload-v22sketch.json'),
 			);
-			expect(payload.meta).toEqual({ themeId: THEME_ID, version: 2 });
+			expect(payload.meta).toEqual({
+				themeId: THEME_ID,
+				baseId: null,
+				version: 2,
+			});
 
 			// 名字前缀共存：color "shadow" 与 layer "shadow/elevation-high"。
 			expect(assetByName(payload, 'shadow')).toEqual({
@@ -71,8 +76,9 @@ describe('sketch payload v2 contract', () => {
 				kind: 'layer',
 			});
 
-			// 未入账记录省略 uuid。
+			// Fixture migration registers the former empty identity slot.
 			expect(assetByName(payload, 'unregistered')).toEqual({
+				uuid: '86a008b300853b1a92937666082377e3',
 				name: 'unregistered',
 				kind: 'color',
 				color: '#1872f0ff',
@@ -89,7 +95,7 @@ describe('sketch payload v2 contract', () => {
 		}
 	});
 
-	test('profile build inherits the main document $id without declaring one', async () => {
+	test('profile build has its own nullable identity and links to main', async () => {
 		const workspaceDir = await copyFixtureWorkspace('themes/sketch-payload-v2');
 		try {
 			const result = await generateTheme({
@@ -102,7 +108,11 @@ describe('sketch payload v2 contract', () => {
 				workspaceDir,
 				path.join('dist', 'sketch-payload-v2-dark2sketch.json'),
 			);
-			expect(payload.meta).toEqual({ themeId: THEME_ID, version: 2 });
+			expect(payload.meta).toEqual({
+				themeId: null,
+				baseId: THEME_ID,
+				version: 2,
+			});
 			expect(assetByName(payload, 'shadow')).toMatchObject({
 				uuid: COLOR_SHADOW_UUID,
 				color: '#e2e8f0ff',
@@ -115,7 +125,47 @@ describe('sketch payload v2 contract', () => {
 		}
 	});
 
-	test('unregistered theme yields meta.themeId null', async () => {
+	test('named profile carries its own document identity', async () => {
+		const workspaceDir = await copyFixtureWorkspace('themes/sketch-payload-v2');
+		try {
+			const profilePath = path.join(workspaceDir, 'profiles', 'dark.yaml');
+			const profileContent = await fs.readFile(profilePath, 'utf-8');
+			await fs.writeFile(
+				profilePath,
+				`$id: ${PROFILE_ID}\n${profileContent.replace(/^\$id:.*\n/, '')}`,
+			);
+			await fs.writeFile(
+				path.join(workspaceDir, 'profiles', 'dark@night.yaml'),
+				'theme:\n  color:\n    shadow:\n      $value: "#ffffff"\n',
+			);
+			const result = await generateTheme({
+				workspacePath: path.join(workspaceDir, 'main.yaml'),
+				generateOptions: { night: true, profile: 'dark' },
+			});
+			expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+			const payload = await readSketch(
+				workspaceDir,
+				path.join('dist', 'sketch-payload-v2-dark2sketch.json'),
+			);
+			expect(payload.meta).toEqual({
+				themeId: PROFILE_ID,
+				baseId: THEME_ID,
+				version: 2,
+			});
+			const nightPayload = await readSketch(
+				workspaceDir,
+				path.join('dist', 'sketch-payload-v2-dark-night2sketch.json'),
+			);
+			expect(nightPayload.meta).toEqual(payload.meta);
+			expect(assetByName(nightPayload, 'shadow')).toMatchObject({
+				color: '#ffffffff',
+			});
+		} finally {
+			await fs.rm(workspaceDir, { recursive: true, force: true });
+		}
+	});
+
+	test('unregistered theme yields null theme and base identities', async () => {
 		const workspaceDir = await copyFixtureWorkspace('themes/sketch-extensions');
 		try {
 			const result = await generateTheme({
@@ -128,7 +178,14 @@ describe('sketch payload v2 contract', () => {
 				workspaceDir,
 				path.join('theme', 'sketch', 'sketch-extensions2sketch.json'),
 			);
-			expect(payload.meta).toEqual({ themeId: null, version: 2 });
+			expect(payload.meta).toEqual({ themeId: null, baseId: null, version: 2 });
+			expect(
+				assetByName(payload, 'foundation/color/color-primary-main'),
+			).toEqual({
+				name: 'foundation/color/color-primary-main',
+				kind: 'color',
+				color: '#1872f0ff',
+			});
 		} finally {
 			await fs.rm(workspaceDir, { recursive: true, force: true });
 		}

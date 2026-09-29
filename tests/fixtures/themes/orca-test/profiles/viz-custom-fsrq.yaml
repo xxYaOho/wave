@@ -1,218 +1,24 @@
 $schema: "https://www.designtokens.org/tr/2025.10/format/"
 theme:
   color:
-    $type: color
-    $description: light mode
-    transparent:
-      $description: 透明, 对应开发中的 `transparent` 值
-      $value: "#00000000"
     black:
       point:
         $description: 黑点, 色彩空间的亮度最低值
         $value:
           colorSpace: hsl
-          components: [220, 45, 3]
+          components: [ 220, 45, 3 ]
+        $type: color
     white:
       point:
         $description: 白点, 色彩空间的亮度最高值, 影响色温
         $value: "#ffffff"
+        $type: color
     current:
       point:
         $description: 当前点
         $value:
           $ref: "#/theme/color/black/point/$value"
-    primary:
-      $description: 主色, 品牌色.
-      main:
-        $value: "{tailwindcss.color.sky.500}"
-      on-main:
-        $value: "{tailwindcss.color.sky.50}"
-      container:
-        $value: "{tailwindcss.color.sky.200}"
-      on-container:
-        $value: "{tailwindcss.color.sky.600}"
-    secondary:
-      $description: 辅助色, 与主色 (品牌色)配合
-      main:
-        $value: "{tailwindcss.color.cyan.400}"
-      on-main:
-        $value: "{tailwindcss.color.cyan.50}"
-      container:
-        $value: "{tailwindcss.color.cyan.200}"
-      on-container:
-        $value: "{tailwindcss.color.cyan.600}"
-    neutral:
-      $description: 中性自然色, 适应大多数色彩
-      main:
-        $value: "{tailwindcss.color.slate.600}"
-      on-main:
-        $value: "{tailwindcss.color.slate.100}"
-      container:
-        $value: "{tailwindcss.color.slate.800}"
-      on-container:
-        $value: "{tailwindcss.color.slate.300}"
-    error:
-      $description: 错误, 严重提示. 多数情况下 hue='0-5'
-      main:
-        $value: "{tailwindcss.color.red.500}"
-      on-main:
-        $value: "{tailwindcss.color.white}"
-      container:
-        $value: "{tailwindcss.color.red.950}"
-      on-container:
-        $value: "{tailwindcss.color.red.100}"
-    warning:
-      $description: 警告, 重度提示. 多数情况下 hue='10-20'
-      main:
-        $value: "{tailwindcss.color.orange.500}"
-      on-main:
-        $value: "{tailwindcss.color.orange.50}"
-      container:
-        $value: "{tailwindcss.color.orange.950}"
-      on-container:
-        $value: "{tailwindcss.color.orange.100}"
-    attention:
-      $description: 注意, 轻度提示. 多数情况下 hue='35-45'
-      main:
-        $value: "{tailwindcss.color.yellow.400}"
-      on-main:
-        $value: "{tailwindcss.color.yellow.50}"
-      container:
-        $value: "{tailwindcss.color.yellow.950}"
-      on-container:
-        $value: "{tailwindcss.color.yellow.100}"
-    success:
-      $description: 安全. 多数情况下 hue='150-160'
-      main:
-        $value: "{tailwindcss.color.green.500}"
-      on-main:
-        $value: "{tailwindcss.color.white}"
-      container:
-        $value: "{tailwindcss.color.green.950}"
-      on-container:
-        $value: "{tailwindcss.color.green.100}"
-    info:
-      $description: 安全. 多数情况下 hue='150-160'
-      main:
-        $value: "{tailwindcss.color.sky.600}"
-      on-main:
-        $value: "{tailwindcss.color.white}"
-      container:
-        $value: "{tailwindcss.color.sky.50}"
-      on-container:
-        $value: "{tailwindcss.color.sky.600}"
-    text:
-      $description: 文本
-      emphasis:
-        $value: "{tailwindcss.color.slate.50}"
-      default:
-        $value: "{tailwindcss.color.slate.100}"
-      subtle:
-        $value: "{tailwindcss.color.slate.300}"
-      subtlest:
-        $value: "{tailwindcss.color.slate.500}"
-      disabled:
-        $value:
-          $ref: "#/theme/color/text/default/$value"
-          alpha: "{wave.dimension.alpha.400}"
-    border:
-      $description: 边框
-      emphasis:
-        $description: 强
-        $value:
-          $ref: "#/theme/color/neutral/main/$value"
-          alpha: "{wave.dimension.alpha.300}"
-      default:
-        $description: 默认
-        $value:
-          $ref: "#/theme/color/neutral/main/$value"
-          alpha: "{wave.dimension.alpha.200}"
-      subtle:
-        $description: 弱
-        $value:
-          $ref: "#/theme/color/neutral/main/$value"
-          alpha: "{wave.dimension.alpha.100}"
-    outline:
-      default:
-        $description: 带品牌色调取向的焦点环
-        $value: "#ff00ff"
-        $extensions:
-          inheritColor:
-            property:
-              opacity: "{wave.dimension.alpha.400}"
-      entry-box:
-        $description: 带品牌色调取向的焦点环
-        $value:
-          $ref: "#/theme/color/neutral/main/$value"
-          alpha: "{wave.dimension.alpha.200}"
-      ring:
-        $description: 带品牌色调取向的焦点环
-        $value:
-          $ref: "#/theme/color/primary/main/$value"
-    surface:
-      $description: 背景层
-      default:
-        $description: 主背景, 基于 deepGray.light.100 的微调
-        $value:
-          colorSpace: hsl
-          components: [210, 10, 96]
-      dim:
-        $description: 下降层, 用于需要降低亮度的区域
-        $value:
-          colorSpace: hsl
-          components: [210, 10, 94]
-      bright:
-        $description: 提升层, 用于需要提高亮度的区域
-        $value:
-          colorSpace: hsl
-          components: [210, 10, 98]
-    container:
-      $description: 容器, 框架层
-      highest:
-        $description: 最高层级, 比如 modal, dialog
-        $value:
-          colorSpace: hsl
-          components: [220, 40, 20]
-      high:
-        $description: 抬升层级, 比如 popover, dropdown
-        $value:
-          colorSpace: hsl
-          components: [220, 40, 17]
-      default:
-        $description: 标准层级, 用于大多数组件的默认容器
-        $value:
-          colorSpace: hsl
-          components: [220, 40, 15]
-      low:
-        $description: 次级层级, 比如 card, list, table
-        $value:
-          colorSpace: hsl
-          components: [220, 40, 12]
-      lowest:
-        $description: 最低层级(视觉下沉), 比如 input-field
-        $value:
-          colorSpace: hsl
-          components: [220, 40, 10]
-    scrim:
-      $description: 半透明遮罩,用于 modal/drawer 背景
-      $value:
-        $ref: "#/theme/color/black/point/$value"
-        alpha: "{wave.dimension.alpha.700}"
-    shadow:
-      $description: 主题色倾向
-      $value: "{tailwindcss.color.slate.900}"
-    inverse:
-      surface:
-        $description: 反色背景(通常是深色), 比如 Snackbar, Toast
-        $value:
-          color: "{tailwindcss.color.slate.900}"
-          alpha: "{wave.dimension.alpha.800}"
-      on-surface:
-        $value:
-          $ref: "#/theme/color/white/point/$value"
-      primary:
-        $description: 反色主色, 比如 media-play-progress-bar
-        $value: "{corerain.color.main.100}"
+        $type: color
   dimension:
     interaction:
       $description: 通过 alpha 通道或透明度控制
@@ -233,6 +39,7 @@ theme:
             sketch:
               property:
                 opacity: true
+        $type: number
       focus:
         $type: number
         $description: 聚焦
@@ -252,7 +59,7 @@ theme:
               property:
                 opacity: true
     shadow:
-      1:
+      "1":
         $type: shadow
         $value:
           color:
@@ -266,7 +73,7 @@ theme:
           smoothShadow:
             cubicBezier: "{wave.dimension.cubicBezier.easeOutQuad}"
             step: 3
-      2:
+      "2":
         $type: shadow
         $value:
           color:
@@ -280,7 +87,7 @@ theme:
           smoothShadow:
             cubicBezier: "{wave.dimension.cubicBezier.easeOutQuad}"
             step: 3
-      3:
+      "3":
         $type: shadow
         $value:
           color:
@@ -294,7 +101,7 @@ theme:
           smoothShadow:
             cubicBezier: "{wave.dimension.cubicBezier.easeOutQuad}"
             step: 3
-      4:
+      "4":
         $type: shadow
         $value:
           color:
@@ -380,3 +187,111 @@ theme:
       xs:
         $type: dimension
         $value: "{wave.dimension.px.2}"
+$config:
+  base: e1dffd40322a93f588501e0d5fc72223
+$override:
+  c7e47cb9999f9ba372295c8820bef470:
+    $value: "{tailwindcss.color.sky.500}"
+  071fafcf6a359e717aef8e3c2e9580db:
+    $value: "{tailwindcss.color.sky.50}"
+  205ed558b616c168099d2764340ed36f:
+    $value: "{tailwindcss.color.sky.200}"
+  b3d067e17939c602a02f3a29e51a111d:
+    $value: "{tailwindcss.color.sky.600}"
+  a61d7c2770dcb58fb88e9ee352bf9eda:
+    $value: "{tailwindcss.color.cyan.400}"
+  ca7ac1585d87b4929a9a95ff599a0b3d:
+    $value: "{tailwindcss.color.cyan.50}"
+  6489ab0363df1de0f2cb874102f756e7:
+    $value: "{tailwindcss.color.cyan.200}"
+  508c05b99b68be35ef5d020d2ecada1d:
+    $value: "{tailwindcss.color.cyan.600}"
+  dbf78c260ec42a917016d4ee4fd6950d:
+    $value: "{tailwindcss.color.slate.600}"
+  2ae4c00033504d5f4ff1077115c60df5:
+    $value: "{tailwindcss.color.slate.100}"
+  727df604deda8f890a3f19723e858f3d:
+    $value: "{tailwindcss.color.slate.800}"
+  61624e3c2e1c0594a325d4ded309e471:
+    $value: "{tailwindcss.color.slate.300}"
+  aeee8ed74f653b49119d856323852878:
+    $value: "{tailwindcss.color.red.950}"
+  74d4bb04eb8818f58748a14ba5b12805:
+    $value: "{tailwindcss.color.red.100}"
+  7029e0ee045d71e2ee3e0bb7865607ac:
+    $value: "{tailwindcss.color.orange.50}"
+  6acaa10a2bc56efa703c81902e10b4ae:
+    $value: "{tailwindcss.color.orange.950}"
+  39400a9f019eefd909fdf84871449d5c:
+    $value: "{tailwindcss.color.orange.100}"
+  54fb64dec7205b33987c14d2d73a9f35:
+    $value: "{tailwindcss.color.yellow.50}"
+  3c818b89a2385309fbbe9b2eb7765f35:
+    $value: "{tailwindcss.color.yellow.950}"
+  67776594aaa1c05ad1c374dcb5618fb5:
+    $value: "{tailwindcss.color.yellow.100}"
+  34f466a20a66c2c471597568c8515b2f:
+    $value: "{tailwindcss.color.green.500}"
+  148382bbc17316870be78cffcbb0eec7:
+    $value: "{tailwindcss.color.green.950}"
+  cc375d49c8556334e7c07dab724049df:
+    $value: "{tailwindcss.color.green.100}"
+  ff5289f5f57540b19b19e6441bf63b77:
+    $value: "{tailwindcss.color.sky.600}"
+  bc4edee1501328b26467be8b53037c2e:
+    $value: "{tailwindcss.color.sky.50}"
+  12bbac7371b8ef7b490397a93be60518:
+    $value: "{tailwindcss.color.sky.600}"
+  200cab517ded56f6e725f9afb18bef55:
+    $value: "{tailwindcss.color.slate.50}"
+  b70e4818baacb55770899ee7da250111:
+    $value: "{tailwindcss.color.slate.100}"
+  08f35a5b84f7648ff0434546cf834f5c:
+    $value: "{tailwindcss.color.slate.300}"
+  9aefdca4555e28f4bb8ace7d56b54bb2:
+    $value: "#ff00ff"
+  ed595eb53aad452d1f4859c68870f748:
+    $value:
+      $ref: "#/theme/color/primary/main/$value"
+  6991908c1f7790278b61ae8f24c9cdd4:
+    $value:
+      colorSpace: hsl
+      components:
+        - 220
+        - 40
+        - 20
+  a44cad9346fdf7abe66f917136598275:
+    $value:
+      colorSpace: hsl
+      components:
+        - 220
+        - 40
+        - 17
+  d971a5c5997d76abe5307efdc8f07a2a:
+    $value:
+      colorSpace: hsl
+      components:
+        - 220
+        - 40
+        - 15
+  6ac8ecc2343845f0c9040b6063d2c925:
+    $value:
+      colorSpace: hsl
+      components:
+        - 220
+        - 40
+        - 12
+  ef66cf9d98a6757258188cf47c5bac44:
+    $value:
+      colorSpace: hsl
+      components:
+        - 220
+        - 40
+        - 10
+  3a6af592bc30680962190547d249c3d1:
+    $value:
+      $ref: "#/theme/color/black/point/$value"
+      alpha: "{wave.dimension.alpha.700}"
+  ada7e2f2b83e588f03217958eac12c3c:
+    $value:
+      $ref: "#/theme/color/white/point/$value"

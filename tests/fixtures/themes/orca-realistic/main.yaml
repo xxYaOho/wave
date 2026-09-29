@@ -39,15 +39,20 @@ theme:
           path: "foundation/color"
     transparent:
       $value: "#00000000"
+      $id: 42aa38a818f8d98f7ad5d75dab6f34cd
     primary:
       main:
         $value: "{orca-brand.color.main.600}"
+        $id: d71c9cd0622054bdc71331fc8cde72b4
       on-main:
         $value: "{tailwindcss.color.white}"
+        $id: 288aa86f82bde754b4a15643904d4a90
       container:
         $value: "{orca-brand.color.main.50}"
+        $id: 55140dc8abf58803dc2c83ee791f7c89
       on-container:
         $value: "{orca-brand.color.main.700}"
+        $id: b6f27c8ff340492febcb7ab929d2a191
     orcaFallback:
       main:
         $value: "{orca-brand.color.main.600-fallback}"
@@ -55,44 +60,56 @@ theme:
           platform:
             sketch:
               path: "foundation/color"
+        $id: a829d43b185776b7b965f45a4b0724a1
     text:
       default:
         $value: "{tailwindcss.color.slate.900}"
+        $id: 981a618d03df2659457b4910b78fdaec
       emphasis:
         $value: "{orca-brand.color.main.500}"
+        $id: f04116c1d619ee279fa462de50d5cd2e
       subtlest:
         $value: "#7a869a"
+        $id: 7e44fb947419adefaa920b5b3c7e6e89
       "escaped.key/~color":
         $value: "#12ab34"
+        $id: 8620c0e51b674ebea45ea71029d39548
       disabled:
         $value:
           $ref: "#/theme/color/text/default/$value"
           alpha: "{wave.dimension.alpha.400}"
+        $id: 733c788ff7c4add242a9a2802ad0650f
     outline:
       ring:
         $value: "{theme.color.primary.main}"
+        $id: 68d3b2f236050c28b7f15764ad3e1273
       default:
         $value: "#ff00ff"
         $extensions:
           inheritColor:
             property:
               opacity: "{wave.dimension.alpha.400}"
+        $id: f480d025a93678ba3431658d9e9030f0
     direct-alias:
       $value: "{theme.color.primary.main}"
+      $id: 343fd41a0b8207af9c592f571d808657
     surface:
       default:
         $value:
           colorSpace: hsl
-          components: [210, 10, 96]
+          components: [ 210, 10, 96 ]
+        $id: e91bcb043d53e0594a8c744020da33a5
     scrim:
       $value:
         $ref: "#/theme/color/transparent/$value"
         alpha: "{wave.dimension.alpha.700}"
+      $id: 2d046951722954faa52c78610be621e6
     inverse:
       surface:
         $value:
           color: "{tailwindcss.color.slate.900}"
           alpha: "{wave.dimension.alpha.800}"
+        $id: cb967e23d2726fcbef33b007254aaf6e
   dimension:
     interaction:
       $extensions:
@@ -107,6 +124,7 @@ theme:
             sketch:
               property:
                 opacity: true
+        $id: 4ef0b59836589dc9b880f0726ce611e2
       press:
         $type: number
         $value: "{wave.dimension.alpha.200}"
@@ -115,6 +133,7 @@ theme:
             sketch:
               property:
                 opacity: true
+        $id: 7c434f1434836494d70433b47185eb09
     radius:
       $extensions:
         platform:
@@ -128,6 +147,7 @@ theme:
             sketch:
               property:
                 cornerRadius: true
+        $id: 30e3437d4a1fbb9c4aa1df56cb49ee17
   font:
     $type: typography
     $extensions:
@@ -151,6 +171,7 @@ theme:
         platform:
           sketch:
             skip: false
+      $id: cc2b68ddc9f4f56603d67cce5b9fe467
     heading:
       $extensions:
         platform:
@@ -161,25 +182,30 @@ theme:
         $value:
           lineHeight: 1.5
           color: "{theme.color.text.emphasis}"
+        $id: 1e101852dd4992d5b7f27661faaf3a50
       external:
         $value:
           lineHeight: 1.5
           color: "{orca-brand.color.main.500}"
+        $id: 5dbac662da88f4bfadf158679eb7676d
       literal:
         $value:
           lineHeight: 1.5
           color: "#d12f6a"
+        $id: 2e4e15ee655d5875c434b04c41101fc4
       alpha:
         $value:
           lineHeight: 1.5
           color:
             $ref: "#/theme/color/text/default"
             alpha: 0.5
+        $id: 987e0f81537933237fe942fdfa4815f0
       escaped:
         $value:
           lineHeight: 1.5
           color:
             $ref: "#/theme/color/text/escaped.key~1~0color"
+        $id: 4d12ac807f55b146944aa69e91b76ec3
     display:
       $extensions:
         platform:
@@ -191,15 +217,18 @@ theme:
           lineHeight: 1.5
           color:
             $ref: "#/theme/color/text/default"
+        $id: af61f7b9ff906c36df9a1f7fcdcdd0c2
       footnote:
         $value:
           lineHeight: 1.5
           color:
             $ref: "#/theme/color/text/subtlest/$value"
+        $id: bed15a1c3c597f9e36a7ff6fb6ea7f3e
       alias:
         $value:
           lineHeight: 1.5
           color: "{theme.color.direct-alias}"
+        $id: 67aebde72a29fbf64884501bba20145d
     label:
       $value:
         lineHeight:
@@ -209,9 +238,11 @@ theme:
         platform:
           sketch:
             skip: false
+      $id: 561cc3013fc50426fa99890311d29b98
     internal:
       $value:
         lineHeight: 1.25
+      $id: 108e51d75798e1a404b255013c4ad68f
   border:
     $type: border
     $extensions:
@@ -231,6 +262,7 @@ theme:
             - value: 8
               unit: px
           lineCap: butt
+      $id: 6b3bba83dcf60d896ae155848dcb9df0
     outline:
       $value:
         color: "{theme.color.outline.ring}"
@@ -243,6 +275,7 @@ theme:
           sketch:
             outline:
               offset: 2
+      $id: 7d45eab4dc0114a3210d63e8a03d9bd4
   shadow:
     $extensions:
       platform:
@@ -268,6 +301,7 @@ theme:
             offsetY: 4
             blur: 8
             spread: -2
+      $id: 94efba337152ff00cf5de2ddbe3d5eec
   gradient:
     $type: gradient
     $extensions:
@@ -288,6 +322,7 @@ theme:
         smoothGradient:
           cubicBezier: "{wave.dimension.cubicBezier.easeInOutCubic}"
           step: 4
+      $id: ee98c1094913db21f09d470b9b6d67ea
     fallback:
       $value:
         - color:
@@ -296,3 +331,5 @@ theme:
           position: 0
         - color: "#ffffff"
           position: 1
+      $id: 918e9e17ff2b965fc1dce58aed486650
+$id: f9e81cabc8c38cf88c696bc01b45c5f9

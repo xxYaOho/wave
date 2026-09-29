@@ -12,11 +12,14 @@ theme:
       main:
         $type: color
         $value: "#000000"
+        $id: db6b9758f5120e7fc05bf55fffe4109a
       on-main:
         $type: color
         $value: "#ffffff"
+        $id: 5fc695936319bfe88a9f59fabd3f2302
 doctor:
   wcagPairs:
     primary-main:
       foreground: "{theme.color.primary.on-main}"
       background: "{theme.color.primary.main}"
+$id: fd8dc741fabf27a5881c32a25db8390c

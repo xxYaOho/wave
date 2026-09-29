@@ -7,19 +7,13 @@ $config:
   resource:
     custom:
       - ../resources/mobile-resource.yaml
+  base: 6e21ea573d92ec20131b87849addfc09
 
 theme:
   color:
-    $type: color
-    primary:
-      $value: "{tailwindcss.color.green.600}"
-    on-primary:
-      $value: "{tailwindcss.color.white}"
     mobile-only:
       $value: "{mobile.color.accent}"
-
-doctor:
-  wcagPairs:
-    primary:
-      foreground: "{theme.color.on-primary}"
-      background: "{theme.color.primary}"
+      $type: color
+$override:
+  a663e209afea84f42241e68b08ecf413:
+    $value: "{tailwindcss.color.green.600}"

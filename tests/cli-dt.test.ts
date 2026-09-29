@@ -843,7 +843,11 @@ theme:
 			const assetNames = sketchOutput.assets.map((asset) => asset.name);
 
 			// meta 随 v2 落地；主题未登记身份时 themeId 为 null。
-			expect(sketchOutput.meta).toEqual({ themeId: null, version: 2 });
+			expect(sketchOutput.meta).toEqual({
+				themeId: null,
+				baseId: null,
+				version: 2,
+			});
 			expect(assetNames).toContain('foundation/color/color-primary-main');
 			expect(assetNames).toContain('color-shadow');
 			expect(

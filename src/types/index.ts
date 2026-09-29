@@ -433,8 +433,10 @@ export interface SketchLayerAsset {
 export type SketchAsset = SketchColorAsset | SketchTextAsset | SketchLayerAsset;
 
 export interface SketchPayloadMeta {
-	/** Document identity from main.yaml `$id`; null when the theme is unregistered. */
+	/** Identity of the current day document; null when unregistered. */
 	themeId: string | null;
+	/** Main document identity for named profiles; null for main. */
+	baseId: string | null;
 	version: 2;
 }
 

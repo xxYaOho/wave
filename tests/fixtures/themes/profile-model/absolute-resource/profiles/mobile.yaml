@@ -2,9 +2,7 @@ $config:
   resource:
     palette:
       - ../resources/palette.yaml
-
-theme:
-  color:
-    $type: color
-    primary:
-      $value: "{absolute.color.primary}"
+  base: ebf8e54169a7c97fac81acbd63baaa1c
+$override:
+  26d66751bed3f74d9e38a99f0c8db4b8:
+    $value: "{absolute.color.primary}"

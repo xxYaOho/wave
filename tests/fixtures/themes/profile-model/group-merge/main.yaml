@@ -20,3 +20,5 @@ theme:
     $type: color
     primary:
       $value: "{tailwindcss.color.blue.600}"
+      $id: 4681ac33b635384563b216360ea7e907
+$id: 0a261cc9bc6a1dec38dbad0707e34c11

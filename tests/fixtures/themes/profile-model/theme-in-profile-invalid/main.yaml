@@ -20,11 +20,14 @@ theme:
     $type: color
     primary:
       $value: "{tailwindcss.color.blue.600}"
+      $id: 170036ec7ed05a45e912c0ebf2d1e234
     on-primary:
       $value: "{tailwindcss.color.white}"
+      $id: 068729259b81f9315f9dafed63110cac
 
 doctor:
   wcagPairs:
     primary:
       foreground: "{theme.color.on-primary}"
       background: "{theme.color.primary}"
+$id: 9f95177cd80d575689a4de432338bb8c

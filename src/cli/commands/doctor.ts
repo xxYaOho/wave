@@ -24,6 +24,7 @@ import {
 	NIGHT_SKIP_MESSAGE,
 	type ProfileDocument,
 	type ProfileEntry,
+	ProfileFormatError,
 	parseProfileDocument,
 	resolveProfilesToBuild,
 } from '../../core/pipeline/profile-resolver.ts';
@@ -150,6 +151,11 @@ async function selectProfileDocument(
 		? baseDocument
 		: await parseProfileDocument(entry, {
 				baseConfig: baseDocument.config,
+				baseTree: yaml.load(baseDocument.tokenContent) as Record<
+					string,
+					unknown
+				>,
+				baseId: workspace.themeId,
 				baseDir: workspace.workspaceDir,
 			});
 	return { document, entry };
@@ -306,7 +312,10 @@ export function createDoctorCommand(
 						console.log(
 							`✗ ${error instanceof Error ? error.message : String(error)}`,
 						);
-						process.exitCode = ExitCode.FILE_NOT_FOUND;
+						process.exitCode =
+							error instanceof ProfileFormatError
+								? error.exitCode
+								: ExitCode.FILE_NOT_FOUND;
 						return;
 					}
 
@@ -435,7 +444,10 @@ export function createDoctorCommand(
 				console.log(
 					`✗ ${error instanceof Error ? error.message : String(error)}`,
 				);
-				process.exitCode = ExitCode.FILE_NOT_FOUND;
+				process.exitCode =
+					error instanceof ProfileFormatError
+						? error.exitCode
+						: ExitCode.FILE_NOT_FOUND;
 				return;
 			}
 			const selectedEntry = selected.entry;

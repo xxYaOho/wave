@@ -18,6 +18,10 @@ export const sketchFormat: WaveFormatFn = (
 		typeof options?.themeId === 'string' && options.themeId.trim() !== ''
 			? options.themeId
 			: undefined;
+	const baseId =
+		typeof options?.baseId === 'string' && options.baseId.trim() !== ''
+			? options.baseId
+			: undefined;
 	const allTokens = [...tokens].sort(
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);
@@ -28,7 +32,7 @@ export const sketchFormat: WaveFormatFn = (
 	const payload: SketchPayloadV2 = assembleSketchPayload(
 		writeTokens,
 		allTokens,
-		{ themeId, filterLayer },
+		{ themeId, baseId, filterLayer },
 	);
 	return JSON.stringify(payload, null, 2);
 };

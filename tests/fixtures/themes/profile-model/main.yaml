@@ -20,11 +20,14 @@ theme:
     $type: color
     primary:
       $value: "{tailwindcss.color.blue.600}"
+      $id: a663e209afea84f42241e68b08ecf413
     on-primary:
       $value: "{tailwindcss.color.white}"
+      $id: 69f1f2615fd01051747628c64fa9d01e
     outline:
       ring:
         $value: "{tailwindcss.color.blue.600}"
+        $id: d11fa96ee2926241a32b1ce81729f102
   state:
     hover:
       $type: number
@@ -34,15 +37,18 @@ theme:
           sketch:
             property:
               opacity: true
+      $id: 7d953b5995480372931fe868aa7f5f46
   radius:
     md:
       $type: dimension
       $value: "{wave.dimension.px.4}"
+      $id: d4736802b1d78e8e74ff8cfa66dc5a5b
   border:
     width:
       medium:
         $type: dimension
         $value: 1
+        $id: aae79c8869b61e055b974e225d57ae7f
     outline:
       focus:
         $type: border
@@ -55,6 +61,7 @@ theme:
             sketch:
               outline:
                 offset: 2
+        $id: 14ca5985ac4fd358a2732b5ec77b8cd4
   shadow:
     elevation:
       low:
@@ -65,6 +72,7 @@ theme:
           offsetY: 1
           blur: 2
           spread: 0
+        $id: 09e014e34f9372ff234461a62a8cba1c
   gradient:
     mask:
       soft:
@@ -74,6 +82,7 @@ theme:
             position: 0
           - color: "#000000ff"
             position: 1
+        $id: 726cdb336303242fddfa1244fbebeb98
   font:
     heading:
       h1:
@@ -88,9 +97,11 @@ theme:
             value: 40
             unit: px
           letterSpacing: 0
+        $id: 624364eea75b4d20ec4d0bfbc5e8cc81
 
 doctor:
   wcagPairs:
     primary:
       foreground: "{theme.color.on-primary}"
       background: "{theme.color.primary}"
+$id: 6e21ea573d92ec20131b87849addfc09

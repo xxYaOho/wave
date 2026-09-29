@@ -28,6 +28,7 @@ import {
 
 export interface SketchPayloadAssembleOptions {
 	themeId?: string | undefined;
+	baseId?: string | undefined;
 	filterLayer: number;
 }
 
@@ -686,7 +687,11 @@ export function assembleSketchPayload(
 	}
 
 	return {
-		meta: { themeId: options.themeId ?? null, version: 2 },
+		meta: {
+			themeId: options.themeId ?? null,
+			baseId: options.baseId ?? null,
+			version: 2,
+		},
 		assets,
 	};
 }

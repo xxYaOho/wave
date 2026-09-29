@@ -1,11 +1,7 @@
-theme:
-  color:
-    $type: color
-    primary:
-      $value: "{tailwindcss.color.gray.900}"
-  dimension:
-    $type: dimension
-    alpha:
-      $type: number
-      sm:
-        $value: "{wave.dimension.alpha.300}"
+$config:
+  base: 7613c7379865fd565cf2d5f2c1ef2383
+$override:
+  7ae10b9c205c427341c567717d7906cc:
+    $value: "{tailwindcss.color.gray.900}"
+  de33eabef3631a94301d9581dca004e1:
+    $value: "{wave.dimension.alpha.300}"

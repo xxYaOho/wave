@@ -8,6 +8,17 @@ import type {
 	ParameterSet,
 } from '../../types/index.ts';
 
+import { ExitCode } from '../../types/index.ts';
+import { validateProfileConfig } from '../validator/design-token-profile-config.ts';
+
+export class ProfileFormatError extends Error {
+	readonly exitCode = ExitCode.FORMAT_ERROR;
+	constructor(filePath: string, message: string) {
+		super(`${filePath}: ${message}`);
+		this.name = 'ProfileFormatError';
+	}
+}
+
 export interface ProfileEntry {
 	name: string;
 	path: string;
@@ -19,7 +30,7 @@ export interface ProfileDocument {
 	entry: ProfileEntry;
 	config: DesignTokenBuildConfig;
 	buildDir: string;
-	/** Document-level `$id` (theme identity); only main.yaml may declare one. */
+	/** Current document identity, independent of its base identity. */
 	themeId?: string | undefined;
 	tokenContent: string;
 }
@@ -27,12 +38,13 @@ export interface ProfileDocument {
 export interface ProfileParseOptions {
 	defaultConfig?: DesignTokenBuildConfig;
 	baseConfig?: DesignTokenBuildConfig;
+	baseTree?: Record<string, unknown>;
+	baseId?: string | undefined;
 	baseDir: string;
 }
 
 const PROFILE_STEM_RE = /^[A-Za-z0-9 _-]+$/;
 export const NIGHT_SKIP_MESSAGE = 'Night Mode unavailable/invalid and skipped';
-export const PROFILE_ROOT_ID_MESSAGE = '$id is only supported in main.yaml';
 export const NIGHT_ROOT_ID_MESSAGE =
 	'$id is only supported in main.yaml (document identity), not in night overlays';
 
@@ -314,6 +326,124 @@ export function mergeNightOverlay(
 	return { ok: true, tree: merged };
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Merge on the source tree, before $extends and reference resolution. */
+export function mergeProfileOverrides(
+	baseTree: Record<string, unknown>,
+	profileTree: Record<string, unknown>,
+	overrides: unknown,
+	filePath: string,
+): Record<string, unknown> {
+	const fail = (message: string): never => {
+		throw new ProfileFormatError(filePath, message);
+	};
+	const merged = cloneJson(baseTree);
+	const ids = new Map<string, Record<string, unknown>>();
+	function index(node: Record<string, unknown>): void {
+		if (Object.hasOwn(node, '$value')) {
+			if (isNonEmptyIdentity(node.$id) && !ids.has(node.$id))
+				ids.set(node.$id, node);
+			return;
+		}
+		for (const [key, child] of Object.entries(node)) {
+			if (!key.startsWith('$') && isObject(child)) index(child);
+		}
+	}
+	index(merged);
+	if (overrides !== undefined) {
+		if (!isObject(overrides))
+			fail('$override must be an object keyed by base token $id');
+		for (const [id, value] of Object.entries(
+			overrides as Record<string, unknown>,
+		)) {
+			if (!isNonEmptyIdentity(id))
+				fail('$override keys must be non-empty token $id strings');
+			if (
+				!isObject(value) ||
+				Object.keys(value).length !== 1 ||
+				!Object.hasOwn(value, '$value')
+			) {
+				fail(`$override.${id} must contain exactly one key: $value`);
+			}
+			const target = ids.get(id);
+			if (!target) fail(`$override.${id} does not match any base token $id`);
+			target!.$value = cloneJson((value as Record<string, unknown>).$value);
+		}
+	}
+	function graft(
+		target: Record<string, unknown>,
+		additions: Record<string, unknown>,
+		parts: string[],
+		inheritedType?: string,
+	): void {
+		for (const [key, child] of Object.entries(additions)) {
+			if (key.startsWith('$')) continue;
+			const tokenPath = [...parts, key].join('.');
+			if (!isObject(child))
+				fail(`New token/group ${tokenPath} must be an object`);
+			const node = child as Record<string, unknown>;
+			const exists = Object.hasOwn(target, key);
+			const existing = target[key];
+			if (
+				exists &&
+				(!isObject(existing) || Object.hasOwn(existing, '$value'))
+			) {
+				fail(
+					`Profile path ${tokenPath} collides with an existing base token; use $override`,
+				);
+			}
+			if (exists) {
+				if (Object.hasOwn(node, '$value'))
+					fail(
+						`Profile token ${tokenPath} collides with an existing base group`,
+					);
+				for (const property of Object.keys(node).filter((name) =>
+					name.startsWith('$'),
+				)) {
+					fail(
+						`Existing base group ${tokenPath}.${property} is frozen; only new members are allowed`,
+					);
+				}
+			}
+			const localType =
+				typeof node.$type === 'string' && node.$type.trim() !== ''
+					? node.$type
+					: inheritedType;
+			if (Object.hasOwn(node, '$value')) {
+				if (!localType)
+					fail(
+						`New token ${tokenPath} requires a $type declared in the profile file; base group $type cannot be inherited`,
+					);
+				Object.defineProperty(target, key, {
+					value: cloneJson(node),
+					writable: true,
+					enumerable: true,
+					configurable: true,
+				});
+			} else {
+				const group = exists
+					? (existing as Record<string, unknown>)
+					: Object.fromEntries(
+							Object.entries(node).filter(([name]) => name.startsWith('$')),
+						);
+				if (!exists)
+					Object.defineProperty(target, key, {
+						value: group,
+						writable: true,
+						enumerable: true,
+						configurable: true,
+					});
+				graft(group, node, [...parts, key], localType);
+			}
+		}
+	}
+	graft(merged, profileTree, []);
+	return merged;
+}
+
 export function normalizeProfileName(stem: string): string {
 	const trimmed = stem.trim();
 	if (!PROFILE_STEM_RE.test(trimmed)) {
@@ -392,6 +522,21 @@ export async function parseProfileDocument(
 	entry: ProfileEntry,
 	options: ProfileParseOptions,
 ): Promise<ProfileDocument> {
+	try {
+		return await parseProfileContent(entry, options);
+	} catch (error) {
+		if (error instanceof ProfileFormatError) throw error;
+		throw new ProfileFormatError(
+			entry.path,
+			error instanceof Error ? error.message : String(error),
+		);
+	}
+}
+
+async function parseProfileContent(
+	entry: ProfileEntry,
+	options: ProfileParseOptions,
+): Promise<ProfileDocument> {
 	const content = await Bun.file(entry.path).text();
 	const loaded = yaml.load(content);
 	if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded)) {
@@ -399,25 +544,38 @@ export async function parseProfileDocument(
 	}
 
 	const root = loaded as Record<string, unknown>;
-	const config = root.$config;
-	const configObj =
-		config && typeof config === 'object' && !Array.isArray(config)
-			? (config as Record<string, unknown>)
-			: {};
-	if (!entry.isDefault && configObj.theme !== undefined) {
-		throw new Error('$config.theme is only supported in main.yaml');
+	let configObj: Record<string, unknown>;
+	if (entry.isDefault) {
+		configObj = isObject(root.$config) ? root.$config : {};
+	} else {
+		const validation = validateProfileConfig(root.$config);
+		if (!validation.ok)
+			throw new ProfileFormatError(
+				entry.path,
+				`Invalid $config: ${validation.message}`,
+			);
+		configObj = validation.config;
+		// Preserve authored resource order, matching main config and prior profile loading.
+		if (
+			isObject(root.$config) &&
+			isObject(root.$config.resource) &&
+			validation.config.resource
+		) {
+			configObj.resource = Object.fromEntries(
+				Object.keys(root.$config.resource).map((kind) => [
+					kind,
+					(validation.config.resource as Record<string, unknown>)[kind],
+				]),
+			);
+		}
 	}
-	// Document-level $id is a main.yaml-only declaration (same style as
-	// $config.theme). Take-then-strip so it never enters the token tree.
 	let themeId: string | undefined;
 	if (Object.hasOwn(root, '$id')) {
-		if (!entry.isDefault) {
-			throw new Error(PROFILE_ROOT_ID_MESSAGE);
-		}
 		const rawThemeId = root.$id;
-		if (typeof rawThemeId !== 'string' || rawThemeId.trim() === '') {
-			throw new Error(
-				'Invalid $id in main.yaml; expected a non-empty string when present',
+		if (!isNonEmptyIdentity(rawThemeId)) {
+			throw new ProfileFormatError(
+				entry.path,
+				'Invalid $id; expected a non-empty string when present',
 			);
 		}
 		themeId = rawThemeId;
@@ -492,9 +650,37 @@ export async function parseProfileDocument(
 		localGroups,
 	);
 
-	const tokenRoot = { ...root };
-	delete tokenRoot.$config;
-	delete tokenRoot.$id;
+	const additions = Object.fromEntries(
+		Object.entries(root).filter(([key]) => !key.startsWith('$')),
+	);
+	let tokenRoot: Record<string, unknown>;
+	if (entry.isDefault) {
+		tokenRoot = additions;
+	} else {
+		if (!isNonEmptyIdentity(options.baseId)) {
+			throw new ProfileFormatError(
+				entry.path,
+				'Base main.yaml has no root $id; run wave dt ids --write first',
+			);
+		}
+		if (configObj.base !== options.baseId) {
+			throw new ProfileFormatError(
+				entry.path,
+				`$config.base "${String(configObj.base)}" does not match main.yaml $id "${options.baseId}"`,
+			);
+		}
+		if (!options.baseTree)
+			throw new ProfileFormatError(
+				entry.path,
+				'Base token tree is required for profile merging',
+			);
+		tokenRoot = mergeProfileOverrides(
+			options.baseTree,
+			additions,
+			root.$override,
+			entry.path,
+		);
+	}
 
 	const buildDir = options.baseDir;
 

@@ -17,6 +17,7 @@ import {
 	NIGHT_SKIP_MESSAGE,
 	type ProfileDocument,
 	type ProfileEntry,
+	ProfileFormatError,
 	parseProfileDocument,
 	resolveProfilesToBuild,
 } from './profile-resolver.ts';
@@ -111,6 +112,7 @@ async function generatePreparedPass(
 		groupComments: prepared.document.groupComments,
 		resolved: prepared.document.resolved,
 		colorSpace: prepared.colorSpace,
+		baseId: prepared.baseId,
 		themeId: prepared.themeId,
 	});
 
@@ -164,9 +166,6 @@ export async function generateTheme(
 	}
 
 	const { workspace } = loadResult;
-	// Document identity (main.yaml `$id`) scopes the whole build: named
-	// profiles merge config from main and never declare their own `$id`.
-	const documentThemeId = workspace.themeId;
 	const generatedFiles: string[] = [];
 	const preparedPasses: PreparedServicePass[] = [];
 	const recordedResources = new Set<string>();
@@ -218,12 +217,21 @@ export async function generateTheme(
 	let hasPublicDimensions = false;
 
 	for (const entry of selectedProfiles) {
-		const document = entry.isDefault
-			? baseDocument
-			: await parseProfileDocument(entry, {
-					baseConfig: baseDocument.config,
-					baseDir: workspace.workspaceDir,
-				});
+		let document: ProfileDocument;
+		try {
+			document = entry.isDefault
+				? baseDocument
+				: await parseProfileDocument(entry, {
+						baseConfig: baseDocument.config,
+						baseTree: baseDayTree,
+						baseId: baseDocument.themeId,
+						baseDir: workspace.workspaceDir,
+					});
+		} catch (error) {
+			if (!(error instanceof ProfileFormatError)) throw error;
+			ctx?.markFailed('parse', error.message, { phase: 'profile merge' });
+			return { ok: false, exitCode: error.exitCode, message: error.message };
+		}
 		const dayTree = entry.isDefault
 			? baseDayTree
 			: parseYamlObject(document.tokenContent);
@@ -243,7 +251,8 @@ export async function generateTheme(
 			const prepared = await prepareBuildPass({
 				id: `${profileId}:day:${pass.groupName ?? `pass-${passIndex + 1}`}`,
 				themeName: profileThemeName(effectiveThemeName, document),
-				themeId: documentThemeId,
+				themeId: document.themeId,
+				baseId: entry.isDefault ? undefined : baseDocument.themeId,
 				yamlPath: entry.path,
 				yamlContent: document.tokenContent,
 				dict: profileDepResult.dict,
@@ -305,7 +314,8 @@ export async function generateTheme(
 			const prepared = await prepareBuildPass({
 				id: `${profileId}:night:${pass.groupName ?? `pass-${passIndex + 1}`}`,
 				themeName: `${profileThemeName(effectiveThemeName, document)}-night`,
-				themeId: documentThemeId,
+				themeId: document.themeId,
+				baseId: entry.isDefault ? undefined : baseDocument.themeId,
 				yamlPath: entry.nightPath,
 				yamlContent: nightContent,
 				dict: profileDepResult.dict,

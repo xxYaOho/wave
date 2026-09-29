@@ -1,35 +1,17 @@
-theme:
-  color:
-    $type: color
-    primary:
-      main:
-        $value: "{tailwindcss.color.sky.600}"
-        $extensions:
-          platform:
-            sketch:
-              path: "foundation/color"
-      on-main:
-        $value: "{tailwindcss.color.white}"
-        $extensions:
-          platform:
-            sketch:
-              path: "foundation/color"
-      container:
-        $value: "{tailwindcss.color.sky.50}"
-      on-container:
-        $value: "{tailwindcss.color.sky.700}"
-    text:
-      default:
-        $value: "{tailwindcss.color.gray.900}"
-      disabled:
-        $value:
-          $ref: "#/theme/color/text/default/$value"
-          alpha: "{wave.dimension.alpha.400}"
-    surface:
-      default:
-        $value: "#EEEFF1"
-    inverse:
-      surface:
-        $value:
-          color: "{tailwindcss.color.gray.900}"
-          alpha: "{wave.dimension.alpha.800}"
+$config:
+  base: f9e81cabc8c38cf88c696bc01b45c5f9
+$override:
+  d71c9cd0622054bdc71331fc8cde72b4:
+    $value: "{tailwindcss.color.sky.600}"
+  55140dc8abf58803dc2c83ee791f7c89:
+    $value: "{tailwindcss.color.sky.50}"
+  b6f27c8ff340492febcb7ab929d2a191:
+    $value: "{tailwindcss.color.sky.700}"
+  981a618d03df2659457b4910b78fdaec:
+    $value: "{tailwindcss.color.gray.900}"
+  e91bcb043d53e0594a8c744020da33a5:
+    $value: "#EEEFF1"
+  cb967e23d2726fcbef33b007254aaf6e:
+    $value:
+      color: "{tailwindcss.color.gray.900}"
+      alpha: "{wave.dimension.alpha.800}"

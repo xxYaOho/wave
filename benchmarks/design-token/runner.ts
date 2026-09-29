@@ -53,6 +53,8 @@ interface GenerateScope {
 	themeName: string;
 	filePath: string;
 	contentOverride: string;
+	themeId?: string;
+	baseId?: string;
 	dict: DependencyDict;
 	passes: ReturnType<typeof buildGroupPasses>;
 	isNight: boolean;
@@ -185,6 +187,8 @@ export async function runDesignTokenBenchmarkCase(
 					defaultConfig: workspace.config,
 					baseDir: workspace.workspaceDir,
 				});
+				const baseTree = parseYamlObject(baseDocument.tokenContent);
+				if (!baseTree) return fail('Invalid main token document');
 
 				for (const profile of selectedProfiles) {
 					const document = profile.isDefault
@@ -192,6 +196,8 @@ export async function runDesignTokenBenchmarkCase(
 						: await parseProfileDocument(profile, {
 								baseConfig: baseDocument.config,
 								baseDir: workspace.workspaceDir,
+								baseTree,
+								baseId: baseDocument.themeId,
 							});
 					const resource = await timed(() =>
 						collectDependencyDictionary(document.config, document.buildDir),
@@ -206,6 +212,8 @@ export async function runDesignTokenBenchmarkCase(
 						themeName: profileThemeName(resolvedThemeName, profile),
 						filePath: profile.path,
 						contentOverride: document.tokenContent,
+						themeId: document.themeId,
+						baseId: profile.isDefault ? undefined : baseDocument.themeId,
 						dict: resource.value.dict,
 						passes: groupPass.value,
 						isNight: false,
@@ -230,6 +238,8 @@ export async function runDesignTokenBenchmarkCase(
 						themeName: `${profileThemeName(resolvedThemeName, profile)}-night`,
 						filePath: profile.nightPath,
 						contentOverride: yaml.dump(mergedNight.tree, { lineWidth: -1 }),
+						themeId: document.themeId,
+						baseId: profile.isDefault ? undefined : baseDocument.themeId,
 						dict: resource.value.dict,
 						passes: groupPass.value,
 						isNight: true,
@@ -250,6 +260,8 @@ export async function runDesignTokenBenchmarkCase(
 							prepareBuildPass({
 								id: `${scope.name}:${pass.groupName ?? `pass-${passIndex + 1}`}`,
 								themeName: scope.themeName,
+								themeId: scope.themeId,
+								baseId: scope.baseId,
 								yamlPath: scope.filePath,
 								yamlContent: scope.contentOverride,
 								dict: scope.dict,
@@ -303,6 +315,8 @@ export async function runDesignTokenBenchmarkCase(
 							groupComments: prepared.document.groupComments,
 							resolved: prepared.document.resolved,
 							colorSpace: prepared.colorSpace,
+							themeId: prepared.themeId,
+							baseId: prepared.baseId,
 						}),
 					);
 					phases.generateMs += generate.ms;

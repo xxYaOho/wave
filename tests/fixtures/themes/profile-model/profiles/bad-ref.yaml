@@ -1,7 +1,2 @@
-theme:
-  color:
-    $type: color
-    primary:
-      $value: "{tailwindcss.color.blue.600}"
-    on-primary:
-      $value: "{tailwindcss.color.white}"
+$config:
+  base: 6e21ea573d92ec20131b87849addfc09

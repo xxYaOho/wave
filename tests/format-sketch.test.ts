@@ -39,13 +39,18 @@ describe('sketchFormat (payload v2)', () => {
 		];
 
 		const withoutThemeId = JSON.parse(sketchFormat(tokens)) as SketchPayloadV2;
-		expect(withoutThemeId.meta).toEqual({ themeId: null, version: 2 });
+		expect(withoutThemeId.meta).toEqual({
+			themeId: null,
+			baseId: null,
+			version: 2,
+		});
 
 		const withThemeId = JSON.parse(
 			sketchFormat(tokens, { themeId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0' }),
 		) as SketchPayloadV2;
 		expect(withThemeId.meta).toEqual({
 			themeId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
+			baseId: null,
 			version: 2,
 		});
 	});

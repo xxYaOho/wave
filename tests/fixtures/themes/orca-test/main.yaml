@@ -43,100 +43,138 @@ theme:
     transparent:
       $description: 透明, 对应开发中的 `transparent` 值
       $value: "#00000000"
+      $id: 45b523f662d3df09836a522eafc7425e
     primary:
       $description: 主色, 品牌色.
       main:
         $value: "{corerain.color.main.600}"
+        $id: c7e47cb9999f9ba372295c8820bef470
       on-main:
         $value: "{tailwindcss.color.white}"
+        $id: 071fafcf6a359e717aef8e3c2e9580db
       container:
         $value: "{corerain.color.main.50}"
+        $id: 205ed558b616c168099d2764340ed36f
       on-container:
         $value: "{corerain.color.main.600}"
+        $id: b3d067e17939c602a02f3a29e51a111d
     secondary:
       $description: 辅助色, 与主色 (品牌色)配合
       main:
         $value: "{corerain.color.sub.400}"
+        $id: a61d7c2770dcb58fb88e9ee352bf9eda
       on-main:
         $value: "{corerain.color.sub.950}"
+        $id: ca7ac1585d87b4929a9a95ff599a0b3d
       container:
         $value: "{corerain.color.sub.50}"
+        $id: 6489ab0363df1de0f2cb874102f756e7
       on-container:
         $value: "{corerain.color.sub.700}"
+        $id: 508c05b99b68be35ef5d020d2ecada1d
     neutral:
       $description: 中性自然色, 适应大多数色彩
       main:
         $value: "{tailwindcss.color.slate.800}"
+        $id: dbf78c260ec42a917016d4ee4fd6950d
       on-main:
         $value: "{tailwindcss.color.white}"
+        $id: 2ae4c00033504d5f4ff1077115c60df5
       container:
         $value: "{tailwindcss.color.slate.50}"
+        $id: 727df604deda8f890a3f19723e858f3d
       on-container:
         $value: "{tailwindcss.color.slate.500}"
+        $id: 61624e3c2e1c0594a325d4ded309e471
     error:
       $description: 错误, 严重提示. 多数情况下 hue='0-5'
       main:
         $value: "{tailwindcss.color.red.500}"
+        $id: f31ef64e653cb3e1d8438816acc72a26
       on-main:
         $value: "{tailwindcss.color.white}"
+        $id: 965acbacf57e7d4ab39be40f41183391
       container:
         $value: "{tailwindcss.color.red.50}"
+        $id: aeee8ed74f653b49119d856323852878
       on-container:
         $value: "{tailwindcss.color.red.600}"
+        $id: 74d4bb04eb8818f58748a14ba5b12805
     warning:
       $description: 警告, 重度提示. 多数情况下 hue='10-20'
       main:
         $value: "{tailwindcss.color.orange.500}"
+        $id: 8307a6b827caf4ebb8812ebb7dad536e
       on-main:
         $value: "{tailwindcss.color.white}"
+        $id: 7029e0ee045d71e2ee3e0bb7865607ac
       container:
         $value: "{tailwindcss.color.orange.50}"
+        $id: 6acaa10a2bc56efa703c81902e10b4ae
       on-container:
         $value: "{tailwindcss.color.orange.600}"
+        $id: 39400a9f019eefd909fdf84871449d5c
     attention:
       $description: 注意, 轻度提示. 多数情况下 hue='35-45'
       main:
         $value: "{tailwindcss.color.yellow.400}"
+        $id: 73c239c6024c2b08e48fe53d1011e94e
       on-main:
         $value: "{tailwindcss.color.yellow.950}"
+        $id: 54fb64dec7205b33987c14d2d73a9f35
       container:
         $value: "{tailwindcss.color.yellow.100}"
+        $id: 3c818b89a2385309fbbe9b2eb7765f35
       on-container:
         $value: "{tailwindcss.color.yellow.600}"
+        $id: 67776594aaa1c05ad1c374dcb5618fb5
     success:
       $description: 安全. 多数情况下 hue='150-160'
       main:
         $value: "{tailwindcss.color.green.600}"
+        $id: 34f466a20a66c2c471597568c8515b2f
       on-main:
         $value: "{tailwindcss.color.white}"
+        $id: 0849e967169f8a098f01cdecdd61dcc4
       container:
         $value: "{tailwindcss.color.green.100}"
+        $id: 148382bbc17316870be78cffcbb0eec7
       on-container:
         $value: "{tailwindcss.color.green.700}"
+        $id: cc375d49c8556334e7c07dab724049df
     info:
       $description: 安全. 多数情况下 hue='150-160'
       main:
         $value: "{tailwindcss.color.blue.500}"
+        $id: ff5289f5f57540b19b19e6441bf63b77
       on-main:
         $value: "{tailwindcss.color.white}"
+        $id: 56d6954c3444adafeadfcd149358b34e
       container:
         $value: "{tailwindcss.color.blue.50}"
+        $id: bc4edee1501328b26467be8b53037c2e
       on-container:
         $value: "{tailwindcss.color.blue.600}"
+        $id: 12bbac7371b8ef7b490397a93be60518
     text:
       $description: 文本
       emphasis:
         $value: "{tailwindcss.color.slate.950}"
+        $id: 200cab517ded56f6e725f9afb18bef55
       default:
         $value: "{tailwindcss.color.slate.900}"
+        $id: b70e4818baacb55770899ee7da250111
       subtle:
         $value: "{tailwindcss.color.slate.700}"
+        $id: 08f35a5b84f7648ff0434546cf834f5c
       subtlest:
         $value: "{tailwindcss.color.slate.500}"
+        $id: 6d3f3a04525aa64fce35da93fffb0580
       disabled:
         $value:
           $ref: "#/theme/color/text/default/$value"
           alpha: "{wave.dimension.alpha.400}"
+        $id: c7d0505dac75b9baf45f02a171316f20
     border:
       $description: 边框
       emphasis:
@@ -144,83 +182,102 @@ theme:
         $value:
           $ref: "#/theme/color/neutral/main/$value"
           alpha: "{wave.dimension.alpha.300}"
+        $id: 67822126588a616e816585f889baa9e0
       default:
         $description: 默认
         $value:
           $ref: "#/theme/color/neutral/main/$value"
           alpha: "{wave.dimension.alpha.200}"
+        $id: bb364e0d8f689aa7d09574781fe4b79d
       subtle:
         $description: 弱
         $value:
           $ref: "#/theme/color/neutral/main/$value"
           alpha: "{wave.dimension.alpha.100}"
+        $id: 9735d95a0983506637889bd70f457325
     outline:
       default:
         $description: 带品牌色调取向的焦点环
         $value:
           color: "{theme.color.primary.main}"
           alpha: "{wave.dimension.alpha.400}"
+        $id: 9aefdca4555e28f4bb8ace7d56b54bb2
       entry-box:
         $description: 带品牌色调取向的焦点环
         $value:
           $ref: "#/theme/color/neutral/main/$value"
           alpha: "{wave.dimension.alpha.200}"
+        $id: 61147434db34fe5cf3fecf7e67c9ec50
       ring:
         $description: 带品牌色调取向的焦点环
         $value: "{theme.color.primary.main}"
+        $id: ed595eb53aad452d1f4859c68870f748
     surface:
       $description: 背景层
       default:
         $description: 主背景, 基于 deepGray.light.100 的微调
         $value:
           colorSpace: hsl
-          components: [210, 10, 96]
+          components: [ 210, 10, 96 ]
+        $id: f541b8aa1113472acaefb0f496563152
       dim:
         $description: 下降层, 用于需要降低亮度的区域
         $value:
           colorSpace: hsl
-          components: [210, 10, 94]
+          components: [ 210, 10, 94 ]
+        $id: ab761f7a9e393b55c44b998d491f5fe6
       bright:
         $description: 提升层, 用于需要提高亮度的区域
         $value:
           colorSpace: hsl
-          components: [210, 10, 98]
+          components: [ 210, 10, 98 ]
+        $id: f8ba0830574d27fb5bcb1d9f1c1c1be8
     container:
       $description: 容器, 框架层
       highest:
         $description: 最高层级, 比如 modal, dialog
         $value: "{tailwindcss.color.white}"
+        $id: 6991908c1f7790278b61ae8f24c9cdd4
       high:
         $description: 抬升层级, 比如 popover, dropdown
         $value: "{tailwindcss.color.white}"
+        $id: a44cad9346fdf7abe66f917136598275
       default:
         $description: 标准层级, 用于大多数组件的默认容器
         $value: "{tailwindcss.color.white}"
+        $id: d971a5c5997d76abe5307efdc8f07a2a
       low:
         $description: 次级层级, 比如 card, list, table
         $value: "{tailwindcss.color.white}"
+        $id: 6ac8ecc2343845f0c9040b6063d2c925
       lowest:
         $description: 最低层级(视觉下沉), 比如 input-field
         $value: "{tailwindcss.color.white}"
+        $id: ef66cf9d98a6757258188cf47c5bac44
     scrim:
       $description: 半透明遮罩,用于 modal/drawer 背景
       $value:
         color: "{tailwindcss.color.black}"
         alpha: "{wave.dimension.alpha.700}"
+      $id: 3a6af592bc30680962190547d249c3d1
     shadow:
       $description: 主题色倾向
       $value: "{tailwindcss.color.slate.900}"
+      $id: 0a69552c5b7570169c6a02cd5f163933
     inverse:
       surface:
         $description: 反色背景(通常是深色), 比如 Snackbar, Toast
         $value:
           color: "{tailwindcss.color.slate.900}"
           alpha: "{wave.dimension.alpha.800}"
+        $id: 3646395010bf36227e687a9c6ba1aeac
       on-surface:
         $value: "{tailwindcss.color.white}"
+        $id: ada7e2f2b83e588f03217958eac12c3c
       primary:
         $description: 反色主色, 比如 media-play-progress-bar
         $value: "{corerain.color.main.100}"
+        $id: 7a81d5ba1fbe4622486db8869efd4f7a
   state:
     $description: "状态交互"
     $extensions:
@@ -236,6 +293,7 @@ theme:
           sketch:
             property:
               opacity: true
+      $id: 2a53a47da5e50428a011fa22d80e9088
     press:
       $description: 按下
       $value: "{wave.dimension.alpha.200}"
@@ -244,6 +302,7 @@ theme:
           sketch:
             property:
               opacity: true
+      $id: 80e8d2350b0aa3d6d484142d0d639f09
     focus:
       $type: number
       $description: 聚焦
@@ -253,6 +312,7 @@ theme:
           sketch:
             property:
               opacity: true
+      $id: d03ac0bb2874e918ff8ba19dca233077
     drag:
       $type: number
       $description: 拖拽
@@ -262,6 +322,7 @@ theme:
           sketch:
             property:
               opacity: true
+      $id: 5116d33201ae874db5d8fbe5e48d3f69
   shadow:
     $description: "层级投影"
     $extensions:
@@ -290,6 +351,7 @@ theme:
               offsetY: 4
               blur: 8
               spread: -2
+        $id: dbc57e270ad0d4afd24b81052b45c7ff
       "high":
         $type: shadow
         $description: "漂浮; popover, dropdwon"
@@ -311,6 +373,7 @@ theme:
               offsetY: 8
               blur: 24
               spread: -6
+        $id: a7d5a5b3e4aa279d8a64ecf35dfa5b4b
       "highest":
         $type: shadow
         $description: "悬浮; modal, dialog"
@@ -332,6 +395,7 @@ theme:
               offsetY: 16
               blur: 32
               spread: -8
+        $id: 4efe73675c3c96a1d3459ccd91710cbd
       "sky":
         $type: shadow
         $description: "空中; 一般是 hero 页面的特殊漂浮"
@@ -353,6 +417,7 @@ theme:
               offsetY: 32
               blur: 48
               spread: -12
+        $id: 0280bb8a63e99e99ef7313d9d0b789b5
   gradient:
     $description: "渐变色"
     mask:
@@ -376,6 +441,7 @@ theme:
           smoothGradient:
             cubicBezier: "{wave.dimension.cubicBezier.easeInQuad}"
             step: 9
+        $id: bad17ea8f897b2e4982d16ce55c1601a
       strong:
         $description: 平滑渐变遮罩层, 播放器使用
         $type: gradient
@@ -392,6 +458,7 @@ theme:
           smoothGradient:
             cubicBezier: "{wave.dimension.cubicBezier.easeOutQuad}"
             step: 9
+        $id: 19b89df344f8792854b7fb482f1db7af
   radius:
     $description: "圆角"
     $type: dimension
@@ -403,24 +470,33 @@ theme:
       $value:
         value: 9999
         unit: px
+      $id: e4044f8c14f9767aa49cbcb75b4ebbb3
     xxl:
       $value: "{wave.dimension.px.9}"
+      $id: 042c94f47cab08e61f5b9fade77c1d2f
     xl:
       $value: "{wave.dimension.px.7}"
+      $id: 50f34ccc21eaac798132c703aa43f4a1
     lg:
       $value: "{wave.dimension.px.5}"
+      $id: 4620942c6defc3098dfd6fb64a344b71
     md:
       $value: "{wave.dimension.px.4}"
+      $id: 6d62c5f0c0dadb7b99e107c2609038d1
     sm:
       $value: "{wave.dimension.px.3}"
+      $id: 12d6f417e0e40cbb2e47353f7ca90aba
     xs:
       $value: "{wave.dimension.px.2}"
+      $id: 9f54cca39ba667bbed4f65390b1ef4e8
     xxs:
       $value: "{wave.dimension.px.1}"
+      $id: 8073a60a8df912056ec24a018be7aff9
     zero:
       $value:
         value: 0
         unit: px
+      $id: f05da299e844c6b0c08f6f59fea08723
   border:
     $description: "边框"
     width:
@@ -431,9 +507,11 @@ theme:
       sm:
         $type: dimension
         $value: "{wave.dimension.px.0}"
+        $id: e6fcf307864e7e6425ee3ead496e25c6
       md:
         $type: dimension
         $value: "{wave.dimension.px.1}"
+        $id: 0c0792a5a3f5728c26ca0c475bc55e8e
     antline:
       $type: border
       $value:
@@ -450,6 +528,7 @@ theme:
         platform:
           sketch:
             skip: true
+      $id: 6df5c36054b388bac209711df2aaf21a
     sm:
       $type: border
       $value:
@@ -460,6 +539,7 @@ theme:
         platform:
           sketch:
             skip: true
+      $id: 0d9b9f4515f1bc34981e2fb1c7d6283c
     md:
       $type: border
       $value:
@@ -470,6 +550,7 @@ theme:
         platform:
           sketch:
             skip: true
+      $id: 8cdbfcce78bd405508b5e9cbff683eb2
     outline:
       ring:
         $type: border
@@ -483,12 +564,13 @@ theme:
               outline:
                 offset: 2
               path: "v2/outline"
+        $id: 886a6ee595e0955afa350652000f59a6
   font:
     $type: typography
     $description: "文本"
     $extensions:
       typography:
-        baseFontSize: 14
+        baseFontSize: "{theme.font.base-size}"
         defaults:
           fontFamily: "{theme.font.font-family}"
           letterSpacing: 0
@@ -499,6 +581,7 @@ theme:
         platform:
           sketch:
             skip: true
+      $id: ce01256e7339c1a1a0fe22e29dc4a4a1
     font-size:
       $type: fontSize
       $value: 14px
@@ -506,6 +589,7 @@ theme:
         platform:
           sketch:
             skip: true
+      $id: cf00b98a2d971482798187c5f7d74110
     heading:
       $description: "顶部标题文本"
       $extensions:
@@ -518,30 +602,35 @@ theme:
           fontSize: "{wave.dimension.rem.13}"
           fontWeight: 700
           lineHeight: 1.2
+        $id: 61aff988b57f0e5f1e69fd5658fe643c
       h2:
         $value:
           color: "{theme.color.text.emphasis}"
           fontSize: "{wave.dimension.rem.12}"
           fontWeight: 700
           lineHeight: 1.2
+        $id: 6e42631ccb303b0986b28e14fb2239ca
       h3:
         $value:
           color: "{theme.color.text.emphasis}"
           fontSize: "{wave.dimension.rem.10}"
           fontWeight: 500
           lineHeight: 1.4
+        $id: bca40d20487fe9d2d8b068d68104192e
       h4:
         $value:
           color: "{theme.color.text.emphasis}"
           fontSize: "{wave.dimension.rem.9}"
           fontWeight: 500
           lineHeight: 1.35
+        $id: 0b8b928e575510e5b0f7ca343f8b62e7
       h5:
         $value:
           color: "{theme.color.text.emphasis}"
           fontSize: "{wave.dimension.rem.8}"
           fontWeight: 500
           lineHeight: 1.4
+        $id: 4d19c3d77825116d19898ee218d8aaf9
     text:
       $description: "正文"
       $extensions:
@@ -554,24 +643,28 @@ theme:
           fontSize: "{wave.dimension.rem.6}"
           fontWeight: 400
           lineHeight: 1.5
+        $id: c8e34f4afdc8db9e4ade13c4ce86485e
       body:
         $value:
           color: "{theme.color.text.default}"
           fontSize: "{wave.dimension.rem.7}"
           fontWeight: 400
           lineHeight: 1.45
+        $id: c742ac0efa49a1f55ff240169bc64414
       body-special:
         $value:
           color: "{theme.color.text.default}"
           fontSize: "{wave.dimension.rem.8}"
           fontWeight: 400
           lineHeight: 1.55
+        $id: ff16778ab4b70c862275499460608778
       is-14:
         $value:
           color: "{theme.color.text.default}"
           fontSize: 14
           fontWeight: 400
           lineHeight: 1.55
+        $id: dd1938a2f76a29926a4b60ec20d4140e
       body-truncate-e:
         $description: "尾部截断, 主要应用在 masterSymbol 范围中, 平常情况尽量不使用"
         $value:
@@ -579,6 +672,7 @@ theme:
           fontSize: "{wave.dimension.rem.7}"
           fontWeight: 400
           lineHeight: 1.45
+        $id: b9d9670cbf71ef135e6012047db1f960
     mono:
       $description: "等宽字体"
       $extensions:
@@ -592,6 +686,7 @@ theme:
           fontSize: 12
           fontWeight: 400
           lineHeight: 1.45
+        $id: b8e85ac7dd0894287b32b42cafc4e2c8
       body:
         $value:
           color: "{theme.color.text.default}"
@@ -599,5 +694,11 @@ theme:
           fontSize: 14
           fontWeight: 400
           lineHeight: 1.55
+        $id: 8e38f3b18a3d7674b192b021f0b409f0
+    base-size:
+      $id: dfa203d15ca022b8d686f66a58362635
+      $type: number
+      $value: 14
   layout: ~
   gap: ~
+$id: e1dffd40322a93f588501e0d5fc72223

@@ -171,6 +171,7 @@ theme:
 
 	test('strict resource validation is scoped to the selected profile', async () => {
 		const dir = await makeTheme(`
+$id: doctor-profile-base
 $config:
   theme: doctor-profile-scope
 theme:
@@ -181,11 +182,9 @@ theme:
 		await fs.writeFile(
 			path.join(dir, 'profiles/mobile.yaml'),
 			`$config:
+  base: doctor-profile-base
   resource:
     custom: [./missing.yaml]
-theme:
-  color:
-    base: { $type: color, $value: "#2563eb" }
 `,
 		);
 

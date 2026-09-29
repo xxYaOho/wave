@@ -1,8 +1,6 @@
 $config:
   theme: should-not-rename-output
-
-theme:
-  color:
-    $type: color
-    primary:
-      $value: "#00ff00"
+  base: 9f95177cd80d575689a4de432338bb8c
+$override:
+  170036ec7ed05a45e912c0ebf2d1e234:
+    $value: "#00ff00"
