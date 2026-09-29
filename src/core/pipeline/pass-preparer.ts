@@ -45,7 +45,9 @@ export async function prepareBuildPass(
 		input.pass.colorSpace,
 		input.yamlContent,
 	);
-	if (!document.ok) return document;
+	if (!document.ok) {
+		return { ...document, message: `${input.yamlPath}: ${document.message}` };
+	}
 
 	return {
 		ok: true,

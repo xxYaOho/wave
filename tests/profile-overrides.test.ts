@@ -3,9 +3,15 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
-import { parseProfileDocument } from '../src/core/pipeline/profile-resolver.ts';
+import { prepareBuildPass } from '../src/core/pipeline/pass-preparer.ts';
+import {
+	NIGHT_SKIP_MESSAGE,
+	parseProfileDocument,
+} from '../src/core/pipeline/profile-resolver.ts';
+import { processThemeDocument } from '../src/core/pipeline/theme-pipeline.ts';
 import { generateTheme } from '../src/core/pipeline/theme-service.ts';
 import { ExitCode } from '../src/types/index.ts';
+import { BuildContext } from '../src/utils/receipt.ts';
 
 const base = {
 	$id: 'base-identity',
@@ -267,7 +273,7 @@ describe('profile override build contract', () => {
 					},
 				},
 			},
-			async (mainPath, dir) => {
+			async (mainPath, dir, profilePath) => {
 				const result = await generateTheme({
 					workspacePath: mainPath,
 					cliOutput: path.join(dir, 'out'),
@@ -277,7 +283,11 @@ describe('profile override build contract', () => {
 					ok: false,
 					exitCode: ExitCode.FORMAT_ERROR,
 				});
-				if (!result.ok) expect(result.message).toContain('spread');
+				if (!result.ok) {
+					expect(result.message).toContain('spread');
+					expect(result.message).toContain('theme.number.shadow');
+					expect(result.message).toStartWith(`${profilePath}: `);
+				}
 			},
 			shadowBase,
 		);
@@ -300,6 +310,109 @@ describe('profile override build contract', () => {
 				).toMatchObject({ 'theme-color-primary': '#999999' });
 			},
 		);
+	});
+
+	test('main downstream schema errors include main.yaml and retain the token path', async () => {
+		const invalidMain = {
+			...base,
+			theme: {
+				...base.theme,
+				color: {
+					...base.theme.color,
+					primary: { ...base.theme.color.primary, $value: 123 },
+				},
+			},
+		};
+		await workspace(
+			{ $config: config },
+			async (mainPath, dir) => {
+				const result = await generateTheme({
+					workspacePath: mainPath,
+					cliOutput: path.join(dir, 'out'),
+					generateOptions: { night: false },
+				});
+				expect(result).toMatchObject({
+					ok: false,
+					exitCode: ExitCode.FORMAT_ERROR,
+				});
+				if (!result.ok) {
+					expect(result.message).toStartWith(
+						`${mainPath}: Theme schema validation failed:`,
+					);
+					expect(result.message).toContain('theme.color.primary');
+				}
+			},
+			invalidMain,
+		);
+	});
+
+	test('night preparation attaches the source without changing the downstream failure or skip policy', async () => {
+		await workspace({ $config: config }, async (mainPath, dir) => {
+			const nightPath = path.join(dir, 'profiles/mobile@night.yaml');
+			await fs.writeFile(
+				nightPath,
+				yaml.dump({ theme: { color: { primary: { $value: 123 } } } }),
+			);
+			const yamlContent = yaml.dump({
+				theme: {
+					...base.theme,
+					color: {
+						...base.theme.color,
+						primary: { ...base.theme.color.primary, $value: 123 },
+					},
+				},
+			});
+			const original = await processThemeDocument(
+				nightPath,
+				{},
+				undefined,
+				yamlContent,
+			);
+			const prepared = await prepareBuildPass({
+				id: 'profile:mobile:night',
+				themeName: 'overrides-mobile-night',
+				yamlPath: nightPath,
+				yamlContent,
+				dict: {},
+				pass: {
+					outputDir: path.join(dir, 'out'),
+					platforms: ['json'],
+					filterLayer: undefined,
+					colorSpace: undefined,
+				},
+			});
+			expect(original).toMatchObject({
+				ok: false,
+				exitCode: ExitCode.FORMAT_ERROR,
+			});
+			expect(prepared.ok).toBe(false);
+			if (!original.ok && !prepared.ok) {
+				expect(prepared).toEqual({
+					...original,
+					message: `${nightPath}: ${original.message}`,
+				});
+				expect(prepared.message).toContain('theme.color.primary');
+			}
+			const ctx = new BuildContext();
+			const result = await generateTheme(
+				{
+					workspacePath: mainPath,
+					cliOutput: path.join(dir, 'out'),
+					generateOptions: { night: true, profile: 'mobile' },
+				},
+				ctx,
+			);
+			expect(result.ok).toBe(true);
+			expect(
+				ctx.warnings.some((warning) => warning.message === NIGHT_SKIP_MESSAGE),
+			).toBe(true);
+			if (result.ok) {
+				expect(result.generatedFiles).toContain('overrides-mobile.json');
+				expect(result.generatedFiles).not.toContain(
+					'overrides-mobile-night.json',
+				);
+			}
+		});
 	});
 
 	test('duplicate ids target the first authored token before $extends copies are expanded', async () => {
