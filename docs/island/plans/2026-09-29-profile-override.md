@@ -1,7 +1,7 @@
 ---
 date: 2026-09-29
 state: 施工中
-dispatch: M1-M5 DONE（gate PASS，HEAD 33f6d67）
+dispatch: 已交付（M1-M5 gate PASS + pruner 收口，HEAD 4a64da4）
 ---
 
 # profile-override Plan
@@ -102,7 +102,7 @@ dispatch: M1-M5 DONE（gate PASS，HEAD 33f6d67）
 - 施工注记 M1-2（human 裁决，coder-plus 上报 orca-test 非值分歧）：四类 profile 非值分歧的处置——typography defaults 分歧按决策 14 配方保留：base 将分歧字段下沉为已入账 token 并引用化（嵌套 `defaults:` 形态内引用，M2 再拍平），profile 异值改 `$override`；smoothShadow target、sketch.path、inheritColor opacity 三类分歧属冻结模型的结构性范畴，fixture 迁移一律丢弃（profile 继承 base 扩展），受影响快照经 diff 审计后重生成，丢弃清单在 DEVIATIONS 全量披露。真实项目若依赖后三类差异，属新 base 或未来模型扩展，不在本计划。
 - 施工注记 M1-3（human 指示，验证收尾补强）：M5 增加 fixture 实例完整性巡检——`tests/fixtures/themes/` 下每个含合法 `main.yaml` 的目录以 `--profiles all`（存在 night 文件时追加 `--night`）构建到受控临时目录，断言成功且各 parameterGroup 产物齐备；invalid-case 夹具断言预期错误出口码。巡检与 M1 格式核验分层（格式合法 ≠ 构建通过），执行时 identity-ladder/identity-conflict 已经 M4 迁移、无豁免死角。`tests/fixtures/themes/orca-*`（orca-realistic 与 orca-test）是 example-derived 真实实例，由 canary、parity、quality-harness 与本巡检四路覆盖；用户真实 Orca 项目的迁移与冒烟在交付后由用户侧执行，不列入本计划验收。
 - 施工注记 M1-4（orchestrator 授权，benchmark 证据处置）：(a) `benchmarks/design-token/synthetic.ts` 的两个 `$extensions.sketch` legacy 发射器（:85/:117）为**先于本计划的存量破损**（schema 早已硬切拒绝 legacy 形态），授权就地转为 `platform.sketch` 形态（独立原子提交，DEVIATIONS 披露），不触碰 formatter。(b) 既有 ignored baseline（July/Bun1.3.14）经 coder 举证已过时（pre-Sketch-v2、pre-dimension 归一化），不可作 diff 参照；批准以只读 `git archive` 起始 HEAD 到受控临时目录（node_modules symlink、零 worktree/历史变更）生成**同期 pre-M1 baseline**，新 baseline 与之对比出证；存量 synthetic 失败与 provenance drift 在交付报告中单列。orca 等价 diff 中 token 数增长（153→324）为 base 继承的预期效果，属预期变化而非回归。
-- 施工进展：M1 完成（2026-09-29）。提交 `c0ecea3`（synthetic 存量修复）、`9df7d3a`（M1 集成）、`70ba4b6`（B1 修正）；critic-gate 初审 FAIL（B1 下游错误丢来源路径）→ 修正轮 PASS，41 份成功产物 SHA256 与首轮一致。gate carry-forward：M2 拍平 defaults、M4 两延期 identity 夹具 + doctor 矩阵、M5 实例完整性巡检。 M2 完成（2026-09-29）：`e930694`（typography 六字段平铺硬切 + lineage 补漏 + dt-init 模板）；gate 一轮 PASS（零阻断），夹具深等值无值漂移、41 产物 SHA256 与 M1 一致。carry-forward：M4 两延期 identity 夹具 + doctor 矩阵；M5 实例巡检 + 文档。 M3 完成（2026-09-29）：`9a7698b`（new-profile 命令）+ `d56b709`（授权的 root 索引边界修复）；gate 一轮 PASS，唯一非阻断为 smoke 日志计数口径记录问题。 M4 完成（2026-09-29）：`53498c9`（ids 文档槽位 + doctor 健康项矩阵）；延期夹具迁移完成、格式核验恢复 24 份全覆盖；gate 一轮 PASS 零阻断。 M5 完成（2026-09-29）：`a22a162`（SPEC+manual）、`33f6d67`（实例巡检）、`ec39663`（wiki 迁移经复核）、`4894628`（wiki 内容，orchestrator 收回完成）；gate 一轮 PASS。后续项：manual 390px 溢出（user 裁决）、真实 Orca 迁移（user 侧）、插件 meta.baseId 加法告知（发版提醒）。
+- 施工进展：M1 完成（2026-09-29）。提交 `c0ecea3`（synthetic 存量修复）、`9df7d3a`（M1 集成）、`70ba4b6`（B1 修正）；critic-gate 初审 FAIL（B1 下游错误丢来源路径）→ 修正轮 PASS，41 份成功产物 SHA256 与首轮一致。gate carry-forward：M2 拍平 defaults、M4 两延期 identity 夹具 + doctor 矩阵、M5 实例完整性巡检。 M2 完成（2026-09-29）：`e930694`（typography 六字段平铺硬切 + lineage 补漏 + dt-init 模板）；gate 一轮 PASS（零阻断），夹具深等值无值漂移、41 产物 SHA256 与 M1 一致。carry-forward：M4 两延期 identity 夹具 + doctor 矩阵；M5 实例巡检 + 文档。 M3 完成（2026-09-29）：`9a7698b`（new-profile 命令）+ `d56b709`（授权的 root 索引边界修复）；gate 一轮 PASS，唯一非阻断为 smoke 日志计数口径记录问题。 M4 完成（2026-09-29）：`53498c9`（ids 文档槽位 + doctor 健康项矩阵）；延期夹具迁移完成、格式核验恢复 24 份全覆盖；gate 一轮 PASS 零阻断。 M5 完成（2026-09-29）：`a22a162`（SPEC+manual）、`33f6d67`（实例巡检）、`ec39663`（wiki 迁移经复核）、`4894628`（wiki 内容，orchestrator 收回完成）；gate 一轮 PASS。后续项：manual 390px 溢出（user 裁决）、真实 Orca 迁移（user 侧）、插件 meta.baseId 加法告知（发版提醒）。 计划级收尾完成：Pruner/Scout 清理一项（fixture 重命名 `profile-root-id-empty-invalid`，`4a64da4`），最终验证 1092/0 + typecheck + build 全绿，交付态。
 
 ## Draft Plan
 
