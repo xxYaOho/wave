@@ -1,7 +1,7 @@
 ---
 date: 2026-09-29
-state: 已对齐
-dispatch: ~
+state: 施工中
+dispatch: M1 DONE（gate PASS，HEAD 70ba4b6）
 ---
 
 # profile-override Plan
@@ -102,6 +102,7 @@ dispatch: ~
 - 施工注记 M1-2（human 裁决，coder-plus 上报 orca-test 非值分歧）：四类 profile 非值分歧的处置——typography defaults 分歧按决策 14 配方保留：base 将分歧字段下沉为已入账 token 并引用化（嵌套 `defaults:` 形态内引用，M2 再拍平），profile 异值改 `$override`；smoothShadow target、sketch.path、inheritColor opacity 三类分歧属冻结模型的结构性范畴，fixture 迁移一律丢弃（profile 继承 base 扩展），受影响快照经 diff 审计后重生成，丢弃清单在 DEVIATIONS 全量披露。真实项目若依赖后三类差异，属新 base 或未来模型扩展，不在本计划。
 - 施工注记 M1-3（human 指示，验证收尾补强）：M5 增加 fixture 实例完整性巡检——`tests/fixtures/themes/` 下每个含合法 `main.yaml` 的目录以 `--profiles all`（存在 night 文件时追加 `--night`）构建到受控临时目录，断言成功且各 parameterGroup 产物齐备；invalid-case 夹具断言预期错误出口码。巡检与 M1 格式核验分层（格式合法 ≠ 构建通过），执行时 identity-ladder/identity-conflict 已经 M4 迁移、无豁免死角。`tests/fixtures/themes/orca-*`（orca-realistic 与 orca-test）是 example-derived 真实实例，由 canary、parity、quality-harness 与本巡检四路覆盖；用户真实 Orca 项目的迁移与冒烟在交付后由用户侧执行，不列入本计划验收。
 - 施工注记 M1-4（orchestrator 授权，benchmark 证据处置）：(a) `benchmarks/design-token/synthetic.ts` 的两个 `$extensions.sketch` legacy 发射器（:85/:117）为**先于本计划的存量破损**（schema 早已硬切拒绝 legacy 形态），授权就地转为 `platform.sketch` 形态（独立原子提交，DEVIATIONS 披露），不触碰 formatter。(b) 既有 ignored baseline（July/Bun1.3.14）经 coder 举证已过时（pre-Sketch-v2、pre-dimension 归一化），不可作 diff 参照；批准以只读 `git archive` 起始 HEAD 到受控临时目录（node_modules symlink、零 worktree/历史变更）生成**同期 pre-M1 baseline**，新 baseline 与之对比出证；存量 synthetic 失败与 provenance drift 在交付报告中单列。orca 等价 diff 中 token 数增长（153→324）为 base 继承的预期效果，属预期变化而非回归。
+- 施工进展：M1 完成（2026-09-29）。提交 `c0ecea3`（synthetic 存量修复）、`9df7d3a`（M1 集成）、`70ba4b6`（B1 修正）；critic-gate 初审 FAIL（B1 下游错误丢来源路径）→ 修正轮 PASS，41 份成功产物 SHA256 与首轮一致。gate carry-forward：M2 拍平 defaults、M4 两延期 identity 夹具 + doctor 矩阵、M5 实例完整性巡检。
 
 ## Draft Plan
 
@@ -222,11 +223,11 @@ profile 差量合并链路与全仓夹具迁移
 - 依赖：无。注意：本 Task 完成后、Task-3 完成前，全仓 build 类测试失败属预期红态。
 - 固有风险：全 token 入账可先用 `pnpm dev -- dt ids --write -f <main.yaml>` 机械完成（旧格式下 ids 仍可用）；profile 差量化是手工映射，完成后以"profile 中不再存在与 base 同值的独立 token 树条目"自查；orca-test 的 7 个 profile 含 `$helper` 块，迁移时保留（未知 `$` 根键跳过）。
 
-- [ ] 执行各 main 入账（`dt ids --write`）
-- [ ] 按映射规则改写 23 个 day profile
-- [ ] 重指 invalid-case 触发器
-- [ ] 新建最小 fixture 族
-- [ ] 自查（同值条目清零）并原子提交
+- [x] 执行各 main 入账（`dt ids --write`）
+- [x] 按映射规则改写 23 个 day profile
+- [x] 重指 invalid-case 触发器
+- [x] 新建最小 fixture 族
+- [x] 自查（同值条目清零）并原子提交
 
 ### Task-2
 
@@ -237,10 +238,10 @@ profile 文档解析与闭合校验（来源：决策 1、5、15；US-5）
 - 依赖：Task-1（fixture 供红测试）。
 - 固有风险：profile `$config` 首次 zod 化，错误消息文案与 main 的 `validateMainConfig` 风格对齐；`$override` 区自身形态（非 object、空 key、值非恰好一键）也在本 Task 拒绝。
 
-- [ ] 刻画校验失败行为测试（红）
-- [ ] 实现 profile config schema 与解析骨架（绿）
-- [ ] `bun test` 相关文件 + `pnpm typecheck`
-- [ ] 原子提交
+- [x] 刻画校验失败行为测试（红）
+- [x] 实现 profile config schema 与解析骨架（绿）
+- [x] `bun test` 相关文件 + `pnpm typecheck`
+- [x] 原子提交
 
 ### Task-3
 
@@ -251,10 +252,10 @@ profile 文档解析与闭合校验（来源：决策 1、5、15；US-5）
 - 依赖：Task-2。
 - 固有风险：`$extends` 复制同 `$id` 的覆写目标（文档序首个）需行为测试刻画；合成文档行号指向合成内容（可接受），错误消息必须保留 token 路径与 profile 文件路径；doctor 侧 profile 加载（`doctor.ts` 的 selectProfileDocument 链路）复用同一解析层，注意其错误不得退化为 `FILE_NOT_FOUND`。
 
-- [ ] 刻画合并行为测试（成功路径 + 失败矩阵，红）
-- [ ] 实现 mergeProfileOverrides 与链路贯通（绿）
-- [ ] `bun test` 相关文件 + `pnpm typecheck`
-- [ ] 原子提交
+- [x] 刻画合并行为测试（成功路径 + 失败矩阵，红）
+- [x] 实现 mergeProfileOverrides 与链路贯通（绿）
+- [x] `bun test` 相关文件 + `pnpm typecheck`
+- [x] 原子提交
 
 ### Task-4
 
@@ -265,10 +266,10 @@ sketch meta 双身份贯通（来源：决策 6、7；US-2）
 - 依赖：Task-3（theme-service 贯通点就绪）。
 - 固有风险：`tests/sketch-payload-v2.test.ts` 与 `tests/integration/theme-service.test.ts` 对 meta 的 `toEqual` 严格等值会破，属预期更新对象；"inherits main $id" 语义翻转为"profile 用自身身份"。
 
-- [ ] 更新 meta 断言（红）
-- [ ] 贯通 baseId/themeId（绿）
-- [ ] `bun test` 相关文件 + `pnpm typecheck`
-- [ ] 原子提交
+- [x] 更新 meta 断言（红）
+- [x] 贯通 baseId/themeId（绿）
+- [x] `bun test` 相关文件 + `pnpm typecheck`
+- [x] 原子提交
 
 ### Task-5
 
@@ -279,10 +280,10 @@ benchmarks runner 适配与 baseline（来源：Testing Decisions；Further Note
 - 依赖：Task-3（签名与新语义就绪）、Task-4（类型/formatter 身份贯通链）、Task-1（orca-realistic 夹具已迁移）。
 - 固有风险：baseline 重生成的 diff 若超出预期项，停下核对而非照单全收。
 
-- [ ] 适配 runner 签名与身份贯通
-- [ ] 跑通 benchmark 套件
-- [ ] 重生成 baseline 并核对 diff
-- [ ] 原子提交
+- [x] 适配 runner 签名与身份贯通
+- [x] 跑通 benchmark 套件
+- [x] 重生成 baseline 并核对 diff
+- [x] 原子提交
 
 ### Task-6
 
@@ -293,12 +294,12 @@ M1 测试改写、失败矩阵与新格式核验（来源：Testing Decisions；
 - 依赖：Task-3、Task-4、Task-5。
 - 固有风险：:1116 改写依赖 `baseFontSize` 引用形态（`baseFontSize: "{theme.font.base-size}"` + number token + `$override` 改值）——现有 schema raw 放行与通用 `$extensions` 引用解析应已支持；若实测不通，先刻画失败测试再补最小 wiring，不扩大本碑范围。
 
-- [ ] 改写 profile-resolver.test.ts
-- [ ] 补齐失败矩阵测试（含 doctor 双路径）
-- [ ] 改写 theme-service profile 用例与 meta 断言
-- [ ] 新增 fixture 新格式核验测试
-- [ ] 全量 `bun test` + `pnpm typecheck` + Orca canary
-- [ ] 原子提交
+- [x] 改写 profile-resolver.test.ts
+- [x] 补齐失败矩阵测试（含 doctor 双路径）
+- [x] 改写 theme-service profile 用例与 meta 断言
+- [x] 新增 fixture 新格式核验测试
+- [x] 全量 `bun test` + `pnpm typecheck` + Orca canary
+- [x] 原子提交
 
 > [!IMPORTANT]
 > Milestone-1 闸门：`bun test` 全量绿、`pnpm typecheck`、Orca canary 与 fixture 新格式核验按核验基线通过；未通过不进入 Milestone-2。
