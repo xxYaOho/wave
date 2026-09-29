@@ -1,5 +1,24 @@
 # wave
 
+## 0.23.0
+
+### Minor Changes
+
+- fdc08b4: Add the `md-yml` design-token output platform for Markdown-friendly YAML token fragments. Theme-local direct references remain reusable after namespace projection, including references inherited through typography defaults; external and computed references remain materialized.
+
+  When `--platform` is provided, Wave now creates one base-parameter pass per selected profile instead of expanding `parameterGroup`. Group-specific `filterLayer`, `colorSpace`, and `outputDir` values no longer apply to that CLI override; `--out` without `--platform` still expands all groups.
+
+- 19f037a: 支持 DTCG 2025.10 全部标准 token 类型、typed reference 和 Wave dimension 简写；CSS 遇到未知自定义 object 或 array 时明确失败。
+- Rework design-token profiles as identity-linked delta overrides over the base theme. A `profiles/<name>.yaml` now carries `$override` entries keyed by base token `$id` (value-only whole replacement), optional new tokens, its own document `$id`, and a required `$config.base` binding that is verified against the base document identity. Standalone full-document profiles are no longer supported.
+
+  Sketch payloads gain `meta.baseId` alongside `themeId` (payload version stays 2; plugin consumers must tolerate the additive field). The `$extensions.typography` extension is flattened to six sibling fields (`baseFontSize`, `fontFamily`, `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`) and the nested `defaults:` form is rejected. A new `wave dt new-profile <name>` command snapshots all accounted base tokens into a ready-to-edit profile. `wave dt ids` maintains profile document identities and hard-blocks on base mismatches; `wave dt doctor` now checks profile health across the whole workspace (base binding, override targets, redundant overrides) with consistent text/JSON/status output.
+
+  Night overlays, the main-only workspace entry contract, and the output platform set are unchanged. Migration of existing theme workspaces is manual: rewrite profiles as deltas, flatten typography extensions, and move per-profile tuning values into referenced tokens (e.g. `theme.font.base-size`).
+
+- ba99038: Remove the trial-period Sketch swatch binding: layer color positions no longer emit `{ "$ref": "<uuid>" }` and always carry the concrete `#RRGGBBAA` HEX8 snapshot instead. The outline ring keeps its two-layer `shadows` shape (ring layer plus the fixed `#ffffffff` gap layer).
+
+  The Sketch-only color-reference metadata, its alias index, and the "internal reference target is not emitted" build error are gone with it: a color token no longer needs a registered `$id`, and a `sketch.skip` or root-excluded target no longer fails an outline border build. This is a breaking output-contract change for Sketch consumers that relied on the binding; the HEX8 degradation path those consumers already had to accept is now the only form.
+
 ## 0.22.0
 
 ### Minor Changes
