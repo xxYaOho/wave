@@ -352,7 +352,9 @@ export function mergeProfileOverrides(
 			if (!key.startsWith('$') && isObject(child)) index(child);
 		}
 	}
-	index(merged);
+	for (const [key, child] of Object.entries(merged)) {
+		if (!key.startsWith('$') && isObject(child)) index(child);
+	}
 	if (overrides !== undefined) {
 		if (!isObject(overrides))
 			fail('$override must be an object keyed by base token $id');

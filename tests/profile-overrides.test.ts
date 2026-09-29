@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import { prepareBuildPass } from '../src/core/pipeline/pass-preparer.ts';
 import {
+	mergeProfileOverrides,
 	NIGHT_SKIP_MESSAGE,
 	parseProfileDocument,
 } from '../src/core/pipeline/profile-resolver.ts';
@@ -51,6 +52,25 @@ async function workspace<T>(
 const config = { base: 'base-identity' };
 
 describe('profile override build contract', () => {
+	test('indexes base tokens even when reserved root metadata contains $value', () => {
+		const tree = {
+			...base,
+			$value: 'reserved root metadata',
+			$helper: { $id: 'primary-id', $value: '#ffffff' },
+		};
+		const merged = mergeProfileOverrides(
+			tree,
+			{},
+			{ 'primary-id': { $value: '#123456' } },
+			'profiles/mobile.yaml',
+		);
+		const theme = merged.theme as typeof base.theme;
+		expect(theme.color.primary.$value).toBe('#123456');
+		expect(theme.color.secondary).toEqual(base.theme.color.secondary);
+		expect(merged.$helper).toEqual(tree.$helper);
+		expect(tree.theme.color.primary.$value).toBe('#000000');
+	});
+
 	test('inherits base tokens, replaces values, resolves aliases, and adds locally typed tokens', async () => {
 		await workspace(
 			{
