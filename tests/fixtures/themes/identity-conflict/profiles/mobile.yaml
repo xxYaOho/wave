@@ -1,12 +1,19 @@
+$id: ffffffffffffffffffffffffffffffff
+$config:
+  base: dddddddddddddddddddddddddddddddd
+$override:
+  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:
+    $value: "#ff0000"
+  eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee:
+    $value: "#0033dd"
+
 theme:
   color:
-    $type: color
-    alpha:
+    mobileAlpha:
       $id: cccccccccccccccccccccccccccccccc
+      $type: color
       $value: "#ff0000"
     gamma:
       $id: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      $type: color
       $value: "#112233"
-    shared:
-      $id: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-      $value: "#0033dd"

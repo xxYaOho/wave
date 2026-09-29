@@ -1,5 +1,9 @@
+$id: 1f1e2d3c4b5a69788796a5b4c3d2e1f0
+$config:
+  base: 0f1e2d3c4b5a69788796a5b4c3d2e1f0
+
 theme:
   color:
-    $type: color
     accent:
+      $type: color
       $value: "#ff8800"

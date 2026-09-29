@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
+import { collectThemeIdentityReport } from '../src/core/doctor/identity.ts';
 
 /**
  * Milestone-1 audit (Task-5): enumerate every theme fixture YAML file
@@ -109,6 +110,48 @@ describe('theme fixture identity audit (all files, non-sampling)', () => {
 
 	test('enumerates the fixture corpus', () => {
 		expect(files.length).toBeGreaterThan(50);
+	});
+
+	test('profile overrides are not tokens and new tokens inherit local group type', () => {
+		const profile = {
+			$id: '11111111111111111111111111111111',
+			$config: { base: '22222222222222222222222222222222' },
+			$override: {
+				'33333333333333333333333333333333': { $value: '#eeeeee' },
+			},
+			theme: { color: { $type: 'color', fresh: { $value: '#eeeeee' } } },
+		};
+		const violations: Violation[] = [];
+		for (const [key, child] of Object.entries(profile)) {
+			if (key.startsWith('$')) continue;
+			walk(child, 'profiles/mobile.yaml', key, undefined, false, violations);
+		}
+		expect(violations).toEqual([]);
+		const report = collectThemeIdentityReport([
+			{ file: 'profiles/mobile.yaml', tree: profile },
+		]);
+		expect(report.registered).toBe(0);
+		expect(report.unregistered).toEqual([
+			{ file: 'profiles/mobile.yaml', path: 'theme.color.fresh' },
+		]);
+		expect(report.undecidableTypes).toEqual([]);
+
+		const untyped: Violation[] = [];
+		walk(
+			{ fresh: { $value: '#eeeeee' } },
+			'profiles/mobile.yaml',
+			'theme.state',
+			undefined,
+			false,
+			untyped,
+		);
+		expect(untyped).toEqual([
+			{
+				file: 'profiles/mobile.yaml',
+				path: 'theme.state.fresh',
+				kind: 'undecidable-type',
+			},
+		]);
 	});
 
 	test('no mixed bodies and no type-undecidable nodes in any fixture', () => {

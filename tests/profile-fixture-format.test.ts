@@ -3,8 +3,6 @@ import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 
 const themesDir = path.resolve(import.meta.dir, 'fixtures/themes');
-// M1-1: identity-only legacy scenarios migrate with ids/doctor behavior in M4.
-const deferredToM4 = new Set(['identity-ladder', 'identity-conflict']);
 
 function record(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -30,16 +28,11 @@ function auditNewTokens(
 describe('every day profile fixture uses the new delta format', () => {
 	test('parses all files, verifies base identity, exact overrides and local token types', async () => {
 		let checked = 0;
-		let deferred = 0;
 		for await (const relative of new Bun.Glob('**/profiles/**/*.yaml').scan(
 			themesDir,
 		)) {
 			if (path.basename(relative).includes('@night')) continue;
 			const fixtureRoot = relative.split(`${path.sep}profiles${path.sep}`)[0]!;
-			if (deferredToM4.has(fixtureRoot)) {
-				deferred++;
-				continue;
-			}
 			const profilePath = path.join(themesDir, relative);
 			const profile = yaml.load(await Bun.file(profilePath).text());
 			const main = yaml.load(
@@ -59,17 +52,28 @@ describe('every day profile fixture uses the new delta format', () => {
 			const ids = new Set<string>();
 			function auditBase(node: Record<string, unknown>): void {
 				if (Object.hasOwn(node, '$value')) {
-					expect(typeof node.$id, profilePath).toBe('string');
-					expect(
-						(node.$id as string).trim().length,
-						profilePath,
-					).toBeGreaterThan(0);
-					ids.add(node.$id as string);
+					if (fixtureRoot !== 'identity-ladder') {
+						expect(typeof node.$id, profilePath).toBe('string');
+						expect(
+							(node.$id as string).trim().length,
+							profilePath,
+						).toBeGreaterThan(0);
+					}
+					if (typeof node.$id === 'string' && node.$id.trim() !== '')
+						ids.add(node.$id);
 					return;
 				}
 				for (const [key, child] of Object.entries(node)) {
 					if (!key.startsWith('$') && record(child)) auditBase(child);
 				}
+			}
+			if (fixtureRoot === 'identity-ladder') {
+				const theme = main.theme as Record<string, unknown>;
+				const color = theme.color as Record<string, Record<string, unknown>>;
+				expect(color.reserved?.$id).toBeNull();
+				expect(color.blank?.$id).toBe('');
+				expect(color.legacy).not.toHaveProperty('$id');
+				expect(color.custom?.$id).toBe('brand-legacy-id');
 			}
 			auditBase(main);
 			if (Object.hasOwn(profile, '$override')) {
@@ -90,7 +94,6 @@ describe('every day profile fixture uses the new delta format', () => {
 			);
 			checked++;
 		}
-		expect(deferred).toBe(2);
-		expect(checked).toBe(22); // 21 existing profiles (including nested-invalid) plus the minimal fixture.
+		expect(checked).toBe(24); // All day profiles, including both migrated identity fixtures.
 	});
 });

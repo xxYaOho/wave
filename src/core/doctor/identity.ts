@@ -51,6 +51,13 @@ export interface IdentityConflict {
 }
 
 export interface ThemeIdentityReport {
+	/** Root identity slots for main and day-profile documents. */
+	documents: Array<{
+		file: string;
+		path: '(theme)';
+		state: 'registered' | 'empty' | 'unregistered';
+		id?: string;
+	}>;
 	/** Tokens carrying a non-empty `$id` identity. */
 	registered: number;
 	/** Tokens without an `$id` key (not yet registered). */
@@ -162,6 +169,7 @@ function childKeysOf(node: Record<string, unknown>): string[] {
 
 function emptyReport(): ThemeIdentityReport {
 	return {
+		documents: [],
 		registered: 0,
 		unregistered: [],
 		emptySlots: [],
@@ -312,6 +320,25 @@ export function collectThemeIdentityReport(
 	}
 
 	for (const { file, tree, baseTree } of files) {
+		if (
+			!baseTree &&
+			!file.endsWith('@night.yaml') &&
+			!file.endsWith('@night.yml')
+		) {
+			const id = tree.$id;
+			if (!('$id' in tree)) {
+				report.documents.push({ file, path: '(theme)', state: 'unregistered' });
+			} else if (typeof id !== 'string' || id.trim() === '') {
+				report.documents.push({ file, path: '(theme)', state: 'empty' });
+			} else {
+				report.documents.push({
+					file,
+					path: '(theme)',
+					state: 'registered',
+					id,
+				});
+			}
+		}
 		if (baseTree) {
 			walkOverlay(tree, '', file, baseTree);
 			continue;

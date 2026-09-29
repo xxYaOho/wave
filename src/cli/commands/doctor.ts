@@ -1,4 +1,3 @@
-import * as path from 'node:path';
 import { Command } from 'commander';
 import * as yaml from 'js-yaml';
 import {
@@ -6,17 +5,13 @@ import {
 	renderDimensionMigrationAdvice,
 } from '../../core/doctor/dimension-migration.ts';
 import {
-	collectThemeIdentityReport,
 	describeIdentityConflict,
-	identityBlockingFindings,
-	loadIdentityInputs,
+	type ThemeIdentityReport,
 } from '../../core/doctor/identity.ts';
+import { inspectWorkspaceHealth } from '../../core/doctor/profile-health.ts';
 import { runThemeContrastCheck } from '../../core/doctor/registry.ts';
 import { validateDeclaredResources } from '../../core/doctor/resource-validator.ts';
-import {
-	createThemeDoctorContextFromContent,
-	detectThemeFiles,
-} from '../../core/doctor/theme-context.ts';
+import { createThemeDoctorContextFromContent } from '../../core/doctor/theme-context.ts';
 import { runToolchainDoctor } from '../../core/doctor/toolchain.ts';
 import {
 	discoverProfiles,
@@ -33,7 +28,7 @@ import {
 	type LoadedDesignTokenWorkspace,
 	loadDesignTokenWorkspace,
 } from '../../core/pipeline/workspace-loader.ts';
-import type { DoctorThemeReport } from '../../types/index.ts';
+import type { DoctorFinding, DoctorThemeReport } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 
 const SEPARATOR = '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~';
@@ -172,34 +167,18 @@ function renderWorkspaceLoadFailure(
 }
 
 /**
- * Scan every theme file of the workspace for token identity health, print the
- * report, and return whether no blocking finding (cross-file id conflict,
- * DTCG §5.2.2 undecidable token type) exists. Detail lists are capped unless
- * --verbose is set.
+ * Render the source identity scan, capped unless --verbose is set.
  */
-async function renderThemeIdentityReport(
-	themeDir: string,
+function renderThemeIdentityReport(
+	report: ThemeIdentityReport,
 	verbose = false,
-): Promise<boolean> {
-	const entries = await detectThemeFiles(themeDir);
-	const labelOf = new Map(
-		entries.map((entry) => [entry.name, path.relative(themeDir, entry.path)]),
-	);
-	const inputs = await loadIdentityInputs(
-		entries.map((entry) => {
-			const nightStem = entry.name.endsWith('@night')
-				? entry.name.slice(0, -'@night'.length)
-				: undefined;
-			const baseLabel =
-				nightStem !== undefined ? labelOf.get(nightStem) : undefined;
-			return {
-				label: path.relative(themeDir, entry.path),
-				path: entry.path,
-				baseLabel,
-			};
-		}),
-	);
-	const report = collectThemeIdentityReport(inputs);
+): void {
+	console.log('Document Identity');
+	for (const document of report.documents) {
+		console.log(
+			`  · ${document.file}:${document.path}: ${document.state}${document.id ? ` "${document.id}"` : ''}`,
+		);
+	}
 
 	console.log('Token Identity');
 	console.log(
@@ -256,7 +235,6 @@ async function renderThemeIdentityReport(
 		const label = conflict.crossFile ? 'cross-file' : 'within-file';
 		console.log(`  ${prefix} ${label} ${describeIdentityConflict(conflict)}`);
 	}
-	return identityBlockingFindings(report).length === 0;
 }
 
 export function createDoctorCommand(
@@ -271,7 +249,7 @@ export function createDoctorCommand(
 		.option('--night', 'Check night profile (use with --contrast)')
 		.option(
 			'--profile <name>',
-			'Check specific profile by name (use with --contrast)',
+			'Check a specific profile instead of the whole workspace',
 		)
 		.option('--json', 'Output structured JSON for core diagnostics')
 		.option('--verbose', 'Show detailed core diagnostics')
@@ -291,7 +269,19 @@ export function createDoctorCommand(
 			}
 			if (!options.contrast) {
 				let workspaceTheme: string | undefined;
-				let identityOk = true;
+				const workspaceFindings: DoctorFinding[] = [];
+				let identity: ThemeIdentityReport | undefined;
+				let workspaceExitCode: number = ExitCode.SUCCESS;
+				let resourcesChecked = false;
+				let resourcesOk = true;
+				const addFailures = (findings: DoctorFinding[], exitCode: number) => {
+					workspaceFindings.push(...findings);
+					if (
+						workspaceExitCode === ExitCode.SUCCESS ||
+						exitCode === ExitCode.FORMAT_ERROR
+					)
+						workspaceExitCode = exitCode;
+				};
 				if (
 					commandOptions.defaultMainYaml === true ||
 					options.file !== undefined
@@ -302,76 +292,116 @@ export function createDoctorCommand(
 						return;
 					}
 
-					let selected: Awaited<ReturnType<typeof selectProfileDocument>>;
-					try {
-						selected = await selectProfileDocument(
-							loadResult.workspace,
-							options.profile,
-						);
-					} catch (error) {
-						console.log(
-							`✗ ${error instanceof Error ? error.message : String(error)}`,
-						);
-						process.exitCode =
-							error instanceof ProfileFormatError
-								? error.exitCode
-								: ExitCode.FILE_NOT_FOUND;
-						return;
-					}
-
-					workspaceTheme = selected.document.config.theme;
-					const resourceResult = await validateDeclaredResources(
-						selected.document.config,
-						selected.document.buildDir,
+					const health = await inspectWorkspaceHealth(
+						loadResult.workspace,
+						options.profile,
 					);
-					if (!resourceResult.ok) {
-						console.log(`✗ Resources: ${resourceResult.message}`);
-						const findings = await inspectRawDimensionMigration(
-							selected.entry.path,
+					workspaceFindings.push(...health.findings);
+					identity = health.identity;
+					workspaceExitCode = health.exitCode;
+					const selected = health.selectedDocument;
+					workspaceTheme = loadResult.workspace.config.theme;
+					if (selected) {
+						resourcesChecked = true;
+						const resourceResult = await validateDeclaredResources(
+							selected.config,
+							selected.buildDir,
 						);
-						if (findings.length > 0) {
-							console.log(renderDimensionMigrationAdvice(findings));
+						if (!resourceResult.ok) {
+							resourcesOk = false;
+							addFailures(
+								[
+									{
+										level: 'error',
+										message: `Resources: ${resourceResult.message}`,
+									},
+								],
+								ExitCode.GENERAL_ERROR,
+							);
+							const migration = await inspectRawDimensionMigration(
+								selected.entry.path,
+							);
+							if (migration.length > 0)
+								addFailures(
+									[
+										{
+											level: 'error',
+											message: renderDimensionMigrationAdvice(migration),
+										},
+									],
+									ExitCode.GENERAL_ERROR,
+								);
+						} else {
+							const contextResult = await createThemeDoctorContextFromContent(
+								selected.entry.path,
+								selected.tokenContent,
+								resourceResult.dictionary.dict,
+							);
+							if (!contextResult.ok) {
+								addFailures(
+									contextResult.findings.map((finding) => ({
+										...finding,
+										message: `${selected.entry.path}: Theme: ${finding.message}`,
+									})),
+									contextResult.exitCode,
+								);
+							} else {
+								const migration = findDimensionMigrationFindings(
+									contextResult.context.resolvedTree,
+								);
+								if (migration.length > 0)
+									addFailures(
+										[
+											{
+												level: 'error',
+												message: renderDimensionMigrationAdvice(migration),
+											},
+										],
+										ExitCode.GENERAL_ERROR,
+									);
+							}
 						}
-						process.exitCode = ExitCode.GENERAL_ERROR;
-						return;
-					}
-
-					const contextResult = await createThemeDoctorContextFromContent(
-						selected.entry.path,
-						selected.document.tokenContent,
-						resourceResult.dictionary.dict,
-					);
-					if (!contextResult.ok) {
-						console.log(
-							`✗ Theme: ${contextResult.findings[0]?.message ?? 'Unable to inspect theme'}`,
-						);
-						process.exitCode = contextResult.exitCode;
-						return;
-					}
-					const findings = findDimensionMigrationFindings(
-						contextResult.context.resolvedTree,
-					);
-					if (findings.length > 0) {
-						console.log(renderDimensionMigrationAdvice(findings));
-						process.exitCode = ExitCode.GENERAL_ERROR;
-						return;
-					}
-
-					// Token identity health: multi-pass scan across every theme file.
-					if (!options.json && !options.status) {
-						identityOk = await renderThemeIdentityReport(
-							loadResult.workspace.workspaceDir,
-							options.verbose === true,
-						);
 					}
 				}
 
 				const toolchain = await runToolchainDoctor({ module: 'core' });
-				if (options.json) {
-					console.log(JSON.stringify(toolchain, null, 2));
-					process.exitCode = toolchain.ok
-						? ExitCode.SUCCESS
+				if (identity) {
+					const issues = workspaceFindings
+						.filter((finding) => finding.level !== 'info')
+						.map((finding) => ({
+							code: 'WDT_WORKSPACE_HEALTH',
+							title: 'Workspace health',
+							description: finding.message,
+							severity:
+								finding.level === 'error'
+									? ('error' as const)
+									: ('warning' as const),
+							module: 'core' as const,
+						}));
+					toolchain.checks.push({
+						id: 'core:workspace',
+						name: 'Workspace Health',
+						status: workspaceExitCode === ExitCode.SUCCESS ? 'pass' : 'fail',
+						message: `${workspaceFindings.filter((finding) => finding.level === 'error').length} errors, ${workspaceFindings.filter((finding) => finding.level === 'info').length} info`,
+						issues,
+					});
+					toolchain.issues.push(...issues);
+				}
+				const diagnostics = {
+					...toolchain,
+					ok: toolchain.ok && workspaceExitCode === ExitCode.SUCCESS,
+					findings: workspaceFindings,
+					...(identity ? { identity } : {}),
+				};
+				const failureExitCode =
+					workspaceExitCode !== ExitCode.SUCCESS
+						? workspaceExitCode
 						: ExitCode.GENERAL_ERROR;
+				if (options.json) {
+					console.log(JSON.stringify(diagnostics, null, 2));
+					process.exitCode = diagnostics.ok
+						? ExitCode.SUCCESS
+						: failureExitCode;
 					return;
 				}
 				if (options.status) {
@@ -385,11 +415,13 @@ export function createDoctorCommand(
 						(check) => check.status === 'pass',
 					).length;
 					console.log(
-						`wave: ${toolchain.ok ? 'ok' : 'needs attention'} (${passed} pass, ${warned} warn, ${failed} fail)`,
+						`wave: ${diagnostics.ok ? 'ok' : 'needs attention'} (${passed} pass, ${warned} warn, ${failed} fail)`,
 					);
-					process.exitCode = toolchain.ok
+					for (const finding of workspaceFindings)
+						console.log(`  ${finding.level}: ${finding.message}`);
+					process.exitCode = diagnostics.ok
 						? ExitCode.SUCCESS
-						: ExitCode.GENERAL_ERROR;
+						: failureExitCode;
 					return;
 				}
 				console.log('🔍 Running Wave diagnostics...\n');
@@ -402,13 +434,23 @@ export function createDoctorCommand(
 					`${icon} Bun Version: ${bunPassed ? `v${currentVersion}` : `v${currentVersion} (requires >= v${minVersion})`}`,
 				);
 
-				const allPassed = bunPassed && identityOk;
+				const allPassed = bunPassed && diagnostics.ok;
+				if (identity)
+					renderThemeIdentityReport(identity, options.verbose === true);
+				for (const finding of workspaceFindings)
+					console.log(
+						`${finding.level === 'error' ? '✗' : '·'} ${finding.message}`,
+					);
 				console.log(
 					workspaceTheme
 						? `✓ Config File: Valid (${workspaceTheme})`
 						: '✓ Config File: No main.yaml specified',
 				);
-				console.log('✓ Resources: All declared resources valid');
+				console.log(
+					resourcesChecked
+						? `${resourcesOk ? '✓' : '✗'} Resources: ${resourcesOk ? 'All declared resources valid' : 'Invalid declarations'}`
+						: '· Resources: Not checked',
+				);
 				console.log('✓ Output Directory: OK');
 				if (options.verbose || toolchain.issues.length > 0) {
 					for (const check of toolchain.checks) {
@@ -423,7 +465,7 @@ export function createDoctorCommand(
 					process.exitCode = ExitCode.SUCCESS;
 				} else {
 					console.log('Some checks failed. Please fix the issues above.');
-					process.exitCode = ExitCode.GENERAL_ERROR;
+					process.exitCode = failureExitCode;
 				}
 				return;
 			}

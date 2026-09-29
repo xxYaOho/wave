@@ -2,11 +2,17 @@ import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import * as yaml from 'js-yaml';
 import {
 	IdsEntryError,
 	type IdsWorkspaceReport,
 	runIdsWorkspace,
 } from '../src/core/ids/ids.ts';
+import {
+	discoverProfiles,
+	parseProfileDocument,
+} from '../src/core/pipeline/profile-resolver.ts';
+import { loadDesignTokenWorkspace } from '../src/core/pipeline/workspace-loader.ts';
 
 async function makeTempWorkspace(
 	files: Record<string, string>,
@@ -65,36 +71,197 @@ theme:
       $value: "#3366cc"
 `;
 
-const PROFILE_SHARED = `theme:
+const MAIN_PROFILE_ROOT = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+const PRIMARY_ID = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+const MAIN_WITH_PROFILE = `$id: ${MAIN_PROFILE_ROOT}\n${MAIN_COMMENTS.replace('      $value: "#1872f0"', `      $id: ${PRIMARY_ID}\n      $value: "#1872f0"`)}`;
+
+const PROFILE_SHARED = `$config:
+  base: ${MAIN_PROFILE_ROOT}
+$override:
+  ${PRIMARY_ID}:
+    $value: "#0044bb"
+theme:
   color:
-    $type: color
-    primary:
-      $value: "#0044bb"
     accent:
+      $type: color
       $value: "#ff8800"
 `;
+
+describe('wave dt ids — profile base contract', () => {
+	test.each([
+		['missing', `$override:\n  theme: {}\n`],
+		['wrong', `$config:\n  base: wrong-theme\n$override:\n  theme: {}\n`],
+		['empty', `$config:\n  base: ""\n$override:\n  theme: {}\n`],
+	])('%s base blocks dry-run and write for the whole workspace', async (_kind, profile) => {
+		const dir = await makeTempWorkspace({
+			'main.yaml': MAIN_WITH_PROFILE,
+			'profiles/mobile.yaml': profile,
+		});
+		for (const write of [false, true]) {
+			const report = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+				write,
+				allowDirty: true,
+			});
+			expect(
+				report.problems.some(
+					(problem) =>
+						problem.message.includes('profiles/mobile.yaml') &&
+						problem.message.includes('$config.base'),
+				),
+			).toBe(true);
+			expect(report.written).toBe(false);
+			expect(await read(dir, 'main.yaml')).toBe(MAIN_WITH_PROFILE);
+			expect(await read(dir, 'profiles/mobile.yaml')).toBe(profile);
+		}
+	});
+
+	test('a missing or empty original main root cannot validate a pre-existing profile base', async () => {
+		for (const main of [MAIN_COMMENTS, `$id: ""\n${MAIN_COMMENTS}`]) {
+			const dir = await makeTempWorkspace({
+				'main.yaml': main,
+				'profiles/mobile.yaml': PROFILE_SHARED,
+			});
+			const report = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+				write: true,
+				allowDirty: true,
+			});
+			expect(
+				report.problems.some((problem) =>
+					problem.message.includes('original main.yaml root $id'),
+				),
+			).toBe(true);
+			expect(report.written).toBe(false);
+			expect(await read(dir, 'main.yaml')).toBe(main);
+			expect(await read(dir, 'profiles/mobile.yaml')).toBe(PROFILE_SHARED);
+		}
+	});
+
+	test('committed profile document identity remains distinct from main and token identity', async () => {
+		const profile = `$id: profile-identity\n${PROFILE_SHARED}`;
+		const dir = await makeTempWorkspace({
+			'main.yaml': MAIN_WITH_PROFILE,
+			'profiles/mobile.yaml': profile,
+		});
+		const report = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+			write: true,
+			allowDirty: true,
+		});
+		expect(report.problems).toEqual([]);
+		expect(
+			report.changes.some(
+				(change) =>
+					change.file === 'profiles/mobile.yaml' &&
+					change.tokenPath === '(theme)',
+			),
+		).toBe(false);
+		expect(await read(dir, 'profiles/mobile.yaml')).toStartWith(
+			'$id: profile-identity\n',
+		);
+	});
+	test('invalid profile root identity blocks all workspace writes', async () => {
+		const profile = `$id: 123\n${PROFILE_SHARED}`;
+		const dir = await makeTempWorkspace({
+			'main.yaml': MAIN_WITH_PROFILE,
+			'profiles/mobile.yaml': profile,
+		});
+		const report = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+			write: true,
+			allowDirty: true,
+		});
+		expect(
+			report.problems.some((problem) =>
+				problem.message.includes(
+					'profiles/mobile.yaml: root $id must be a string',
+				),
+			),
+		).toBe(true);
+		expect(report.written).toBe(false);
+		expect(await read(dir, 'main.yaml')).toBe(MAIN_WITH_PROFILE);
+		expect(await read(dir, 'profiles/mobile.yaml')).toBe(profile);
+	});
+	test.each([
+		['mapping', '$id:\n  nested: value\n'],
+		['sequence', '$id: [bad-id]\n'],
+		['boolean', '$id: true\n'],
+	])('%s profile root is a hard blocker in dry-run and write', async (_kind, root) => {
+		const profile = `${root}${PROFILE_SHARED}`;
+		const dir = await makeTempWorkspace({
+			'main.yaml': MAIN_WITH_PROFILE,
+			'profiles/mobile.yaml': profile,
+		});
+		for (const write of [false, true]) {
+			const report = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+				write,
+				allowDirty: true,
+			});
+			expect(
+				report.problems.some((problem) =>
+					problem.message.includes(
+						'profiles/mobile.yaml: root $id must be a string',
+					),
+				),
+			).toBe(true);
+			expect(report.written).toBe(false);
+			expect(await read(dir, 'main.yaml')).toBe(MAIN_WITH_PROFILE);
+			expect(await read(dir, 'profiles/mobile.yaml')).toBe(profile);
+		}
+	});
+
+	test('profile root alias resolving to a committed identity is preserved', async () => {
+		const profile = `$helper: &rootid profile-committed-id\n$id: *rootid\n${PROFILE_SHARED}`;
+		const dir = await makeTempWorkspace({
+			'main.yaml': MAIN_WITH_PROFILE,
+			'profiles/mobile.yaml': profile,
+		});
+		const report = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+			write: true,
+			allowDirty: true,
+		});
+		expect(report.problems).toEqual([]);
+		expect(
+			report.changes.some(
+				(change) =>
+					change.file === 'profiles/mobile.yaml' &&
+					change.tokenPath === '(theme)',
+			),
+		).toBe(false);
+		expect(await read(dir, 'profiles/mobile.yaml')).toContain('$id: *rootid');
+		const second = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+			write: true,
+		});
+		expect(second.added).toBe(0);
+		expect(second.written).toBe(false);
+	});
+});
 
 describe('wave dt ids — diff and plan', () => {
 	test('dry-run reports counts and details without touching files', async () => {
 		const dir = await makeTempWorkspace({
-			'main.yaml': MAIN_COMMENTS,
+			'main.yaml': MAIN_WITH_PROFILE,
 			'profiles/mobile.yaml': PROFILE_SHARED,
 		});
 
 		const report = await runIdsWorkspace(path.join(dir, 'main.yaml'));
 		expect(report.write).toBe(false);
 		expect(report.written).toBe(false);
-		// Origins: document root, main primary, main secondary, profile
-		// accent; profile primary adopts the path identity minted at main
-		// (synced).
-		expect(report.added).toBe(4);
-		expect(report.synced).toBe(1);
+		// Origins: main secondary, profile document root and profile accent.
+		// Overrides inherit the already-registered primary identity.
+		expect(report.added).toBe(3);
+		expect(report.synced).toBe(0);
 		expect(report.problems).toEqual([]);
 
-		// Document slot first: main.yaml root $id precedes every token.
+		// Main has a committed root; profile has its own missing document slot.
 		expect(report.changes[0]).toMatchObject({
 			file: 'main.yaml',
-			tokenPath: '(theme)',
+			tokenPath: 'theme.color.secondary',
+		});
+		expect(
+			report.changes.find(
+				(change) =>
+					change.file === 'profiles/mobile.yaml' &&
+					change.tokenPath === '(theme)',
+			),
+		).toMatchObject({
 			kind: 'generate',
 			mode: 'insert',
 		});
@@ -104,114 +271,123 @@ describe('wave dt ids — diff and plan', () => {
 				change.file === 'main.yaml' &&
 				change.tokenPath === 'theme.color.primary',
 		);
-		expect(primary?.kind).toBe('generate');
-		expect(primary?.mode).toBe('insert');
-		expect(primary?.id).toMatch(GENERATED_ID);
+		expect(primary).toBeUndefined();
+		expect(report.changes[0]?.id).toMatch(GENERATED_ID);
 
-		const sync = report.changes.find(
-			(change) =>
-				change.file === 'profiles/mobile.yaml' &&
-				change.tokenPath === 'theme.color.primary',
-		);
-		expect(sync?.kind).toBe('sync');
-		expect(sync?.mode).toBe('insert');
-		expect(sync?.source).toBe('main.yaml');
-		expect(sync?.id).toBe(primary?.id);
+		expect(
+			report.changes.some(
+				(change) =>
+					change.file === 'profiles/mobile.yaml' &&
+					change.tokenPath === 'theme.color.primary',
+			),
+		).toBe(false);
+		expect(
+			report.changes.some((change) => change.tokenPath.startsWith('$override')),
+		).toBe(false);
 
-		expect(await read(dir, 'main.yaml')).toBe(MAIN_COMMENTS);
+		expect(await read(dir, 'main.yaml')).toBe(MAIN_WITH_PROFILE);
 		expect(await read(dir, 'profiles/mobile.yaml')).toBe(PROFILE_SHARED);
 		expect(report.files).toEqual([
-			{ file: 'main.yaml', status: 'pending', added: 3, synced: 0 },
+			{ file: 'main.yaml', status: 'pending', added: 1, synced: 0 },
 			{
 				file: 'profiles/mobile.yaml',
 				status: 'pending',
-				added: 1,
-				synced: 1,
+				added: 2,
+				synced: 0,
 			},
 		]);
 	});
 
-	test('empty slots adopt the committed authority in both directions', async () => {
-		const dir = await makeTempWorkspace({
-			'main.yaml': `theme:
+	test('empty profile root slots are filled independently of token slots', async () => {
+		const main = `$id: ${MAIN_PROFILE_ROOT}
+$config:
+  theme: ids-empty
+theme:
   color:
-    $type: color
     alpha:
-      $id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      $id: ${PRIMARY_ID}
       $value: "#0066cc"
     beta:
       $id: ""
       $value: "#3366cc"
-    gamma:
-      $id: ""
-      $value: "#0044cc"
-`,
-			'profiles/mobile.yaml': `theme:
+`;
+		const profile = `$id: "" # reserved document slot
+$config:
+  base: ${MAIN_PROFILE_ROOT}
+$override:
+  ${PRIMARY_ID}:
+    $value: "#ff0000"
+theme:
   color:
-    $type: color
-    alpha:
-      $id: ""
-      $value: "#ff0000"
-    beta:
-      $id: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-      $value: "#112233"
-    gamma:
+    new:
+      $type: color
       $id: null
       $value: "#0033dd"
-`,
+`;
+		const dir = await makeTempWorkspace({
+			'main.yaml': main,
+			'profiles/mobile.yaml': profile,
 		});
-
 		const report = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
 			write: true,
 			allowDirty: true,
 		});
 		expect(report.problems).toEqual([]);
-		// gamma: both slots empty on a shared path -> one minted identity
-		// (main origin added, profile copy synced). alpha and beta adopt the
-		// committed authorities in both directions. The document root adds
-		// one more minted identity.
-		expect(report.added).toBe(2);
-		expect(report.synced).toBe(3);
-
-		const alpha = report.changes.find(
-			(change) => change.tokenPath === 'theme.color.alpha',
+		expect(report.added).toBe(3);
+		expect(report.synced).toBe(0);
+		expect(
+			report.changes.find(
+				(change) =>
+					change.file === 'profiles/mobile.yaml' &&
+					change.tokenPath === '(theme)',
+			),
+		).toMatchObject({ kind: 'generate', mode: 'fill' });
+		const written = await read(dir, 'profiles/mobile.yaml');
+		expect(written).toContain(
+			`$override:\n  ${PRIMARY_ID}:\n    $value: "#ff0000"`,
 		);
-		expect(alpha).toMatchObject({
-			file: 'profiles/mobile.yaml',
-			kind: 'sync',
-			mode: 'fill',
-			id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-			source: 'main.yaml',
+		expect(written).toMatch(/^\$id: [0-9a-f]{32} # reserved document slot/m);
+		expect(stripIdLines(written)).toBe(stripIdLines(profile));
+		const loaded = await loadDesignTokenWorkspace(path.join(dir, 'main.yaml'));
+		expect(loaded.ok).toBe(true);
+		if (!loaded.ok) throw new Error(loaded.message);
+		const parsed = await parseProfileDocument(
+			{
+				name: 'mobile',
+				path: path.join(dir, 'profiles/mobile.yaml'),
+				isDefault: false,
+			},
+			{
+				baseDir: dir,
+				baseId: loaded.workspace.themeId,
+				baseConfig: loaded.workspace.config,
+				baseTree: yaml.load(loaded.workspace.tokenContent) as Record<
+					string,
+					unknown
+				>,
+			},
+		);
+		const merged = yaml.load(parsed.tokenContent) as {
+			theme: { color: Record<string, { $id: string; $value: string }> };
+		};
+		expect(merged.theme.color.alpha).toMatchObject({
+			$id: PRIMARY_ID,
+			$value: '#ff0000',
 		});
-		const beta = report.changes.find(
-			(change) => change.tokenPath === 'theme.color.beta',
-		);
-		expect(beta).toMatchObject({
-			file: 'main.yaml',
-			kind: 'sync',
-			mode: 'fill',
-			id: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-			source: 'profiles/mobile.yaml',
+		expect(merged.theme.color.new?.$id).toMatch(GENERATED_ID);
+		const second = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
+			write: true,
 		});
-		const gammaMain = report.changes.find(
-			(change) =>
-				change.tokenPath === 'theme.color.gamma' && change.file === 'main.yaml',
-		);
-		const gammaProfile = report.changes.find(
-			(change) =>
-				change.tokenPath === 'theme.color.gamma' &&
-				change.file === 'profiles/mobile.yaml',
-		);
-		expect(gammaMain?.kind).toBe('generate');
-		expect(gammaProfile?.kind).toBe('sync');
-		expect(gammaMain?.id).toBe(gammaProfile?.id);
+		expect(second.added).toBe(0);
+		expect(second.written).toBe(false);
+		expect(await read(dir, 'profiles/mobile.yaml')).toBe(written);
 	});
 });
 
 describe('wave dt ids — surgical write-back', () => {
 	test('write preserves comments/layout, only $id lines change, second run is a no-op', async () => {
 		const dir = await makeTempWorkspace({
-			'main.yaml': MAIN_COMMENTS,
+			'main.yaml': MAIN_WITH_PROFILE,
 			'profiles/mobile.yaml': PROFILE_SHARED,
 		});
 
@@ -226,12 +402,12 @@ describe('wave dt ids — surgical write-back', () => {
 		const profile = await read(dir, 'profiles/mobile.yaml');
 
 		// Diff surface: non-$id lines byte-identical, in order.
-		expect(stripIdLines(main)).toBe(stripIdLines(MAIN_COMMENTS));
+		expect(stripIdLines(main)).toBe(stripIdLines(MAIN_WITH_PROFILE));
 		expect(stripIdLines(profile)).toBe(stripIdLines(PROFILE_SHARED));
 		// added + synced equals the number of inserted $id lines.
 		expect(report.added + report.synced).toBe(
 			countIdLines(main) -
-				countIdLines(MAIN_COMMENTS) +
+				countIdLines(MAIN_WITH_PROFILE) +
 				countIdLines(profile) -
 				countIdLines(PROFILE_SHARED),
 		);
@@ -244,14 +420,46 @@ describe('wave dt ids — surgical write-back', () => {
 		expect(main).toContain('# workspace 头注释');
 		expect(main).toContain('# token 注释必须原样保留');
 
-		// Document root $id is minted as the first key of main.yaml.
-		expect(main).toMatch(/^\$id: [0-9a-f]{32}\n/);
-
-		// Shared path carries the same identity in both files.
-		const mainPrimary = main.match(
-			/ {6}\$description: "brand primary"\n {6}\$id: ([0-9a-f]{32})/,
+		// The main root is committed, while the profile root is minted.
+		expect(main).toStartWith(`$id: ${MAIN_PROFILE_ROOT}\n`);
+		expect(profile).toMatch(/^\$id: [0-9a-f]{32}\n/);
+		expect(profile).toContain(
+			`$override:\n  ${PRIMARY_ID}:\n    $value: "#0044bb"`,
 		);
-		expect(profile).toContain(`$id: ${mainPrimary?.[1]}`);
+		expect(profile).not.toContain(`$override:\n  ${PRIMARY_ID}:\n    $id:`);
+
+		// The written source must merge through the production workspace parsers.
+		const loaded = await loadDesignTokenWorkspace(path.join(dir, 'main.yaml'));
+		expect(loaded.ok).toBe(true);
+		if (!loaded.ok) throw new Error(loaded.message);
+		const entries = await discoverProfiles(dir);
+		const mobile = entries.find((entry) => entry.name === 'mobile');
+		expect(mobile).toBeDefined();
+		if (!mobile) throw new Error('mobile profile not found');
+		const parsed = await parseProfileDocument(mobile, {
+			baseDir: dir,
+			baseId: loaded.workspace.themeId,
+			baseConfig: loaded.workspace.config,
+			baseTree: yaml.load(loaded.workspace.tokenContent) as Record<
+				string,
+				unknown
+			>,
+		});
+		expect(parsed.themeId).toMatch(GENERATED_ID);
+		const merged = yaml.load(parsed.tokenContent) as {
+			theme: {
+				color: Record<string, { $id: string; $type?: string; $value: string }>;
+			};
+		};
+		expect(merged.theme.color.primary).toMatchObject({
+			$id: PRIMARY_ID,
+			$value: '#0044bb',
+		});
+		expect(merged.theme.color.accent).toMatchObject({
+			$type: 'color',
+			$value: '#ff8800',
+		});
+		expect(merged.theme.color.accent?.$id).toMatch(GENERATED_ID);
 
 		// Idempotent: second run is a no-op with byte-identical files.
 		const second = await runIdsWorkspace(path.join(dir, 'main.yaml'), {
@@ -351,14 +559,17 @@ describe('wave dt ids — surgical write-back', () => {
 });
 
 describe('wave dt ids — conflicts are hard blockers', () => {
-	const DIVERGENT_MAIN = `theme:
+	const DIVERGENT_MAIN = `$id: ${MAIN_PROFILE_ROOT}
+theme:
   color:
     $type: color
     alpha:
       $id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
       $value: "#0066cc"
 `;
-	const DIVERGENT_PROFILE = `theme:
+	const DIVERGENT_PROFILE = `$config:
+  base: ${MAIN_PROFILE_ROOT}
+theme:
   color:
     $type: color
     alpha:
@@ -387,13 +598,16 @@ describe('wave dt ids — conflicts are hard blockers', () => {
 
 	test('same id at different paths across files: error, zero write', async () => {
 		const dir = await makeTempWorkspace({
-			'main.yaml': `theme:
+			'main.yaml': `$id: ${MAIN_PROFILE_ROOT}
+theme:
   color:
     one:
       $id: cccccccccccccccccccccccccccccccc
       $value: "#111111"
 `,
-			'profiles/mobile.yaml': `theme:
+			'profiles/mobile.yaml': `$config:
+  base: ${MAIN_PROFILE_ROOT}
+theme:
   color:
     two:
       $id: cccccccccccccccccccccccccccccccc
@@ -447,12 +661,11 @@ describe('wave dt ids — conflicts are hard blockers', () => {
 	});
 
 	test('duplicate spanning main plus agreeing profile repairs consistently', async () => {
-		// doctor's duplicate rule dedupes same-path re-registrations first, so
-		// id ccc... spans the distinct paths one/two within main only: the
-		// document-order first occurrence keeps the id, two is reissued, and
-		// the agreeing profile occurrence at one stays consistent.
+		// Deliberately malformed standalone profile token paths exercise the
+		// cross-file repair contract independently of profile schema validation.
 		const dir = await makeTempWorkspace({
-			'main.yaml': `theme:
+			'main.yaml': `$id: ${MAIN_PROFILE_ROOT}
+theme:
   color:
     one:
       $id: cccccccccccccccccccccccccccccccc
@@ -461,7 +674,9 @@ describe('wave dt ids — conflicts are hard blockers', () => {
       $id: cccccccccccccccccccccccccccccccc
       $value: "#222222"
 `,
-			'profiles/mobile.yaml': `theme:
+			'profiles/mobile.yaml': `$config:
+  base: ${MAIN_PROFILE_ROOT}
+theme:
   color:
     one:
       $id: cccccccccccccccccccccccccccccccc
@@ -666,18 +881,17 @@ describe('wave dt ids CLI', () => {
 
 	test('dry-run then write round trip through the CLI', async () => {
 		const dir = await makeTempWorkspace({
-			'main.yaml': MAIN_COMMENTS,
+			'main.yaml': MAIN_WITH_PROFILE,
 			'profiles/mobile.yaml': PROFILE_SHARED,
 		});
 
 		const dry = await runWave(['dt', 'ids', '-f', path.join(dir, 'main.yaml')]);
 		expect(dry.exitCode).toBe(0);
-		expect(dry.stdout).toContain('Token IDs report: 4 to add, 1 to sync');
+		expect(dry.stdout).toContain('Token IDs report: 3 to add, 0 to sync');
 		expect(dry.stdout).toContain('(dry-run)');
 		expect(dry.stdout).toContain('Dry run only');
-		expect(dry.stdout).toContain('(synced from main.yaml)');
 		expect(dry.stdout).toContain('(theme)');
-		expect(await read(dir, 'main.yaml')).toBe(MAIN_COMMENTS);
+		expect(await read(dir, 'main.yaml')).toBe(MAIN_WITH_PROFILE);
 
 		const write = await runWave([
 			'dt',
@@ -687,8 +901,8 @@ describe('wave dt ids CLI', () => {
 			'--write',
 		]);
 		expect(write.exitCode).toBe(0);
-		expect(write.stdout).toContain('Token IDs written: 4 added, 1 synced');
-		expect(await read(dir, 'main.yaml')).not.toBe(MAIN_COMMENTS);
+		expect(write.stdout).toContain('Token IDs written: 3 added, 0 synced');
+		expect(await read(dir, 'main.yaml')).not.toBe(MAIN_WITH_PROFILE);
 
 		const again = await runWave([
 			'dt',
