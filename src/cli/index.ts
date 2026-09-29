@@ -7,6 +7,7 @@ import { createStatusCommand, createWcagCommand } from './commands/dt.ts';
 import { createIdsCommand } from './commands/dt-ids.ts';
 import { createDesignTokenInitCommand } from './commands/dt-init.ts';
 import { createMigrateExtensionsCommand } from './commands/dt-migrate-extensions.ts';
+import { createNewProfileCommand } from './commands/dt-new-profile.ts';
 import { createShowCommand } from './commands/show.ts';
 import { registerCommands } from './registry.ts';
 
@@ -61,6 +62,7 @@ const DESIGN_TOKEN_SUBCOMMANDS = new Set([
 	'wcag',
 	'show',
 	'init',
+	'new-profile',
 	'update',
 	'status',
 	'ids',
@@ -125,15 +127,17 @@ function showDesignTokenSubcommandHelp(argv: string[]): void {
 					? createShowCommand('show')
 					: commandName === 'init'
 						? createDesignTokenInitCommand('init')
-						: commandName === 'wcag'
-							? createWcagCommand()
-							: commandName === 'status'
-								? createStatusCommand()
-								: commandName === 'ids'
-									? createIdsCommand()
-									: commandName === 'migrate-extensions'
-										? createMigrateExtensionsCommand()
-										: undefined;
+						: commandName === 'new-profile'
+							? createNewProfileCommand()
+							: commandName === 'wcag'
+								? createWcagCommand()
+								: commandName === 'status'
+									? createStatusCommand()
+									: commandName === 'ids'
+										? createIdsCommand()
+										: commandName === 'migrate-extensions'
+											? createMigrateExtensionsCommand()
+											: undefined;
 
 	if (command) {
 		command.name(`wave ${argv[2]} ${commandName}`);
