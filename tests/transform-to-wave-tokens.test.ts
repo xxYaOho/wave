@@ -59,12 +59,10 @@ describe('transformToWaveTokens', () => {
 					$type: 'typography',
 					$extensions: {
 						typography: {
-							defaults: {
-								fontFamily: '{theme.font.family-base}',
-								fontWeight: 400,
-								lineHeight: 1.5,
-								letterSpacing: 0,
-							},
+							fontFamily: '{theme.font.family-base}',
+							fontWeight: 400,
+							lineHeight: 1.5,
+							letterSpacing: 0,
 						},
 					},
 					'family-base': { $type: 'fontFamily', $value: ['Base'] },
@@ -72,9 +70,7 @@ describe('transformToWaveTokens', () => {
 					heading: {
 						$extensions: {
 							typography: {
-								defaults: {
-									fontFamily: '{theme.font.family-heading}',
-								},
+								fontFamily: '{theme.font.family-heading}',
 							},
 						},
 						h1: { $value: { fontSize: 32 } },
@@ -88,7 +84,7 @@ describe('transformToWaveTokens', () => {
 					},
 					body: {
 						$extensions: {
-							typography: { defaults: { fontFamily: ['Body Literal'] } },
+							typography: { fontFamily: ['Body Literal'] },
 						},
 						paragraph: { $value: { fontSize: 16 } },
 					},
@@ -420,18 +416,16 @@ describe('transformToWaveTokens', () => {
 					$type: 'typography',
 					$extensions: {
 						typography: {
-							defaults: {
-								fontFamily: ['system-ui', 'PingFang SC'],
-								fontSize: { value: 14, unit: 'pt' },
-								fontWeight: 400,
-								lineHeight: 1.5,
-								letterSpacing: 0,
-							},
+							fontFamily: ['system-ui', 'PingFang SC'],
+							fontSize: { value: 14, unit: 'pt' },
+							fontWeight: 400,
+							lineHeight: 1.5,
+							letterSpacing: 0,
 						},
 					},
 					body: {
 						$extensions: {
-							typography: { defaults: { fontWeight: 500 } },
+							typography: { fontWeight: 500 },
 						},
 						md: {
 							$value: { fontSize: 16, color: '#112233' },
@@ -538,13 +532,11 @@ describe('transformToWaveTokens', () => {
 					$type: 'typography',
 					$extensions: {
 						typography: {
-							defaults: {
-								fontFamily: 'Inter',
-								fontSize: 14,
-								fontWeight: 400,
-								lineHeight: 1.5,
-								letterSpacing: 0,
-							},
+							fontFamily: 'Inter',
+							fontSize: 14,
+							fontWeight: 400,
+							lineHeight: 1.5,
+							letterSpacing: 0,
 						},
 					},
 					count: { $type: 'number', $value: 2 },
@@ -563,12 +555,10 @@ describe('transformToWaveTokens', () => {
 					$extensions: {
 						typography: {
 							baseFontSize: 14,
-							defaults: {
-								fontFamily: 'Inter',
-								fontWeight: 400,
-								lineHeight: 1.5,
-								letterSpacing: 0,
-							},
+							fontFamily: 'Inter',
+							fontWeight: 400,
+							lineHeight: 1.5,
+							letterSpacing: 0,
 						},
 					},
 					body: {
@@ -610,12 +600,10 @@ describe('transformToWaveTokens', () => {
 						$extensions: {
 							typography: {
 								baseFontSize,
-								defaults: {
-									fontFamily: 'Inter',
-									fontWeight: 400,
-									lineHeight: 1.5,
-									letterSpacing: 0,
-								},
+								fontFamily: 'Inter',
+								fontWeight: 400,
+								lineHeight: 1.5,
+								letterSpacing: 0,
 							},
 						},
 						body: { $value: { fontSize: { value: 0.875, unit: 'rem' } } },

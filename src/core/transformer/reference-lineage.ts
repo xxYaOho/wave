@@ -4,6 +4,7 @@ import type {
 	ReferenceProvenance,
 	ReferenceProvenanceMap,
 } from '../schema/dtcg-reference-types.ts';
+import { TYPOGRAPHY_FIELDS } from '../typography-value.ts';
 
 export interface TokenReferenceLineage {
 	valuePath: readonly ReferencePathSegment[];
@@ -128,7 +129,6 @@ export function typographyDefaultReferenceLineage(
 		...groupPath,
 		'$extensions',
 		'typography',
-		'defaults',
 	];
 	for (const entry of context.provenance.values()) {
 		if (
@@ -138,7 +138,11 @@ export function typographyDefaultReferenceLineage(
 			continue;
 		}
 		const field = entry.consumerSegments[prefix.length];
-		if (typeof field !== 'string') continue;
+		if (
+			typeof field !== 'string' ||
+			!TYPOGRAPHY_FIELDS.some((candidate) => candidate === field)
+		)
+			continue;
 		const targetPath = eligibleTarget(entry, resolved, context.rootKeys);
 		if (!targetPath) continue;
 		lineage.set(field, { valuePath: [field], targetPath });

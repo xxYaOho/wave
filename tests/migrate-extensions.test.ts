@@ -134,8 +134,7 @@ theme:
     $extensions:
       typography:
         baseFontSize: 14
-        defaults:
-          fontFamily: Helvetica
+        fontFamily: Helvetica
 `;
 
 describe('migrateExtensionsSource', () => {
@@ -182,7 +181,7 @@ describe('migrateExtensionsSource', () => {
 		const extensions = font.$extensions as Record<string, unknown>;
 		expect(extensions.typography).toEqual({
 			baseFontSize: 14,
-			defaults: { fontFamily: 'Helvetica' },
+			fontFamily: 'Helvetica',
 		});
 		expect(extensions.platform).toBeUndefined();
 	});

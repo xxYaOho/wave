@@ -152,13 +152,12 @@ theme:
     $type: typography
     $extensions:
       typography:
-        defaults:
-          fontFamily: "{wave.dimension.fontFamily}"
-          fontSize:
-            value: 14
-            unit: pt
-          fontWeight: 400
-          letterSpacing: 0
+        fontFamily: "{wave.dimension.fontFamily}"
+        fontSize:
+          value: 14
+          unit: pt
+        fontWeight: 400
+        letterSpacing: 0
       platform:
         sketch:
           path: "foundation/font"

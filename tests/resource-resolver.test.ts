@@ -433,10 +433,8 @@ describe('generalized resolver', () => {
 					$type: 'typography',
 					$extensions: {
 						typography: {
-							defaults: {
-								fontFamily: '{theme.dimension.family}',
-								fontSize: '{wave.dimension.pt.14}',
-							},
+							fontFamily: '{theme.dimension.family}',
+							fontSize: '{wave.dimension.pt.14}',
 						},
 					},
 				},
@@ -451,10 +449,8 @@ describe('generalized resolver', () => {
 			(result.theme as Record<string, unknown>).font as Record<string, unknown>
 		).$extensions as Record<string, unknown>;
 		const typography = extensions.typography as Record<string, unknown>;
-		const defaults = typography.defaults as Record<string, unknown>;
-
-		expect(defaults.fontFamily).toEqual(['system-ui', 'PingFang SC']);
-		expect(defaults.fontSize).toEqual({
+		expect(typography.fontFamily).toEqual(['system-ui', 'PingFang SC']);
+		expect(typography.fontSize).toEqual({
 			value: 14,
 			unit: 'pt',
 		});
@@ -675,16 +671,14 @@ describe('generalized resolver', () => {
 				font: {
 					$type: 'typography',
 					$extensions: {
-						typography: {
-							defaults: { fontFamily: '{missing.font.family}' },
-						},
+						typography: { fontFamily: '{missing.font.family}' },
 					},
 				},
 			},
 		};
 
 		expect(() => resolveReferences(tree, {})).toThrow(
-			'theme.font.$extensions.typography.defaults.fontFamily',
+			'theme.font.$extensions.typography.fontFamily',
 		);
 	});
 
@@ -695,10 +689,8 @@ describe('generalized resolver', () => {
 					$type: 'typography',
 					$extensions: {
 						typography: {
-							defaults: {
-								fontFamily: {
-									$ref: '#/theme/fontB/$extensions/typography/defaults/fontFamily',
-								},
+							fontFamily: {
+								$ref: '#/theme/fontB/$extensions/typography/fontFamily',
 							},
 						},
 					},
@@ -707,10 +699,8 @@ describe('generalized resolver', () => {
 					$type: 'typography',
 					$extensions: {
 						typography: {
-							defaults: {
-								fontFamily: {
-									$ref: '#/theme/fontA/$extensions/typography/defaults/fontFamily',
-								},
+							fontFamily: {
+								$ref: '#/theme/fontA/$extensions/typography/fontFamily',
 							},
 						},
 					},
@@ -719,7 +709,7 @@ describe('generalized resolver', () => {
 		};
 
 		expect(() => resolveReferences(tree, {})).toThrow(
-			'theme.fontA.$extensions.typography.defaults.fontFamily',
+			'theme.fontA.$extensions.typography.fontFamily',
 		);
 	});
 

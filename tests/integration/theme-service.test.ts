@@ -1034,9 +1034,8 @@ theme:
     $type: typography
     $extensions:
       typography:
-${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}        defaults:
-          fontFamily: Inter
-          fontWeight: 400
+${baseFontSize === undefined ? '' : `        baseFontSize: ${baseFontSize}\n`}        fontFamily: Inter
+        fontWeight: 400
     body:
       $value:
         fontSize: { value: 0.875, unit: rem }
@@ -2781,12 +2780,11 @@ theme:
     $type: typography
     $extensions:
       typography:
-        defaults:
-          fontFamily: Inter
-          fontSize: "{theme.dimension.invalid}"
-          fontWeight: 400
-          lineHeight: 1.5
-          letterSpacing: 0
+        fontFamily: Inter
+        fontSize: "{theme.dimension.invalid}"
+        fontWeight: 400
+        lineHeight: 1.5
+        letterSpacing: 0
     body:
       $value: {}
 `,

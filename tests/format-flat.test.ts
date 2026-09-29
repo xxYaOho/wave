@@ -351,13 +351,11 @@ describe('flatJsonFormat (Wave-native)', () => {
 					$type: 'typography',
 					$extensions: {
 						typography: {
-							defaults: {
-								fontFamily: 'Inter',
-								fontSize: 14,
-								fontWeight: 400,
-								lineHeight: 1.5,
-								letterSpacing: 0,
-							},
+							fontFamily: 'Inter',
+							fontSize: 14,
+							fontWeight: 400,
+							lineHeight: 1.5,
+							letterSpacing: 0,
 						},
 					},
 					body: { $value: { color: '#112233' } },

@@ -76,15 +76,27 @@ theme:
           - color: "{TOKEN}"
             position: "{TOKEN}"
   font:
+    $type: typography
+    $extensions:
+      typography:
+        baseFontSize: "{theme.font.base-size}"
+        fontFamily: "{TOKEN}"
+        fontSize: { value: 14, unit: px }
+        fontWeight: 400
+        lineHeight: 1.5
+        letterSpacing: 0
+    base-size:
+      $type: number
+      $value: 14
     heading:
       h1:
         $type: typography
         $value:
           fontFamily: "{TOKEN}"
           fontSize: { value: "{TOKEN}", unit: px }
-          fontWeight: "{TOKEN}"
-          lineHeight: { value: "{TOKEN}", unit: px }
-          letterSpacing: "{TOKEN}"
+          fontWeight: 700
+          lineHeight: 1.2
+          letterSpacing: 0
 
 doctor:
   wcagPairs:

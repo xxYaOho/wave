@@ -149,11 +149,9 @@ describe('theme schema', () => {
 						$type: 'typography',
 						$extensions: {
 							typography: {
-								defaults: {
-									fontFamily: ['system-ui', 'PingFang SC'],
-									fontWeight: 400,
-									letterSpacing: 0,
-								},
+								fontFamily: ['system-ui', 'PingFang SC'],
+								fontWeight: 400,
+								letterSpacing: 0,
 							},
 						},
 						body: {
@@ -182,11 +180,9 @@ describe('theme schema', () => {
 						$extensions: {
 							typography: {
 								baseFontSize: 14,
-								defaults: {
-									fontFamily: 'Inter',
-									fontWeight: 400,
-									letterSpacing: 0,
-								},
+								fontFamily: 'Inter',
+								fontWeight: 400,
+								letterSpacing: 0,
 							},
 						},
 						body: {
@@ -235,7 +231,7 @@ describe('theme schema', () => {
 				theme: {
 					font: {
 						$type: 'typography',
-						$extensions: { typography: { defaults } },
+						$extensions: { typography: { ...defaults } },
 						body: { $value: {} },
 					},
 				},
@@ -249,7 +245,7 @@ describe('theme schema', () => {
 				theme: {
 					font: {
 						$type: 'typography',
-						$extensions: { typography: { baseFontSize: 14, defaults } },
+						$extensions: { typography: { baseFontSize: 14, ...defaults } },
 						body: { $value: {} },
 					},
 				},
@@ -269,7 +265,7 @@ describe('theme schema', () => {
 							$extensions: {
 								typography: {
 									baseFontSize,
-									defaults: { fontFamily: 'Inter' },
+									fontFamily: 'Inter',
 								},
 							},
 						},
@@ -289,7 +285,7 @@ describe('theme schema', () => {
 							$extensions: {
 								typography: {
 									baseFontSize: 14,
-									defaults: { fontFamily: 'Inter' },
+									fontFamily: 'Inter',
 								},
 							},
 						},
@@ -317,7 +313,7 @@ describe('theme schema', () => {
 					font: {
 						$type: 'typography',
 						$extensions: {
-							typography: { baseFontSize, defaults: { fontFamily: 'Inter' } },
+							typography: { baseFontSize, fontFamily: 'Inter' },
 						},
 					},
 				},
@@ -335,7 +331,7 @@ describe('theme schema', () => {
 						font: {
 							$type: 'typography',
 							$extensions: {
-								typography: { baseFontSize, defaults: { fontFamily: 'Inter' } },
+								typography: { baseFontSize, fontFamily: 'Inter' },
 							},
 						},
 					},
@@ -353,7 +349,7 @@ describe('theme schema', () => {
 					font: {
 						$type: 'typography',
 						$extensions: {
-							typography: { defaults: { alignment: 'center' } },
+							typography: { alignment: 'center' },
 						},
 						body: {
 							$value: {
@@ -373,7 +369,7 @@ describe('theme schema', () => {
 
 		expect(result.valid).toBe(false);
 		expect(result.issues.map((issue) => issue.path)).toContain(
-			'theme.font.$extensions.typography.defaults.alignment',
+			'theme.font.$extensions.typography.alignment',
 		);
 		expect(result.issues.map((issue) => issue.path)).toContain(
 			'theme.font.body.$value.alignment',
@@ -387,12 +383,12 @@ describe('theme schema', () => {
 					color: {
 						$type: 'color',
 						$extensions: {
-							typography: { defaults: { fontFamily: 'Inter' } },
+							typography: { fontFamily: 'Inter' },
 						},
 						primary: {
 							$value: '#000000',
 							$extensions: {
-								typography: { defaults: { fontFamily: 'Inter' } },
+								typography: { fontFamily: 'Inter' },
 							},
 						},
 					},
@@ -421,7 +417,7 @@ describe('theme schema', () => {
 				derived: {
 					$extends: '{theme.base}',
 					$extensions: {
-						typography: { defaults: { fontFamily: 'Inter' } },
+						typography: { fontFamily: 'Inter' },
 					},
 				},
 			},

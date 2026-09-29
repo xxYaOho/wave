@@ -1115,10 +1115,37 @@ theme:
 			);
 			type InitTemplate = {
 				$config: { theme: string; resource: unknown };
-				theme: Record<string, unknown>;
+				theme: Record<string, unknown> & {
+					font: {
+						$type: string;
+						$extensions: { typography: Record<string, unknown> };
+						'base-size': { $type: string; $value: number };
+						heading: { h1: { $value: Record<string, unknown> } };
+					};
+				};
 			};
 			const parsed = yaml.load(mainYaml) as InitTemplate;
 			const fixture = yaml.load(fixtureYaml) as InitTemplate;
+			const font = parsed.theme.font;
+			const typography = font.$extensions.typography;
+
+			expect(font.$type).toBe('typography');
+			expect(typography).not.toHaveProperty('defaults');
+			expect(typography).toEqual({
+				baseFontSize: '{theme.font.base-size}',
+				fontFamily: '{TOKEN}',
+				fontSize: { value: 14, unit: 'px' },
+				fontWeight: 400,
+				lineHeight: 1.5,
+				letterSpacing: 0,
+			});
+			expect(font['base-size']).toEqual({ $type: 'number', $value: 14 });
+			expect(font.heading.h1.$value).toMatchObject({
+				fontFamily: '{TOKEN}',
+				fontWeight: 700,
+				lineHeight: 1.2,
+				letterSpacing: 0,
+			});
 
 			expect(mainYaml.startsWith('$schema:')).toBe(true);
 			expect(parsed.$config.theme).toBe('example');

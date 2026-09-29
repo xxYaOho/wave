@@ -594,12 +594,10 @@ describe('generateTokens (Wave-native)', () => {
 						$extensions: {
 							typography: {
 								baseFontSize: 14,
-								defaults: {
-									fontFamily: 'Inter',
-									fontWeight: 400,
-									lineHeight: 1.5,
-									letterSpacing: 0,
-								},
+								fontFamily: 'Inter',
+								fontWeight: 400,
+								lineHeight: 1.5,
+								letterSpacing: 0,
 							},
 						},
 						body: {

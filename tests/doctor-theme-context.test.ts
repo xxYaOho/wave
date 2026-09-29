@@ -117,12 +117,11 @@ describe('doctor theme context', () => {
     $type: typography
     $extensions:
       typography:
-        defaults:
-          fontFamily: Inter
-          fontSize: "{theme.untyped.invalid}"
-          fontWeight: 400
-          lineHeight: 1.5
-          letterSpacing: 0
+        fontFamily: Inter
+        fontSize: "{theme.untyped.invalid}"
+        fontWeight: 400
+        lineHeight: 1.5
+        letterSpacing: 0
     body:
       $value: {}
 `,
@@ -135,7 +134,7 @@ describe('doctor theme context', () => {
 			'Theme schema validation failed after reference resolution',
 		);
 		expect(result.findings[0]?.message).toContain(
-			'theme.font.$extensions.typography.defaults.fontSize',
+			'theme.font.$extensions.typography.fontSize',
 		);
 	});
 

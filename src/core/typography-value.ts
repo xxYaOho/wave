@@ -159,8 +159,15 @@ export function typographyDefaultsFromExtensions(
 	extensions: Record<string, unknown> | undefined,
 ): TypographyDefaults | undefined {
 	if (!extensions || !isRecord(extensions.typography)) return undefined;
-	const defaults = extensions.typography.defaults;
-	return isRecord(defaults) ? (defaults as TypographyDefaults) : undefined;
+	const typography = extensions.typography;
+	const defaults = Object.fromEntries(
+		TYPOGRAPHY_FIELDS.filter((field) => Object.hasOwn(typography, field)).map(
+			(field) => [field, typography[field]],
+		),
+	);
+	return Object.keys(defaults).length > 0
+		? (defaults as TypographyDefaults)
+		: undefined;
 }
 
 export function mergeTypographyDefaults(
@@ -172,12 +179,12 @@ export function mergeTypographyDefaults(
 }
 
 export function materializeTypographyValue(
-	defaults: TypographyDefaults | undefined,
+	fallbacks: TypographyDefaults | undefined,
 	value: unknown,
 ): Record<string, DtcgValue | string[] | undefined> | undefined {
 	if (!isRecord(value)) return undefined;
 	return {
-		...(defaults ?? {}),
+		...(fallbacks ?? {}),
 		...(value as Record<string, DtcgValue | string[] | undefined>),
 	};
 }

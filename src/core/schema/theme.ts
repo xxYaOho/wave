@@ -494,7 +494,7 @@ function validateTypographyToken(
 	token: Record<string, unknown>,
 	tokenPath: string,
 	phase: TypographySchemaPhase,
-	defaults: TypographyDefaults | undefined,
+	fallbacks: TypographyDefaults | undefined,
 	_typographyBaseFontSize: number | undefined,
 	issues: ThemeSchemaIssue[],
 ): void {
@@ -507,7 +507,7 @@ function validateTypographyToken(
 		issues,
 	);
 	if (phase !== 'resolved') return;
-	const materialized = materializeTypographyValue(defaults, tokenValue);
+	const materialized = materializeTypographyValue(fallbacks, tokenValue);
 	const missing = missingTypographyFields(materialized);
 	if (missing.length > 0) {
 		issues.push({
@@ -537,8 +537,16 @@ function validateTypographyGroupExtension(
 		});
 		return undefined;
 	}
+	const allowed = new Set<string>(['baseFontSize', ...TYPOGRAPHY_FIELDS]);
 	for (const key of Object.keys(extension)) {
-		if (key !== 'defaults' && key !== 'baseFontSize') {
+		if (key === 'defaults') {
+			issues.push({
+				path: `${extensionPath}.${key}`,
+				level: 'error',
+				message:
+					'typography.defaults is no longer supported; flatten its fields, for example typography: { fontFamily: "Inter", letterSpacing: 0 }',
+			});
+		} else if (!allowed.has(key)) {
 			issues.push({
 				path: `${extensionPath}.${key}`,
 				level: 'error',
@@ -559,13 +567,12 @@ function validateTypographyGroupExtension(
 		});
 	}
 
-	if (!('defaults' in extension)) {
+	if (!Object.keys(extension).some((key) => allowed.has(key))) {
 		issues.push({
 			path: extensionPath,
 			level: 'error',
-			message: 'typography extension must contain defaults',
+			message: `typography extension must declare at least one field: ${[...allowed].join(', ')}`,
 		});
-		return undefined;
 	}
 	if ('baseFontSize' in extension) {
 		const basePath = `${extensionPath}.baseFontSize`;
@@ -589,14 +596,11 @@ function validateTypographyGroupExtension(
 			});
 		}
 	}
-	const defaults = validateTypographyFields(
-		extension.defaults,
-		`${extensionPath}.defaults`,
-		false,
-		phase,
-		issues,
-	);
-	return defaults as TypographyDefaults | undefined;
+	const defaults = typographyDefaultsFromExtensions(extensions);
+	if (defaults) {
+		validateTypographyFields(defaults, extensionPath, false, phase, issues);
+	}
+	return defaults;
 }
 
 function validateToken(

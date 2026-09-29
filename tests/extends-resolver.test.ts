@@ -164,15 +164,13 @@ describe('group $extends inheritance', () => {
 				base: {
 					$type: 'typography',
 					$extensions: {
-						typography: {
-							defaults: { fontFamily: 'Inter', fontWeight: 400 },
-						},
+						typography: { fontFamily: 'Inter', fontWeight: 400 },
 					},
 				},
 				derived: {
 					$extends: '{theme.base}',
 					$extensions: {
-						typography: { defaults: { fontFamily: 'Helvetica' } },
+						typography: { fontFamily: 'Helvetica' },
 					},
 				},
 			},
@@ -182,9 +180,7 @@ describe('group $extends inheritance', () => {
 		const theme = expanded.theme as Record<string, unknown>;
 		const derived = theme.derived as Record<string, unknown>;
 		const extensions = derived.$extensions as Record<string, unknown>;
-		expect(extensions.typography).toEqual({
-			defaults: { fontFamily: 'Helvetica' },
-		});
+		expect(extensions.typography).toEqual({ fontFamily: 'Helvetica' });
 	});
 
 	test('replaces the sketch extension namespace during extends', () => {
