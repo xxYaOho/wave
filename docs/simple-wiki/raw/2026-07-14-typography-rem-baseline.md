@@ -1,6 +1,7 @@
 ---
 class: material
 ingested: true
+integrated: true
 metadata: ~
 ---
 

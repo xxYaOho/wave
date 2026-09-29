@@ -1,6 +1,7 @@
 ---
 class: evidence
 ingested: true
+integrated: true
 metadata: ~
 ---
 
