@@ -42,9 +42,11 @@ inverse:
 
 标准 DTCG `typography` 值必须包含 `fontFamily`、`fontSize`、`fontWeight`、`letterSpacing` 和无单位 number `lineHeight`。`fontFamily`、`fontSize`、`fontWeight` 和 `letterSpacing` 分别遵循对应标准类型，也可以引用匹配类型的 token。额外字段会导致构建失败。
 
-Wave 在此基础上提供三项扩展：`$extensions.typography.defaults` 和 `baseFontSize`、`$value.color`，以及带 `px | pt | rem` 单位的 `lineHeight`。`defaults` 只能写在有效 `$type` 为 `typography` 的 group 上，只接受五个标准字段。子 group 按字段覆盖祖先 defaults，token 自己的 `$value` 最后覆盖 defaults；合并后每个 typography token 必须包含五个标准字段。可选 `color` 保留在 token `$value` 和 JSON/JSONC 输出中；CSS 额外输出 `--<token>-color`，直接引用已输出的 `theme.color.*` 时仍保留为 `var(--<color-token>)`。
+Wave 提供平铺的 `$extensions.typography`、可选的 `$value.color`，以及带 `px | pt | rem` 单位的 `lineHeight`。字体扩展只能写在有效 `$type` 为 `typography` 的 group 上，且只接受六个同级字段：`baseFontSize`、`fontFamily`、`fontSize`、`fontWeight`、`lineHeight`、`letterSpacing`，至少声明一个。旧的 `typography.defaults` 嵌套写法会被拒绝，需要把其中字段移到 `typography` 下。
 
-typography 的 `rem` 默认以 `16px` 为基准。需要覆盖时，只能在 `theme.font.$extensions.typography.baseFontSize` 声明根字号；它是大于 0 的无单位 CSS px 数值，不属于 `defaults`，也不会输出到 JSON 或 JSONC。使用 rem 时，CSS 在 `:root` 写入有效的 `font-size`，并保留 token 的 rem 值；Sketch 用 `rem × 有效基准` 换算 `fontSize`、绝对 `lineHeight` 和 `letterSpacing`。fontSize 与 letterSpacing 保留最多三位小数；最终 lineHeight 始终向上取整为整数。
+五个标准字段作为子 token 的默认值：子 group 按字段浅覆盖祖先默认值，token 自己的 `$value` 最后覆盖；object 字段整体替换，不进行深合并。合并后每个 typography token 必须包含五个标准字段。可选 `color` 只能写在 token `$value` 中，不是扩展默认字段；JSON/JSONC 保留它，CSS 额外输出 `--<token>-color`，直接引用已输出的 `theme.color.*` 时仍保留为 `var(--<color-token>)`。
+
+`fontSize` 是 typography composite 的字号默认值；`baseFontSize` 只是 rem 换算基准，两者不是同一个设置。rem 默认以 `16px` 为基准。需要覆盖时，只能在 `theme.font.$extensions.typography.baseFontSize` 声明大于 0 的有限 number，或最终解析为该 number 的引用，数值按 CSS px 理解，不能写成 dimension object。基准本身不会加入 typography 的 JSON/JSONC 值。使用 rem 时，CSS 在 `:root` 写入有效的 `font-size`，并保留 token 的 rem 值；Sketch 用 `rem × 有效基准` 换算 `fontSize`、绝对 `lineHeight` 和 `letterSpacing`。fontSize 与 letterSpacing 保留最多三位小数；最终 lineHeight 始终向上取整为整数。
 
 ```yaml
 theme:
@@ -53,13 +55,12 @@ theme:
     $extensions:
       typography:
         baseFontSize: 14
-        defaults:
-          fontFamily: "{wave.dimension.fontFamily}"
-          fontSize:
-            value: 0.875
-            unit: rem
-          fontWeight: 400
-          letterSpacing: 0
+        fontFamily: ["Inter", "sans-serif"]
+        fontSize:
+          value: 0.875
+          unit: rem
+        fontWeight: 400
+        letterSpacing: 0
     body:
       $value:
         lineHeight: 1.5
@@ -69,6 +70,51 @@ theme:
           value: 20
           unit: px
 ```
+
+### 按 Profile 调整 rem 基准
+
+已有 group 的扩展不能由 profile 重声明。需要不同 profile 使用不同基准时，在 main 中让 `baseFontSize` 引用已登记的 number token，再在 profile 中按 ID 覆盖该 token 的值。
+
+基础文件 `main.yaml`：
+
+```yaml
+$id: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+$config:
+  theme: example
+  parameter:
+    platform: [json, css, sketch]
+theme:
+  font:
+    $type: typography
+    $extensions:
+      typography:
+        baseFontSize: "{theme.font.base-size}"
+        fontFamily: ["Inter", "sans-serif"]
+        fontSize: { value: 1, unit: rem }
+        fontWeight: 400
+        lineHeight: 1.5
+        letterSpacing: 0
+    base-size:
+      $id: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      $type: number
+      $value: 14
+    body:
+      $value: {}
+```
+
+差量文件 `profiles/mobile.yaml`：
+
+```yaml
+$config:
+  base: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+$override:
+  bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:
+    $value: 16
+```
+
+运行 `wave dt build --profile mobile -f ./main.yaml` 后，body 的字号仍是 `1rem`；CSS 根字号为 `16px`，Sketch 字号为 `16`。main 的基准仍为 `14`。Profile 的身份与完整覆盖规则见 [WCAG 与主题模式](/design-token/quality-theming)。
+
+### 字体与行高输出
 
 `fontFamily` 可以是一个字符串或字符串数组。DTCG schema 保留标准结构；CSS 平台要求值能形成非空 font stack。CSS 把数组输出为合法 font stack：简单 CSS identifier 不加引号；其他名称会去掉一层已有配对引号，再用双引号包裹并转义。`inherit`、`initial`、`unset`、`revert` 和 `revert-layer` 始终加引号。Typography token 在 CSS 中只输出字段变量（`-family`、`-size`、`-weight`、`-line-height`、`-letter-spacing`、可选 `-color`），不输出聚合 shorthand 变量。若已有输出的 `fontFamily` token 与 typography 的 font stack 等值，CSS 省略局部 `--<token>-family` 字段变量，由使用方取用该 family token 自身的变量；没有等值 token 时仍输出局部 `--<token>-family`。Sketch 不解析系统别名；数组含 `PingFang SC` 时优先使用它，否则选择第一个具体字体。`system`、`system-ui`、`-apple-system`、`BlinkMacSystemFont` 和 CSS generic family 不属于具体字体；数组只有这些值时，Sketch 不输出 `fontFamily`。字符串值保持原有行为。
 

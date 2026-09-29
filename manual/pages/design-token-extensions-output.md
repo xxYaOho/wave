@@ -49,13 +49,13 @@ JSON 和 JSONC 输出扁平 key/value；dimension 和 composite 内的 dimension
 
 多平台用逗号分隔：
 
-```text
-PARAMETER platform json,jsonc,css,sketch,md-yml
+```bash
+wave dt build -f ./main.yaml --platform json,jsonc,css,sketch,md-yml
 ```
 
 ## md-yml
 
-`md-yml` 为 Markdown 文档生成可复制到 frontmatter 的 YAML token fragment。下列 Orca-derived token 使用 `filterLayer: 1` 时，会生成 `{theme}2md.yml`：
+`md-yml` 为 Markdown 文档生成可复制到 frontmatter 的 YAML token fragment。下列 token 使用 `filterLayer: 1` 时，会生成 `{theme}2md.yml`：
 
 ```yaml
 color:
@@ -83,7 +83,7 @@ font:
 {color.primary-main}
 ```
 
-md-yml 会保留可投影到同一文件的 theme direct reference，并把路径改写为输出路径。例如 `theme.font.heading.h1` 从 `theme.font.$extensions.typography.defaults` 继承 `fontFamily: "{theme.font.font-family}"` 后，输出为 `fontFamily: "{font.font-family}"`。完整 token、composite 子字段和数组成员中的 direct reference 使用同一规则。
+md-yml 会保留可投影到同一文件的 theme direct reference，并把路径改写为输出路径。例如 `theme.font.heading.h1` 从 `theme.font.$extensions.typography` 的平铺字段继承 `fontFamily: "{theme.font.font-family}"` 后，输出为 `fontFamily: "{font.font-family}"`。完整 token、composite 子字段和数组成员中的 direct reference 使用同一规则。
 
 引用只有在目标也输出到当前 payload，且 consumer slot 没有被计算改写时才保留。external resource reference、`$ref + override`、`smoothShadow` / `smoothGradient`、`inheritColor` / `currentColor` 等 computed value 仍输出 resolver 和 transformer 处理后的最终值。object、array 和 explicit composite 保留结构。文件不包含 `---` delimiter、`$description` 注释、token wrapper 或 `$type` / `$value` metadata。
 
@@ -93,10 +93,13 @@ md-yml 会保留可投影到同一文件的 theme direct reference，并把路�
 
 `$extensions` 用于表达 Wave 的扩展语义。构建后，扩展字段会被消费，不会原样出现在输出文件中。
 
+Profile 继承基础 token 和已有 group 的扩展，不允许重声明或覆盖它们。`$override` 只替换 `$value`，不能改变 `smoothShadow.target`、`platform.sketch.path`、`inheritColor.property.opacity` 等扩展设置。需要这些差异时，另建基础目录；新 token 可以声明自己的扩展。完整边界见 [WCAG 与主题模式](/design-token/quality-theming)。
+
 支持的字段：
 
 | 字段 | 位置 | 适用类型 | 用途 |
 | --- | --- | --- | --- |
+| `typography` | group | 有效类型为 `typography` | 字体默认字段与 rem 基准；见 [颜色与字体](/design-token/color-typography) |
 | `smoothShadow` | token | `shadow` | 从单层阴影派生多层平滑阴影 |
 | `smoothGradient` | token | `gradient` | 从 2 个 stop 派生平滑渐变 |
 | `inheritColor` | token | `color` | 输出继承上下文颜色 |
@@ -272,7 +275,7 @@ theme:
 | `platform.sketch.property.cornerRadius` | 在 layer 记录中写 `corners.radii` 数值 |
 | `platform.sketch.outline` | border token 专用；按 `offset` 生成双层 shadow 模拟 outline，并让 CSS 输出 outline 变量 |
 
-`path` 使用 slash 分组，作为资产 name 的前缀。假设 `filterLayer: 1`，上面的 color token 会生成 name 为 `foundation/color/primary-main` 的资产；没有 `path` 时，name 就是 `filterLayer` 处理后的叶子 key。
+`path` 使用 slash 分组，作为资产 name 的前缀。假设 `filterLayer: 1`，上面的 color token 会生成 name 为 `foundation/color/primary` 的资产；没有 `path` 时，name 就是 `filterLayer` 处理后的叶子 key。
 
 优先级：
 
@@ -300,7 +303,7 @@ theme:
 
 ```json
 {
-  "meta": { "themeId": "6f1c2a54b7d84e0f9a1c32d45e6b70f8", "version": 2 },
+  "meta": { "themeId": "6f1c2a54b7d84e0f9a1c32d45e6b70f8", "baseId": null, "version": 2 },
   "assets": [
     { "uuid": "0f8e6d5c4b3a29180f7e6d5c4b3a2918", "name": "foundation/color/primary-main", "kind": "color", "color": "#1872f0ff" },
     { "name": "foundation/interaction/hover", "kind": "layer", "opacity": 0.16 }
@@ -308,7 +311,8 @@ theme:
 }
 ```
 
-- `meta.themeId` 来自 `main.yaml` 根部的文档级 `$id`；未声明时为 `null`，Sync Token 会提示补登记——用 `wave dt ids --write` 登记身份时会自动生成（写在 `main.yaml` 首行，已有 `$schema` 时排其后），无需手改。`version` 固定为 `2`。
+- `meta.themeId` 来自当前 day 文档的根 `$id`：main 输出用 main 的身份，named profile 输出用该 profile 自己的身份；缺失时为 `null`。使用 `wave dt ids --write` 可补齐文档身份。Night 沿用对应 day 的身份。
+- `meta.baseId` 在 named profile（含其 night）输出中是 main 的根 `$id`，在 main（含其 night）输出中为 `null`。它是 payload v2 新增字段，`version` 仍固定为 `2`；若 Sketch 插件严格校验旧版 `meta` 字段集合，需要先确认插件接受 `baseId`，不能仅凭版本号判断兼容。
 - 每条记录携带 `name` 与 `kind`；token 已登记 token 级 `$id` 时还会携带 `uuid`，未登记则省略该字段。
 - `kind` 只有三种：`color`（颜色 token，对应 Swatch）、`text`（typography token，对应共享文字样式）、`layer`（阴影、渐变、outline border、圆角维度等，对应共享图层样式）。
 - 只有可同步资产进入清单：普通 border、普通 dimension、transition 等不产生记录。

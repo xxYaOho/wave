@@ -52,6 +52,19 @@ wave dt ids
 wave dt migrate-extensions
 ```
 
+需要创建 named profile 时，先登记基础身份，再生成完整源值快照：
+
+```bash
+wave dt ids -f ./main.yaml
+wave dt ids --write -f ./main.yaml
+wave dt new-profile mobile -f ./main.yaml
+wave dt build --profile mobile -f ./main.yaml
+```
+
+`new-profile` 会写入新文件；完整前提、差量规则与名称限制见 [WCAG 与主题模式](/design-token/quality-theming)。`migrate-extensions` 只迁移旧扩展字段名，不迁移旧独立 profile。
+
+`wave dt doctor` 默认检查 main 与全部 profile 的结构和身份健康；`--profile` 只检查选中项，`--json` 和 `--status` 保留相同诊断与错误退出状态。
+
 需要刷新本地 resource cache 时运行 `wave dt update`。
 
 `wave design-token` 与 `wave dt` 等价。

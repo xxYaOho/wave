@@ -11,10 +11,14 @@ wave 是面向 UI/UX 设计师的本地 CLI 工具集。当前已包含 design t
 **当前 token 生成的数据流：**
 
 ```
-main.yaml（$config + default profile token 内容，DTCG 格式）
-    + profiles/<name>.yaml（named profile，可选）
+main.yaml（$config + base token 树 + 可选文档 $id）
+    + profiles/<name>.yaml（$config.base + $override + 可选新 token 树与自身文档 $id）
     ↓
-引用解析（$config.resource 可选；未声明时使用空依赖字典）
+base 身份核对与 profile 差量合并（先按 token $id 覆写源值，再嫁接新树）
+    ↓
+night 路径式叶子覆写（--night，可选，作用于合并后的 day tree）
+    ↓
+$extends 展开与引用解析（$config.resource 可选；未声明时使用空依赖字典）
     ↓
 颜色转换（colorSpace 在输出阶段介入）
     ↓
@@ -23,8 +27,8 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 
 **认知边界：**
 
-- main.yaml：default profile、token 内容和 `$config` 来源
-- profiles/<name>.yaml：named profile 的独立 token 内容；不与 main token 内容合并
+- main.yaml：base（默认主题）、token 树和 `$config` 的来源
+- profiles/<name>.yaml：同系列的差量层，按 base token `$id` 覆写源值并新增 token；继承 base 的其余结构和值
 - `$config.resource`：可选的外部引用依赖声明，不直接输出 token
 - build：只以有效 token 图能否完整解析和生成作为 resource 相关成功条件；未被引用的缺失、损坏或重复声明不阻塞 build
 - Doctor：严格检查当前检查目标中的全部 resource 声明，即使声明未被 token 引用
@@ -50,12 +54,12 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 
 **常见误区：**
 
-- ❌ 不要在资源文件里加输出逻辑
-- ❌ 不要新增或扩大绕过 main.yaml 直接从资源生成 token 的路径
-- ❌ 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
-- ❌ 不要把 compress 和 motion 的外部工具判断各写一套；应复用 `ToolResolver` / `CommandRunner`
-- ❌ 不要新增其他 design-token workspace 入口或恢复已移除的 `themefile` 兼容路径
-- ❌ 不要把 Quality Harness 当作单次跑分结论；它提供趋势和阶段定位参考
+- 不要在资源文件里加输出逻辑
+- 不要新增或扩大绕过 main.yaml 直接从资源生成 token 的路径
+- 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
+- 不要把 compress 和 motion 的外部工具判断各写一套；应复用 `ToolResolver` / `CommandRunner`
+- 不要新增其他 design-token workspace 入口或恢复已移除的 `themefile` 兼容路径
+- 不要把 Quality Harness 当作单次跑分结论；它提供趋势和阶段定位参考
 
 ---
 
@@ -71,7 +75,8 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - `wave dt status`：查看本地 resource cache/state 状态
 - `wave dt doctor`：design-token workspace 健康检查入口
 - `wave dt wcag`：运行 WCAG 对比度检查
-- `wave dt ids`：token `$id` 身份维护（填充空槽位、生成新身份、跨文件同步）；默认 dry-run 报告，`--write` 才写回
+- `wave dt ids`：token 与 main/profile 文档 `$id` 身份维护；默认 dry-run 报告，`--write` 才写回
+- `wave dt new-profile <name>`：从已入账 base 创建全量源值快照 profile，不覆盖既有文件
 - `wave dt migrate-extensions`：一次性把 legacy `$extensions` sketch 家族改名为 `platform.sketch` 新形态；默认 dry-run 报告，`--write` 才写回
 - `wave doctor`：核心运行环境和本地工具链健康检查
 - `wave doctor --contrast`：WCAG 对比度检查
@@ -104,7 +109,8 @@ main.yaml（$config + default profile token 内容，DTCG 格式）
 - `wave dt show [category] [name]`：浏览内置资源
 - `wave dt doctor`：运行 design-token 健康检查
 - `wave dt wcag [scope]`：运行 WCAG 对比度检查
-- `wave dt ids`：token 身份维护命令；`-f, --file` 指定 `main.yaml`，默认 dry-run，`--write` 写回，写回要求 git 工作区清洁（`--allow-dirty` 显式豁免）
+- `wave dt ids`：token 与 main/profile 文档身份维护；`-f, --file` 指定 `main.yaml`，默认 dry-run，`--write` 写回，写回要求 git 工作区清洁（`--allow-dirty` 显式豁免）
+- `wave dt new-profile <name>`：创建值快照差量层；`-f, --file` 指定已入账的 base `main.yaml`
 - `wave dt migrate-extensions`：legacy `$extensions` 一次性迁移命令；`-f, --file` 指定 `main.yaml`，默认 dry-run，`--write` 应用到 `main.yaml` 与 `profiles/*.yaml`
 
 `wave dt wcag` 规则：
@@ -151,24 +157,37 @@ named profile 和 Night overlay 只能通过 `--profile`、`--profiles all` 和 
 - `wave doctor --file <path>` 在通用诊断之外检查指定 workspace；文件必须符合 main-only 输入合同。
 - `wave doctor --contrast` 进入 design-token contrast 检查；没有 `--file` 时使用 `<cwd>/main.yaml`。
 - `wave dt doctor` 默认检查 `<cwd>/main.yaml`；`--file` 只能指定合法 `main.yaml`。
-- `wave dt doctor` 和 `wave doctor --file` 默认只严格检查 default profile 的 resource 声明；`--profile <name>` 只检查显式选择的 profile，不扫描所有 profile。
+- 普通 workspace 诊断（不含 `--contrast`）默认检查 main 与全部 named profiles 的结构、base 关联、覆写命中及身份健康；`--profile <name>` 只检查所选 profile 路径，其他 profile 的健康错误不污染该结果。
+- 严格 resource 检查仍限于 main（默认）或显式所选 profile 的合并声明，不因 workspace 健康扫描而扩为全部 profiles。
+- text、`--json`、`--status` 共用健康 findings 与退出状态；JSON 附带 `findings` 和 `identity`，status 保留精简状态并列出 findings。结构错误与身份冲突影响退出码；冗余覆写仅产生一个 `info` 汇总 `x/y`，不阻塞成功。冗余按 base 源 `$value` 深等值比较，引用字符串按原文比较，不先解析引用。
 - 任意显式 `--file` 都先执行入口校验，再选择 text、JSON、status 或 verbose renderer。`wave dt doctor --json` 在 cwd 缺少 `main.yaml` 时返回 `FILE_NOT_FOUND`，不会退化为通用工具链诊断。
 
 ### Profile Model
 
-- `main.yaml` 是 default profile 和项目基线。
-- `profiles/<name>.yaml` 是 named profile。
-- `wave dt build` 只构建 `main.yaml`。
-- `wave dt build --profile <name>` 构建一个 named profile。
-- `wave dt build --profiles all` 构建 `main.yaml` 和所有 named profiles。
-- `--night` 包含有效的 `main@night.yaml` 或 `profiles/<name>@night.yaml` overlay。
-- named profile 可定义自己的 `theme.font.$extensions.typography.baseFontSize`；night overlay 只可写 `theme.color`、`theme.state`，因此继承 day profile 的字号基线。
-- 缺失或无效的 Night Mode 输出 `Night Mode unavailable/invalid and skipped`，跳过 night 输出，并保持 day build 成功。
+- `main.yaml` 是 base（默认主题）和项目基线；一个 base 与其 profiles 构成一个系列。不同结构应使用独立的 base 目录，而不是 profile。
+- `profiles/<name>.yaml` 是差量层，不是独立完整主题。根消费 `$schema`、自身文档 `$id`、`$config`、`$override`；未知 `$` 前缀根键（含 `$helper`、文档级 `$extensions`）跳过。非 `$` root key 构成新增 token 树。
+- profile `$config` 为闭合 schema：必填 `base`（非空字符串，逐字等于原始 main 文档 `$id`），可选 `resource`、`parameter`、`parameterGroup`。禁止 `theme` 与未知字段。base 文档无已入账身份或关联不符时返回 `FORMAT_ERROR`，不能用同 run 新铸的 main 身份补救错误关联。
+- profile config 继承 main：resource 追加，parameter 按字段覆盖，parameterGroup 按同名 group 合并并允许新增 group；profile-local 相对路径以 profile 文件所在目录为基准。CLI override 最后生效。
+- `$override` 可省略；声明时为 object，key 是 base **token** 的 `$id`，不是文档 `$id` 或 token path。每项必须恰好只有 `$value`；未命中、缺 `$value`、携带 `$type` / `$id` / `$extensions` 等额外键均返回 `FORMAT_ERROR`。
+- 覆写整体替换源 `$value`，object/array/composite 不做子字段合并。引用字符串与 `$ref` 保留到合并树上解析。base 同 token `$id` 多次出现时按源文档序首个命中，不以展开后的 `$extends` 副本建立新的覆写目标。
+- 新树只能嫁接新 token/group。已有 token 路径与 token/group 换形均拒绝；已有 group 只允许新成员，不能重声明任何 `$` 元数据（含 `$type`、`$extensions`、`$description`、`$extends`），即使值相同。新路径允许完整定义。
+- 新 token 的 `$type` 必须在 profile 文件自身可判定：token 显式类型或 profile 内新建 group 的类型继承；不能只依赖 main group 的类型。一般合法 profile 不要求 base 全 token 已入账，但覆写目标必须已入账。
+- 合并发生在 YAML 文档层：取走文档身份/config/override，克隆 base、按 id 替换源值、嫁接新树，再进入既有 schema / `$extends` / reference / transformer / generator 链路。合成文档错误以 token path 定位，行号可指向合成内容；profile 格式错误出口为 `FORMAT_ERROR`，含 profile 来源路径。
+- 不支持删除 base token、改变已有 token 类型或扩展，也无旧 standalone profile 兼容层或迁移命令。`smoothShadow.target`、`platform.sketch.path`、`inheritColor.property.opacity` 等结构分歧需要新 base；rem 基准等可调值应在 base 下沉为 number token、扩展槽位引用它，再按 token id 覆写。
+- `wave dt build` 只构建 main；`--profile <name>` 构建一个 named profile；`--profiles all` 构建 main 与全部 named profiles。`--night` 再请求相应 `main@night.yaml` / `profiles/<name>@night.yaml`。
+- night 仍是路径式叶子覆写，只能覆盖合并后 day tree 已有的 `theme.color` / `theme.state`；不得声明根 `$id`，沿用 day 的 `themeId` / `baseId` 及字体基准。缺失或一般无效 overlay warning + skip；文档/ token 身份违规返回 `FORMAT_ERROR`，不是普通 skip。
 - `variants/`、`--variant` 和 `--variants` 不支持。
+
+**`wave dt new-profile <name>`：**
+
+- 使用 main-only 入口（可传 `-f, --file`），先要求原始 base 文档和全部源 token 已入账；重复 token id 也拒绝，错误引导 `wave dt ids --write`。前提失败零写入。这是生成器的额外前提，不是所有 profile 的通用格式要求。
+- 名称按既有 profile 规则转小写、ASCII 空格转 `_`；非法名称、归一化冲突或已存在 profile 拒绝，不覆盖文件。
+- 生成新的规范文档 `$id`、`$config.base` 与全部 base token `$value` 的快照式 `$override`。保留源引用表达式，不物化值、不复制类型或扩展、不改 main。快照锁定所有源值；删掉某项冗余覆写后，该 token 才随 base 值演进。
+- receipt 给出生成文件、就地改值、删冗余覆写与单 profile 验证提示；doctor 对冗余项只作 `info` 汇总，不要求创建后立即删除。
 
 ### Resource Validation
 
-- `$config.resource` 可省略；完全自包含的 `main.yaml` 或 named profile 可直接构建。
+- `$config.resource` 可省略；自包含的 main 或只引用系列内部 token 的合并 profile 不需要外部 resource，仍从 main-only 入口构建。
 - build 会尝试收集已声明的外部依赖，但只以有效 token 图能否完整解析和生成作为 resource 相关成功条件。
 - 未被引用的缺失、损坏或重复 resource 声明不阻塞 build，也不产生 build warning。
 - 被引用的 namespace 必须唯一且可解析；缺失或重复导致歧义时，build 会报告引用所在的 token 路径并失败。
@@ -846,9 +865,10 @@ Wave 为 theme 引入两层稳定身份。`$` 属性命名空间被 DTCG 预留�
 
 ### 文档级 `$id`（主题身份）
 
-- 只允许声明在 `main.yaml` 根部，与 `$config.theme` 同待遇；named profile 或 night overlay 根部声明 `$id` 报错。
-- 声明时必须是非空字符串，否则 `FORMAT_ERROR`；`$id` 在进入 token 树前被剥离，不参与任何 token 输出。
-- 主题身份经 config 合并流入所有 profile 构建；sketch payload 的 `meta.themeId` 取自该值，未声明时为 `null`。
+- main 与 named profile 根部均可声明文档 `$id`；night 根部仍禁止。profile 主题身份来自自身文档，不再共用 main 身份。
+- 构建时声明的 `$id` 必须为非空字符串，否则 `FORMAT_ERROR`；进入 token 树前剥离，不参与 token 输出。未声明时当前主题的 `themeId` 为 `null`。
+- profile `$config.base` 必须等于原始 main 根 `$id`；main 未入账时不可构建其 profile。sketch `meta.themeId` 是当前 day 文档身份，`meta.baseId` 是 named profile 所属 main 身份；main 的 `baseId` 为 `null`，night 双身份跟随 day，`meta.version` 保持 2。
+- 文档与 token 身份是两个命名空间；根 `$id` 不进入 token 路径权威/冲突图或覆写目标索引。doctor 在独立 `documents` 清单展示 main/profile 文档身份。
 - 其他格式（json / jsonc / css / md-yml）不携带任何 id。
 
 ### token 级 `$id`（token 身份）
@@ -865,7 +885,7 @@ Wave 为 theme 引入两层稳定身份。`$` 属性命名空间被 DTCG 预留�
 - 入账范围是全部 theme token；group 不持有身份；resource 与外部 namespace 不参与入账。
 - `$id` 只存在于文档根与 token 节点两级，group 声明 `$id` 报错。
 - `$id` 写在 `$description` 与 `$value` 之间仅为文档示例惯例，规范展示位置不进协议。
-- build 保持只读：身份的生成与写回只发生在显式命令 `wave dt ids`。
+- build 保持只读：token 身份生成与写回由显式 `wave dt ids` 执行；`wave dt new-profile` 只为新 profile 铸造文档身份，不替 base token 补 id。
 
 ### 校验阶梯
 
@@ -877,7 +897,8 @@ Wave 为 theme 引入两层稳定身份。`$` 属性命名空间被 DTCG 预留�
 
 ### `wave dt ids` 命令合同
 
-- 职责：填充空 `$id` 槽位、为新增 token 生成身份、把路径权威 id 同步进各文件共享路径节点、跨文件身份冲突报错、单文件重复 id 修复；同时把 `main.yaml` 根部 `$id`（主题身份）作为文档级槽位维护——缺失或为空时铸造/填充（写为文档首键，计入 `added` 与报告），已入账则永不重铸，profile 与 night 文件不持有文档级身份。节点式身份下「悬空」状态类不存在，无清理职责。
+- 职责：填充空 `$id` 槽位、为新增 token 生成身份、维护 token 路径权威、报告跨文件身份冲突及修复单文件重复 token id。main 与 day profile 根部均作为独立文档槽位：缺省/null/空白可铸造或填充，计入 `added`；已入账字符串（含 YAML 字符串 alias）保持原值，永不重铸。根值为 map/sequence/boolean/number 等非法形态阻塞整个 workspace 写入。文档身份不参加 token 同步或冲突图；night 不维护文档槽位。节点式身份下无「悬空」状态或清理职责。
+- base 关联在任何写入前核对：profile `$config.base` 缺失、main 原始根身份不可用或关联不符均使全 workspace 零写入；不能以本次拟生成的 main 身份让坏关联变合法。`$override` 不是 token 定义，不生成或同步其 id。
 - 加载面：`main.yaml` + `profiles/*.yaml`（day 文件）。night overlay 不在加载面内：override 身份在加载时继承 base，从不物理写入。
 - 安全语义：默认（无参）= dry-run 仅输出报告；显式 `--write` 才执行写回；写回前要求 git 工作区清洁，不清洁时拒绝并提示 `--allow-dirty` 显式豁免。dry-run 完全不经过 git gate；非 git 目录产生 warning 并照常写入。
 - 认养与生成：已入账（非空）`$id` 保持不变，是该路径的权威；空槽位与未入账 token 认养所在路径的权威（`main.yaml` 是 workspace 权威，main 未入账时反向认养 profile 的已入账 id）；路径在全部文件中都无已入账身份时，在首个出现处生成新 id，同 run 内后续出现处认养它。报告计数：`added` = 新生成身份原点，`synced` = 认养权威 id 的出现处。
@@ -928,10 +949,10 @@ $value:
 
 ### $extensions 形态与迁移（platform.sketch）
 
-`$extensions` 家族归拢为两个挂载点：
+Sketch 平台字段与 typography 配置使用以下挂载点：
 
 - `platform.sketch.{ path, property, skip, outline }`：Sketch 平台专属字段
-- `typography.baseFontSize`：跨平台语义基准，保持顶层（唯一允许位置 `theme.font`）
+- `typography.{ baseFontSize, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing }`：平铺的字体 group 配置；其中 `baseFontSize` 仅允许在 `theme.font`
 
 规则：
 
@@ -948,6 +969,40 @@ $value:
 - 扫描面 = `main.yaml` + `profiles/*.yaml`。根级 night 文件不在扫描面：night 的身份与覆盖经 merge 继承在加载时消化，源文件中不产生需要迁移的新形态。
 - 混合形态文件（同文件内 legacy 与新形态并存）报错，不做猜测或部分合并；文件无法字节级 round-trip 时同样报 `unsupported`，需手工处理。阻塞文件存在时全 workspace 零写入。
 - 改写是手术式的（注释、空行、缩进、键序保持不变），第二次运行是 no-op（幂等）。
+
+### typography（平铺字段与 rem 基准）
+
+`$extensions.typography` 只允许放在有效 `$type: typography` 的 group（原始阶段可由 `$extends` 延迟确定类型）。它是非空闭合 object，恰好允许六个兄弟字段；旧 `defaults:` 嵌套硬拒绝，无兼容层。普通 group 祖先继承的五个 composite 兜底字段按祖先到子 group 浅合并，token `$value` 最后覆盖；物化后必须补齐五个标准字段。这里的「兜底」是值合并语义，不是 `defaults` YAML key。
+
+| 字段 | 语义 |
+| --- | --- |
+| `fontFamily`、`fontSize`、`fontWeight`、`lineHeight`、`letterSpacing` | typography composite 的字段兜底，支持字面量和引用 |
+| `baseFontSize` | rem 语义基准，仅允许 `theme.font`；有限正 number 或最终解析为该 number 的引用，默认 16（CSS px），不属于 composite 字段 |
+
+`fontSize` 是 materialized font token 的字号；`baseFontSize` 只用于 rem 换算。扩展 metadata 被消费，不以扩展键泄漏到 JSON/JSONC/md-yml；五个兜底字段依物化结果输出，`baseFontSize` 自身不进入 composite。若基准下沉为普通 number token，该 token 本身仍正常输出。dimension 类型、iOS pt / Android dp 基准投影均不支持；CSS/Sketch 的原有平台拒绝矩阵不因拍平而放宽或上升为输入 schema 限制。
+
+```yaml
+theme:
+  font:
+    $type: typography
+    $extensions:
+      typography:
+        baseFontSize: "{theme.font.base-size}"
+        fontFamily: Inter
+        fontSize: 16
+        fontWeight: 400
+        lineHeight: 1.4
+        letterSpacing: 0
+    base-size:
+      $id: dddddddddddddddddddddddddddddddd
+      $type: number
+      $value: 16
+    body:
+      $value:
+        fontSize: 1rem
+```
+
+profile 要调整基准，只需在 `$override.dddddddddddddddddddddddddddddddd.$value` 写入新的正 number，例如 14；不能在已有 `theme.font` group 重声明 typography 扩展。night 只能覆写颜色/状态，因此继承 day 基准。迁移旧 typography 写法时把 `defaults` 的五个字段搬到 `typography` 下，与 `baseFontSize` 同层；该转换不是 `migrate-extensions` 的职责。
 
 ### composite（v0.13.0）
 
@@ -1223,12 +1278,12 @@ wave dt wcag --profile mobile --night
   - 输出 public roots：`color`、`state`、`shadow`、`gradient`、`border`、`radius`、`font`
   - 不输出 `theme.dimension`
   - 长度类数值自动补浏览器需要的 `px`
-  - `$type: typography` token 仅输出 materialized 字段变量（`-family`、`-size`、`-weight`、`-line-height`、`-letter-spacing`、可选 `-color`），不输出聚合 shorthand 变量（本合同取代已移除的每 token 聚合 shorthand 输出：shorthand 在字段缺失时引用未定义变量，计算值阶段失效）；group `typography.defaults` 按祖先到 token 浅合并，数组 font family 按 CSS stack 规则序列化；与已输出 `fontFamily` token 等值时省略局部 `-family` 字段变量，由 consumer 取用该 family token 自身的变量，否则保留局部 family；倍率 line height 保持无单位；可选 color 独立输出，直接引用已输出的 `theme.color.*` 时保留 CSS variable 引用
-  - typography 支持 `px`、`pt`、`rem`。`rem` 默认使用 16px；可在唯一允许的位置 `theme.font.$extensions.typography.baseFontSize` 以大于 0 的无单位 CSS px 数值覆盖。使用 rem 时 CSS 在 `:root` 输出有效 `font-size`，并保留 token 中的 rem 值。此内部 metadata 不输出到 JSON、JSONC 或 md-yml
+  - `$type: typography` token 仅输出 materialized 字段变量（`-family`、`-size`、`-weight`、`-line-height`、`-letter-spacing`、可选 `-color`），不输出聚合 shorthand 变量（本合同取代已移除的每 token 聚合 shorthand 输出：shorthand 在字段缺失时引用未定义变量，计算值阶段失效）；group 平铺 typography 兜底字段按祖先到 token 浅合并，数组 font family 按 CSS stack 规则序列化；与已输出 `fontFamily` token 等值时省略局部 `-family` 字段变量，由 consumer 取用该 family token 自身的变量，否则保留局部 family；倍率 line height 保持无单位；可选 color 独立输出，直接引用已输出的 `theme.color.*` 时保留 CSS variable 引用
+  - typography 支持 `px`、`pt`、`rem`。`rem` 默认使用 16px；唯一位置 `theme.font.$extensions.typography.baseFontSize` 接受大于 0 的有限无单位 CSS px number 或解析为该 number 的引用。按 profile 调整时覆写其所引用的已入账 number token，不重声明 group 扩展。使用 rem 时 CSS 在 `:root` 输出有效 `font-size`，并保留 token 中的 rem 值。基准 metadata 不进入 JSON、JSONC 或 md-yml，真正的基准 token 自身仍正常输出
   - DTCG border `style.dashArray` 输出 `dashed` shorthand 和 `-dash-array` companion variable
   - 带 `$extensions.platform.sketch.outline.offset` 的 border token 输出 outline value 变量和 offset companion 变量
 - `sketch`：输出 sync-token 协议 payload v2 资产清单 `{theme}2sketch.json`。硬切换，无 v1 兼容路径；v1 嵌套树与 composite color-slot `@/` 引用合同由本节取代，simple-wiki 2026-07-13 sketch 系列的旧合同描述一并作废
-  - 根部为 `meta` 与 `assets`：`meta` 始终存在，形如 `{ themeId, version: 2 }`；`themeId` 取自 `main.yaml` 文档级 `$id`，未入账主题为 `null`（由插件侧 notice 提示补登记，与 `uuid` 缺失同待遇）
+  - 根部为 `meta` 与 `assets`：`meta` 始终存在，形如 `{ themeId, baseId, version: 2 }`；`themeId` 取自当前 main/profile 文档根 `$id`，未入账当前主题为 `null`；`baseId` 在 main 为 `null`，在 named profile 为所属 main 身份，night 沿用 day 双身份。新增 `baseId` 不升 payload 版本，但拒绝额外 meta 字段的旧插件需要同步消费合同（缺身份的插件 notice 与 `uuid` 缺失同待遇）
   - `assets` 是一行一资产的扁平数组，记录形如 `{ uuid?, name, kind, <载荷> }`；记录排序按源顺序，保持 diff 稳定；未入账 token 的记录省略 `uuid`
   - `kind` 三分：`color`（color token 与 inheritColor token，对应插件 Swatch）、`text`（typography token，对应 Shared Text Style）、`layer`（outline border、shadow、gradient、radius 路径维度、sketch property 维度，对应 Shared Layer Style）
   - payload 范围 = 可同步资产：普通 border、generic dimension、transition、strokeStyle 与未知 payload 不产生记录（v1 的 `{ value }` 保存形态随之废止）；`sketch.skip` 命中与无值槽位在组装前排除
@@ -1246,7 +1301,7 @@ wave dt wcag --profile mobile --night
 - `md-yml`：输出 `{theme}2md.yml`，供用户复制到 Markdown frontmatter
   - 输出是 YAML fragment，不包含 `---` delimiter、注释、token wrapper 或 `$type` / `$value` / `$description` metadata
   - `filterLayer` 后的第一段是 namespace，剩余 source path 用 `-` 连接成 local key；过滤后必须至少保留 namespace 和 local key
-  - theme direct reference 在目标也存在于同一输出 payload、consumer slot 仍与目标最终值等价时，输出为 `{namespace.local-key}`；支持完整 token、composite 子字段、数组成员和 typography defaults 继承的引用
+  - theme direct reference 在目标也存在于同一输出 payload、consumer slot 仍与目标最终值等价时，输出为 `{namespace.local-key}`；支持完整 token、composite 子字段、数组成员和 平铺 typography 兜底字段继承的引用
   - external resource reference、`$ref + override`、`smoothShadow` / `smoothGradient`、`inheritColor` / `currentColor` 等 computed value 输出 transformer 处理后的最终值
   - dimension 保留单位字符串，object、array 和 explicit composite 保留结构
   - 值只接受 YAML 可无损表示的 null、有限 number、string、boolean、密集 array 和 plain object；遇到 `undefined`、非有限 number、稀疏或含额外 own key 的 array、cycle、accessor 或非 plain object 时失败
@@ -1272,14 +1327,14 @@ CSS 与 Sketch 的颜色引用彼此独立：CSS 保持既有颜色引用行为�
 - `--profile <name>` 构建 `{themeDir}/profiles/<name>.yaml`
 - `--profiles all` 构建 `main.yaml` 和所有 `profiles/*.yaml`
 - `--night` 包含有效的 `main@night.yaml` 或 `profiles/<name>@night.yaml`
-- 缺失或无效的 Night Mode 输出 `Night Mode unavailable/invalid and skipped`，并跳过 night 输出
+- 缺失或一般无效的 Night Mode 输出 `Night Mode unavailable/invalid and skipped`，并跳过 night 输出；night 文档或 token 身份违规仍为 `FORMAT_ERROR`
 
 ---
 
 ## 错误处理（Fail-Fast）
 
 - 若 `main.yaml` 存在但解析失败（引用错误、格式错误等），直接返回非 0 退出码，**不再 fallback 到依赖直出**
-- 同样适用于 day profile 文件；缺失或无效的 Night Mode overlay 只跳过 night 输出，不影响 day build
+- 同样适用于 day profile 文件；缺失或一般无效的 Night Mode overlay 只跳过 night 输出，不影响 day build；night 根 `$id` 或 token 身份违规为硬格式错误
 
 ---
 

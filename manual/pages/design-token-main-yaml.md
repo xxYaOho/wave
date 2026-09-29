@@ -133,7 +133,7 @@ theme:
 | `$type` | group 或 token | token 类型，可被子节点继承 |
 | `$value` | token | token 值 |
 | `$description` | group 或 token | 输出到 jsonc/css 注释 |
-| `$id` | main.yaml 根部、token | 身份字段，见下节 |
+| `$id` | main/profile 根部、token | 身份字段，见下节 |
 | `$deprecated` | token | 标记废弃 |
 | `$ref` | token | JSON Pointer 引用，例如 `#/theme/color/primary/$value` |
 | `$extends` | group | 继承另一个 group，格式 `{theme.group.path}` |
@@ -143,10 +143,19 @@ theme:
 
 `$id` 是 Wave 的身份字段，用于让 token 改名或移动后仍能被 Sketch 同步识别。它分两级：
 
-- 文档级：写在 `main.yaml` 根部，作为主题身份，随 Sketch 输出的 `themeId` 交付。只能写在 `main.yaml`，profile 与 night 文件声明会报错；必须是空字符串以外的字符串。不写或留空也没关系：`wave dt ids --write` 会自动生成一个并写在文件首行，已写好的不会被改动。
+- 文档级：main 和每个 day profile 都可以在根部声明自己的 `$id`，随 Sketch 输出的 `meta.themeId` 交付。字段可省略；声明时必须是非空字符串。Night 文件禁止声明根 `$id`，沿用 day 文档身份。
 - token 级：写在 token 上。三种状态：不写表示未登记；写成空值（`null` 或空白字符串）表示预留槽位；写成非空字符串即登记身份。token 身份在同一主题内必须唯一；group 不能声明 `$id`。
 
-推荐用 `wave dt ids` 维护两级身份：默认只输出报告，加 `--write` 才会把生成或同步的 `$id` 写回文件。`$id` 的值不影响 json、jsonc、css 和 md-yml 输出；Sketch 输出只用它做资产关联，不改变 key。
+推荐用 `wave dt ids` 维护两级身份：默认只输出 dry-run 报告，加 `--write` 才写回 main 和 day profile 的文档根身份及新 token 身份。缺少或为空的身份槽位会被补齐，已有文档根 ID 不会重发；`$override` 和 night 文件不参与写入。写入默认要求 Git 工作区干净；确认要保留当前未提交修改时，可显式加 `--allow-dirty`。
+
+Profile 的 `$config.base` 必须等于执行前 main 已登记的根 `$id`。只要存在 profile，而 main 尚未登记，或任一 profile 的 base 缺失、不匹配，ids 就拒绝写入任何文件。应先在尚无 profile 的基础目录登记 main，再创建 profile。详情见 [WCAG 与主题模式](/design-token/quality-theming)。
+
+`$id` 不影响 json、jsonc、css 和 md-yml 的 token 值；Sketch 只用它做资产关联，不改变 key。
+
+```bash
+wave dt ids -f ./main.yaml
+wave dt ids --write -f ./main.yaml
+```
 
 ```yaml
 $id: 6f1c2a54b7d84e0f9a1c32d45e6b70f8
@@ -158,6 +167,7 @@ theme:
   color:
     primary:
       $id: 0f8e6d5c4b3a29180f7e6d5c4b3a2918
+      $type: color
       $value: "#2563eb"
 ```
 

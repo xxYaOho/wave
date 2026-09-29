@@ -59,6 +59,26 @@ $config:
 
 如需检查 `theme.dimension` 迁移，再运行 `wave dt doctor`。
 
+## Profile 无法构建或登记身份
+
+先查看检查报告：
+
+```bash
+wave dt doctor -f ./main.yaml
+wave dt doctor --profile mobile -f ./main.yaml
+wave dt ids -f ./main.yaml
+```
+
+Profile 的 `$config.base` 必须等于 main 原有根 `$id`。Base 缺失、不匹配，或已有 profile 而 main 尚未登记时，ids 会拒绝全部写入；不要改发 main 根身份来绕过检查。创建新 profile 应先登记 main 与全部 token，再运行 `wave dt new-profile mobile -f ./main.yaml`。
+
+已有 token 用 `$override` 按 token ID 替换完整 `$value`，不能在 profile token 树中重新定义同一路径；已有 group 也不能重声明 `$type`、`$extensions` 等元数据。旧独立 profile 没有兼容或迁移命令。需要删除基础 token 或改变已有扩展时，另建基础目录。详见 [WCAG 与主题模式](/design-token/quality-theming)。
+
+Doctor 的 `x/y overrides match base source values` 是冗余覆盖的 info 提示，不是错误；删除对应覆盖后，值会跟随基础变化。
+
+## 字体扩展报错
+
+`$extensions.typography` 使用平铺字段，旧 `defaults` 嵌套写法会被拒绝。把五个字体默认字段移到 `typography` 下；`baseFontSize` 是正 number 或解析为正 number 的引用，不是 dimension，也不是 token 字号默认值。按 profile 调整基准时，覆盖已登记的 number token，不修改已有 group 扩展。完整示例见 [颜色与字体](/design-token/color-typography)。
+
 ## 压缩工具缺失
 
 运行：
