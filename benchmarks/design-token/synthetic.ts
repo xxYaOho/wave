@@ -84,8 +84,10 @@ function buildColorToken(
 
 	if (shouldApply(random, options.sketchExtensionRatio)) {
 		token.$extensions = {
-			sketch: {
-				path: `synthetic/color/group-${index % 10}`,
+			platform: {
+				sketch: {
+					path: `synthetic/color/group-${index % 10}`,
+				},
 			},
 		};
 	}
@@ -116,10 +118,12 @@ function buildDimensionToken(
 
 	if (shouldApply(random, options.sketchExtensionRatio)) {
 		token.$extensions = {
-			sketch: {
-				path: `synthetic/dimension/group-${index % 10}`,
-				property: {
-					cornerRadius: true,
+			platform: {
+				sketch: {
+					path: `synthetic/dimension/group-${index % 10}`,
+					property: {
+						cornerRadius: true,
+					},
 				},
 			},
 		};
