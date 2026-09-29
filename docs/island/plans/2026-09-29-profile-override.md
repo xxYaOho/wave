@@ -98,6 +98,10 @@ dispatch: ~
 - 子代理预审（两位评审，结论均为有条件通过）的全部阻断/建议项已吸收：阻断-1 经用户改判为 token 引用模式（决策 14）；阻断-2 经用户裁决为文件内可判定（决策 3）；快照与 doctor 提示经用户裁决为汇总提示（决策 10）；版本落锤维持 2（决策 7）；错误出口（决策 15）、benchmarks runner、测试改造面、`$helper` 处置、文件清单笔误均已并入。
 - Strict Round 1（FAIL）台账：FATAL×2（M1 闸门循环依赖、runner 循环依赖）→ 全量夹具迁移与 runner 适配前移 M1（结构性修正）；MAJOR×3 → doctor 命令入口错误映射纳入 M1 范围、doctor 检查矩阵经 human 裁决入决策 10、fixture 新格式核验改为逐文件解析断言；MINOR×1 → M3 smoke 改临时 workspace；ESCALATE×1 → 重复 `$id` 时 new-profile 拒绝并引导修复，经 human 裁决入决策 8。
 - Strict Round 2（PASS）MAJOR 台账：MAJOR-1（M1 Task-1 补 baseFontSize 迁移配方：base 下沉 `base-size` token + 引用化，profile 异值改 `$override`，`defaults` 暂留至 M2）RESOLVED——reviewer 要求原文落入验收；MAJOR-2（M3 Task-2 补重复 `$id` 拒绝 + 引导文案 + 零写入断言）RESOLVED 同上；MAJOR-3（M4 Task-2 范围补 `src/cli/commands/doctor.ts`、四格矩阵正反用例入闸门）RESOLVED 同上；MINOR-1（M1 Task-5 依赖补 Task-4）RESOLVED 同上。交付前复核：全部关闭。
+- 施工注记 M1-1（orchestrator 裁决，coder-plus 上报后裁定）：`identity-ladder` 与 `identity-conflict` 两处夹具（含 2 个 day profile）在 M1 保持旧格式不动。依据：二者仅被 `tests/doctor-identity.test.ts` 与 `tests/dt-ids.test.ts` 消费（grep 核实，无 build 路径消费方），所经 ids 命令与 doctor identity walk 在 M1 不变；其新语义迁移归 M4（M4 Task-1/Task-3 验收随之包含这两处夹具的新格式迁移与测试适配）。M1 fixture 新格式核验以显式延期清单豁免该两处（清单 = 这两个目录名，注明归属 M4）。若施工中发现任何 build 路径消费这两处夹具，停止并上报，不得自行适配。
+- 施工注记 M1-2（human 裁决，coder-plus 上报 orca-test 非值分歧）：四类 profile 非值分歧的处置——typography defaults 分歧按决策 14 配方保留：base 将分歧字段下沉为已入账 token 并引用化（嵌套 `defaults:` 形态内引用，M2 再拍平），profile 异值改 `$override`；smoothShadow target、sketch.path、inheritColor opacity 三类分歧属冻结模型的结构性范畴，fixture 迁移一律丢弃（profile 继承 base 扩展），受影响快照经 diff 审计后重生成，丢弃清单在 DEVIATIONS 全量披露。真实项目若依赖后三类差异，属新 base 或未来模型扩展，不在本计划。
+- 施工注记 M1-3（human 指示，验证收尾补强）：M5 增加 fixture 实例完整性巡检——`tests/fixtures/themes/` 下每个含合法 `main.yaml` 的目录以 `--profiles all`（存在 night 文件时追加 `--night`）构建到受控临时目录，断言成功且各 parameterGroup 产物齐备；invalid-case 夹具断言预期错误出口码。巡检与 M1 格式核验分层（格式合法 ≠ 构建通过），执行时 identity-ladder/identity-conflict 已经 M4 迁移、无豁免死角。`tests/fixtures/themes/orca-*`（orca-realistic 与 orca-test）是 example-derived 真实实例，由 canary、parity、quality-harness 与本巡检四路覆盖；用户真实 Orca 项目的迁移与冒烟在交付后由用户侧执行，不列入本计划验收。
+- 施工注记 M1-4（orchestrator 授权，benchmark 证据处置）：(a) `benchmarks/design-token/synthetic.ts` 的两个 `$extensions.sketch` legacy 发射器（:85/:117）为**先于本计划的存量破损**（schema 早已硬切拒绝 legacy 形态），授权就地转为 `platform.sketch` 形态（独立原子提交，DEVIATIONS 披露），不触碰 formatter。(b) 既有 ignored baseline（July/Bun1.3.14）经 coder 举证已过时（pre-Sketch-v2、pre-dimension 归一化），不可作 diff 参照；批准以只读 `git archive` 起始 HEAD 到受控临时目录（node_modules symlink、零 worktree/历史变更）生成**同期 pre-M1 baseline**，新 baseline 与之对比出证；存量 synthetic 失败与 provenance drift 在交付报告中单列。orca 等价 diff 中 token 数增长（153→324）为 base 继承的预期效果，属预期变化而非回归。
 
 ## Draft Plan
 
@@ -470,7 +474,7 @@ M4 测试收尾（来源：Testing Decisions）
 
 全量回归终验（来源：Testing Decisions）
 
-- 验收标准：`bun test` 全量绿；`pnpm typecheck`；Orca canary 按核验基线终验通过，sketch payload `meta.themeId`/`baseId` 与 `sketch.skip` 负向断言人工抽查；无全局 `--platform` 覆盖；fixture 新格式核验测试（M1 建立）保持通过。
+- 验收标准：`bun test` 全量绿；`pnpm typecheck`；Orca canary 按核验基线终验通过，sketch payload `meta.themeId`/`baseId` 与 `sketch.skip` 负向断言人工抽查；无全局 `--platform` 覆盖；fixture 新格式核验测试（M1 建立）保持通过；fixture 实例完整性巡检（施工注记 M1-3）建立并通过——全部可构建实例 `--profiles all`（含 night 时 `+ --night`）构建成功且产物齐备，invalid-case 实例断言预期错误出口码。
 - 可动文件范围：全仓。
 - 依赖：Task-1。
 - 固有风险：无。
