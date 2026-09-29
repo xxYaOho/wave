@@ -200,7 +200,7 @@ const scenarios: Record<string, Scenario> = {
 	'profile-model/no-config-main': {
 		error: { code: 12, messages: ['missing required $config'] },
 	},
-	'profile-model/root-id-in-profile-invalid': {
+	'profile-model/profile-root-id-empty-invalid': {
 		error: {
 			code: 12,
 			messages: ['Invalid $id; expected a non-empty string when present'],

@@ -1,7 +1,7 @@
 $schema: "https://www.designtokens.org/tr/2025.10/format/"
 
 $config:
-  theme: root-id-in-profile-invalid
+  theme: profile-root-id-empty-invalid
   parameter:
     outputDir: ./dist
     platform:

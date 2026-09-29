@@ -544,7 +544,7 @@ describe('profile resolver', () => {
 	});
 
 	test('named profile root-level $id must be non-empty when declared', async () => {
-		const invalidDir = path.join(fixtureDir, 'root-id-in-profile-invalid');
+		const invalidDir = path.join(fixtureDir, 'profile-root-id-empty-invalid');
 		const profiles = await discoverProfiles(invalidDir);
 		const main = profiles.find((profile) => profile.name === 'main')!;
 		const mobile = profiles.find((profile) => profile.name === 'mobile')!;
