@@ -689,7 +689,10 @@ export function assembleSketchPayload(
 	return {
 		meta: {
 			themeId: options.themeId ?? null,
-			baseId: options.baseId ?? null,
+			// Token Manage groups series by baseId (currentByBaseId). Main builds
+			// historically omitted baseId; fall back to themeId so the series key
+			// is never null when the document has an identity.
+			baseId: options.baseId ?? options.themeId ?? null,
 			version: 2,
 		},
 		assets,

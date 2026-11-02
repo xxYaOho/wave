@@ -866,8 +866,8 @@ Wave 为 theme 引入两层稳定身份。`$` 属性命名空间被 DTCG 预留�
 ### 文档级 `$id`（主题身份）
 
 - main 与 named profile 根部均可声明文档 `$id`；night 根部仍禁止。profile 主题身份来自自身文档，不再共用 main 身份。
-- 构建时声明的 `$id` 必须为非空字符串，否则 `FORMAT_ERROR`；进入 token 树前剥离，不参与 token 输出。未声明时当前主题的 `themeId` 为 `null`。
-- profile `$config.base` 必须等于原始 main 根 `$id`；main 未入账时不可构建其 profile。sketch `meta.themeId` 是当前 day 文档身份，`meta.baseId` 是 named profile 所属 main 身份；main 的 `baseId` 为 `null`，night 双身份跟随 day，`meta.version` 保持 2。
+- 构建时声明的 `$id` 必须为非空字符串，否则 `FORMAT_ERROR`；进入 token 树前剥离，不参与 token 输出。未声明时：profile 的 `themeId` 为 `null`；main 的 sketch `themeId`/`baseId` 回退 `$config.theme` stem。
+- profile `$config.base` 必须等于原始 main 根 `$id`；main 未入账时不可构建其 profile。sketch `meta.themeId` 是当前 day 文档身份，`meta.baseId` 是系列分组键（Token Manage `currentByBaseId`）：named profile 为所属 main 身份；main 为其自身 `themeId`（未入账时回退 `$config.theme` stem），不再为 `null`；night 双身份跟随 day，`meta.version` 保持 2。
 - 文档与 token 身份是两个命名空间；根 `$id` 不进入 token 路径权威/冲突图或覆写目标索引。doctor 在独立 `documents` 清单展示 main/profile 文档身份。
 - 其他格式（json / jsonc / css / md-yml）不携带任何 id。
 
@@ -1283,7 +1283,7 @@ wave dt wcag --profile mobile --night
   - DTCG border `style.dashArray` 输出 `dashed` shorthand 和 `-dash-array` companion variable
   - 带 `$extensions.platform.sketch.outline.offset` 的 border token 输出 outline value 变量和 offset companion 变量
 - `sketch`：输出 sync-token 协议 payload v2 资产清单 `{theme}2sketch.json`。硬切换，无 v1 兼容路径；v1 嵌套树与 composite color-slot `@/` 引用合同由本节取代，simple-wiki 2026-07-13 sketch 系列的旧合同描述一并作废
-  - 根部为 `meta` 与 `assets`：`meta` 始终存在，形如 `{ themeId, baseId, version: 2 }`；`themeId` 取自当前 main/profile 文档根 `$id`，未入账当前主题为 `null`；`baseId` 在 main 为 `null`，在 named profile 为所属 main 身份，night 沿用 day 双身份。新增 `baseId` 不升 payload 版本，但拒绝额外 meta 字段的旧插件需要同步消费合同（缺身份的插件 notice 与 `uuid` 缺失同待遇）
+  - 根部为 `meta` 与 `assets`：`meta` 始终存在，形如 `{ themeId, baseId, version: 2 }`；`themeId` 取自当前 main/profile 文档根 `$id`，main 未入账时回退 `$config.theme` stem（profile 未入账仍可为 `null`）；`baseId` 始终为具体系列键——main 等于其 `themeId`/stem，named profile 为所属 main 身份——供 Token Manage `currentByBaseId` 识别导入；night 沿用 day 双身份。新增 `baseId` 不升 payload 版本，但拒绝额外 meta 字段的旧插件需要同步消费合同（缺身份的插件 notice 与 `uuid` 缺失同待遇）
   - `assets` 是一行一资产的扁平数组，记录形如 `{ uuid?, name, kind, <载荷> }`；记录排序按源顺序，保持 diff 稳定；未入账 token 的记录省略 `uuid`
   - `kind` 三分：`color`（color token 与 inheritColor token，对应插件 Swatch）、`text`（typography token，对应 Shared Text Style）、`layer`（outline border、shadow、gradient、radius 路径维度、sketch property 维度，对应 Shared Layer Style）
   - payload 范围 = 可同步资产：普通 border、generic dimension、transition、strokeStyle 与未知 payload 不产生记录（v1 的 `{ value }` 保存形态随之废止）；`sketch.skip` 命中与无值槽位在组装前排除

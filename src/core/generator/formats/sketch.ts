@@ -18,10 +18,12 @@ export const sketchFormat: WaveFormatFn = (
 		typeof options?.themeId === 'string' && options.themeId.trim() !== ''
 			? options.themeId
 			: undefined;
-	const baseId =
+	// Explicit baseId wins; otherwise reuse themeId so main builds never emit null.
+	const explicitBaseId =
 		typeof options?.baseId === 'string' && options.baseId.trim() !== ''
 			? options.baseId
 			: undefined;
+	const baseId = explicitBaseId ?? themeId;
 	const allTokens = [...tokens].sort(
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);

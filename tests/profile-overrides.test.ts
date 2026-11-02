@@ -497,7 +497,11 @@ describe('profile override build contract', () => {
 				expect(
 					(await Bun.file(path.join(dir, 'out/overrides2sketch.json')).json())
 						.meta,
-				).toEqual({ themeId: 'base-identity', baseId: null, version: 2 });
+				).toEqual({
+					themeId: 'base-identity',
+					baseId: 'base-identity',
+					version: 2,
+				});
 				for (const suffix of ['mobile', 'mobile-night']) {
 					expect(
 						(

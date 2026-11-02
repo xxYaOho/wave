@@ -23,7 +23,7 @@ export interface GeneratorOptions {
 	colorSpace?: ColorSpaceFormat;
 	/** Identity of the current day document; consumed by the sketch payload. */
 	themeId?: string;
-	/** Main document identity for a named profile. */
+	/** Series key for Token Manage; main uses own id/stem, profiles use main id. */
 	baseId?: string;
 }
 

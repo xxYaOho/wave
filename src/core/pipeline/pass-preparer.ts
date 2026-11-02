@@ -12,7 +12,7 @@ export interface PrepareBuildPassInput {
 	themeName: string;
 	/** Identity of the current day document; flows into the sketch payload. */
 	themeId?: string;
-	/** Main document identity for a named profile. */
+	/** Series key for Token Manage; main uses own id/stem, profiles use main id. */
 	baseId?: string;
 	yamlPath: string;
 	yamlContent: string;

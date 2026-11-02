@@ -1746,7 +1746,11 @@ $override:
 			expect(css).toBe(':root {\n}');
 			// 可同步资产为空：v2 payload 仍保留 meta 结构，assets 为空清单。
 			expect(sketch).toEqual({
-				meta: { themeId: null, baseId: null, version: 2 },
+				meta: {
+					themeId: 'test-extends',
+					baseId: 'test-extends',
+					version: 2,
+				},
 				assets: [],
 			});
 		});

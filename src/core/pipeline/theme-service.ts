@@ -21,6 +21,7 @@ import {
 	parseProfileDocument,
 	resolveProfilesToBuild,
 } from './profile-resolver.ts';
+import { sketchPassIds } from './sketch-identity.ts';
 import {
 	buildGroupPasses,
 	collectDependencyDictionary,
@@ -248,11 +249,17 @@ export async function generateTheme(
 		);
 		const profileId = entry.isDefault ? 'default' : `profile:${entry.name}`;
 		for (const [passIndex, pass] of profilePasses.entries()) {
+			const ids = sketchPassIds({
+				isDefault: entry.isDefault,
+				documentThemeId: document.themeId,
+				mainThemeId: baseDocument.themeId,
+				themeStem: effectiveThemeName,
+			});
 			const prepared = await prepareBuildPass({
 				id: `${profileId}:day:${pass.groupName ?? `pass-${passIndex + 1}`}`,
 				themeName: profileThemeName(effectiveThemeName, document),
-				themeId: document.themeId,
-				baseId: entry.isDefault ? undefined : baseDocument.themeId,
+				themeId: ids.themeId,
+				baseId: ids.baseId,
 				yamlPath: entry.path,
 				yamlContent: document.tokenContent,
 				dict: profileDepResult.dict,
@@ -311,11 +318,17 @@ export async function generateTheme(
 		const nightContent = yaml.dump(mergedNight.tree, { lineWidth: -1 });
 		const nightPasses: PreparedServicePass[] = [];
 		for (const [passIndex, pass] of profilePasses.entries()) {
+			const ids = sketchPassIds({
+				isDefault: entry.isDefault,
+				documentThemeId: document.themeId,
+				mainThemeId: baseDocument.themeId,
+				themeStem: effectiveThemeName,
+			});
 			const prepared = await prepareBuildPass({
 				id: `${profileId}:night:${pass.groupName ?? `pass-${passIndex + 1}`}`,
 				themeName: `${profileThemeName(effectiveThemeName, document)}-night`,
-				themeId: document.themeId,
-				baseId: entry.isDefault ? undefined : baseDocument.themeId,
+				themeId: ids.themeId,
+				baseId: ids.baseId,
 				yamlPath: entry.nightPath,
 				yamlContent: nightContent,
 				dict: profileDepResult.dict,

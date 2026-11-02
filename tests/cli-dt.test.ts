@@ -842,10 +842,10 @@ theme:
 			) as SketchPayloadV2;
 			const assetNames = sketchOutput.assets.map((asset) => asset.name);
 
-			// meta 随 v2 落地；主题未登记身份时 themeId 为 null。
+			// meta 随 v2 落地；未登记 `$id` 时用 `$config.theme` stem 作为系列键。
 			expect(sketchOutput.meta).toEqual({
-				themeId: null,
-				baseId: null,
+				themeId: 'sketch-extensions',
+				baseId: 'sketch-extensions',
 				version: 2,
 			});
 			expect(assetNames).toContain('foundation/color/color-primary-main');

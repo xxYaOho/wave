@@ -435,7 +435,12 @@ export type SketchAsset = SketchColorAsset | SketchTextAsset | SketchLayerAsset;
 export interface SketchPayloadMeta {
 	/** Identity of the current day document; null when unregistered. */
 	themeId: string | null;
-	/** Main document identity for named profiles; null for main. */
+	/**
+	 * Series grouping key for Token Manage (`currentByBaseId`).
+	 * Named profiles use the main document identity; main uses its own
+	 * themeId (or `$config.theme` stem when unregistered). Never null when
+	 * the pipeline can derive a concrete series id.
+	 */
 	baseId: string | null;
 	version: 2;
 }

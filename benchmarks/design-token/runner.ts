@@ -20,6 +20,7 @@ import {
 	type DependencyDict,
 } from '../../src/core/pipeline/theme-pipeline.ts';
 import { loadDesignTokenWorkspace } from '../../src/core/pipeline/workspace-loader.ts';
+import { sketchPassIds } from '../../src/core/pipeline/sketch-identity.ts';
 import { ExitCode } from '../../src/types/index.ts';
 import {
 	collectFileArtifacts,
@@ -207,13 +208,19 @@ export async function runDesignTokenBenchmarkCase(
 						buildGroupPasses(document.config, document.buildDir),
 					);
 					phases.groupPassMs += groupPass.ms;
+					const ids = sketchPassIds({
+						isDefault: profile.isDefault,
+						documentThemeId: document.themeId,
+						mainThemeId: baseDocument.themeId,
+						themeStem: resolvedThemeName,
+					});
 					scopes.push({
 						name: profile.name,
 						themeName: profileThemeName(resolvedThemeName, profile),
 						filePath: profile.path,
 						contentOverride: document.tokenContent,
-						themeId: document.themeId,
-						baseId: profile.isDefault ? undefined : baseDocument.themeId,
+						themeId: ids.themeId,
+						baseId: ids.baseId,
 						dict: resource.value.dict,
 						passes: groupPass.value,
 						isNight: false,
@@ -233,13 +240,19 @@ export async function runDesignTokenBenchmarkCase(
 					if (!mergedNight.ok) {
 						continue;
 					}
+					const nightIds = sketchPassIds({
+						isDefault: profile.isDefault,
+						documentThemeId: document.themeId,
+						mainThemeId: baseDocument.themeId,
+						themeStem: resolvedThemeName,
+					});
 					scopes.push({
 						name: `${profile.name}-night`,
 						themeName: `${profileThemeName(resolvedThemeName, profile)}-night`,
 						filePath: profile.nightPath,
 						contentOverride: yaml.dump(mergedNight.tree, { lineWidth: -1 }),
-						themeId: document.themeId,
-						baseId: profile.isDefault ? undefined : baseDocument.themeId,
+						themeId: nightIds.themeId,
+						baseId: nightIds.baseId,
 						dict: resource.value.dict,
 						passes: groupPass.value,
 						isNight: true,

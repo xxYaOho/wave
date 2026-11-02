@@ -50,7 +50,18 @@ describe('sketchFormat (payload v2)', () => {
 		) as SketchPayloadV2;
 		expect(withThemeId.meta).toEqual({
 			themeId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
-			baseId: null,
+			baseId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
+			version: 2,
+		});
+		const withBoth = JSON.parse(
+			sketchFormat(tokens, {
+				themeId: 'profile-id',
+				baseId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
+			}),
+		) as SketchPayloadV2;
+		expect(withBoth.meta).toEqual({
+			themeId: 'profile-id',
+			baseId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
 			version: 2,
 		});
 	});

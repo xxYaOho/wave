@@ -7,8 +7,8 @@ import type { SketchPayloadV2 } from '../src/types/index.ts';
 
 /**
  * sketch payload v2 合同集成测试（Milestone-4）：
- * - meta.themeId / baseId 管道全链路（当前文档身份 / named profile 的 main 身份）
- * - 未入账记录省略 uuid、缺失身份为 null（决策 5 / 6）
+ * - meta.themeId / baseId 管道全链路（当前文档身份 / named profile 的 main 身份；main 的 baseId = themeId）
+ * - 未入账记录省略 uuid；main 未登记 `$id` 时 themeId/baseId 回退 `$config.theme` stem（决策 5 / 6 修订）
  * - orca-test 缺口内化：扁平 name 前缀共存（hermetic fixture）
  * - outline ring 颜色位置输出 HEX8 快照（不绑定同清单 color uuid）
  * - fontWeight 刻度仅 sketch pass 报错的平台合同（对照测试）
@@ -61,7 +61,7 @@ describe('sketch payload v2 contract', () => {
 			);
 			expect(payload.meta).toEqual({
 				themeId: THEME_ID,
-				baseId: null,
+				baseId: THEME_ID,
 				version: 2,
 			});
 
@@ -165,7 +165,7 @@ describe('sketch payload v2 contract', () => {
 		}
 	});
 
-	test('unregistered theme yields null theme and base identities', async () => {
+	test('unregistered theme derives themeId/baseId from $config.theme stem', async () => {
 		const workspaceDir = await copyFixtureWorkspace('themes/sketch-extensions');
 		try {
 			const result = await generateTheme({
@@ -178,7 +178,12 @@ describe('sketch payload v2 contract', () => {
 				workspaceDir,
 				path.join('theme', 'sketch', 'sketch-extensions2sketch.json'),
 			);
-			expect(payload.meta).toEqual({ themeId: null, baseId: null, version: 2 });
+			// Unregistered main: derive concrete series id from `$config.theme` stem.
+			expect(payload.meta).toEqual({
+				themeId: 'sketch-extensions',
+				baseId: 'sketch-extensions',
+				version: 2,
+			});
 			expect(
 				assetByName(payload, 'foundation/color/color-primary-main'),
 			).toEqual({
