@@ -1,4 +1,8 @@
 import { Command } from 'commander';
+import {
+	expandMainYamlEntry,
+	resolveExclusiveFileInput,
+} from '../file-input.ts';
 import * as yaml from 'js-yaml';
 import {
 	findDimensionMigrationFindings,
@@ -243,6 +247,7 @@ export function createDoctorCommand(
 ): Command {
 	return new Command(name)
 		.description('Run health diagnostics and contrast checks')
+		.argument('[file]', 'main.yaml path or workspace dir. Default: ./main.yaml when under dt')
 		.option('-f, --file <path>', 'main.yaml path to validate')
 		.option('-o, --output <path>', 'Output directory to check')
 		.option('--contrast', 'Run WCAG contrast check on theme colors')
@@ -259,7 +264,21 @@ export function createDoctorCommand(
 				.createOption('--theme', '(deprecated) Use --contrast instead')
 				.hideHelp(),
 		)
-		.action(async (options: DoctorCommandOptions) => {
+		.action(async (positionalFile: string | undefined, options: DoctorCommandOptions) => {
+			const fileInput = resolveExclusiveFileInput(positionalFile, options.file, {
+				label: 'doctor input',
+				hint: 'Use one main.yaml path.',
+			});
+			if (!fileInput.ok) {
+				console.error(fileInput.message);
+				process.exitCode = ExitCode.INVALID_PARAMETER;
+				return;
+			}
+			options = {
+				...options,
+				file: await expandMainYamlEntry(fileInput.path),
+			};
+
 			if (options.theme) {
 				console.error('Option "--theme" has been renamed to "--contrast".');
 				console.error('  wave doctor --contrast   Run WCAG contrast check');

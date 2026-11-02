@@ -500,21 +500,33 @@ describe('profile override build contract', () => {
 				).toEqual({
 					themeId: 'base-identity',
 					baseId: 'base-identity',
+					mode: 'day',
 					version: 2,
 				});
-				for (const suffix of ['mobile', 'mobile-night']) {
-					expect(
-						(
-							await Bun.file(
-								path.join(dir, `out/overrides-${suffix}2sketch.json`),
-							).json()
-						).meta,
-					).toEqual({
-						themeId: 'mobile-identity',
-						baseId: 'base-identity',
-						version: 2,
-					});
-				}
+				expect(
+					(
+						await Bun.file(
+							path.join(dir, 'out/overrides-mobile2sketch.json'),
+						).json()
+					).meta,
+				).toEqual({
+					themeId: 'mobile-identity',
+					baseId: 'base-identity',
+					mode: 'day',
+					version: 2,
+				});
+				expect(
+					(
+						await Bun.file(
+							path.join(dir, 'out/overrides-mobile-night2sketch.json'),
+						).json()
+					).meta,
+				).toEqual({
+					themeId: 'mobile-identity',
+					baseId: 'base-identity',
+					mode: 'night',
+					version: 2,
+				});
 			},
 		);
 	});

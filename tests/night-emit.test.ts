@@ -53,13 +53,15 @@ describe('night emit path', () => {
 			expect(result.ok).toBe(true);
 			if (!result.ok) return;
 			expect(result.outputPath).toBe(path.join(dir, 'main@night.yaml'));
-			expect(result.themeId).toBe('config-main@night');
+			expect(result.themeId).toBe('config-main');
+			expect(result.mode).toBe('night');
 			expect(result.baseId).toBe('config-main');
 			expect(result.params.chroma).toBe(0.7);
 			expect(result.params.scene).toBe('night');
 
 			const raw = await fs.readFile(result.outputPath, 'utf8');
-			expect(raw).toContain('themeId=config-main@night');
+			expect(raw).toContain('themeId=config-main');
+			expect(raw).toContain('mode=night');
 			const doc = yaml.load(
 				raw
 					.split('\n')
@@ -122,20 +124,20 @@ describe('night emit path', () => {
 });
 
 describe('sketchNightPassIds', () => {
-	test('suffixes themeId with @night and keeps day baseId', () => {
+	test('keeps day themeId/baseId and sets mode night', () => {
 		expect(
 			sketchNightPassIds({
 				isDefault: true,
 				documentThemeId: 'abc123',
 				themeStem: 'orca',
 			}),
-		).toEqual({ themeId: 'abc123@night', baseId: 'abc123' });
+		).toEqual({ themeId: 'abc123', baseId: 'abc123', mode: 'night' });
 
 		expect(
 			sketchNightPassIds({
 				isDefault: true,
 				themeStem: 'orca',
 			}),
-		).toEqual({ themeId: 'orca@night', baseId: 'orca' });
+		).toEqual({ themeId: 'orca', baseId: 'orca', mode: 'night' });
 	});
 });

@@ -21,8 +21,8 @@ wave night [theme=cwd/main.yaml] [--scene] [--chroma|--chroma-ev]
 | --- | --- |
 | 入口 | 指向 Day 的 `main.yaml`（参数或 `-f/--file`；二者互斥）。默认 `./main.yaml`。 |
 | 产出 | 同目录 `<stem>@night.yaml`（例：`main@night.yaml`、`profiles/dark@night.yaml` 旁文件由构建路径消费，创建命令默认写在入口旁边）。 |
-| 覆盖 | 默认可覆写已有 overlay；命令打印 `written` / `updated`、scene、chroma 来源、`themeId`/`baseId`、mapped 角色数。 |
-| Overlay 形状 | 仅 `theme.color` / `theme.state` 路径叶子 `$value`；**禁止**根 `$id`。注释头记录 source Day、scene、chroma、themeId/baseId。 |
+| 覆盖 | 默认可覆写已有 overlay；命令打印 `written` / `updated`、scene、chroma 来源、`themeId`/`baseId`/`mode`、mapped 角色数。 |
+| Overlay 形状 | 仅 `theme.color` / `theme.state` 路径叶子 `$value`；**禁止**根 `$id`。注释头记录 source Day、scene、chroma、themeId/baseId/mode。 |
 | Day 解析 | 走完整 Wave theme pipeline（resource / extends / 引用），颜色归一为 hex 后再 remap。`$config` 在 loader 中被剥除，night 段由 emit 重新读文件解析。 |
 
 ## Scene
@@ -75,5 +75,5 @@ wave night -f main.yaml --scene moon --chroma 0.55
 
 ## 与身份、规则材料的边界
 
-- Token Manage 的 `themeId` / `baseId` / `@night` 识别见同日材料 `2026-11-02-wave-night-token-manage-identity.md`。
+- Token Manage 的 `themeId` / `baseId` / `mode` 识别见同日材料 `2026-11-02-wave-night-token-manage-identity.md`（Day/Night 同 themeId；用 mode 区分）。
 - Day→Night 映射与 brand-safe warm mix 见 `2026-11-02-wave-night-color-rule-notes.md`。

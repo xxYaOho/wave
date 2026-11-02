@@ -16,11 +16,15 @@ import { createShowCommand } from './show.ts';
 const DESIGN_TOKEN_HELP = `Wave Design Token
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Usage:
-    wave dt [options]
-    wave dt <command> [options]
+    wave dt [file] [options]
+    wave dt <command> [file] [options]
+
+  File:
+    Optional positional path to main.yaml (or a directory containing it).
+    Default: ./main.yaml. -f/--file is the same; do not pass both.
 
   Commands:
-    build           Build design token output
+    build           Build design token output (default when no command)
     doctor          Check design-token workspace health
     wcag            Check color contrast
     show            Browse built-in resources
@@ -31,15 +35,29 @@ const DESIGN_TOKEN_HELP = `Wave Design Token
     ids             Fill, generate and sync token $id identities (--write to apply)
     migrate-extensions  One-shot $extensions legacy rename (sketch -> platform.sketch)
 
-  Options:
+  Shortcuts (when no subcommand is named):
+    --build              Same as "dt build" (default)
+    --ids                Same as "dt ids"
+    --ids-write          Same as "dt ids --write"
+
+  Build options:
     -f, --file <path>    main.yaml path. Default: ./main.yaml
     -o, --out <path>     Override output directory
+    --output <dir>       Alias of --out
     --platform <name>    Output platform. Repeatable: json, jsonc, css, sketch, md-yml
     --profile <name>     Build one named profile from profiles/<name>.yaml
     --profiles all       Build main and all named profiles
     --night              Include valid Night Mode overlays when available
     --json               Output JSON only where supported
     -h, --help           Show help
+
+  Examples:
+    wave dt
+    wave dt ./main.yaml --night
+    wave dt ./main.yaml --ids
+    wave dt ./main.yaml --ids-write --allow-dirty
+    wave dt ids --write
+    wave dt build -o ./dist --platform json,css
 
   For more help on a command:
     wave dt <command> --help`;

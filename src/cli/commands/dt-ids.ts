@@ -1,6 +1,10 @@
 import * as path from 'node:path';
 import { Command } from 'commander';
 import {
+	expandMainYamlEntry,
+	resolveExclusiveFileInput,
+} from '../file-input.ts';
+import {
 	IdsEntryError,
 	type IdsWorkspaceReport,
 	runIdsWorkspace,
@@ -24,6 +28,7 @@ export function createIdsCommand(name = 'ids'): Command {
 		.description(
 			'Fill, generate and sync token $id identities across the workspace',
 		)
+		.argument('[file]', 'main.yaml path or workspace dir. Default: ./main.yaml')
 		.option('-f, --file <path>', 'main.yaml path. Default: ./main.yaml')
 		.option(
 			'--write',
@@ -34,12 +39,27 @@ export function createIdsCommand(name = 'ids'): Command {
 			'Allow --write even when the git working tree is not clean',
 		)
 		.action(
-			async (options: {
-				file?: string;
-				write?: boolean;
-				allowDirty?: boolean;
-			}) => {
-				const entry = options.file ?? path.join(process.cwd(), 'main.yaml');
+			async (
+				positionalFile: string | undefined,
+				options: {
+					file?: string;
+					write?: boolean;
+					allowDirty?: boolean;
+				},
+			) => {
+				const fileInput = resolveExclusiveFileInput(
+					positionalFile,
+					options.file,
+					{ label: 'ids input', hint: 'Use one main.yaml path.' },
+				);
+				if (!fileInput.ok) {
+					logger.error(fileInput.message);
+					process.exitCode = ExitCode.INVALID_PARAMETER;
+					return;
+				}
+				const entry =
+					(await expandMainYamlEntry(fileInput.path)) ??
+					path.join(process.cwd(), 'main.yaml');
 
 				let report: IdsWorkspaceReport;
 				try {

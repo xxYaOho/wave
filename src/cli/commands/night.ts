@@ -1,4 +1,8 @@
 import { Command } from 'commander';
+import {
+	expandMainYamlEntry,
+	resolveExclusiveFileInput,
+} from '../file-input.ts';
 import { emitNightOverlay } from '../../core/night/emit.ts';
 import { CHROMA_EV_LEVELS, NIGHT_SCENES } from '../../core/night/params.ts';
 import { ExitCode } from '../../types/index.ts';
@@ -8,8 +12,8 @@ const NIGHT_HELP = `Wave Night
   Generate a Night overlay draft from a Day theme via pure color-rules.
 
   Usage:
-    wave night [theme]
-    wave night [options]
+    wave night [theme=./main.yaml] [--scene] [--chroma|--chroma-ev]
+    wave night -f <path> [--scene] [--chroma|--chroma-ev]
 
   Arguments:
     theme                Path to main.yaml (default: ./main.yaml)
@@ -26,7 +30,7 @@ const NIGHT_HELP = `Wave Night
 
   Output:
     Writes <stem>@night.yaml beside the theme file (e.g. main@night.yaml).
-    Sketch identity for Night builds: themeId=<stem>@night, same baseId as Day.
+    Sketch identity: same themeId/baseId as Day; meta.mode=night.
 
   Priority:
     --chroma > --chroma-ev > $config.night > defaults (scene=night, chroma=0.7)
@@ -64,10 +68,12 @@ export function createNightCommand(name = 'night'): Command {
 		.helpOption('-h, --help', 'Show help')
 		.addHelpText('after', `\n${NIGHT_HELP}`)
 		.action(async (theme: string | undefined, options: NightCommandOptions) => {
-			if (theme && options.file) {
-				console.error(
-					`Invalid Night input: both ${theme} and ${options.file} were provided. Use one main.yaml path.`,
-				);
+			const fileInput = resolveExclusiveFileInput(theme, options.file, {
+				label: 'Night input',
+				hint: 'Use one main.yaml path.',
+			});
+			if (!fileInput.ok) {
+				console.error(fileInput.message);
 				process.exitCode = ExitCode.INVALID_PARAMETER;
 				return;
 			}
@@ -82,7 +88,7 @@ export function createNightCommand(name = 'night'): Command {
 			}
 
 			const result = await emitNightOverlay({
-				themePath: theme ?? options.file,
+				themePath: await expandMainYamlEntry(fileInput.path),
 				cli: {
 					scene: options.scene,
 					chroma,
@@ -103,7 +109,7 @@ export function createNightCommand(name = 'night'): Command {
 				`  scene=${result.params.scene} chroma=${result.params.chroma} (${result.params.chromaSource})`,
 			);
 			console.log(
-				`  themeId=${result.themeId} baseId=${result.baseId} roles=${result.mappedCount}`,
+				`  themeId=${result.themeId} baseId=${result.baseId} mode=${result.mode} roles=${result.mappedCount}`,
 			);
 			process.exitCode = ExitCode.SUCCESS;
 		});

@@ -24,6 +24,7 @@ export const sketchFormat: WaveFormatFn = (
 			? options.baseId
 			: undefined;
 	const baseId = explicitBaseId ?? themeId;
+	const mode = options?.mode === 'night' ? 'night' : 'day';
 	const allTokens = [...tokens].sort(
 		(a, b) => (a._order ?? 0) - (b._order ?? 0),
 	);
@@ -34,7 +35,7 @@ export const sketchFormat: WaveFormatFn = (
 	const payload: SketchPayloadV2 = assembleSketchPayload(
 		writeTokens,
 		allTokens,
-		{ themeId, baseId, filterLayer },
+		{ themeId, baseId, mode, filterLayer },
 	);
 	return JSON.stringify(payload, null, 2);
 };

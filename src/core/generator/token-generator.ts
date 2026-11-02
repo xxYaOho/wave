@@ -25,6 +25,8 @@ export interface GeneratorOptions {
 	themeId?: string;
 	/** Series key for Token Manage; main uses own id/stem, profiles use main id. */
 	baseId?: string;
+	/** Appearance mode for Sketch meta; Day and Night share themeId. */
+	mode?: 'day' | 'night';
 }
 
 export interface GeneratorResult {
@@ -158,6 +160,7 @@ export async function generateTokens(
 		colorSpace,
 		themeId,
 		baseId,
+		mode,
 	} = options;
 	const generatedFiles: string[] = [];
 	const plan = planTokenOutputs({ themeName, outputDir, platform });
@@ -177,6 +180,7 @@ export async function generateTokens(
 			}
 			if (themeId !== undefined) formatOptions.themeId = themeId;
 			if (baseId !== undefined) formatOptions.baseId = baseId;
+			if (mode !== undefined) formatOptions.mode = mode;
 
 			const out = output.format(
 				tokensForPlatform(output.platform, tokens, resolved, colorSpace),

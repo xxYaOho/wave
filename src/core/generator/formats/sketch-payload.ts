@@ -29,6 +29,8 @@ import {
 export interface SketchPayloadAssembleOptions {
 	themeId?: string | undefined;
 	baseId?: string | undefined;
+	/** Appearance mode; defaults to `day` when omitted (prefer explicit). */
+	mode?: 'day' | 'night' | undefined;
 	filterLayer: number;
 }
 
@@ -693,6 +695,8 @@ export function assembleSketchPayload(
 			// historically omitted baseId; fall back to themeId so the series key
 			// is never null when the document has an identity.
 			baseId: options.baseId ?? options.themeId ?? null,
+			// Day/Night share themeId; Token Manage distinguishes via mode.
+			mode: options.mode === 'night' ? 'night' : 'day',
 			version: 2,
 		},
 		assets,

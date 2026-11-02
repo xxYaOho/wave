@@ -42,6 +42,7 @@ describe('sketchFormat (payload v2)', () => {
 		expect(withoutThemeId.meta).toEqual({
 			themeId: null,
 			baseId: null,
+			mode: 'day',
 			version: 2,
 		});
 
@@ -51,6 +52,7 @@ describe('sketchFormat (payload v2)', () => {
 		expect(withThemeId.meta).toEqual({
 			themeId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
 			baseId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
+			mode: 'day',
 			version: 2,
 		});
 		const withBoth = JSON.parse(
@@ -62,6 +64,7 @@ describe('sketchFormat (payload v2)', () => {
 		expect(withBoth.meta).toEqual({
 			themeId: 'profile-id',
 			baseId: '0f1e2d3c4b5a69788796a5b4c3d2e1f0',
+			mode: 'day',
 			version: 2,
 		});
 	});

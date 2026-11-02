@@ -192,7 +192,7 @@ describe('generateTokens (Wave-native)', () => {
 			);
 			const parsed = JSON.parse(content);
 			expect(parsed).toEqual({
-				meta: { themeId: null, baseId: null, version: 2 },
+				meta: { themeId: null, baseId: null, mode: 'day', version: 2 },
 				assets: [
 					{
 						name: 'theme-color-bg',

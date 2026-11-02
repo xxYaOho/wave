@@ -9,12 +9,22 @@ import { createDesignTokenInitCommand } from './commands/dt-init.ts';
 import { createMigrateExtensionsCommand } from './commands/dt-migrate-extensions.ts';
 import { createNewProfileCommand } from './commands/dt-new-profile.ts';
 import { createShowCommand } from './commands/show.ts';
+import {
+	DESIGN_TOKEN_COMMANDS,
+	DESIGN_TOKEN_SUBCOMMANDS,
+	normalizeWaveArgv,
+} from './normalize-argv.ts';
 import { registerCommands } from './registry.ts';
 
 const TOP_LEVEL_HELP = `Wave CLI
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Usage:
-    wave <command> [options]
+    wave <command> [file] [options]
+    wave <command> <subcommand> [file] [options]
+
+  Shape:
+    Positional [file] defaults to ./main.yaml for dt / night (directory → main.yaml).
+    -f/--file is optional when the path is positional; do not pass both.
 
   Commands:
     design-token   Build and inspect design tokens
@@ -56,24 +66,7 @@ const DT_UPDATE_HELP = `Wave Design Token Resource Update
 
 const program = new Command();
 
-const DESIGN_TOKEN_COMMANDS = new Set(['design-token', 'dt']);
-const DESIGN_TOKEN_SUBCOMMANDS = new Set([
-	'build',
-	'doctor',
-	'wcag',
-	'show',
-	'init',
-	'new-profile',
-	'update',
-	'status',
-	'ids',
-	'migrate-extensions',
-]);
 const DESIGN_TOKEN_MODULE_FLAGS = new Set(['--help', '-h']);
-const COMPRESS_SUBCOMMANDS = new Set(['run', 'doctor', 'install', 'help']);
-const COMPRESS_MODULE_FLAGS = new Set(['--help', '-h']);
-const WORKSPACE_SUBCOMMANDS = new Set(['create', 'help']);
-const WORKSPACE_MODULE_FLAGS = new Set(['--help', '-h']);
 
 function isTopLevelHelp(argv: string[]): boolean {
 	const arg = argv[2];
@@ -149,55 +142,6 @@ function showDesignTokenSubcommandHelp(argv: string[]): void {
 	program.parse(argv);
 }
 
-function normalizeArgv(argv: string[]): string[] {
-	if (argv[2] === 'compress') {
-		const firstCompressArg = argv[3];
-		if (firstCompressArg && COMPRESS_MODULE_FLAGS.has(firstCompressArg)) {
-			return argv;
-		}
-		if (
-			!firstCompressArg ||
-			firstCompressArg.startsWith('-') ||
-			!COMPRESS_SUBCOMMANDS.has(firstCompressArg)
-		) {
-			return [...argv.slice(0, 3), 'run', ...argv.slice(3)];
-		}
-		return argv;
-	}
-	if (argv[2] === 'workspace') {
-		const firstWorkspaceArg = argv[3];
-		if (firstWorkspaceArg && WORKSPACE_MODULE_FLAGS.has(firstWorkspaceArg)) {
-			return argv;
-		}
-		if (
-			!firstWorkspaceArg ||
-			firstWorkspaceArg.startsWith('-') ||
-			!WORKSPACE_SUBCOMMANDS.has(firstWorkspaceArg)
-		) {
-			return [...argv.slice(0, 3), 'create', ...argv.slice(3)];
-		}
-		return argv;
-	}
-	if (!DESIGN_TOKEN_COMMANDS.has(argv[2] ?? '')) return argv;
-	const firstTokenArg = argv[3];
-	if (firstTokenArg === 'update') {
-		return argv.map((arg, index) =>
-			index > 3 && arg === '--version' ? '--tailwind-version' : arg,
-		);
-	}
-	if (firstTokenArg && DESIGN_TOKEN_MODULE_FLAGS.has(firstTokenArg)) {
-		return argv;
-	}
-	if (
-		!firstTokenArg ||
-		firstTokenArg.startsWith('-') ||
-		!DESIGN_TOKEN_SUBCOMMANDS.has(firstTokenArg)
-	) {
-		return [...argv.slice(0, 3), 'build', ...argv.slice(3)];
-	}
-	return argv;
-}
-
 program
 	.name('wave')
 	.description('Wave CLI')
@@ -260,5 +204,5 @@ if (isTopLevelHelp(process.argv)) {
 	createDesignTokenBuildHelpCommand(process.argv).outputHelp();
 	process.exitCode = ExitCode.SUCCESS;
 } else {
-	program.parse(normalizeArgv(process.argv));
+	program.parse(normalizeWaveArgv(process.argv));
 }

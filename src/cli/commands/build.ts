@@ -1,4 +1,8 @@
 import { Command } from 'commander';
+import {
+	expandMainYamlEntry,
+	resolveExclusiveFileInput,
+} from '../file-input.ts';
 import { VERSION } from '../../config/index.ts';
 import {
 	generateTheme,
@@ -39,7 +43,7 @@ function parseCliOptions(options: DesignTokenBuildOptions): GenerateOptions {
 export function createDesignTokenBuildCommand(name = 'build'): Command {
 	return new Command(name)
 		.description('Generate design token output')
-		.argument('[file]', 'main.yaml path')
+		.argument('[file]', 'main.yaml path or workspace dir. Default: ./main.yaml')
 		.option('-f, --file <path>', 'main.yaml path. Default: ./main.yaml')
 		.option(
 			'--profile <name>',
@@ -58,10 +62,16 @@ export function createDesignTokenBuildCommand(name = 'build'): Command {
 				positionalFile: string | undefined,
 				options: DesignTokenBuildOptions,
 			) => {
-				if (positionalFile && options.file) {
-					console.error(
-						`Invalid design token workspace input: both ${positionalFile} and ${options.file} were provided. Use one main.yaml path or run wave dt init.`,
-					);
+				const fileInput = resolveExclusiveFileInput(
+					positionalFile,
+					options.file,
+					{
+						label: 'design token workspace input',
+						hint: 'Use one main.yaml path or run wave dt init.',
+					},
+				);
+				if (!fileInput.ok) {
+					console.error(fileInput.message);
 					process.exitCode = ExitCode.INVALID_PARAMETER;
 					return;
 				}
@@ -75,7 +85,7 @@ export function createDesignTokenBuildCommand(name = 'build'): Command {
 
 				try {
 					const input: ThemeGenerationInput = {
-						workspacePath: positionalFile ?? options.file,
+						workspacePath: await expandMainYamlEntry(fileInput.path),
 						cliOutput: output,
 						cliPlatform: options.platform,
 						generateOptions: parseCliOptions(options),

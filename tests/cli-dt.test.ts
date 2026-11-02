@@ -247,7 +247,7 @@ describe('wave dt', () => {
 		for (const result of [bare, help]) {
 			expect(result.exitCode).toBe(0);
 			expect(result.stdout).toContain('Wave CLI');
-			expect(result.stdout).toContain('wave <command> [options]');
+			expect(result.stdout).toContain('wave <command> [file] [options]');
 			expect(result.stdout).toContain(
 				'design-token   Build and inspect design tokens',
 			);
@@ -264,7 +264,7 @@ describe('wave dt', () => {
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Wave Design Token');
 		expect(stdout).toContain('Usage:');
-		expect(stdout).toContain('wave dt [options]');
+		expect(stdout).toContain('wave dt [file] [options]');
 		expect(stdout).toContain('build           Build design token output');
 		expect(stdout).toContain('wcag            Check color contrast');
 		expect(stdout).toContain('-f, --file <path>    main.yaml path');
@@ -806,6 +806,56 @@ theme:
 			expect(
 				await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
 			).toBe(true);
+
+			const both = await runWave(
+				['dt', mainYaml, '-f', mainYaml],
+				rootDir,
+				fixture.env,
+			);
+			expect(both.exitCode).not.toBe(0);
+			expect(both.stderr + both.stdout).toContain('both');
+		} finally {
+			await fs.rm(fixtureDir, { recursive: true, force: true });
+		}
+	});
+
+	test('dt --ids sugar routes to ids dry-run', async () => {
+		const fixture = await copyFixtureWorkspace(
+			'tests/fixtures/themes/config-main',
+		);
+		const fixtureDir = fixture.dir;
+		const mainYaml = path.join(fixtureDir, 'main.yaml');
+		try {
+			const { exitCode, stdout, stderr } = await runWave(
+				['dt', mainYaml, '--ids'],
+				rootDir,
+				fixture.env,
+			);
+			expect(exitCode).toBe(0);
+			const out = stdout + stderr;
+			expect(out.toLowerCase()).toMatch(/dry run|no changes|id/);
+		} finally {
+			await fs.rm(fixtureDir, { recursive: true, force: true });
+		}
+	});
+
+	test('dt --build sugar builds like default', async () => {
+		const fixture = await copyFixtureWorkspace(
+			'tests/fixtures/themes/config-main',
+		);
+		const fixtureDir = fixture.dir;
+		const outputDir = path.join(fixtureDir, 'theme');
+		const mainYaml = path.join(fixtureDir, 'main.yaml');
+		try {
+			const { exitCode } = await runWave(
+				['dt', mainYaml, '--build'],
+				rootDir,
+				fixture.env,
+			);
+			expect(exitCode).toBe(0);
+			expect(
+				await Bun.file(path.join(outputDir, 'config-main.css')).exists(),
+			).toBe(true);
 		} finally {
 			await fs.rm(fixtureDir, { recursive: true, force: true });
 		}
@@ -846,6 +896,7 @@ theme:
 			expect(sketchOutput.meta).toEqual({
 				themeId: 'sketch-extensions',
 				baseId: 'sketch-extensions',
+				mode: 'day',
 				version: 2,
 			});
 			expect(assetNames).toContain('foundation/color/color-primary-main');

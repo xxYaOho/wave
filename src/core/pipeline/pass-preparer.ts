@@ -14,6 +14,8 @@ export interface PrepareBuildPassInput {
 	themeId?: string;
 	/** Series key for Token Manage; main uses own id/stem, profiles use main id. */
 	baseId?: string;
+	/** Appearance mode for Sketch meta; Day and Night share themeId. */
+	mode?: 'day' | 'night';
 	yamlPath: string;
 	yamlContent: string;
 	dict: DependencyDict;
@@ -25,6 +27,7 @@ export interface PreparedBuildPass {
 	themeName: string;
 	themeId?: string;
 	baseId?: string;
+	mode?: 'day' | 'night';
 	outputDir: string;
 	platforms: string[];
 	filterLayer: number | undefined;
@@ -56,6 +59,7 @@ export async function prepareBuildPass(
 			themeName: input.themeName,
 			themeId: input.themeId,
 			baseId: input.baseId,
+			mode: input.mode,
 			outputDir: input.pass.outputDir,
 			platforms: input.pass.platforms,
 			filterLayer: input.pass.filterLayer,

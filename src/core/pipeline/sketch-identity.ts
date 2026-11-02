@@ -4,8 +4,11 @@
  *
  * Prefer the document `$id` when registered; otherwise derive from the
  * `$config.theme` stem so main builds never emit a null `baseId`.
- * Night builds keep the same baseId and suffix themeId with `@night`.
+ * Day and Night share the same `themeId` / `baseId`; distinguish with
+ * `meta.mode` (`day` | `night`). Overlay files remain `*@night.yaml`.
  */
+export type SketchThemeMode = 'day' | 'night';
+
 function nonEmptyId(value: string | undefined): string | undefined {
 	if (typeof value !== 'string') return undefined;
 	const trimmed = value.trim();
@@ -17,7 +20,7 @@ export function sketchPassIds(input: {
 	documentThemeId?: string | undefined;
 	mainThemeId?: string | undefined;
 	themeStem: string;
-}): { themeId?: string; baseId: string } {
+}): { themeId?: string; baseId: string; mode: 'day' } {
 	const stem =
 		nonEmptyId(input.themeStem) ??
 		nonEmptyId(input.mainThemeId) ??
@@ -26,27 +29,23 @@ export function sketchPassIds(input: {
 	const mainId = nonEmptyId(input.mainThemeId) ?? stem;
 	if (input.isDefault) {
 		const themeId = nonEmptyId(input.documentThemeId) ?? stem;
-		return { themeId, baseId: themeId };
+		return { themeId, baseId: themeId, mode: 'day' };
 	}
 	const themeId = nonEmptyId(input.documentThemeId);
 	return themeId === undefined
-		? { baseId: mainId }
-		: { themeId, baseId: mainId };
+		? { baseId: mainId, mode: 'day' }
+		: { themeId, baseId: mainId, mode: 'day' };
 }
 
 /**
- * Night Sketch identity: same series `baseId` as Day, `themeId` = `<stem>@night`
- * (stem prefers registered document id, else `$config.theme`).
+ * Night Sketch identity: same `themeId` / `baseId` as Day; `mode` = `night`.
  */
 export function sketchNightPassIds(input: {
 	isDefault: boolean;
 	documentThemeId?: string | undefined;
 	mainThemeId?: string | undefined;
 	themeStem: string;
-}): { themeId: string; baseId: string } {
+}): { themeId?: string; baseId: string; mode: 'night' } {
 	const day = sketchPassIds(input);
-	const stem =
-		nonEmptyId(day.themeId) ?? nonEmptyId(input.themeStem) ?? day.baseId;
-	const themeId = stem.endsWith('@night') ? stem : `${stem}@night`;
-	return { themeId, baseId: day.baseId };
+	return { themeId: day.themeId, baseId: day.baseId, mode: 'night' };
 }

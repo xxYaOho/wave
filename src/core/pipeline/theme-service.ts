@@ -115,6 +115,7 @@ async function generatePreparedPass(
 		colorSpace: prepared.colorSpace,
 		baseId: prepared.baseId,
 		themeId: prepared.themeId,
+		mode: prepared.mode,
 	});
 
 	if (!mainResult.success) {
@@ -260,6 +261,7 @@ export async function generateTheme(
 				themeName: profileThemeName(effectiveThemeName, document),
 				themeId: ids.themeId,
 				baseId: ids.baseId,
+				mode: ids.mode,
 				yamlPath: entry.path,
 				yamlContent: document.tokenContent,
 				dict: profileDepResult.dict,
@@ -329,6 +331,7 @@ export async function generateTheme(
 				themeName: `${profileThemeName(effectiveThemeName, document)}-night`,
 				themeId: ids.themeId,
 				baseId: ids.baseId,
+				mode: ids.mode,
 				yamlPath: entry.nightPath,
 				yamlContent: nightContent,
 				dict: profileDepResult.dict,

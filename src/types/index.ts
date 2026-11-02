@@ -442,6 +442,11 @@ export interface SketchPayloadMeta {
 	 * the pipeline can derive a concrete series id.
 	 */
 	baseId: string | null;
+	/**
+	 * Appearance mode for Token Manage. Day and Night share themeId/baseId;
+	 * distinguish with this field. Prefer explicit `day` on day payloads.
+	 */
+	mode: 'day' | 'night';
 	version: 2;
 }
 

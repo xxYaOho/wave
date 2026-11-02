@@ -77,6 +77,7 @@ test('Orca CLI canary preserves parameter groups, dual identity and inherited Sk
 				baseId: entry.isDefault
 					? (document.themeId ?? 'orca-realistic')
 					: workspace.themeId!,
+				mode: 'day',
 				version: 2,
 			});
 			const raw = yaml.load(document.tokenContent) as {

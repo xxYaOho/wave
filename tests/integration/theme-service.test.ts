@@ -1749,6 +1749,7 @@ $override:
 				meta: {
 					themeId: 'test-extends',
 					baseId: 'test-extends',
+					mode: 'day',
 					version: 2,
 				},
 				assets: [],

@@ -31,8 +31,10 @@ export interface EmitNightSuccess {
 	ok: true;
 	outputPath: string;
 	themeStem: string;
+	/** Same as Day document identity (no @night suffix). */
 	themeId: string;
 	baseId: string;
+	mode: 'night';
 	params: ResolvedNightParams;
 	mappedCount: number;
 	overwrote: boolean;
@@ -130,8 +132,10 @@ export async function emitNightOverlay(
 
 	const derived = deriveNightOverlay({ resolvedTheme, params });
 	const themeStem = loaded.workspace.config.theme;
-	const baseId = loaded.workspace.themeId?.trim() || themeStem;
-	const themeId = `${themeStem}@night`;
+	// Day/Night share themeId; mode distinguishes appearance for Token Manage.
+	const themeId = loaded.workspace.themeId?.trim() || themeStem;
+	const baseId = themeId;
+	const mode = 'night' as const;
 	const outputPath = nightOverlayPath(loaded.workspace.path);
 
 	let overwrote = false;
@@ -155,7 +159,7 @@ export async function emitNightOverlay(
 		`# Generated: ${new Date().toISOString()}`,
 		`# scene=${params.scene} (lightsLevel=${params.lightsLevel}, via ${params.sceneSource})`,
 		`# chroma=${params.chroma} (via ${params.chromaSource})`,
-		`# themeId=${themeId} baseId=${baseId}`,
+		`# themeId=${themeId} baseId=${baseId} mode=${mode}`,
 		`# Contract: theme.color / theme.state path-leaf only; no root $id`,
 		`# Wave day/night ↔ macOS light/dark; Dark is a theme not a mode`,
 		'',
@@ -175,6 +179,7 @@ export async function emitNightOverlay(
 		themeStem,
 		themeId,
 		baseId,
+		mode,
 		params,
 		mappedCount: derived.mapped.length,
 		overwrote,

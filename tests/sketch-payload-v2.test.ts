@@ -62,6 +62,7 @@ describe('sketch payload v2 contract', () => {
 			expect(payload.meta).toEqual({
 				themeId: THEME_ID,
 				baseId: THEME_ID,
+				mode: 'day',
 				version: 2,
 			});
 
@@ -111,6 +112,7 @@ describe('sketch payload v2 contract', () => {
 			expect(payload.meta).toEqual({
 				themeId: null,
 				baseId: THEME_ID,
+				mode: 'day',
 				version: 2,
 			});
 			expect(assetByName(payload, 'shadow')).toMatchObject({
@@ -150,16 +152,18 @@ describe('sketch payload v2 contract', () => {
 			expect(payload.meta).toEqual({
 				themeId: PROFILE_ID,
 				baseId: THEME_ID,
+				mode: 'day',
 				version: 2,
 			});
 			const nightPayload = await readSketch(
 				workspaceDir,
 				path.join('dist', 'sketch-payload-v2-dark-night2sketch.json'),
 			);
-			// Night keeps Day series baseId; themeId gains @night for Token Manage mode.
+			// Night keeps Day themeId/baseId; mode distinguishes appearance.
 			expect(nightPayload.meta).toEqual({
-				themeId: `${PROFILE_ID}@night`,
+				themeId: PROFILE_ID,
 				baseId: THEME_ID,
+				mode: 'night',
 				version: 2,
 			});
 			expect(assetByName(nightPayload, 'shadow')).toMatchObject({
@@ -187,6 +191,7 @@ describe('sketch payload v2 contract', () => {
 			expect(payload.meta).toEqual({
 				themeId: 'sketch-extensions',
 				baseId: 'sketch-extensions',
+				mode: 'day',
 				version: 2,
 			});
 			expect(
