@@ -1,77 +1,113 @@
 import { describe, expect, test } from 'bun:test';
 import {
-	accentChromaFromProduct,
-	CHROMA_EV_VALUES,
+	accentMainToneFromProduct,
+	LUMINANCE_EV_VALUES,
 	parseNightConfigSection,
 	resolveNightParams,
 } from '../src/core/night/params.ts';
 
 describe('night param resolution', () => {
-	test('defaults to scene=night chroma=0.7', () => {
+	test('defaults to scene=night luminance=0.7', () => {
 		const resolved = resolveNightParams({});
 		expect(resolved).toEqual({
 			scene: 'night',
 			lightsLevel: 3,
-			chroma: 0.7,
-			chromaSource: 'default',
+			luminance: 0.7,
+			luminanceSource: 'default',
 			sceneSource: 'default',
 		});
 	});
 
-	test('chroma explicit beats chroma-ev and config', () => {
+	test('luminance explicit beats luminance-ev and config', () => {
 		const resolved = resolveNightParams(
-			{ chroma: 0.85, chromaEv: 'minimal', scene: 'moon' },
-			{ chroma: 0.5, chromaEv: 'low', scene: 'sunset' },
+			{ luminance: 0.85, luminanceEv: 'minimal', scene: 'moon' },
+			{ luminance: 0.5, luminanceEv: 'low', scene: 'sunset' },
 		);
 		expect(resolved.scene).toBe('moon');
 		expect(resolved.sceneSource).toBe('cli');
-		expect(resolved.chroma).toBe(0.85);
-		expect(resolved.chromaSource).toBe('cli-chroma');
+		expect(resolved.luminance).toBe(0.85);
+		expect(resolved.luminanceSource).toBe('cli-luminance');
 		expect(resolved.lightsLevel).toBe(1);
 	});
 
-	test('chroma-ev beats config when chroma omitted', () => {
+	test('luminance-ev beats config when luminance omitted', () => {
 		const resolved = resolveNightParams(
-			{ chromaEv: 'high' },
-			{ chroma: 0.55, scene: 'candle-light' },
+			{ luminanceEv: 'high' },
+			{ luminance: 0.55, scene: 'candle-light' },
 		);
-		expect(resolved.chroma).toBe(CHROMA_EV_VALUES.high);
-		expect(resolved.chromaSource).toBe('cli-chroma-ev');
+		expect(resolved.luminance).toBe(LUMINANCE_EV_VALUES.high);
+		expect(resolved.luminanceSource).toBe('cli-luminance-ev');
 		expect(resolved.scene).toBe('candle-light');
 		expect(resolved.sceneSource).toBe('config');
 		expect(resolved.lightsLevel).toBe(4);
 	});
 
-	test('config chroma beats config chroma-ev', () => {
+	test('config luminance beats config luminance-ev', () => {
 		const resolved = resolveNightParams(
 			{},
-			{ chroma: 0.62, chromaEv: 'max', scene: 'night-light' },
+			{ luminance: 0.62, luminanceEv: 'max', scene: 'night-light' },
 		);
-		expect(resolved.chroma).toBe(0.62);
-		expect(resolved.chromaSource).toBe('config-chroma');
+		expect(resolved.luminance).toBe(0.62);
+		expect(resolved.luminanceSource).toBe('config-luminance');
 		expect(resolved.lightsLevel).toBe(2);
 	});
 
-	test('rejects invalid scene and chroma-ev', () => {
-		expect(() => resolveNightParams({ scene: 'dawn' })).toThrow(/--scene/);
-		expect(() => resolveNightParams({ chromaEv: 'ultra' })).toThrow(
-			/--chroma-ev/,
+	test('legacy chroma aliases still resolve', () => {
+		const fromLegacyCli = resolveNightParams({ chroma: 0.8, chromaEv: 'minimal' });
+		expect(fromLegacyCli.luminance).toBe(0.8);
+		expect(fromLegacyCli.luminanceSource).toBe('cli-chroma');
+
+		const fromLegacyConfig = resolveNightParams(
+			{},
+			{ chroma: 0.55, scene: 'moon' },
 		);
-		expect(() => resolveNightParams({ chroma: 1.5 })).toThrow(/--chroma/);
+		expect(fromLegacyConfig.luminance).toBe(0.55);
+		expect(fromLegacyConfig.luminanceSource).toBe('config-chroma');
+
+		const fromLegacyEv = resolveNightParams(
+			{},
+			parseNightConfigSection({ 'chroma-ev': 'max', scene: 'sunset' }),
+		);
+		expect(fromLegacyEv.luminance).toBe(LUMINANCE_EV_VALUES.max);
+		expect(fromLegacyEv.luminanceSource).toBe('config-chroma-ev');
 	});
 
-	test('parseNightConfigSection accepts chroma-ev alias', () => {
+	test('canonical luminance wins over legacy chroma on CLI', () => {
+		const resolved = resolveNightParams({
+			luminance: 0.9,
+			chroma: 0.2,
+			luminanceEv: 'minimal',
+			chromaEv: 'max',
+		});
+		expect(resolved.luminance).toBe(0.9);
+		expect(resolved.luminanceSource).toBe('cli-luminance');
+	});
+
+	test('rejects invalid scene and luminance-ev', () => {
+		expect(() => resolveNightParams({ scene: 'dawn' })).toThrow(/--scene/);
+		expect(() => resolveNightParams({ luminanceEv: 'ultra' })).toThrow(
+			/--luminance-ev/,
+		);
+		expect(() => resolveNightParams({ luminance: 1.5 })).toThrow(/--luminance/);
+	});
+
+	test('parseNightConfigSection accepts luminance-ev and legacy chroma-ev', () => {
+		expect(
+			parseNightConfigSection({ scene: 'sunset', 'luminance-ev': 'minimal' }),
+		).toEqual({ scene: 'sunset', luminanceEv: 'minimal' });
 		expect(
 			parseNightConfigSection({ scene: 'sunset', 'chroma-ev': 'minimal' }),
-		).toEqual({ scene: 'sunset', chromaEv: 'minimal' });
+		).toEqual({
+			scene: 'sunset',
+			chromaEv: 'minimal',
+		});
 	});
 
-	test('accentChromaFromProduct anchors at 0.7', () => {
-		const mid = accentChromaFromProduct(0.7);
-		expect(mid.scale).toBeCloseTo(1.2, 5);
-		expect(mid.floor).toBeCloseTo(16, 5);
-		const low = accentChromaFromProduct(0.35);
-		expect(low.scale).toBeLessThan(mid.scale);
-		expect(low.floor).toBeLessThan(mid.floor);
+	test('accentMainToneFromProduct is Primary Night 明度 (luminance×100)', () => {
+		expect(accentMainToneFromProduct(0.7)).toBe(70);
+		expect(accentMainToneFromProduct(0.5)).toBe(50);
+		expect(accentMainToneFromProduct(0.9)).toBe(90);
+		expect(accentMainToneFromProduct(0)).toBe(0);
+		expect(accentMainToneFromProduct(1)).toBe(100);
 	});
 });

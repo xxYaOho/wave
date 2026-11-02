@@ -8,7 +8,6 @@ import {
 	Hct,
 	hexFromArgb,
 } from '@material/material-color-utilities';
-
 export type TrialToneKnobs = {
 	accentMain: number;
 	accentOnMain: number;
@@ -404,7 +403,9 @@ function chromaFloorFor(kind: RoleKind, knobs: ColorRuleKnobs): number {
 	}
 }
 
-/** Scale day chroma, then apply role floor so near-white Day leaves do not become ash Night. */
+/**
+ * Scale day chroma, then apply role floor so near-white Day leaves do not become ash Night.
+ */
 function chromaFor(
 	kind: RoleKind,
 	dayChroma: number,
@@ -412,6 +413,7 @@ function chromaFor(
 ): { chroma: number; scale: number; floor: number } {
 	const scale = chromaScaleFor(kind, knobs);
 	const floor = chromaFloorFor(kind, knobs);
+
 	// on-* drawn from white: keep near-achromatic dark ink; floor would tint "on" faces oddly
 	if (
 		kind === 'accent-on-main' ||
@@ -515,7 +517,8 @@ export function dayHexToNightHex(
 		hue = (hue + (knobs.hueShiftByRole?.[path] ?? 0) + 360) % 360;
 	}
 
-	const tone = toneFor(path, kind, slot, dayH.tone, knobs);
+	const preferredTone = toneFor(path, kind, slot, dayH.tone, knobs);
+	const tone = preferredTone;
 	const { chroma, scale, floor } = chromaFor(kind, dayH.chroma, knobs);
 	let out = hexFromArgb(Hct.from(hue, chroma, tone).toInt()).toLowerCase();
 	// Warm = weak Lab mix toward amber pole on surface charcoal chrome ONLY (brand-safe).
@@ -539,7 +542,11 @@ export function dayHexToNightHex(
 		effectiveWarmMix > 0
 			? `|warmMix${Number(effectiveWarmMix.toFixed(5))}`
 			: '';
-	const strategy = `color-rule:hueKeep=${knobs.hueKeep}|T${tone.toFixed(0)}|C×${scale}${floorTag}|cct=${knobs.cctBias}${mixTag}`;
+	const toneTag =
+		Math.abs(tone - preferredTone) > 0.2
+			? `T${tone.toFixed(0)}(pref${preferredTone.toFixed(0)})`
+			: `T${tone.toFixed(0)}`;
+	const strategy = `color-rule:hueKeep=${knobs.hueKeep}|${toneTag}|C×${scale}${floorTag}|cct=${knobs.cctBias}${mixTag}`;
 
 	return {
 		hex: out,
@@ -724,10 +731,9 @@ export const LIGHTS_LINKED_KEYS: LightsLinkedToneKey[] = [
 
 /**
  * Accent / primary-like trialTone slots ANCHOR to 晚间 (lightsLevel 3).
- * Scene switches do NOT lerp these — owl-eyes = contrast vs deep surfaces, not brighter accent chroma.
- * accentMain DEFAULT stays 75 (current Day/Night primary.main distance). Preview exposes a trial
- * dial to temporarily pull Night closer; applyNightScene PRESERVES caller's accentMain so the dial
- * is not wiped on scene switch. Reset / knobs.json default restores 75.
+ * Scene switches do NOT lerp these — owl-eyes = contrast vs deep surfaces.
+ * accentMain DEFAULT preference stays 75; product `$config.night.luminance` / `--luminance`
+ * overrides it as Primary Night 明度 (tone = luminance×100; scene apply PRESERVEs it).
  */
 export const ACCENT_ANCHOR_TONES = {
 	accentMain: 75,

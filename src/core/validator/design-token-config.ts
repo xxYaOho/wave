@@ -39,14 +39,18 @@ const nightScenes = [
 	'candle-light',
 	'sunset',
 ] as const;
-const chromaEvLevels = ['minimal', 'low', 'medium', 'high', 'max'] as const;
+const luminanceEvLevels = ['minimal', 'low', 'medium', 'high', 'max'] as const;
 
 const nightConfigSchema = z
 	.object({
 		scene: z.enum(nightScenes).optional(),
+		luminance: z.number().min(0).max(1).optional(),
+		luminanceEv: z.enum(luminanceEvLevels).optional(),
+		'luminance-ev': z.enum(luminanceEvLevels).optional(),
+		// Legacy aliases (Primary Night 明度 was briefly named chroma)
 		chroma: z.number().min(0).max(1).optional(),
-		chromaEv: z.enum(chromaEvLevels).optional(),
-		'chroma-ev': z.enum(chromaEvLevels).optional(),
+		chromaEv: z.enum(luminanceEvLevels).optional(),
+		'chroma-ev': z.enum(luminanceEvLevels).optional(),
 	})
 	.strict()
 	.optional();

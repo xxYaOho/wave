@@ -12,6 +12,7 @@ import {
 import { loadDesignTokenWorkspace } from '../pipeline/workspace-loader.ts';
 import { deriveNightOverlay } from './derive-overlay.ts';
 import {
+	accentMainToneFromProduct,
 	type NightCliParams,
 	parseNightConfigSection,
 	type ResolvedNightParams,
@@ -158,7 +159,7 @@ export async function emitNightOverlay(
 		`# Source Day: ${loaded.workspace.path}`,
 		`# Generated: ${new Date().toISOString()}`,
 		`# scene=${params.scene} (lightsLevel=${params.lightsLevel}, via ${params.sceneSource})`,
-		`# chroma=${params.chroma} (via ${params.chromaSource})`,
+		`# luminance=${params.luminance} → accentMain tone ${accentMainToneFromProduct(params.luminance)} (Primary Night 明度; via ${params.luminanceSource})`,
 		`# themeId=${themeId} baseId=${baseId} mode=${mode}`,
 		`# Contract: theme.color / theme.state path-leaf only; no root $id`,
 		`# Wave day/night ↔ macOS light/dark; Dark is a theme not a mode`,

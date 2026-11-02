@@ -1,10 +1,13 @@
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import {
 	expandMainYamlEntry,
 	resolveExclusiveFileInput,
 } from '../file-input.ts';
 import { emitNightOverlay } from '../../core/night/emit.ts';
-import { CHROMA_EV_LEVELS, NIGHT_SCENES } from '../../core/night/params.ts';
+import {
+	LUMINANCE_EV_LEVELS,
+	NIGHT_SCENES,
+} from '../../core/night/params.ts';
 import { ExitCode } from '../../types/index.ts';
 
 const NIGHT_HELP = `Wave Night
@@ -12,8 +15,8 @@ const NIGHT_HELP = `Wave Night
   Generate a Night overlay draft from a Day theme via pure color-rules.
 
   Usage:
-    wave night [theme=./main.yaml] [--scene] [--chroma|--chroma-ev]
-    wave night -f <path> [--scene] [--chroma|--chroma-ev]
+    wave night [theme=./main.yaml] [--scene] [--luminance|--luminance-ev]
+    wave night -f <path> [--scene] [--luminance|--luminance-ev]
 
   Arguments:
     theme                Path to main.yaml (default: ./main.yaml)
@@ -22,9 +25,10 @@ const NIGHT_HELP = `Wave Night
     -f, --file <path>    Path to main.yaml (same as theme argument)
     --scene <name>       Lighting scene: ${NIGHT_SCENES.join(' | ')}
                          Default: night (or $config.night.scene)
-    --chroma <n>         Accent chroma dial 0..1 (wins over --chroma-ev)
-                         Default: 0.7 (or $config.night.chroma)
-    --chroma-ev <level>  Named chroma: ${CHROMA_EV_LEVELS.join(' | ')}
+    --luminance <n>      Primary Night 明度 dial 0..1 (wins over --luminance-ev)
+                         → accentMain HCT tone = n×100 (0.9 ≈ near white)
+                         Default: 0.7 (or $config.night.luminance)
+    --luminance-ev <lv>  Named luminance: ${LUMINANCE_EV_LEVELS.join(' | ')}
                          → 0.5 / 0.6 / 0.7 / 0.75 / 0.85
     -h, --help           Show help
 
@@ -33,22 +37,31 @@ const NIGHT_HELP = `Wave Night
     Sketch identity: same themeId/baseId as Day; meta.mode=night.
 
   Priority:
-    --chroma > --chroma-ev > $config.night > defaults (scene=night, chroma=0.7)
+    --luminance > --luminance-ev > $config.night > defaults (scene=night, luminance=0.7)
+    Legacy --chroma / --chroma-ev / $config.night.chroma still accepted as aliases.
+
+  Note:
+    luminance is Primary Night lightness (明度), NOT HCT chroma/彩度.
 `;
 
 interface NightCommandOptions {
 	file?: string;
 	scene?: string;
+	luminance?: string;
+	luminanceEv?: string;
 	chroma?: string;
 	chromaEv?: string;
 }
 
-function parseChromaOption(raw: string | undefined): number | undefined {
+function parseLuminanceOption(
+	raw: string | undefined,
+	flag: string,
+): number | undefined {
 	if (raw === undefined) return undefined;
 	const n = Number(raw);
 	if (!Number.isFinite(n)) {
 		throw new Error(
-			`Invalid --chroma ${JSON.stringify(raw)}. Expected a number in 0..1`,
+			`Invalid ${flag} ${JSON.stringify(raw)}. Expected a number in 0..1`,
 		);
 	}
 	return n;
@@ -60,10 +73,22 @@ export function createNightCommand(name = 'night'): Command {
 		.argument('[theme]', 'main.yaml path. Default: ./main.yaml')
 		.option('-f, --file <path>', 'main.yaml path. Default: ./main.yaml')
 		.option('--scene <name>', `Lighting scene (${NIGHT_SCENES.join('|')})`)
-		.option('--chroma <n>', 'Accent chroma dial 0..1')
 		.option(
-			'--chroma-ev <level>',
-			`Named chroma (${CHROMA_EV_LEVELS.join('|')})`,
+			'--luminance <n>',
+			'Primary Night 明度 dial 0..1 (accentMain tone = n×100)',
+		)
+		.option(
+			'--luminance-ev <level>',
+			`Named luminance (${LUMINANCE_EV_LEVELS.join('|')})`,
+		)
+		.addOption(
+			new Option('--chroma <n>', 'Deprecated alias for --luminance').hideHelp(),
+		)
+		.addOption(
+			new Option(
+				'--chroma-ev <level>',
+				'Deprecated alias for --luminance-ev',
+			).hideHelp(),
 		)
 		.helpOption('-h, --help', 'Show help')
 		.addHelpText('after', `\n${NIGHT_HELP}`)
@@ -78,9 +103,11 @@ export function createNightCommand(name = 'night'): Command {
 				return;
 			}
 
+			let luminance: number | undefined;
 			let chroma: number | undefined;
 			try {
-				chroma = parseChromaOption(options.chroma);
+				luminance = parseLuminanceOption(options.luminance, '--luminance');
+				chroma = parseLuminanceOption(options.chroma, '--chroma');
 			} catch (error) {
 				console.error(error instanceof Error ? error.message : String(error));
 				process.exitCode = ExitCode.INVALID_PARAMETER;
@@ -91,6 +118,8 @@ export function createNightCommand(name = 'night'): Command {
 				themePath: await expandMainYamlEntry(fileInput.path),
 				cli: {
 					scene: options.scene,
+					luminance,
+					luminanceEv: options.luminanceEv,
 					chroma,
 					chromaEv: options.chromaEv,
 				},
@@ -106,7 +135,7 @@ export function createNightCommand(name = 'night'): Command {
 				`Night overlay ${result.overwrote ? 'updated' : 'written'}: ${result.outputPath}`,
 			);
 			console.log(
-				`  scene=${result.params.scene} chroma=${result.params.chroma} (${result.params.chromaSource})`,
+				`  scene=${result.params.scene} luminance=${result.params.luminance} (${result.params.luminanceSource}) → accentMain T${Math.round(result.params.luminance * 100)}`,
 			);
 			console.log(
 				`  themeId=${result.themeId} baseId=${result.baseId} mode=${result.mode} roles=${result.mappedCount}`,

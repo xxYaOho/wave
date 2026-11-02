@@ -123,12 +123,15 @@ Day 源:        /Users/teatao/Projects/my-color/orca/main.yaml
 
 ---
 
-## NOT YET — product `night create` CLI（仅笔记，勿实现）
+## Product Night params（t118u / t119u）
 
-后续产品计划（Human / t101u defer）：
+Canonical product dial = **`luminance`** / **`luminance-ev`** = Primary Night 明度
+（preview 「Primary Night 明度」→ `trialTone.accentMain`；tone = luminance×100；0.9≈近白）。
+**不是** HCT chroma/彩度（`chromaScale`/`chromaFloor` 仍是独立彩度轴）。
 
-1. Open `night create`：读 `$config` → 写出 `@night.yaml`；缺参 → 默认 scene=`night` + chroma=`0.7`
-2. Params：`scenes` = `moon` | `night-light` | `night` | `candle-light` | `sunset`；`chroma` 0–1
-3. chroma-ev 固定台阶：`minimal` / `low` / `medium` / `high` / `max` → `0.5` / `0.6` / `0.7` / `0.75` / `0.85`
+1. `wave night`：读 `$config.night` → 写出 `@night.yaml`；缺参 → 默认 scene=`night` + luminance=`0.7`
+2. Params：`scenes` = `moon` | `night-light` | `night` | `candle-light` | `sunset`；`luminance` 0–1
+3. luminance-ev 固定台阶：`minimal` / `low` / `medium` / `high` / `max` → `0.5` / `0.6` / `0.7` / `0.75` / `0.85`
+4. Legacy aliases：`$config.night.chroma` / `--chroma` / `chroma-ev` 仍可解析，映射到同一 明度轴。
 
-（本 sandbox 仍用 knobs + `pnpm derive`；无 product CLI。）
+（本 sandbox 仍用 knobs + `pnpm derive` 做细调；产品路径走 `wave night`。）

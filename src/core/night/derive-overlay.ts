@@ -8,7 +8,7 @@ import {
 	DEFAULT_TRIAL_KNOBS,
 	remapFlatDayToNight,
 } from './color-rules.ts';
-import { accentChromaFromProduct, type ResolvedNightParams } from './params.ts';
+import { accentMainToneFromProduct, type ResolvedNightParams } from './params.ts';
 
 export type NightMappedRole = {
 	path: string;
@@ -88,19 +88,17 @@ function formatNightValue(hex: string, alpha: number): string {
 }
 
 export function buildProductKnobs(params: ResolvedNightParams): ColorRuleKnobs {
-	const accent = accentChromaFromProduct(params.chroma);
+	// Product luminance = Primary Night 明度 → trialTone.accentMain (validation preview dial).
+	// Settled accent chromaScale/floor (彩度) stay at night-derive defaults — separate axis.
+	const accentMain = accentMainToneFromProduct(params.luminance);
 	const base: ColorRuleKnobs = {
 		...DEFAULT_TRIAL_KNOBS,
 		dayRoleOverrides: {},
 		includeStateInOverlay: true,
 		state: 'passthrough',
-		chromaScale: {
-			...DEFAULT_TRIAL_KNOBS.chromaScale,
-			accent: accent.scale,
-		},
-		chromaFloor: {
-			...DEFAULT_TRIAL_KNOBS.chromaFloor,
-			accent: accent.floor,
+		trialTone: {
+			...DEFAULT_TRIAL_KNOBS.trialTone,
+			accentMain,
 		},
 	};
 	return applyNightScene(base, params.lightsLevel);

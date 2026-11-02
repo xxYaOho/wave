@@ -48,7 +48,7 @@ describe('night emit path', () => {
 			const result = await emitNightOverlay({
 				themePath: mainPath,
 				cwd: dir,
-				cli: { scene: 'night', chromaEv: 'medium' },
+				cli: { scene: 'night', luminanceEv: 'medium' },
 			});
 			expect(result.ok).toBe(true);
 			if (!result.ok) return;
@@ -56,7 +56,7 @@ describe('night emit path', () => {
 			expect(result.themeId).toBe('config-main');
 			expect(result.mode).toBe('night');
 			expect(result.baseId).toBe('config-main');
-			expect(result.params.chroma).toBe(0.7);
+			expect(result.params.luminance).toBe(0.7);
 			expect(result.params.scene).toBe('night');
 
 			const raw = await fs.readFile(result.outputPath, 'utf8');
@@ -81,7 +81,7 @@ describe('night emit path', () => {
 		}
 	});
 
-	test('CLI chroma overrides $config.night', async () => {
+	test('CLI luminance overrides $config.night', async () => {
 		const { dir, mainPath, env } = await copyFixture(
 			'tests/fixtures/themes/config-main',
 		);
@@ -91,7 +91,7 @@ describe('night emit path', () => {
 			const main = await fs.readFile(mainPath, 'utf8');
 			const patched = main.replace(
 				'$config:\n  theme: config-main\n',
-				'$config:\n  theme: config-main\n  night:\n    scene: moon\n    chroma-ev: minimal\n',
+				'$config:\n  theme: config-main\n  night:\n    scene: moon\n    luminance-ev: minimal\n',
 			);
 			await fs.writeFile(mainPath, patched, 'utf8');
 
@@ -103,19 +103,19 @@ describe('night emit path', () => {
 			expect(fromConfig.ok).toBe(true);
 			if (!fromConfig.ok) return;
 			expect(fromConfig.params.scene).toBe('moon');
-			expect(fromConfig.params.chroma).toBe(0.5);
-			expect(fromConfig.params.chromaSource).toBe('config-chroma-ev');
+			expect(fromConfig.params.luminance).toBe(0.5);
+			expect(fromConfig.params.luminanceSource).toBe('config-luminance-ev');
 
 			const fromCli = await emitNightOverlay({
 				themePath: mainPath,
 				cwd: dir,
-				cli: { chroma: 0.8, scene: 'sunset' },
+				cli: { luminance: 0.8, scene: 'sunset' },
 			});
 			expect(fromCli.ok).toBe(true);
 			if (!fromCli.ok) return;
 			expect(fromCli.params.scene).toBe('sunset');
-			expect(fromCli.params.chroma).toBe(0.8);
-			expect(fromCli.params.chromaSource).toBe('cli-chroma');
+			expect(fromCli.params.luminance).toBe(0.8);
+			expect(fromCli.params.luminanceSource).toBe('cli-luminance');
 		} finally {
 			process.env = previous;
 			await fs.rm(dir, { recursive: true, force: true });

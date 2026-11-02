@@ -1,6 +1,10 @@
 /**
- * Product Night param resolution: scene + chroma (+ chroma-ev).
- * Priority: explicit chroma > chroma-ev > $config.night > defaults.
+ * Product Night param resolution: scene + luminance (+ luminance-ev).
+ * Priority: explicit luminance > luminance-ev > legacy chroma aliases > $config > defaults.
+ *
+ * `luminance` / `luminance-ev` = Primary Night 明度 (accentMain HCT tone),
+ * matching night-derive validation preview 「Primary Night 明度」— NOT HCT chroma/彩度.
+ * Legacy `$config.night.chroma` / `--chroma` / `chroma-ev` still parse as aliases.
  */
 
 export const NIGHT_SCENES = [
@@ -22,7 +26,7 @@ export const NIGHT_SCENE_LEVEL: Record<NightSceneId, number> = {
 	sunset: 5,
 };
 
-export const CHROMA_EV_LEVELS = [
+export const LUMINANCE_EV_LEVELS = [
 	'minimal',
 	'low',
 	'medium',
@@ -30,10 +34,10 @@ export const CHROMA_EV_LEVELS = [
 	'max',
 ] as const;
 
-export type ChromaEvLevel = (typeof CHROMA_EV_LEVELS)[number];
+export type LuminanceEvLevel = (typeof LUMINANCE_EV_LEVELS)[number];
 
-/** Fixed chroma-ev → numeric chroma (0–1). */
-export const CHROMA_EV_VALUES: Record<ChromaEvLevel, number> = {
+/** Fixed luminance-ev → numeric luminance (0–1). */
+export const LUMINANCE_EV_VALUES: Record<LuminanceEvLevel, number> = {
 	minimal: 0.5,
 	low: 0.6,
 	medium: 0.7,
@@ -41,31 +45,49 @@ export const CHROMA_EV_VALUES: Record<ChromaEvLevel, number> = {
 	max: 0.85,
 };
 
-export const DEFAULT_NIGHT_SCENE: NightSceneId = 'night';
-export const DEFAULT_NIGHT_CHROMA = 0.7;
+/** @deprecated Use LUMINANCE_EV_LEVELS — kept for brief migration. */
+export const CHROMA_EV_LEVELS = LUMINANCE_EV_LEVELS;
+/** @deprecated Use LuminanceEvLevel. */
+export type ChromaEvLevel = LuminanceEvLevel;
+/** @deprecated Use LUMINANCE_EV_VALUES. */
+export const CHROMA_EV_VALUES = LUMINANCE_EV_VALUES;
 
-/** Settled accent defaults at chroma=0.7 (night-derive knobs). */
-export const ANCHOR_PRODUCT_CHROMA = 0.7;
-export const ANCHOR_ACCENT_CHROMA_SCALE = 1.2;
-export const ANCHOR_ACCENT_CHROMA_FLOOR = 16;
+export const DEFAULT_NIGHT_SCENE: NightSceneId = 'night';
+/** Default product luminance = mid-high Primary Night 明度 (→ HCT tone 70). */
+export const DEFAULT_NIGHT_LUMINANCE = 0.7;
+/** @deprecated Use DEFAULT_NIGHT_LUMINANCE. */
+export const DEFAULT_NIGHT_CHROMA = DEFAULT_NIGHT_LUMINANCE;
 
 export interface NightConfigSection {
 	scene?: NightSceneId;
+	luminance?: number;
+	luminanceEv?: LuminanceEvLevel;
+	/** @deprecated Prefer luminance. */
 	chroma?: number;
-	chromaEv?: ChromaEvLevel;
+	/** @deprecated Prefer luminanceEv. */
+	chromaEv?: LuminanceEvLevel;
 }
 
 export interface NightCliParams {
 	scene?: string;
+	luminance?: number;
+	luminanceEv?: string;
+	/** @deprecated Prefer luminance. */
 	chroma?: number;
+	/** @deprecated Prefer luminanceEv. */
 	chromaEv?: string;
 }
 
 export interface ResolvedNightParams {
 	scene: NightSceneId;
 	lightsLevel: number;
-	chroma: number;
-	chromaSource:
+	/** Primary Night 明度 dial 0–1 (→ accentMain tone ×100). */
+	luminance: number;
+	luminanceSource:
+		| 'cli-luminance'
+		| 'cli-luminance-ev'
+		| 'config-luminance'
+		| 'config-luminance-ev'
 		| 'cli-chroma'
 		| 'cli-chroma-ev'
 		| 'config-chroma'
@@ -81,32 +103,32 @@ export function isNightSceneId(value: unknown): value is NightSceneId {
 	);
 }
 
-export function isChromaEvLevel(value: unknown): value is ChromaEvLevel {
+export function isLuminanceEvLevel(value: unknown): value is LuminanceEvLevel {
 	return (
 		typeof value === 'string' &&
-		(CHROMA_EV_LEVELS as readonly string[]).includes(value)
+		(LUMINANCE_EV_LEVELS as readonly string[]).includes(value)
 	);
 }
 
-export function clampChroma(value: number): number {
-	if (!Number.isFinite(value)) return DEFAULT_NIGHT_CHROMA;
+/** @deprecated Use isLuminanceEvLevel. */
+export const isChromaEvLevel = isLuminanceEvLevel;
+
+export function clampLuminance(value: number): number {
+	if (!Number.isFinite(value)) return DEFAULT_NIGHT_LUMINANCE;
 	return Math.min(1, Math.max(0, value));
 }
 
+/** @deprecated Use clampLuminance. */
+export const clampChroma = clampLuminance;
+
 /**
- * Map product chroma (0–1) onto accent chromaScale/floor.
- * chroma=0.7 matches settled night-derive accent defaults.
+ * Product luminance → Primary Night 明度 (NOT HCT 彩度).
+ * Matches night-derive preview dial 「Primary Night 明度」→ trialTone.accentMain.
+ * Mapping: tone = clamp(luminance,0..1) × 100  (0.5→T50 mid, 0.7→T70, 0.9→T90≈near white).
+ * Settled accent chromaScale/floor (1.2 / 16) stay fixed — that 彩度 axis is separate.
  */
-export function accentChromaFromProduct(chroma: number): {
-	scale: number;
-	floor: number;
-} {
-	const c = clampChroma(chroma);
-	const t = c / ANCHOR_PRODUCT_CHROMA;
-	return {
-		scale: Math.min(2.4, Math.max(0.2, ANCHOR_ACCENT_CHROMA_SCALE * t)),
-		floor: Math.min(40, Math.max(0, ANCHOR_ACCENT_CHROMA_FLOOR * t)),
-	};
+export function accentMainToneFromProduct(luminance: number): number {
+	return clampLuminance(luminance) * 100;
 }
 
 export function parseNightConfigSection(
@@ -116,11 +138,21 @@ export function parseNightConfigSection(
 	const obj = raw as Record<string, unknown>;
 	const out: NightConfigSection = {};
 	if (isNightSceneId(obj.scene)) out.scene = obj.scene;
-	if (typeof obj.chroma === 'number' && Number.isFinite(obj.chroma)) {
-		out.chroma = clampChroma(obj.chroma);
+
+	// Canonical luminance keys; legacy chroma* kept separate so resolve can tag source.
+	if (typeof obj.luminance === 'number' && Number.isFinite(obj.luminance)) {
+		out.luminance = clampLuminance(obj.luminance);
+	} else if (typeof obj.chroma === 'number' && Number.isFinite(obj.chroma)) {
+		out.chroma = clampLuminance(obj.chroma);
 	}
-	const ev = obj.chromaEv ?? obj['chroma-ev'];
-	if (isChromaEvLevel(ev)) out.chromaEv = ev;
+
+	const canonEv = obj.luminanceEv ?? obj['luminance-ev'];
+	if (isLuminanceEvLevel(canonEv)) {
+		out.luminanceEv = canonEv;
+	} else {
+		const legacyEv = obj.chromaEv ?? obj['chroma-ev'];
+		if (isLuminanceEvLevel(legacyEv)) out.chromaEv = legacyEv;
+	}
 	return out;
 }
 
@@ -144,24 +176,33 @@ export function resolveNightParams(
 		sceneSource = 'cli';
 	}
 
-	let chroma = DEFAULT_NIGHT_CHROMA;
-	let chromaSource: ResolvedNightParams['chromaSource'] = 'default';
-	if (config?.chromaEv !== undefined) {
-		chroma = CHROMA_EV_VALUES[config.chromaEv];
-		chromaSource = 'config-chroma-ev';
+	let luminance = DEFAULT_NIGHT_LUMINANCE;
+	let luminanceSource: ResolvedNightParams['luminanceSource'] = 'default';
+
+	// Config: luminance-ev / legacy chroma-ev, then luminance / legacy chroma
+	const configEv = config?.luminanceEv ?? config?.chromaEv;
+	if (configEv !== undefined) {
+		luminance = LUMINANCE_EV_VALUES[configEv];
+		luminanceSource = config?.luminanceEv
+			? 'config-luminance-ev'
+			: 'config-chroma-ev';
 	}
-	if (config?.chroma !== undefined) {
-		chroma = clampChroma(config.chroma);
-		chromaSource = 'config-chroma';
+	const configLum = config?.luminance ?? config?.chroma;
+	if (configLum !== undefined) {
+		luminance = clampLuminance(configLum);
+		luminanceSource =
+			config?.luminance !== undefined ? 'config-luminance' : 'config-chroma';
 	}
+
+	// CLI legacy chroma-ev / chroma (below canonical so --luminance wins)
 	if (cli.chromaEv !== undefined) {
-		if (!isChromaEvLevel(cli.chromaEv)) {
+		if (!isLuminanceEvLevel(cli.chromaEv)) {
 			throw new Error(
-				`Invalid --chroma-ev ${JSON.stringify(cli.chromaEv)}. Expected one of: ${CHROMA_EV_LEVELS.join(', ')}`,
+				`Invalid --chroma-ev ${JSON.stringify(cli.chromaEv)}. Expected one of: ${LUMINANCE_EV_LEVELS.join(', ')}`,
 			);
 		}
-		chroma = CHROMA_EV_VALUES[cli.chromaEv];
-		chromaSource = 'cli-chroma-ev';
+		luminance = LUMINANCE_EV_VALUES[cli.chromaEv];
+		luminanceSource = 'cli-chroma-ev';
 	}
 	if (cli.chroma !== undefined) {
 		if (!Number.isFinite(cli.chroma) || cli.chroma < 0 || cli.chroma > 1) {
@@ -169,15 +210,39 @@ export function resolveNightParams(
 				`Invalid --chroma ${String(cli.chroma)}. Expected a number in 0..1`,
 			);
 		}
-		chroma = clampChroma(cli.chroma);
-		chromaSource = 'cli-chroma';
+		luminance = clampLuminance(cli.chroma);
+		luminanceSource = 'cli-chroma';
+	}
+
+	// CLI canonical luminance-ev / luminance
+	if (cli.luminanceEv !== undefined) {
+		if (!isLuminanceEvLevel(cli.luminanceEv)) {
+			throw new Error(
+				`Invalid --luminance-ev ${JSON.stringify(cli.luminanceEv)}. Expected one of: ${LUMINANCE_EV_LEVELS.join(', ')}`,
+			);
+		}
+		luminance = LUMINANCE_EV_VALUES[cli.luminanceEv];
+		luminanceSource = 'cli-luminance-ev';
+	}
+	if (cli.luminance !== undefined) {
+		if (
+			!Number.isFinite(cli.luminance) ||
+			cli.luminance < 0 ||
+			cli.luminance > 1
+		) {
+			throw new Error(
+				`Invalid --luminance ${String(cli.luminance)}. Expected a number in 0..1`,
+			);
+		}
+		luminance = clampLuminance(cli.luminance);
+		luminanceSource = 'cli-luminance';
 	}
 
 	return {
 		scene,
 		lightsLevel: NIGHT_SCENE_LEVEL[scene],
-		chroma,
-		chromaSource,
+		luminance,
+		luminanceSource,
 		sceneSource,
 	};
 }
