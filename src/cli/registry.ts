@@ -5,6 +5,7 @@ import { designTokenCommand, dtCommand } from './commands/dt.ts';
 import { installCommand } from './commands/install.ts';
 import { manualCommand } from './commands/manual.ts';
 import { mgCommand, motionCommand } from './commands/motion.ts';
+import { nightCommand } from './commands/night.ts';
 import { showCommand } from './commands/show.ts';
 import { workspaceCommand } from './commands/workspace.ts';
 
@@ -14,7 +15,8 @@ export type CommandCategory =
 	| 'compress'
 	| 'manual'
 	| 'motion'
-	| 'workspace';
+	| 'workspace'
+	| 'night';
 
 export interface CommandDefinition {
 	name: string;
@@ -57,6 +59,11 @@ export const commandRegistry: CommandDefinition[] = [
 		name: 'mg',
 		category: 'motion',
 		command: mgCommand,
+	},
+	{
+		name: 'night',
+		category: 'night',
+		command: nightCommand,
 	},
 	{
 		name: 'doctor',

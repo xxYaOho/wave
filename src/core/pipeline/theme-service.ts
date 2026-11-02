@@ -21,7 +21,7 @@ import {
 	parseProfileDocument,
 	resolveProfilesToBuild,
 } from './profile-resolver.ts';
-import { sketchPassIds } from './sketch-identity.ts';
+import { sketchNightPassIds, sketchPassIds } from './sketch-identity.ts';
 import {
 	buildGroupPasses,
 	collectDependencyDictionary,
@@ -318,7 +318,7 @@ export async function generateTheme(
 		const nightContent = yaml.dump(mergedNight.tree, { lineWidth: -1 });
 		const nightPasses: PreparedServicePass[] = [];
 		for (const [passIndex, pass] of profilePasses.entries()) {
-			const ids = sketchPassIds({
+			const ids = sketchNightPassIds({
 				isDefault: entry.isDefault,
 				documentThemeId: document.themeId,
 				mainThemeId: baseDocument.themeId,

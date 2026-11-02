@@ -32,9 +32,29 @@ const resourceSchema = z
 	})
 	.strict();
 
+const nightScenes = [
+	'moon',
+	'night-light',
+	'night',
+	'candle-light',
+	'sunset',
+] as const;
+const chromaEvLevels = ['minimal', 'low', 'medium', 'high', 'max'] as const;
+
+const nightConfigSchema = z
+	.object({
+		scene: z.enum(nightScenes).optional(),
+		chroma: z.number().min(0).max(1).optional(),
+		chromaEv: z.enum(chromaEvLevels).optional(),
+		'chroma-ev': z.enum(chromaEvLevels).optional(),
+	})
+	.strict()
+	.optional();
+
 const mainConfigSchema = z
 	.object({
 		theme: nonEmptyString,
+		night: nightConfigSchema,
 		resource: resourceSchema.optional(),
 		parameter: parameterSchema.optional(),
 		parameterGroup: z

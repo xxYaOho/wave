@@ -156,7 +156,12 @@ describe('sketch payload v2 contract', () => {
 				workspaceDir,
 				path.join('dist', 'sketch-payload-v2-dark-night2sketch.json'),
 			);
-			expect(nightPayload.meta).toEqual(payload.meta);
+			// Night keeps Day series baseId; themeId gains @night for Token Manage mode.
+			expect(nightPayload.meta).toEqual({
+				themeId: `${PROFILE_ID}@night`,
+				baseId: THEME_ID,
+				version: 2,
+			});
 			expect(assetByName(nightPayload, 'shadow')).toMatchObject({
 				color: '#ffffffff',
 			});
