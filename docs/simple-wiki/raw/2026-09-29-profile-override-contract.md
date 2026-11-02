@@ -37,7 +37,7 @@ profile 根消费 `$schema`、自身 `$id`、`$config`、`$override`，非 `$` r
 
 profile `$config` 只接受必填 `base` 与可选 `resource`、`parameter`、`parameterGroup`，禁止 `theme` 与未知字段。`base` 是非空字符串，逐字等于原始 main 文档 `$id`，不是路径或 token ID。main 没有已入账文档身份、base 缺失或不匹配均拒绝。resource 追加、parameter 按字段覆盖、同名 parameterGroup 合并与 CLI 最后覆盖的既有语义不变。
 
-main/profile 文档 `$id` 可省略；构建时若声明必须是非空字符串。profile 当前主题身份来自自身文档，不再继承 main 的主题身份。Sketch payload `meta` 为 `{ themeId: string | null, baseId: string | null, version: 2 }`：main 的 `baseId` 为 null；profile 的 `baseId` 为 main 身份；自身未入账时 `themeId` 为 null。版本保持 2，但新增字段会影响拒绝额外字段的旧 plugin，消费端需要同步允许 baseId。
+main/profile 文档 `$id` 可省略；构建时若声明必须是非空字符串。profile 当前主题身份来自自身文档，不再继承 main 的主题身份。Sketch payload `meta` 为 `{ themeId: string | null, baseId: string | null, version: 2 }`：main 的 `baseId` 等于其 `themeId`（未入账时回退 `$config.theme` stem）；profile 的 `baseId` 为 main 身份；自身未入账时 `themeId` 可为 null。版本保持 2，但新增字段会影响拒绝额外字段的旧 plugin，消费端需要同步允许 baseId。
 
 ## 值覆盖与新增 token
 

@@ -1,0 +1,21 @@
+{
+  "name": "wave-night-derive-sandbox",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "derive": "node --import tsx/esm src/emit-night.ts",
+    "dev": "node --import tsx/esm src/emit-night.ts && vite --host 127.0.0.1 --port 5191",
+    "preview:only": "vite --host 127.0.0.1 --port 5191",
+    "build": "tsc --noEmit && node --import tsx/esm src/emit-night.ts && vite build",
+    "postinstall": "node -e \"console.log('night-derive sandbox ready')\""
+  },
+  "dependencies": {
+    "@material/material-color-utilities": "0.4.0",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.3"
+  }
+}

@@ -1,0 +1,178 @@
+# Night overlay draft — pure color-rule sandbox (NOT product default)
+# Source Day: /Users/teatao/Projects/my-color/orca/main.yaml
+# Generated: 2026-11-02T03:24:29.552Z
+# Engine: resolve Day → hex, then HCT hue-keep + trial tone/chroma/CCT knobs
+# Contract: theme.color / theme.state path-leaf only; no root $id
+# Wave day/night ↔ macOS light/dark; Dark is a theme not a mode
+theme:
+  color:
+    transparent:
+      $value: "#00000000"
+    primary:
+      main:
+        $value: "#1ec8f4"
+        $description: sandbox dayRoleOverride (night color-rule draft)
+      on-main:
+        $value: "#1b1b1b"
+      container:
+        $value: "#232e2f"
+        $description: sandbox dayRoleOverride (night color-rule draft)
+      on-container:
+        $value: "#95e2ff"
+        $description: sandbox dayRoleOverride (night color-rule draft)
+    secondary:
+      main:
+        $value: "#00caef"
+      on-main:
+        $value: "#1b1b1b"
+      container:
+        $value: "#262d30"
+      on-container:
+        $value: "#a8deff"
+    neutral:
+      main:
+        $value: "#c4cfe7"
+      on-main:
+        $value: "#222424"
+      container:
+        $value: "#272a2c"
+      on-container:
+        $value: "#cddef8"
+    error:
+      main:
+        $value: "#ff9f98"
+      on-main:
+        $value: "#1b1b1b"
+      container:
+        $value: "#342a2a"
+      on-container:
+        $value: "#ffcbc5"
+    warning:
+      main:
+        $value: "#ffa270"
+      on-main:
+        $value: "#1b1b1b"
+      container:
+        $value: "#302c23"
+      on-container:
+        $value: "#ffccba"
+    attention:
+      main:
+        $value: "#deb400"
+      on-main:
+        $value: "#1b1b1b"
+      container:
+        $value: "#2f2d13"
+      on-container:
+        $value: "#ffd08b"
+    success:
+      main:
+        $value: "#0cd560"
+      on-main:
+        $value: "#1b1b1b"
+      container:
+        $value: "#1e3026"
+      on-container:
+        $value: "#70f08f"
+    info:
+      main:
+        $value: "#98b8ff"
+      on-main:
+        $value: "#1b1b1b"
+      container:
+        $value: "#282d31"
+      on-container:
+        $value: "#cbd6ff"
+    text:
+      emphasis:
+        $value: "#faf8ff"
+      default:
+        $value: "#eaeaf5"
+      subtle:
+        $value: "#aaaeb7"
+      subtlest:
+        $value: "#828690"
+      disabled:
+        $value:
+          color: "#61636c"
+          alpha: "{wave.dimension.alpha.400}"
+    border:
+      emphasis:
+        $value:
+          color: "#c4cfe7"
+          alpha: "{wave.dimension.alpha.300}"
+      default:
+        $value:
+          color: "#c4cfe7"
+          alpha: "{wave.dimension.alpha.200}"
+      subtle:
+        $value:
+          color: "#c4cfe7"
+          alpha: "{wave.dimension.alpha.100}"
+    outline:
+      default:
+        $value:
+          color: "#76dcff"
+          alpha: "{wave.dimension.alpha.400}"
+      entry-box:
+        $value:
+          color: "#c1cfed"
+          alpha: "{wave.dimension.alpha.200}"
+      ring:
+        $value: "#76dcff"
+        $description: 带品牌色调取向的焦点环 (night color-rule draft)
+    surface:
+      bright:
+        $value: "#232627"
+        $description: 提升层, 用于需要提高亮度的区域 (night color-rule draft)
+      default:
+        $value: "#191c1d"
+        $description: 主背景, 基于 deepGray.light.100 的微调 (night color-rule draft)
+      dim:
+        $value: "#101415"
+        $description: 下降层, 用于需要降低亮度的区域 (night color-rule draft)
+    container:
+      highest:
+        $value: "#2e3131"
+        $description: 最高层级, 比如 modal, dialog (night color-rule draft)
+      high:
+        $value: "#252829"
+        $description: 抬升层级, 比如 popover, dropdown (night color-rule draft)
+      default:
+        $value: "#1f2223"
+        $description: 标准层级, 用于大多数组件的默认容器 (night color-rule draft)
+      low:
+        $value: "#1b1e1f"
+        $description: 次级层级, 比如 card, list, table (night color-rule draft)
+      lowest:
+        $value: "#151819"
+        $description: 最低层级(视觉下沉), 比如 input-field (night color-rule draft)
+    scrim:
+      $value:
+        color: "#000000"
+        alpha: "{wave.dimension.alpha.700}"
+    shadow:
+      $value: "#000000"
+      $description: 主题色倾向 (night color-rule draft)
+    inverse:
+      surface:
+        $value:
+          color: "#e2e7ff"
+          alpha: "{wave.dimension.alpha.800}"
+      on-surface:
+        $value: "#212425"
+      primary:
+        $value: "#8cc2c7"
+        $description: 反色主色, 比如 media-play-progress-bar · sandbox dayRoleOverride (night color-rule draft)
+  state:
+    hover:
+      $value: "{wave.dimension.alpha.100}"
+      $type: number
+    press:
+      $value: "{wave.dimension.alpha.200}"
+    focus:
+      $value: "{wave.dimension.alpha.100}"
+      $type: number
+    drag:
+      $value: "{wave.dimension.alpha.500}"
+      $type: number

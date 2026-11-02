@@ -1,0 +1,741 @@
+{
+  "day": {
+    "transparent": "#00000000",
+    "primary.main": "#0891b2",
+    "primary.on-main": "#ffffff",
+    "primary.container": "#ecfeff",
+    "primary.on-container": "#0891b2",
+    "secondary.main": "#2cd9ff",
+    "secondary.on-main": "#04384d",
+    "secondary.container": "#effbff",
+    "secondary.on-container": "#007fab",
+    "neutral.main": "#1e293b",
+    "neutral.on-main": "#ffffff",
+    "neutral.container": "#f8fafc",
+    "neutral.on-container": "#64748b",
+    "error.main": "#ef4444",
+    "error.on-main": "#ffffff",
+    "error.container": "#fef2f2",
+    "error.on-container": "#dc2626",
+    "warning.main": "#f97316",
+    "warning.on-main": "#ffffff",
+    "warning.container": "#fff7ed",
+    "warning.on-container": "#ea580c",
+    "attention.main": "#facc15",
+    "attention.on-main": "#422006",
+    "attention.container": "#fef9c3",
+    "attention.on-container": "#ca8a04",
+    "success.main": "#16a34a",
+    "success.on-main": "#ffffff",
+    "success.container": "#dcfce7",
+    "success.on-container": "#15803d",
+    "info.main": "#3b82f6",
+    "info.on-main": "#ffffff",
+    "info.container": "#eff6ff",
+    "info.on-container": "#2563eb",
+    "text.emphasis": "#020617",
+    "text.default": "#0f172a",
+    "text.subtle": "#334155",
+    "text.subtlest": "#64748b",
+    "surface.bright": "#f9fafa",
+    "surface.default": "#f4f5f6",
+    "surface.dim": "#eef0f1",
+    "container.highest": "#ffffff",
+    "container.high": "#ffffff",
+    "container.default": "#ffffff",
+    "container.low": "#ffffff",
+    "container.lowest": "#ffffff",
+    "scrim": "#000000",
+    "shadow": "#0f172a",
+    "inverse.surface": "#0f172a",
+    "inverse.on-surface": "#ffffff",
+    "inverse.primary": "#cffafe",
+    "text.disabled": "#0f172a",
+    "border.emphasis": "#1e293b",
+    "border.default": "#1e293b",
+    "border.subtle": "#1e293b",
+    "outline.default": "#0891b2",
+    "outline.entry-box": "#1e293b",
+    "outline.ring": "#0891b2"
+  },
+  "night": {
+    "transparent": "#00000000",
+    "primary.main": "#1ec8f4",
+    "primary.on-main": "#1b1b1b",
+    "primary.container": "#232e2f",
+    "primary.on-container": "#95e2ff",
+    "secondary.main": "#00caef",
+    "secondary.on-main": "#1b1b1b",
+    "secondary.container": "#262d30",
+    "secondary.on-container": "#a8deff",
+    "neutral.main": "#c4cfe7",
+    "neutral.on-main": "#222424",
+    "neutral.container": "#272a2c",
+    "neutral.on-container": "#cddef8",
+    "error.main": "#ff9f98",
+    "error.on-main": "#1b1b1b",
+    "error.container": "#342a2a",
+    "error.on-container": "#ffcbc5",
+    "warning.main": "#ffa270",
+    "warning.on-main": "#1b1b1b",
+    "warning.container": "#302c23",
+    "warning.on-container": "#ffccba",
+    "attention.main": "#deb400",
+    "attention.on-main": "#1b1b1b",
+    "attention.container": "#2f2d13",
+    "attention.on-container": "#ffd08b",
+    "success.main": "#0cd560",
+    "success.on-main": "#1b1b1b",
+    "success.container": "#1e3026",
+    "success.on-container": "#70f08f",
+    "info.main": "#98b8ff",
+    "info.on-main": "#1b1b1b",
+    "info.container": "#282d31",
+    "info.on-container": "#cbd6ff",
+    "text.emphasis": "#faf8ff",
+    "text.default": "#eaeaf5",
+    "text.subtle": "#aaaeb7",
+    "text.subtlest": "#828690",
+    "surface.bright": "#232627",
+    "surface.default": "#191c1d",
+    "surface.dim": "#101415",
+    "container.highest": "#2e3131",
+    "container.high": "#252829",
+    "container.default": "#1f2223",
+    "container.low": "#1b1e1f",
+    "container.lowest": "#151819",
+    "scrim": "#000000",
+    "shadow": "#000000",
+    "inverse.surface": "#e2e7ff",
+    "inverse.on-surface": "#212425",
+    "inverse.primary": "#8cc2c7",
+    "text.disabled": "#61636c",
+    "border.emphasis": "#c4cfe7",
+    "border.default": "#c4cfe7",
+    "border.subtle": "#c4cfe7",
+    "outline.default": "#76dcff",
+    "outline.entry-box": "#c1cfed",
+    "outline.ring": "#76dcff"
+  },
+  "mapped": [
+    {
+      "path": "transparent",
+      "strategy": "passthrough",
+      "day": "#00000000",
+      "night": "#00000000",
+      "dayHex": "#00000000",
+      "nightHex": "#00000000"
+    },
+    {
+      "path": "primary.main",
+      "strategy": "color-rule:hueKeep=true|T75|C×1.2|Cfloor16|cct=neutral",
+      "day": "{tailwindcss.color.cyan.600}",
+      "night": "#1ec8f4",
+      "dayHex": "#0891b2",
+      "nightHex": "#1ec8f4"
+    },
+    {
+      "path": "primary.on-main",
+      "strategy": "color-rule:dynamic-on-main|dark|Y0.481|CL1.98|CD8.71|T10",
+      "day": "{tailwindcss.color.white}",
+      "night": "#1b1b1b",
+      "dayHex": "#ffffff",
+      "nightHex": "#1b1b1b"
+    },
+    {
+      "path": "primary.container",
+      "strategy": "color-rule:hueKeep=true|T18|C×0.75|Cfloor6|cct=neutral",
+      "day": "{tailwindcss.color.cyan.50}",
+      "night": "#232e2f",
+      "dayHex": "#ecfeff",
+      "nightHex": "#232e2f"
+    },
+    {
+      "path": "primary.on-container",
+      "strategy": "color-rule:hueKeep=true|T86|C×1.2|cct=neutral",
+      "day": "{tailwindcss.color.cyan.600}",
+      "night": "#95e2ff",
+      "dayHex": "#0891b2",
+      "nightHex": "#95e2ff"
+    },
+    {
+      "path": "secondary.main",
+      "strategy": "color-rule:hueKeep=true|T75|C×1.2|Cfloor16|cct=neutral",
+      "day": "{corerain.color.sub.400}",
+      "night": "#00caef",
+      "dayHex": "#2cd9ff",
+      "nightHex": "#00caef"
+    },
+    {
+      "path": "secondary.on-main",
+      "strategy": "color-rule:dynamic-on-main|dark|Y0.485|CL1.96|CD8.77|T10",
+      "day": "{corerain.color.sub.950}",
+      "night": "#1b1b1b",
+      "dayHex": "#04384d",
+      "nightHex": "#1b1b1b"
+    },
+    {
+      "path": "secondary.container",
+      "strategy": "color-rule:hueKeep=true|T18|C×0.75|Cfloor6|cct=neutral",
+      "day": "{corerain.color.sub.50}",
+      "night": "#262d30",
+      "dayHex": "#effbff",
+      "nightHex": "#262d30"
+    },
+    {
+      "path": "secondary.on-container",
+      "strategy": "color-rule:hueKeep=true|T86|C×1.2|cct=neutral",
+      "day": "{corerain.color.sub.700}",
+      "night": "#a8deff",
+      "dayHex": "#007fab",
+      "nightHex": "#a8deff"
+    },
+    {
+      "path": "neutral.main",
+      "strategy": "color-rule:hueKeep=true|T83|C×1|Cfloor2.5|cct=neutral",
+      "day": "{tailwindcss.color.slate.800}",
+      "night": "#c4cfe7",
+      "dayHex": "#1e293b",
+      "nightHex": "#c4cfe7"
+    },
+    {
+      "path": "neutral.on-main",
+      "strategy": "color-rule:hueKeep=true|T14|C×1|cct=neutral",
+      "day": "{tailwindcss.color.white}",
+      "night": "#222424",
+      "dayHex": "#ffffff",
+      "nightHex": "#222424"
+    },
+    {
+      "path": "neutral.container",
+      "strategy": "color-rule:hueKeep=true|T17|C×1|Cfloor2.5|cct=neutral",
+      "day": "{tailwindcss.color.slate.50}",
+      "night": "#272a2c",
+      "dayHex": "#f8fafc",
+      "nightHex": "#272a2c"
+    },
+    {
+      "path": "neutral.on-container",
+      "strategy": "color-rule:hueKeep=true|T88|C×1|cct=neutral",
+      "day": "{tailwindcss.color.slate.500}",
+      "night": "#cddef8",
+      "dayHex": "#64748b",
+      "nightHex": "#cddef8"
+    },
+    {
+      "path": "error.main",
+      "strategy": "color-rule:hueKeep=true|T75|C×1.2|Cfloor16|cct=neutral",
+      "day": "{tailwindcss.color.red.500}",
+      "night": "#ff9f98",
+      "dayHex": "#ef4444",
+      "nightHex": "#ff9f98"
+    },
+    {
+      "path": "error.on-main",
+      "strategy": "color-rule:dynamic-on-main|dark|Y0.483|CL1.97|CD8.75|T10",
+      "day": "{tailwindcss.color.white}",
+      "night": "#1b1b1b",
+      "dayHex": "#ffffff",
+      "nightHex": "#1b1b1b"
+    },
+    {
+      "path": "error.container",
+      "strategy": "color-rule:hueKeep=true|T18|C×0.75|Cfloor6|cct=neutral",
+      "day": "{tailwindcss.color.red.50}",
+      "night": "#342a2a",
+      "dayHex": "#fef2f2",
+      "nightHex": "#342a2a"
+    },
+    {
+      "path": "error.on-container",
+      "strategy": "color-rule:hueKeep=true|T86|C×1.2|cct=neutral",
+      "day": "{tailwindcss.color.red.600}",
+      "night": "#ffcbc5",
+      "dayHex": "#dc2626",
+      "nightHex": "#ffcbc5"
+    },
+    {
+      "path": "warning.main",
+      "strategy": "color-rule:hueKeep=true|T75|C×1.2|Cfloor16|cct=neutral",
+      "day": "{tailwindcss.color.orange.500}",
+      "night": "#ffa270",
+      "dayHex": "#f97316",
+      "nightHex": "#ffa270"
+    },
+    {
+      "path": "warning.on-main",
+      "strategy": "color-rule:dynamic-on-main|dark|Y0.483|CL1.97|CD8.74|T10",
+      "day": "{tailwindcss.color.white}",
+      "night": "#1b1b1b",
+      "dayHex": "#ffffff",
+      "nightHex": "#1b1b1b"
+    },
+    {
+      "path": "warning.container",
+      "strategy": "color-rule:hueKeep=true|T18|C×0.75|Cfloor6|cct=neutral",
+      "day": "{tailwindcss.color.orange.50}",
+      "night": "#302c23",
+      "dayHex": "#fff7ed",
+      "nightHex": "#302c23"
+    },
+    {
+      "path": "warning.on-container",
+      "strategy": "color-rule:hueKeep=true|T86|C×1.2|cct=neutral",
+      "day": "{tailwindcss.color.orange.600}",
+      "night": "#ffccba",
+      "dayHex": "#ea580c",
+      "nightHex": "#ffccba"
+    },
+    {
+      "path": "attention.main",
+      "strategy": "color-rule:hueKeep=true|T75|C×1.2|Cfloor16|cct=neutral",
+      "day": "{tailwindcss.color.yellow.400}",
+      "night": "#deb400",
+      "dayHex": "#facc15",
+      "nightHex": "#deb400"
+    },
+    {
+      "path": "attention.on-main",
+      "strategy": "color-rule:dynamic-on-main|dark|Y0.482|CL1.97|CD8.72|T10",
+      "day": "{tailwindcss.color.yellow.950}",
+      "night": "#1b1b1b",
+      "dayHex": "#422006",
+      "nightHex": "#1b1b1b"
+    },
+    {
+      "path": "attention.container",
+      "strategy": "color-rule:hueKeep=true|T18|C×0.75|Cfloor6|cct=neutral",
+      "day": "{tailwindcss.color.yellow.100}",
+      "night": "#2f2d13",
+      "dayHex": "#fef9c3",
+      "nightHex": "#2f2d13"
+    },
+    {
+      "path": "attention.on-container",
+      "strategy": "color-rule:hueKeep=true|T86|C×1.2|cct=neutral",
+      "day": "{tailwindcss.color.yellow.600}",
+      "night": "#ffd08b",
+      "dayHex": "#ca8a04",
+      "nightHex": "#ffd08b"
+    },
+    {
+      "path": "success.main",
+      "strategy": "color-rule:hueKeep=true|T75|C×1.2|Cfloor16|cct=neutral",
+      "day": "{tailwindcss.color.green.600}",
+      "night": "#0cd560",
+      "dayHex": "#16a34a",
+      "nightHex": "#0cd560"
+    },
+    {
+      "path": "success.on-main",
+      "strategy": "color-rule:dynamic-on-main|dark|Y0.485|CL1.96|CD8.78|T10",
+      "day": "{tailwindcss.color.white}",
+      "night": "#1b1b1b",
+      "dayHex": "#ffffff",
+      "nightHex": "#1b1b1b"
+    },
+    {
+      "path": "success.container",
+      "strategy": "color-rule:hueKeep=true|T18|C×0.75|Cfloor6|cct=neutral",
+      "day": "{tailwindcss.color.green.100}",
+      "night": "#1e3026",
+      "dayHex": "#dcfce7",
+      "nightHex": "#1e3026"
+    },
+    {
+      "path": "success.on-container",
+      "strategy": "color-rule:hueKeep=true|T86|C×1.2|cct=neutral",
+      "day": "{tailwindcss.color.green.700}",
+      "night": "#70f08f",
+      "dayHex": "#15803d",
+      "nightHex": "#70f08f"
+    },
+    {
+      "path": "info.main",
+      "strategy": "color-rule:hueKeep=true|T75|C×1.2|Cfloor16|cct=neutral",
+      "day": "{tailwindcss.color.blue.500}",
+      "night": "#98b8ff",
+      "dayHex": "#3b82f6",
+      "nightHex": "#98b8ff"
+    },
+    {
+      "path": "info.on-main",
+      "strategy": "color-rule:dynamic-on-main|dark|Y0.482|CL1.97|CD8.72|T10",
+      "day": "{tailwindcss.color.white}",
+      "night": "#1b1b1b",
+      "dayHex": "#ffffff",
+      "nightHex": "#1b1b1b"
+    },
+    {
+      "path": "info.container",
+      "strategy": "color-rule:hueKeep=true|T18|C×0.75|Cfloor6|cct=neutral",
+      "day": "{tailwindcss.color.blue.50}",
+      "night": "#282d31",
+      "dayHex": "#eff6ff",
+      "nightHex": "#282d31"
+    },
+    {
+      "path": "info.on-container",
+      "strategy": "color-rule:hueKeep=true|T86|C×1.2|cct=neutral",
+      "day": "{tailwindcss.color.blue.600}",
+      "night": "#cbd6ff",
+      "dayHex": "#2563eb",
+      "nightHex": "#cbd6ff"
+    },
+    {
+      "path": "text.emphasis",
+      "strategy": "color-rule:hueKeep=true|T98|C×0.45|cct=neutral",
+      "day": "{tailwindcss.color.slate.950}",
+      "night": "#faf8ff",
+      "dayHex": "#020617",
+      "nightHex": "#faf8ff"
+    },
+    {
+      "path": "text.default",
+      "strategy": "color-rule:hueKeep=true|T93|C×0.45|cct=neutral",
+      "day": "{tailwindcss.color.slate.900}",
+      "night": "#eaeaf5",
+      "dayHex": "#0f172a",
+      "nightHex": "#eaeaf5"
+    },
+    {
+      "path": "text.subtle",
+      "strategy": "color-rule:hueKeep=true|T71|C×0.45|cct=neutral",
+      "day": "{tailwindcss.color.slate.700}",
+      "night": "#aaaeb7",
+      "dayHex": "#334155",
+      "nightHex": "#aaaeb7"
+    },
+    {
+      "path": "text.subtlest",
+      "strategy": "color-rule:hueKeep=true|T56|C×0.45|cct=neutral",
+      "day": "{tailwindcss.color.slate.500}",
+      "night": "#828690",
+      "dayHex": "#64748b",
+      "nightHex": "#828690"
+    },
+    {
+      "path": "text.disabled",
+      "strategy": "color-rule:hueKeep=true|T42|C×0.45|cct=neutral+keep-alpha",
+      "day": {
+        "$ref": "#/theme/color/text/default/$value",
+        "alpha": "{wave.dimension.alpha.400}"
+      },
+      "night": {
+        "color": "#61636c",
+        "alpha": "{wave.dimension.alpha.400}"
+      },
+      "dayHex": "#0f172a",
+      "nightHex": "#61636c"
+    },
+    {
+      "path": "border.emphasis",
+      "strategy": "color-rule:hueKeep=true|T83|C×1|Cfloor2.5|cct=neutral+keep-alpha",
+      "day": {
+        "$ref": "#/theme/color/neutral/main/$value",
+        "alpha": "{wave.dimension.alpha.300}"
+      },
+      "night": {
+        "color": "#c4cfe7",
+        "alpha": "{wave.dimension.alpha.300}"
+      },
+      "dayHex": "#1e293b",
+      "nightHex": "#c4cfe7"
+    },
+    {
+      "path": "border.default",
+      "strategy": "color-rule:hueKeep=true|T83|C×1|Cfloor2.5|cct=neutral+keep-alpha",
+      "day": {
+        "$ref": "#/theme/color/neutral/main/$value",
+        "alpha": "{wave.dimension.alpha.200}"
+      },
+      "night": {
+        "color": "#c4cfe7",
+        "alpha": "{wave.dimension.alpha.200}"
+      },
+      "dayHex": "#1e293b",
+      "nightHex": "#c4cfe7"
+    },
+    {
+      "path": "border.subtle",
+      "strategy": "color-rule:hueKeep=true|T83|C×1|Cfloor2.5|cct=neutral+keep-alpha",
+      "day": {
+        "$ref": "#/theme/color/neutral/main/$value",
+        "alpha": "{wave.dimension.alpha.100}"
+      },
+      "night": {
+        "color": "#c4cfe7",
+        "alpha": "{wave.dimension.alpha.100}"
+      },
+      "dayHex": "#1e293b",
+      "nightHex": "#c4cfe7"
+    },
+    {
+      "path": "outline.default",
+      "strategy": "color-rule:hueKeep=true|T83|C×1.2|Cfloor16|cct=neutral+keep-alpha",
+      "day": {
+        "color": "{theme.color.primary.main}",
+        "alpha": "{wave.dimension.alpha.400}"
+      },
+      "night": {
+        "color": "#76dcff",
+        "alpha": "{wave.dimension.alpha.400}"
+      },
+      "dayHex": "#0891b2",
+      "nightHex": "#76dcff"
+    },
+    {
+      "path": "outline.entry-box",
+      "strategy": "color-rule:hueKeep=true|T83|C×1.2|Cfloor16|cct=neutral+keep-alpha",
+      "day": {
+        "$ref": "#/theme/color/neutral/main/$value",
+        "alpha": "{wave.dimension.alpha.200}"
+      },
+      "night": {
+        "color": "#c1cfed",
+        "alpha": "{wave.dimension.alpha.200}"
+      },
+      "dayHex": "#1e293b",
+      "nightHex": "#c1cfed"
+    },
+    {
+      "path": "outline.ring",
+      "strategy": "color-rule:hueKeep=true|T83|C×1.2|Cfloor16|cct=neutral",
+      "day": "{theme.color.primary.main}",
+      "night": "#76dcff",
+      "dayHex": "#0891b2",
+      "nightHex": "#76dcff"
+    },
+    {
+      "path": "surface.bright",
+      "strategy": "color-rule:hueKeep=true|T15|C×1.15|Cfloor3.5|cct=neutral",
+      "day": {
+        "colorSpace": "hsl",
+        "components": [
+          210,
+          10,
+          98
+        ]
+      },
+      "night": "#232627",
+      "dayHex": "#f9fafa",
+      "nightHex": "#232627"
+    },
+    {
+      "path": "surface.default",
+      "strategy": "color-rule:hueKeep=true|T10|C×1.15|Cfloor3.5|cct=neutral",
+      "day": {
+        "colorSpace": "hsl",
+        "components": [
+          210,
+          10,
+          96
+        ]
+      },
+      "night": "#191c1d",
+      "dayHex": "#f4f5f6",
+      "nightHex": "#191c1d"
+    },
+    {
+      "path": "surface.dim",
+      "strategy": "color-rule:hueKeep=true|T6|C×1.15|Cfloor3.5|cct=neutral",
+      "day": {
+        "colorSpace": "hsl",
+        "components": [
+          210,
+          10,
+          94
+        ]
+      },
+      "night": "#101415",
+      "dayHex": "#eef0f1",
+      "nightHex": "#101415"
+    },
+    {
+      "path": "container.highest",
+      "strategy": "color-rule:hueKeep=true|T20|C×1.15|Cfloor3.5|cct=neutral",
+      "day": "{tailwindcss.color.white}",
+      "night": "#2e3131",
+      "dayHex": "#ffffff",
+      "nightHex": "#2e3131"
+    },
+    {
+      "path": "container.high",
+      "strategy": "color-rule:hueKeep=true|T16|C×1.15|Cfloor3.5|cct=neutral",
+      "day": "{tailwindcss.color.white}",
+      "night": "#252829",
+      "dayHex": "#ffffff",
+      "nightHex": "#252829"
+    },
+    {
+      "path": "container.default",
+      "strategy": "color-rule:hueKeep=true|T13|C×1.15|Cfloor3.5|cct=neutral",
+      "day": "{tailwindcss.color.white}",
+      "night": "#1f2223",
+      "dayHex": "#ffffff",
+      "nightHex": "#1f2223"
+    },
+    {
+      "path": "container.low",
+      "strategy": "color-rule:hueKeep=true|T11|C×1.15|Cfloor3.5|cct=neutral",
+      "day": "{tailwindcss.color.white}",
+      "night": "#1b1e1f",
+      "dayHex": "#ffffff",
+      "nightHex": "#1b1e1f"
+    },
+    {
+      "path": "container.lowest",
+      "strategy": "color-rule:hueKeep=true|T8|C×1.15|Cfloor3.5|cct=neutral",
+      "day": "{tailwindcss.color.white}",
+      "night": "#151819",
+      "dayHex": "#ffffff",
+      "nightHex": "#151819"
+    },
+    {
+      "path": "scrim",
+      "strategy": "color-rule:hueKeep=true|T0|C×1|cct=neutral+keep-alpha",
+      "day": {
+        "color": "{tailwindcss.color.black}",
+        "alpha": "{wave.dimension.alpha.700}"
+      },
+      "night": {
+        "color": "#000000",
+        "alpha": "{wave.dimension.alpha.700}"
+      },
+      "dayHex": "#000000",
+      "nightHex": "#000000"
+    },
+    {
+      "path": "shadow",
+      "strategy": "color-rule:hueKeep=true|T0|C×1|cct=neutral",
+      "day": "{tailwindcss.color.slate.900}",
+      "night": "#000000",
+      "dayHex": "#0f172a",
+      "nightHex": "#000000"
+    },
+    {
+      "path": "inverse.surface",
+      "strategy": "color-rule:hueKeep=true|T92|C×1.15|Cfloor3.5|cct=neutral+keep-alpha",
+      "day": {
+        "color": "{tailwindcss.color.slate.900}",
+        "alpha": "{wave.dimension.alpha.800}"
+      },
+      "night": {
+        "color": "#e2e7ff",
+        "alpha": "{wave.dimension.alpha.800}"
+      },
+      "dayHex": "#0f172a",
+      "nightHex": "#e2e7ff"
+    },
+    {
+      "path": "inverse.on-surface",
+      "strategy": "color-rule:hueKeep=true|T14|C×1.15|cct=neutral",
+      "day": "{tailwindcss.color.white}",
+      "night": "#212425",
+      "dayHex": "#ffffff",
+      "nightHex": "#212425"
+    },
+    {
+      "path": "inverse.primary",
+      "strategy": "color-rule:hueKeep=true|T75|C×1.2|Cfloor16|cct=neutral",
+      "day": "{tailwindcss.color.cyan.100}",
+      "night": "#8cc2c7",
+      "dayHex": "#cffafe",
+      "nightHex": "#8cc2c7"
+    },
+    {
+      "path": "state.hover",
+      "strategy": "passthrough",
+      "day": "{wave.dimension.alpha.100}",
+      "night": "{wave.dimension.alpha.100}"
+    },
+    {
+      "path": "state.press",
+      "strategy": "passthrough",
+      "day": "{wave.dimension.alpha.200}",
+      "night": "{wave.dimension.alpha.200}"
+    },
+    {
+      "path": "state.focus",
+      "strategy": "passthrough",
+      "day": "{wave.dimension.alpha.100}",
+      "night": "{wave.dimension.alpha.100}"
+    },
+    {
+      "path": "state.drag",
+      "strategy": "passthrough",
+      "day": "{wave.dimension.alpha.500}",
+      "night": "{wave.dimension.alpha.500}"
+    }
+  ],
+  "knobs": {
+    "hueKeep": true,
+    "hueShiftByRole": {},
+    "trialTone": {
+      "accentMain": 75,
+      "accentOnMain": 10,
+      "accentContainer": 18,
+      "accentOnContainer": 86,
+      "neutralMain": 83,
+      "neutralOnMain": 14,
+      "neutralContainer": 17,
+      "neutralOnContainer": 88,
+      "textEmphasis": 98,
+      "textDefault": 93,
+      "textSubtle": 71,
+      "textSubtlest": 56,
+      "textDisabled": 42,
+      "surfaceBright": 15,
+      "surfaceDefault": 10,
+      "surfaceDim": 6,
+      "containerHighest": 20,
+      "containerHigh": 16,
+      "containerDefault": 13,
+      "containerLow": 11,
+      "containerLowest": 8,
+      "inverseSurface": 92,
+      "inverseOnSurface": 14,
+      "inversePrimary": 75,
+      "shadow": 0,
+      "scrim": 0,
+      "$comment": "HCT tones: surface/container/text/neutral synced from scene; accent* (except accentMain dial) fixed at 晚间 L3 anchor; accentMain default 75 (Day/Night primary distance kept) — preview 「Primary Night 明度」can temporarily lower; scene apply preserves accentMain; accentOnMain is DYNAMIC from Night primary.main luminance (WCAG-ish T98/T21) — knob value is reflective; fine-edit absolute after scene apply."
+    },
+    "chromaScale": {
+      "accent": 1.2,
+      "neutral": 1,
+      "surface": 1.15,
+      "text": 0.45,
+      "$comment": "Raise surface/neutral so Night keeps ink tint instead of ash; accent slightly >1 for pop."
+    },
+    "chromaFloor": {
+      "accent": 16,
+      "neutral": 2.5,
+      "surface": 3.5,
+      "text": 0,
+      "$comment": "Day pastels/whites have near-zero chroma; floor prevents Night surfaces/accent-containers collapsing to mud-gray."
+    },
+    "cctBias": "neutral",
+    "cctHueShiftDeg": {
+      "warm": 0,
+      "cool": -10
+    },
+    "cctWarmMix": 0,
+    "cctWarmTargetHue": 55,
+    "cctWarmPoleChroma": 12,
+    "onRoleUseInvert": false,
+    "borderAlphaBump": 0,
+    "state": "passthrough",
+    "includeStateInOverlay": true,
+    "debugPaletteStepFallback": false,
+    "dayRoleOverrides": {
+      "$comment": "Sandbox experiment: Day primary* → Tailwind-like family before Night color-rule. Default cyan; preview segment also offers amber/teal/indigo/rose/olive/blue. Steps parallel prior mapping (600/50/600/100 for main/container/on-container/inverse).",
+      "primary.main": "{tailwindcss.color.cyan.600}",
+      "primary.container": "{tailwindcss.color.cyan.50}",
+      "primary.on-container": "{tailwindcss.color.cyan.600}",
+      "inverse.primary": "{tailwindcss.color.cyan.100}"
+    },
+    "lightsLevel": 3,
+    "$comment": "Open TRIAL knobs for pure color-rule Night derive. NOT Wave product defaults. lightsLevel 1–5 = 月光/夜灯/晚间/烛光/晚霞. Warm scenes use Lab mix (cctWarmMix) toward amber pole — mild tint into cool charcoal, NOT absolute hue rotate to brown. Cool uses cctHueShiftDeg.cool. Accents stay 晚间-anchored.",
+    "ruleEngine": "pure-color"
+  }
+}

@@ -12,6 +12,7 @@
 
 ## Wave DT workspace model
 
+- [Wave Auto Generate Color 讨论小结](wave-auto-generate-color-discussion.md) | 1k | Day/Night 表面层级差异、`$config.autoGenerateColor` 草案与待讨论参数 | color, auto-generate, day, night
 - [Wave DT Profile Model](wave-dt-profile-model.md) | 5k | main-only/profile/night 选择、profile 差量 $override 与双身份、reference-gated resource 与公共 theme taxonomy 的决策边界 | profile, main.yaml, night, taxonomy
 - [Wave Token Helper 文档约定](wave-token-helper-documentation-convention.md) | 2k | `$helper` 仅作为暂行文档约定，当前不具备解析、引用或导出语义 | $helper, authoring, provisional
 

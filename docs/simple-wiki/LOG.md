@@ -7,6 +7,9 @@
 > - <ingest|lint> | <主题或页面> | <一句话说明>
 > ~~~
 
+## 2026-10-09
+- ingest | Wave DT workspace model | 记录 Day/Night 表面层级差异、`$config.autoGenerateColor` 配置草案与待讨论参数。
+
 ## 2026-09-29
 - ingest | Wave DT workspace model、Typography、md-yml output、Sketch output | 编译 profile-override 合同接入：profile 模型页全量更新，typography/md-yml/helper 页同步平铺与引用基准，sketch-extensions 页标 superseded 保留历史正文，5 页 context 复测回填（5/3/2/2/3）
 

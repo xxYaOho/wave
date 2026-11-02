@@ -52,7 +52,7 @@ profile 根消费 `$schema`、自身 `$id`、`$config`、`$override`；非 `$` r
 
 ## 文档身份与显式命令
 
-文档根 `$id` 与 token `$id` 分属两个命名空间，根身份不进入 token 路径权威、冲突图或 override 索引。main/profile 自身 `$id` 可省略；构建时若声明必须是非空字符串，但有 profile 时 main 必须已入账以验证 base。profile 主题身份来自自身文档，不继承 main 身份。Sketch `meta` 为 `{ themeId: string | null, baseId: string | null, version: 2 }`；main 的 baseId 为 null，profile 的 baseId 为 main 身份，自身未入账时 themeId 为 null。版本仍为 2，拒绝额外字段的旧 plugin 需同步允许 baseId。[Profile 差量与平铺 Typography 合同](../raw/2026-09-29-profile-override-contract.md)
+文档根 `$id` 与 token `$id` 分属两个命名空间，根身份不进入 token 路径权威、冲突图或 override 索引。main/profile 自身 `$id` 可省略；构建时若声明必须是非空字符串，但有 profile 时 main 必须已入账以验证 base。profile 主题身份来自自身文档，不继承 main 身份。Sketch `meta` 为 `{ themeId: string | null, baseId: string | null, version: 2 }`；main 的 baseId 等于其 themeId（未入账时回退 `$config.theme` stem），profile 的 baseId 为 main 身份，自身未入账时 themeId 可为 null。版本仍为 2，拒绝额外字段的旧 plugin 需同步允许 baseId。[Profile 差量与平铺 Typography 合同](../raw/2026-09-29-profile-override-contract.md)
 
 `wave dt new-profile <name>` 是全量源值快照生成器，额外要求 main 文档与全部源 token 已入账，且 token ID 不重复；这不是一般 profile 的格式前提。它生成自身新文档 ID、base 关联和全量 `$override`，引用原样保留、不复制结构元数据。名称/碰撞或前提失败零写入，不覆盖既有文件；删除冗余快照项后，该值才随 base 演进。[Profile 差量与平铺 Typography 合同](../raw/2026-09-29-profile-override-contract.md)
 
