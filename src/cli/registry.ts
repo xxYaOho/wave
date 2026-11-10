@@ -6,6 +6,7 @@ import { installCommand } from './commands/install.ts';
 import { manualCommand } from './commands/manual.ts';
 import { motionCommand } from './commands/motion.ts';
 import { workspaceCommand } from './commands/workspace.ts';
+import { addManualOption } from './options.ts';
 
 export type CommandCategory = 'common' | 'workspace' | 'toolchain' | 'other';
 
@@ -55,6 +56,12 @@ export const commandRegistry: CommandDefinition[] = [
 
 export function registerCommands(program: Command): void {
 	for (const definition of commandRegistry) {
+		addManualOptions(definition.command);
 		program.addCommand(definition.command);
 	}
+}
+
+function addManualOptions(command: Command): void {
+	addManualOption(command);
+	for (const child of command.commands) addManualOptions(child);
 }

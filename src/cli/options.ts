@@ -31,6 +31,9 @@ export function addRepeatableOption(
 
 /** Add the shared documentation switch without attaching business semantics. */
 export function addManualOption(command: Command): Command {
+	if (command.options.some((option) => option.long === '--manual')) {
+		return command;
+	}
 	return command.option(
 		'-m, --manual',
 		'Print Markdown usage for this command',

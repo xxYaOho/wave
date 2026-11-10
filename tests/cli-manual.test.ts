@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { resolveManualAppDir } from '../src/core/manual/assets.ts';
 import { startManualServer } from '../src/core/manual/server.ts';
@@ -57,6 +58,55 @@ async function getFreePort(start = 4677): Promise<number> {
 }
 
 describe('wave manual', () => {
+	test('prints structured Markdown at every command level without running actions', async () => {
+		const cases = [
+			[],
+			['token'],
+			['token', 'new'],
+			['token', 'new', 'night'],
+			['token', 'migrate', 'extensions'],
+			['compress', 'doctor'],
+			['motion', 'install'],
+			['workspace'],
+			['doctor'],
+			['version'],
+		];
+
+		for (const pathParts of cases) {
+			const { exitCode, stdout, stderr } = await runWave([...pathParts, '-m']);
+			expect(exitCode).toBe(0);
+			expect(stderr).toBe('');
+			expect(stdout.startsWith(`# ${pathParts.join(' ') || 'wave'}\n`)).toBe(
+				true,
+			);
+			expect(stdout).toContain('## 适用范围');
+			expect(stdout).toContain('## 用法');
+			expect(stdout).toContain('## 默认行为');
+			expect(stdout).toContain('## 示例');
+			expect(stdout).not.toContain(String.fromCharCode(27));
+		}
+	});
+
+	test('manual mode short-circuits business options and does not write', async () => {
+		const tempDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-manual-cli-'),
+		);
+		try {
+			const result = await runWave(
+				['token', 'build', '-f', './missing.yaml', '-o', './created', '-m'],
+				tempDir,
+			);
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe('');
+			expect(result.stdout).toContain('# token build');
+			expect(
+				await fs.stat(path.join(tempDir, 'created')).catch(() => null),
+			).toBe(null);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
 	test('top-level help includes manual command', async () => {
 		const { exitCode, stdout } = await runWave(['--help']);
 

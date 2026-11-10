@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 
 const rootDir = path.resolve(import.meta.dir, '..');
@@ -57,6 +58,29 @@ describe('build:cli', () => {
 
 			expect(verify.exitCode).toBe(0);
 			expect(verify.stderr).toContain('valid on disk');
+		}
+	});
+
+	test('packages Markdown manual content for use outside the source checkout', async () => {
+		const build = await runCommand(['pnpm', 'build:cli']);
+		expect(build.exitCode).toBe(0);
+
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-built-cli-'));
+		try {
+			const result = await runCommand(
+				[waveBin, 'token', 'new', 'night', '-m'],
+				{
+					cwd: tempDir,
+				},
+			);
+			expect(result.exitCode).toBe(0);
+			expect(result.stderr).toBe('');
+			expect(result.stdout).toContain('# token new night');
+			expect(result.stdout).toContain('## 适用范围');
+			expect(result.stdout).toContain('## 参数');
+			expect(result.stdout).toContain('## 相关命令');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
 		}
 	});
 });
