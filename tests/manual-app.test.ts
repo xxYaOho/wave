@@ -225,6 +225,12 @@ describe('manual app', () => {
 			'/quickstart',
 			'/toolchain',
 			'/design-token',
+			'/design-token/create',
+			'/design-token/night',
+			'/design-token/migrate',
+			'/design-token/doctor',
+			'/design-token/wcag',
+			'/design-token/ids',
 			'/design-token/main-yaml',
 			'/design-token/color-typography',
 			'/design-token/extensions-output',
@@ -252,7 +258,7 @@ describe('manual app', () => {
 			'wave workspace',
 		);
 		expect(pageByHref.get('/command-index')?.searchText).toContain(
-			'wave --help',
+			'wave token new night',
 		);
 		expect(pageByHref.get('/design-token')?.searchText).toContain('main.yaml');
 		expect(pageByHref.get('/design-token')?.searchText).not.toContain(

@@ -32,15 +32,15 @@ $extends 展开与引用解析（$config.resource 可选；未声明时使用空
 - `$config.resource`：可选的外部引用依赖声明，不直接输出 token
 - build：只以有效 token 图能否完整解析和生成作为 resource 相关成功条件；未被引用的缺失、损坏或重复声明不阻塞 build
 - Doctor：严格检查当前检查目标中的全部 resource 声明，即使声明未被 token 引用
-- design-token workspace：只以文件名为 `main.yaml` 且根包含有效 `$config` 的文件作为入口；不从 resource、profile 或目录推断入口
+- token：唯一 design-token 模块入口，裸命令默认 build；不提供 `design-token/dt` alias
+- token source：`-f` 可指定 main、包含 main 的目录或任意目录中的 Day profile；profile 从最近祖先目录定位 base main
 - RESOURCE：只提供引用解析数据，不直接生成 token
 - colorSpace 转换发生在输出阶段，不影响引用解析过程
-- dt：design-token 模块入口，默认读取当前目录 `main.yaml`
-- compress：只处理已有 PNG/JPG/SVG/GIF 素材压缩，不从帧生成动效
-- motion/mg：只从 PNG 帧目录生成 GIF/APNG
-- workspace：按 `~/.config/wave/workspace.yaml` 或内置默认配置创建本地设计项目目录
+- compress：直接处理已有 PNG/JPG/SVG/GIF 素材压缩，不从帧生成动效
+- motion：只从 PNG 帧目录生成 GIF/APNG，通过 `--format` 选择；不提供 `mg`
+- workspace：直接创建本地设计项目目录，支持最终目标目录与有限覆盖
 - install/doctor：检查和安装本地工具链，不改变 token 数据模型
-- manual：服务 `dist/manual-app/` 构建产物，不在运行时读取 `manual/` 源码
+- manual：服务 `dist/manual-app/` 构建产物；`-m/--manual` 则输出当前命令范围的 Markdown，不启动服务
 - Quality Harness：维护者使用的质量指标基座，当前第一批 consumer 是 design-token benchmark suite；它用于判断何时需要优化，不是用户向功能
 
 用户向使用说明统一维护在 `manual/`，通过 `wave manual` 查看。`docs/SPEC.md` 只记录内部行为快照和实现/review 心智模型。
@@ -58,109 +58,89 @@ $extends 展开与引用解析（$config.resource 可选；未声明时使用空
 - 不要新增或扩大绕过 main.yaml 直接从资源生成 token 的路径
 - 新增 wave 子命令时，不要复用 token 生成的内部模块，除非明确适用
 - 不要把 compress 和 motion 的外部工具判断各写一套；应复用 `ToolResolver` / `CommandRunner`
-- 不要新增其他 design-token workspace 入口或恢复已移除的 `themefile` 兼容路径
+- ids、migrate 和 new profile 等 workspace/base 级操作仍只接受 main 或目录；不要把 Night overlay 或 resource 当作 Day source
 - 不要把 Quality Harness 当作单次跑分结论；它提供趋势和阶段定位参考
 
 ---
 
 ## CLI 命令
 
-- `wave design-token`：design-token 模块入口，默认等价于 `wave design-token build`
-- `wave design-token build`：生成 design token 输出，默认读取当前目录 `main.yaml`
-- `wave dt`：`wave design-token` 的 alias，默认等价于 `wave dt build`
-- `wave dt build`：生成 design token 输出，默认读取当前目录 `main.yaml`
-- `wave dt init`：初始化主题工作区
-- `wave dt show`：浏览内置资源
-- `wave dt update [name]`：显式更新本地 design-token resource cache
-- `wave dt status`：查看本地 resource cache/state 状态
-- `wave dt doctor`：design-token workspace 健康检查入口
-- `wave dt wcag`：运行 WCAG 对比度检查
-- `wave dt ids`：token 与 main/profile 文档 `$id` 身份维护；默认 dry-run 报告，`--write` 才写回
-- `wave dt new-profile <name>`：从已入账 base 创建全量源值快照 profile，不覆盖既有文件
-- `wave dt migrate-extensions`：一次性把 legacy `$extensions` sketch 家族改名为 `platform.sketch` 新形态；默认 dry-run 报告，`--write` 才写回
-- `wave doctor`：核心运行环境和本地工具链健康检查
-- `wave doctor --contrast`：WCAG 对比度检查
-- `wave install`：通过 mise 安装推荐工具链
-- `wave compress`：压缩 PNG/JPG/SVG/GIF 素材，内部归一化为 `wave compress run`
-- `wave compress doctor`：检查压缩工具链
-- `wave compress install`：安装压缩工具组
-- `wave motion`：TTY 下从当前目录检查 PNG 帧并选择 GIF/APNG；非 TTY 下要求显式格式
-- `wave motion gif [framesDir]`：从 PNG 帧目录生成 GIF；省略目录时使用当前目录
-- `wave motion apng [framesDir]`：从 PNG 帧目录生成 APNG；省略目录时使用当前目录
-- `wave motion doctor [framesDir]`：检查动效工具链和可选帧目录
-- `wave motion install`：安装动效工具组
-- `wave mg`：`wave motion` 的 alias
-- `wave workspace`：进入工作区创建流程，等价于 `wave workspace create`
-- `wave workspace create`：按配置创建本地设计项目工作区
-- `wave manual`：启动本地用户手册页面服务，服务 `dist/manual-app/` 构建产物
-- `wave show`：浏览内置资源
-- `wave` / `wave -h` / `wave help`：显示顶层帮助
-- `wave --version`：显示版本号
+顶层采用 `wave <command> [flags]`。高频命令直接执行默认任务，复杂能力在模块内部展开。
 
-### dt 命令
+- `wave token` / `wave token build`：生成 design token 输出。
+- `wave token new`：创建 token workspace。
+- `wave token new profile <name>`：从已入账 base 创建全量源值快照 profile。
+- `wave token new night`：从 Day main 或 Day profile 创建 Night overlay。
+- `wave token doctor`：检查 workspace、resource 和身份健康。
+- `wave token wcag`：运行 WCAG 对比度检查。
+- `wave token ids`：维护文档与 token `$id`；默认报告，`--write` 写回。
+- `wave token migrate extensions`：迁移 legacy `$extensions`；默认报告，`--write` 写回。
+- `wave token show/update/status`：浏览、更新和检查本地 resource。
+- `wave compress`：直接压缩 PNG/JPG/SVG/GIF；`doctor/install` 管理工具链。
+- `wave motion --format gif|apng`：直接从 PNG 帧生成动效；`doctor/install` 管理工具链。
+- `wave workspace`：直接创建本地设计项目工作区。
+- `wave doctor`：只检查核心运行环境和本地工具链。
+- `wave install`：通过 mise 安装推荐工具链。
+- `wave manual`：启动可视化网页手册。
+- `wave version` / `wave -v` / `wave --version`：显示版本号。
 
-`design-token` 是 design-token 能力域入口，`dt` 是 alias。两者只接受含有效 `$config` 的 `main.yaml` 作为 workspace 入口。
+`design-token`、`dt`、`mg`、顶层 `night/show`、`compress run`、`motion gif/apng`、`workspace create`、位置文件输入和 argv 快捷旗均不再提供。
 
-- `wave dt`：内部归一化为 `wave dt build`，默认使用 `./main.yaml`
-- `wave design-token`：内部归一化为 `wave design-token build`，默认使用 `./main.yaml`
-- `wave dt build [path]`：生成 design token 输出；`path` 必须指向 `main.yaml`
-- `wave dt build -f <path>`：显式指定 `main.yaml`
-- `wave dt init`：创建以 `main.yaml + $config` 为入口的 profile model 模板
-- `wave dt show [category] [name]`：浏览内置资源
-- `wave dt doctor`：运行 design-token 健康检查
-- `wave dt wcag [scope]`：运行 WCAG 对比度检查
-- `wave dt ids`：token 与 main/profile 文档身份维护；`-f, --file` 指定 `main.yaml`，默认 dry-run，`--write` 写回，写回要求 git 工作区清洁（`--allow-dirty` 显式豁免）
-- `wave dt new-profile <name>`：创建值快照差量层；`-f, --file` 指定已入账的 base `main.yaml`
-- `wave dt migrate-extensions`：legacy `$extensions` 一次性迁移命令；`-f, --file` 指定 `main.yaml`，默认 dry-run，`--write` 应用到 `main.yaml` 与 `profiles/*.yaml`
+### Token 命令
 
-`wave dt wcag` 规则：
+`token` 默认直接复用 build handler，不经过 argv 注入。`new` 默认创建 workspace；`migrate` 必须显式选择 `extensions`。
 
-- 不传 `scope` 时检查 main
-- `scope=main` 时检查 `main.yaml`
-- 其他 scope 视作 profile 名称
-- `--night` 检查 night 版本
-- `--profile <name>` 可显式指定 profile，优先于 scope 推断
+- `-f, --file <path>`：选择源文档；省略时为 `./main.yaml`。
+- `-o, --output <path>`：覆盖产品输出位置；build 为目录，new profile/night 为文件。
+- `--profiles all`：从 main/目录构建既有发现规则下的 main 与全部 named profiles；不能与单 profile 文件组合。
+- `--night`：build/wcag 消费当前 Day 源文档约定位置的 Night overlay。
+- `--dry-run`：只计算和展示计划，不写文件。
+- `--write`：仅用于 ids/migrate 的源文档写回。
+- `--yes`：只跳过确认，不授予覆盖权限。
+- `--force`：只授权覆盖当前目标。
+- `-m, --manual`：输出当前命令路径的结构化 Markdown，在任何默认业务动作之前短路。
 
-### Workspace 输入合同
+Token build 不再提供 CLI `--platform`；平台来自 `$config.parameter` 与 parameter groups。`--profiles all` 不递归猜测任意目录中的 YAML。
 
-无显式文件时，design-token 命令只读取 `<cwd>/main.yaml`。显式文件通过 `dt build` 位置参数或 `-f, --file` 传入，且必须满足：
+### 源文档输入合同
 
-- 路径指向普通文件，文件名为 `main.yaml`。
-- YAML 根为 object，且包含有效的 `$config` object。
-- 名为 `main.yaml` 且最终指向普通文件的 symlink 可以作为入口。resource 和输出相对路径仍以用户传入的 symlink 所在目录为 workspace 基准。
-- `dt build` 的位置参数与 `--file` 不能同时出现；同时出现时返回 `INVALID_PARAMETER`。
+支持单文档选择的 build、wcag、doctor 和 new night 共用以下规则：
 
-named profile 和 Night overlay 只能通过 `--profile`、`--profiles all` 和 `--night` 选择，不能充当 workspace 入口。`dt wcag [scope]` 的 `scope` 选择 profile，不是文件位置参数；`dt wcag mobile --file ./main.yaml` 合法。
-
-**拒绝矩阵：**
-
-| 输入 | 结果 |
+| 输入 | 选择结果 |
 | --- | --- |
-| 省略输入且 `<cwd>/main.yaml` 不存在 | `FILE_NOT_FOUND` |
-| 显式路径不存在 | `FILE_NOT_FOUND` |
-| 已移除的 `themefile` 入口 | `INVALID_PARAMETER` |
-| 目录 | `INVALID_PARAMETER` |
-| resource 文件 | `INVALID_PARAMETER` |
-| `profiles/<name>.yaml` | `INVALID_PARAMETER` |
-| `main@night.yaml` 或 profile Night 文件 | `INVALID_PARAMETER` |
-| 文件名不是 `main.yaml` 的任意 YAML | `INVALID_PARAMETER` |
-| `main.yaml` 无法读取且不是不存在 | `GENERAL_ERROR` |
-| `main.yaml` YAML 语法错误 | `FORMAT_ERROR` |
-| `main.yaml` 缺少或包含无效 `$config` | `FORMAT_ERROR` |
-| 位置参数与 `--file` 同时提供 | `INVALID_PARAMETER` |
+| 省略 `-f` | `<cwd>/main.yaml` |
+| 目录 | `<directory>/main.yaml` |
+| `main.yaml` | default/main source |
+| 其他 Day `.yaml` | 该 profile source |
 
-错误信息包含被拒绝路径、失败原因和现代入口提示。旧入口提示统一指向 `main.yaml` 和 `wave dt init`。入口拒绝或 `main.yaml` 解析失败不创建或覆盖生成产物，已有输出文件保持字节不变。
+Profile 可位于任意目录名。加载器从 profile 所在目录向祖先查找最近的 `main.yaml`，再用既有 `$config.base` 身份和 profile schema 核验。找不到 base、base 身份不符、输入 Night overlay 或输入非 YAML 都明确失败。
+
+名为 `main.yaml` 且最终指向普通文件的 symlink 保持有效。resource、profile、输出和 base 的相对路径仍以用户传入的 symlink 所在位置为基准，不使用 realpath 改变基准。
+
+`new profile`、ids 和 migrate extensions 保持 base/workspace 级操作，只接受 main 或包含 main 的目录。目录本身名为 `main.yaml` 时拒绝，不能把它展开成嵌套入口。
+
+入口或源文档解析失败不创建或覆盖产物。错误提示统一指向 `main.yaml` 和 `wave token new`。
+
+### 创建输出与写入安全
+
+- `token new` 的 `--output` 是目标 workspace 目录，实际写入其中的 `main.yaml`。
+- `token new profile` 默认写 `<workspace>/profiles/<name>.yaml`；自定义输出文件的 stem 必须等于规范化 name。
+- Profile 名称冲突和目标存在分别检查；force 只在既有同名项与当前输出目标相同时允许替换，不能用自定义路径绕过同名冲突。
+- 输出到 base main 祖先目录树之外的 profile 不能直接仅凭 `$config.base` 消费；receipt 指导用户先将同名文件移到 base 所在目录或其子目录，再通过 `-f` 选择。
+- `token new night` 默认写 Day 旁的 `<stem>@night.yaml`。自定义 Night 位置不被默认 build 发现；receipt 指导迁回约定位置后运行 `token build -f <原 Day 源文档> --night`。
+- 新建 workspace/profile/Night 的既有目标默认拒绝，force 才覆盖；dry-run 零写入。目标为目录、symlink 或受保护 Day/base 文件时仍拒绝。
+- 普通 token build 的生成产物沿用既有覆盖行为。
 
 ### Doctor Scope
 
-- `wave doctor`、`wave doctor --json`、`wave doctor --status` 和 `wave doctor --verbose` 只运行通用工具链诊断，不要求当前目录存在 `main.yaml`。
-- `wave doctor --file <path>` 在通用诊断之外检查指定 workspace；文件必须符合 main-only 输入合同。
-- `wave doctor --contrast` 进入 design-token contrast 检查；没有 `--file` 时使用 `<cwd>/main.yaml`。
-- `wave dt doctor` 默认检查 `<cwd>/main.yaml`；`--file` 只能指定合法 `main.yaml`。
-- 普通 workspace 诊断（不含 `--contrast`）默认检查 main 与全部 named profiles 的结构、base 关联、覆写命中及身份健康；`--profile <name>` 只检查所选 profile 路径，其他 profile 的健康错误不污染该结果。
-- 严格 resource 检查仍限于 main（默认）或显式所选 profile 的合并声明，不因 workspace 健康扫描而扩为全部 profiles。
-- text、`--json`、`--status` 共用健康 findings 与退出状态；JSON 附带 `findings` 和 `identity`，status 保留精简状态并列出 findings。结构错误与身份冲突影响退出码；冗余覆写仅产生一个 `info` 汇总 `x/y`，不阻塞成功。冗余按 base 源 `$value` 深等值比较，引用字符串按原文比较，不先解析引用。
-- 任意显式 `--file` 都先执行入口校验，再选择 text、JSON、status 或 verbose renderer。`wave dt doctor --json` 在 cwd 缺少 `main.yaml` 时返回 `FILE_NOT_FOUND`，不会退化为通用工具链诊断。
+- `wave doctor` 及其 JSON/status/verbose 只运行通用工具链诊断，不要求 `main.yaml`，不接受 token 文件、contrast、profile 或 output 参数。
+- `wave token doctor` 负责 workspace、resource 和 identity，不隐含 WCAG。
+- 默认 main 输入检查 main 与既有发现规则下的 named profiles；显式 Day profile 文件只检查所选 profile。
+- 严格 resource 检查限于当前选中目标的合并声明，不因 workspace 扫描扩大。
+- `token doctor --output <dir>` 检查既有输出目录；缺失或非目录路径产生错误 finding 和非零退出。
+- text、JSON、status 共用健康 findings 与退出状态。JSON 附带 findings 和 identity；冗余覆盖仅产生 info，不阻塞成功。
+- `wave token wcag` 独立运行对比度检查；`--night` 只选择当前源文档的 Night 版本。
+- `motion doctor -f <dir>` 可附加 PNG 帧检查，不接受位置目录。
 
 ### Profile Model
 
@@ -174,31 +154,33 @@ named profile 和 Night overlay 只能通过 `--profile`、`--profiles all` 和 
 - 新 token 的 `$type` 必须在 profile 文件自身可判定：token 显式类型或 profile 内新建 group 的类型继承；不能只依赖 main group 的类型。一般合法 profile 不要求 base 全 token 已入账，但覆写目标必须已入账。
 - 合并发生在 YAML 文档层：取走文档身份/config/override，克隆 base、按 id 替换源值、嫁接新树，再进入既有 schema / `$extends` / reference / transformer / generator 链路。合成文档错误以 token path 定位，行号可指向合成内容；profile 格式错误出口为 `FORMAT_ERROR`，含 profile 来源路径。
 - 不支持删除 base token、改变已有 token 类型或扩展，也无旧 standalone profile 兼容层或迁移命令。`smoothShadow.target`、`platform.sketch.path`、`inheritColor.property.opacity` 等结构分歧需要新 base；rem 基准等可调值应在 base 下沉为 number token、扩展槽位引用它，再按 token id 覆写。
-- `wave dt build` 只构建 main；`--profile <name>` 构建一个 named profile；`--profiles all` 构建 main 与全部 named profiles。`--night` 再请求相应 `main@night.yaml` / `profiles/<name>@night.yaml`。
+- `wave token build -f <main或目录>` 只构建 main；`-f <Day profile.yaml>` 构建该 profile；`--profiles all` 构建 main 与既有发现规则下的全部 named profiles。`--night` 再请求当前 Day 源文档旁的 `<stem>@night.yaml`。
 - night 仍是路径式叶子覆写，只能覆盖合并后 day tree 已有的 `theme.color` / `theme.state`；不得声明根 `$id`，沿用 day 的 `themeId` / `baseId` 及字体基准。缺失或一般无效 overlay warning + skip；文档/ token 身份违规返回 `FORMAT_ERROR`，不是普通 skip。
-- `variants/`、`--variant` 和 `--variants` 不支持。
+- 旧 variant 模型、`--variant` 和 `--variants` 不支持；但 `variants/` 可以作为存放 Day profile 的普通目录名，通过 `-f` 显式选择。
 
-**`wave dt new-profile <name>`：**
+**`wave token new profile <name>`：**
 
-- 使用 main-only 入口（可传 `-f, --file`），先要求原始 base 文档和全部源 token 已入账；重复 token id 也拒绝，错误引导 `wave dt ids --write`。前提失败零写入。这是生成器的额外前提，不是所有 profile 的通用格式要求。
-- 名称按既有 profile 规则转小写、ASCII 空格转 `_`；非法名称、归一化冲突或已存在 profile 拒绝，不覆盖文件。
+- 使用 base main 或目录输入（`-f, --file`），先要求原始 base 文档和全部源 token 已入账；重复 token id 也拒绝，错误引导 `wave token ids --write`。前提失败零写入。这是生成器的额外前提，不是所有 profile 的通用格式要求。
+- 名称按既有 profile 规则转小写、ASCII 空格转 `_`；非法名称和归一化冲突拒绝。默认写入 `<workspace>/profiles/<name>.yaml`，`--output` 可改变位置，但文件 stem 必须等于规范化 name。
+- 名称冲突与目标存在分别检查；只有冲突项就是当前目标时，`--force` 才覆盖。`--dry-run` 输出完整计划且不创建目录或文件。
 - 生成新的规范文档 `$id`、`$config.base` 与全部 base token `$value` 的快照式 `$override`。保留源引用表达式，不物化值、不复制类型或扩展、不改 main。快照锁定所有源值；删掉某项冗余覆写后，该 token 才随 base 值演进。
+- 输出到 base 祖先目录树之外时，receipt 指导先将同名文件移到 base 所在目录或其子目录，再通过 `-f` 构建；`--profiles all` 不扫描任意外部位置。
 - receipt 给出生成文件、就地改值、删冗余覆写与单 profile 验证提示；doctor 对冗余项只作 `info` 汇总，不要求创建后立即删除。
 
 ### Resource Validation
 
-- `$config.resource` 可省略；自包含的 main 或只引用系列内部 token 的合并 profile 不需要外部 resource，仍从 main-only 入口构建。
+- `$config.resource` 可省略；自包含的 main 或只引用系列内部 token 的合并 profile 不需要外部 resource，仍从统一 Day source 输入构建。
 - build 会尝试收集已声明的外部依赖，但只以有效 token 图能否完整解析和生成作为 resource 相关成功条件。
 - 未被引用的缺失、损坏或重复 resource 声明不阻塞 build，也不产生 build warning。
 - 被引用的 namespace 必须唯一且可解析；缺失或重复导致歧义时，build 会报告引用所在的 token 路径并失败。
-- `wave dt doctor` 严格检查当前检查目标中的全部 resource 声明，包括未被 token 引用的声明。
+- `wave token doctor` 严格检查当前检查目标中的全部 resource 声明，包括未被 token 引用的声明。
 - 无 `main.yaml` 时返回 `FILE_NOT_FOUND`，不从 resource 生成 token。
 
 ### Public Theme Roots
 
 CSS 输出包含 `theme.color`、`theme.state`、`theme.shadow`、`theme.gradient`、`theme.border`、`theme.radius` 和 `theme.font`。
 
-`theme.dimension` 不是 public output root。迁移阶段 build 会警告一次，`wave dt doctor` 输出迁移建议。
+`theme.dimension` 不是 public output root。迁移阶段 build 会警告一次，`wave token doctor` 输出迁移建议。
 
 ### DTCG 标准类型合同
 
@@ -270,22 +252,20 @@ Sketch 平台输出 payload v2 资产清单（合同见「输出格式 → sketc
 
 ### show 命令
 
-- `wave show`：列出所有内置调色板（palettes）和尺寸系统（dimensions）
-- `wave show <category>`：列出指定类别（palette / dimension）
-- `wave show <category> <name>`：显示指定资源的详细内容
-- `wave show <name>`：跨类别查找（同名时需指定类别）
-  - `--format flat-json`（默认）：扁平化的 key-value 格式
-  - `--format json`：嵌套 JSON 格式
-  - `--format yaml`：原始 YAML 文件内容
+- `wave token show`：列出所有内置调色板和尺寸系统。
+- `wave token show <category>`：列出 `palette` 或 `dimension` 类别。
+- `wave token show <category> <name>`：显示指定资源。
+- `wave token show <name>`：跨类别查找，同名时需指定类别。
+- `--format flat-json`（默认）、`json`、`yaml` 分别输出扁平键值、嵌套 JSON 和原始 YAML。
 
-**dt build 命令参数选项：**
+**token build 参数：**
 
-- `--profile <name>`：构建一个 named profile
-- `--profiles <mode>`：构建 profile 集合；当前支持 `all`
-- `--night`：包含有效的 Night Mode overlay
-- `--platform <list>`：指定输出平台（逗号分隔）：`json`、`jsonc`、`css`、`sketch`、`md-yml`
-- `-o, --out <path>`：指定输出目录
-- `--output <dir>`：兼容旧参数，等价于 `--out`
+- `-f, --file <path>`：选择 main、目录或 Day profile。
+- `--profiles all`：构建 main 与既有发现规则下的全部 named profiles。
+- `--night`：包含当前 Day 源文档约定位置的有效 Night overlay。
+- `-o, --output <path>`：覆盖输出目录。
+
+平台由 `$config` 决定，不提供 CLI `--platform` 或单 profile `--profile`。
 
 ### toolchain 命令
 
@@ -320,7 +300,7 @@ Wave 不捆绑 `oxipng`、`pngquant`、`svgo`、`gifsicle`、`gifski`、`apngasm
 - `wave doctor --json`：输出 `ToolchainDoctorResult`
 - `wave doctor --status`：输出紧凑状态
 - `wave compress doctor`：检查压缩工具链；缺少工具为 error
-- `wave motion doctor [framesDir]`：检查动效工具链和可选帧目录；缺少工具为 warning，帧目录错误为 error
+- `wave motion doctor -f <framesDir>`：检查动效工具链和可选帧目录；缺少工具为 warning，帧目录错误为 error
 - 模块 doctor 支持 `--json`、`--status`、`--verbose`
 
 ---
@@ -379,9 +359,7 @@ theme:
       $value: "{leonardo.color.blue.600}"
 ```
 
-不传 CLI `--platform` 时，每个 `parameterGroup` 产生一个独立 build pass。group 字段覆盖 `$config.parameter` 的同名字段；仅传 `--out` 会覆盖每个 group pass 的输出目录，不改变 group 展开。
-
-传入 CLI `--platform` 时，每个选中的 default 或 named profile 只建立一个 pass。该 pass 使用 profile 的 base `$config.parameter`，并用 CLI platform 替换其 platform；不展开 `parameterGroup`，也不读取 group 专属的 `filterLayer`、`colorSpace` 或 `outputDir`。`--out` 仍可覆盖该 single pass 的 base output directory。
+每个 `parameterGroup` 产生一个独立 build pass。group 字段覆盖 `$config.parameter` 的同名字段；`--output` 会覆盖每个 group pass 的输出目录，不改变 group 展开。CLI 不提供 `--platform`，平台始终来自当前 profile 合并后的配置。
 
 输出平台在 formatter 执行和输出目录创建前统一 trim 并按首次出现顺序去重。未知 platform 使整个 build 失败，错误会列出受支持的 `json`、`jsonc`、`css`、`sketch`、`md-yml`；空 platform 列表同样失败，不会返回 `success: true` 且没有产物。校验失败时不会改写已有产物，也不会创建新产物。
 
@@ -398,21 +376,20 @@ theme:
 ### 命令形态
 
 ```bash
-wave compress [input]
-wave compress run [input]
+wave compress -f <input>
 wave compress doctor
 wave compress install
 ```
 
-`wave compress [input]` 是低记忆入口。CLI 会把它归一化为 `wave compress run [input]`，同时保留 `doctor` 和 `install` 作为真实子命令。
+`wave compress` 直接执行压缩，不经过 `run` 子命令或 argv 注入。
 
-### run 参数
+### 参数
 
-- `[input]`：文件或目录，默认 `.`
+- `-f, --file <path>`：文件或目录，默认 `.`
 - `--recursive`：递归扫描子目录
 - `--type <type>`：限制类型，支持 `png`、`jpg`、`svg`、`gif`，可重复
 - `-q, --quality <value>`：启用质量模式，取值 1-100
-- `-o, --out <path>`：指定输出目录
+- `-o, --output <path>`：指定输出目录
 - `--dry-run`：只预览，不写文件
 - `--yes`：跳过确认并写入预览结果
 - `--force`：允许覆盖已有输出文件；`--yes` 不隐含 `--force`
@@ -423,9 +400,9 @@ wave compress install
 
 - 目录输入默认只扫描当前一级文件。
 - 文件输入只处理该文件。
-- 不传 `--out` 时，目录输入输出到 `<input-dir>/wave-compress/`。
-- 不传 `--out` 时，文件输入输出到 `<file-parent>/wave-compress/`。
-- 显式 `--out` 按当前 cwd 解析相对路径。
+- 不传 `--output` 时，目录输入输出到 `<input-dir>/wave-compress/`。
+- 不传 `--output` 时，文件输入输出到 `<file-parent>/wave-compress/`。
+- 显式 `--output` 按当前 cwd 解析相对路径。
 - 输出保留输入相对路径结构。
 
 ### 预览与安全落盘
@@ -471,41 +448,28 @@ wave compress install
 
 ## Motion 行为
 
-`motion` 从 PNG 帧目录生成 GIF 或 APNG。`mg` 是 `motion` 的 alias。
+`motion` 从 PNG 帧目录生成 GIF 或 APNG，不提供 `mg` alias。
 
 ### 命令形态
 
 ```bash
-wave motion
-wave mg
-wave motion gif [framesDir]
-wave motion apng [framesDir]
-wave mg gif [framesDir]
-wave mg apng [framesDir]
-wave motion doctor [framesDir]
+wave motion -f <framesDir> --format gif
+wave motion -f <framesDir> --format apng
+wave motion doctor -f <framesDir>
 wave motion install
 ```
 
-`wave motion` 与 `wave mg` 空参数仅在 TTY 下进入交互。CLI 先检查当前目录是否是合法 PNG 帧目录；合法时用 `@clack/prompts` 选择格式，默认高亮 APNG。非 TTY 下空参数不进入交互、不默认生成，输出：
-
-```text
-Missing format in non-interactive mode. Use wave mg apng or wave mg gif.
-```
-
-`wave motion` 入口会使用对应命令名：
-
-```text
-Missing format in non-interactive mode. Use wave motion apng or wave motion gif.
-```
+TTY 下省略 `--format` 时，CLI 先检查帧目录，再使用 `@clack/prompts` 选择格式，默认高亮 APNG。非 TTY 下省略格式会失败，并提示使用 `wave motion --format apng` 或 `wave motion --format gif`。非法格式返回参数错误。
 
 ### 参数
 
-- `<framesDir>`：PNG 帧目录；省略时使用当前目录 `.`
+- `-f, --file <path>`：PNG 帧目录；省略时使用当前目录 `.`
+- `--format <format>`：`gif` 或 `apng`
 - `--fps <number>`：帧率，默认 `24`，必须大于 0
-- `--quality <number>`：编码质量，默认 `80`，取值 1-100
+- `-q, --quality <number>`：编码质量，默认 `80`，取值 1-100
 - `--loop <mode>`：循环模式，默认 `forever`，支持 `forever` / `once`
-- `-o, --out <path>`：输出文件路径
-- `--overwrite`：允许覆盖已有输出
+- `-o, --output <path>`：输出文件路径
+- `--force`：允许覆盖已有输出
 - `--dry-run`：展示计划，不执行编码
 
 ### 帧目录规则
@@ -521,8 +485,8 @@ Missing format in non-interactive mode. Use wave motion apng or wave motion gif.
 
 - GIF 默认输出到帧目录内的 `wave-mg/<frames-dir-name>@<fps>fps.gif`。
 - APNG 默认输出到帧目录内的 `wave-mg/<frames-dir-name>@<fps>fps.png`。
-- 指定 `--out` 时按当前 cwd 解析相对路径。
-- 输出已存在且未传 `--overwrite` 时返回 `WMG_OUTPUT_EXISTS`。
+- 指定 `--output` 时按当前 cwd 解析相对路径。
+- 输出已存在且未传 `--force` 时返回 `WMG_OUTPUT_EXISTS`。
 
 ### 后端工具
 
@@ -533,7 +497,7 @@ Missing format in non-interactive mode. Use wave motion apng or wave motion gif.
 
 ### 诊断
 
-`wave motion doctor` 检查 `gifski` 和 `apngasm`。缺少工具为 warning；带 `framesDir` 时还会检查帧目录。帧数量不足、尺寸不一致、PNG 无效等为 blocking error。
+`wave motion doctor` 检查 `gifski` 和 `apngasm`。缺少工具为 warning；通过 `-f` 提供帧目录时还会检查帧输入。帧数量不足、尺寸不一致、PNG 无效等为 blocking error。
 
 ---
 
@@ -545,10 +509,11 @@ Missing format in non-interactive mode. Use wave motion apng or wave motion gif.
 
 ```bash
 wave workspace
-wave workspace create
 ```
 
-`wave workspace` 是低记忆入口。CLI 会把它归一化为 `wave workspace create`。
+`workspace` 直接执行创建流程。`-o, --output <path>` 直接指定最终 targetDir，而非父目录；逻辑 workspaceName 仍来自交互答案。支持 `--dry-run`、`--yes` 和 `--force`。
+
+目标已存在时默认拒绝。force 下既有目标必须是目录，只覆盖本次计划生成的 README 和占位文件，保留其他文件且不递归删除；目标为普通文件或 symlink 时仍拒绝。`--yes` 只跳过确认，不隐含 force。
 
 ### 配置
 
@@ -641,12 +606,12 @@ wave workspace create
 `build/show` 不会主动解析 latest，也不隐式刷新资源版本。资源更新只发生在显式命令：
 
 ```bash
-wave dt update
-wave dt update tailwindcss
-wave dt update tailwindcss --version 3
-wave dt update tailwindcss --version 4
-wave dt update leonardo
-wave dt status
+wave token update
+wave token update tailwindcss
+wave token update tailwindcss --version 3
+wave token update tailwindcss --version 4
+wave token update leonardo
+wave token status
 ```
 
 **本地路径：**
@@ -658,14 +623,14 @@ wave dt status
 
 **Tailwind CSS：**
 
-- `wave dt update tailwindcss` 默认请求 `tailwindcss@latest`，解析为精确版本后写入 state。
+- `wave token update tailwindcss` 默认请求 `tailwindcss@latest`，解析为精确版本后写入 state。
 - `--version 3` 读取 Tailwind v3 colors source，输出 hex DTCG token。
 - `--version 4` 读取 Tailwind v4 `theme.css`，输出 OKLCH DTCG object；black/white 等非 OKLCH 值按源保留。
 - 当前用户资源名统一写入 cache 文件 `tailwindcss.yaml`，namespace 为 `tailwindcss`。
 
 **Leonardo：**
 
-- `wave dt update leonardo` 优先读取用户 recipe；不存在则使用 builtin recipe。
+- `wave token update leonardo` 优先读取用户 recipe；不存在则使用 builtin recipe。
 - cache 输出拆成 `leonardo-light.yaml` 与 `leonardo-dark.yaml`。
 - namespace 分别为 `leonardo-light` 与 `leonardo-dark`，引用形如 `{leonardo-light.color.red.600}`。
 
@@ -885,17 +850,17 @@ Wave 为 theme 引入两层稳定身份。`$` 属性命名空间被 DTCG 预留�
 - 入账范围是全部 theme token；group 不持有身份；resource 与外部 namespace 不参与入账。
 - `$id` 只存在于文档根与 token 节点两级，group 声明 `$id` 报错。
 - `$id` 写在 `$description` 与 `$value` 之间仅为文档示例惯例，规范展示位置不进协议。
-- build 保持只读：token 身份生成与写回由显式 `wave dt ids` 执行；`wave dt new-profile` 只为新 profile 铸造文档身份，不替 base token 补 id。
+- build 保持只读：token 身份生成与写回由显式 `wave token ids` 执行；`wave token new profile` 只为新 profile 铸造文档身份，不替 base token 补 id。
 
 ### 校验阶梯
 
 - build 报错：token/group 混合体（DTCG §6.1 MUST）；组级 `$id`；night override 携带与 base 不同的非空 `$id`（身份永不静默重分配）；引用悬空/循环。
 - build 降级：单 pass 内重复 uuid 时按文档序首个保留，其余本 pass 无 id 并告警；未入账 token 的 payload 记录省略 `uuid`。
 - doctor（严格健康项）：跨文件身份冲突为 error，影响退出码；「类型不可判定」（DTCG §5.2.2）落位为 doctor error，build 保持宽容——判定通道为 `$type`、组继承、reference 解析类型、`color` 根名通道、`$extends` 延迟，五路皆无且值非引用非 null 才报；另报未入账清单、空 `$id` 槽位、非生成形态提示，以及疑似笔误的空节点（无 `$value` 且无子节点，DTCG §6.5 SHOULD 的落实）。
-- 单 pass 构建只校验本 pass 可见范围；跨文件一致性归 `wave dt ids` 与 doctor。
+- 单 pass 构建只校验本 pass 可见范围；跨文件一致性归 `wave token ids` 与 doctor。
 - night overlay：override 的 `$id` 与 base 相同或缺省时继承 base 身份；同路径同 id（跨文件）= 一致，是 ids 同步后的健康终态，不是冲突。
 
-### `wave dt ids` 命令合同
+### `wave token ids` 命令合同
 
 - 职责：填充空 `$id` 槽位、为新增 token 生成身份、维护 token 路径权威、报告跨文件身份冲突及修复单文件重复 token id。main 与 day profile 根部均作为独立文档槽位：缺省/null/空白可铸造或填充，计入 `added`；已入账字符串（含 YAML 字符串 alias）保持原值，永不重铸。根值为 map/sequence/boolean/number 等非法形态阻塞整个 workspace 写入。文档身份不参加 token 同步或冲突图；night 不维护文档槽位。节点式身份下无「悬空」状态或清理职责。
 - base 关联在任何写入前核对：profile `$config.base` 缺失、main 原始根身份不可用或关联不符均使全 workspace 零写入；不能以本次拟生成的 main 身份让坏关联变合法。`$override` 不是 token 定义，不生成或同步其 id。
@@ -958,11 +923,11 @@ Sketch 平台字段与 typography 配置使用以下挂载点：
 
 - 位置语义沿用：`path` 与 `skip` 可写在 group 或 token 上（`skip` 按最近声明继承，token 显式 boolean 覆盖祖先；`path` 解析优先级为 token 自身 > 最近父级 group > 更上层祖先 group）；`property` 只能在 token 上；`outline` 只在 token 上生效，group 级静默忽略（与 legacy 行为对齐）。
 - 未知 `platform.<key>`（如 `figma`）产生 warning，不报错——这是为未来平台预留的前瞻兼容姿态；`platform.sketch` 下未知字段、未知 property 与非法值仍然报错。
-- legacy 形态（`$extensions.sketch.*`、`$extensions.outline`）在 schema 层直接拒绝，无兼容层；错误信息带 `wave dt migrate-extensions` 指引。legacy `$extensions.sketchMap` 同样不再作为 Sketch property 映射来源。
+- legacy 形态（`$extensions.sketch.*`、`$extensions.outline`）在 schema 层直接拒绝，无兼容层；错误信息带 `wave token migrate extensions` 指引。legacy `$extensions.sketchMap` 同样不再作为 Sketch property 映射来源。
 - `$extends` 继承时 `$extensions` 按顶层浅合并：子 group 的 `platform` 键整体覆盖父 group 的 `platform`，不做 `platform.sketch` 子键级深度合并。
 - 输出后 `$extensions` 被消费，不泄漏到 json / jsonc / css / sketch / md-yml。
 
-**`wave dt migrate-extensions` 命令合同：**
+**`wave token migrate extensions` 命令合同：**
 
 - 一次性机械改名：`$extensions.sketch.*` → `$extensions.platform.sketch.*`；`$extensions.outline` → `$extensions.platform.sketch.outline`。`typography` 保持顶层，不参与迁移。
 - 默认 dry-run 仅输出报告；显式 `--write` 才写回。
@@ -1242,30 +1207,20 @@ doctor:
 
 **Profile 支持：**
 
-- 默认检查 `main.yaml`
-- `--profile <name>` 检查 `profiles/<name>.yaml`
-- `--night` 检查有效的 `main@night.yaml` 或 `profiles/<name>@night.yaml` overlay
-- 无显式 scope + 交互 TTY + 单主题：自动检查
-- 无显式 scope + 交互 TTY + 多主题：TUI 选择器
-- 无显式 scope + 非 TTY：默认 main
+- 默认检查 `<cwd>/main.yaml`。
+- `-f <main或目录>` 检查 main。
+- `-f <Day profile.yaml>` 检查该 profile，profile 可位于任意目录名。
+- `--night` 检查当前 Day 源文档旁的约定 Night overlay。
+- 不提供 `[scope]` 或 `--profile`。
 
 **使用方式：**
 
 ```bash
-# 默认读取当前目录 main.yaml，检查 default profile
-wave dt wcag
-
-# 显式指定 main.yaml 路径
-wave dt wcag --file ./my-theme/main.yaml
-
-# 检查 night profile
-wave dt wcag --night
-
-# 检查指定 profile
-wave dt wcag --profile mobile
-
-# 检查 profile 的 night overlay
-wave dt wcag --profile mobile --night
+wave token wcag
+wave token wcag --file ./my-theme/main.yaml
+wave token wcag --file ./my-theme/themes/mobile.yaml
+wave token wcag --file ./my-theme/main.yaml --night
+wave token wcag --file ./my-theme/themes/mobile.yaml --night
 ```
 
 ---
@@ -1323,11 +1278,12 @@ CSS 与 Sketch 的颜色引用彼此独立：CSS 保持既有颜色引用行为�
 
 **Profile 与 Night Mode：**
 
-- 默认只构建 `{themeDir}/main.yaml`
-- `--profile <name>` 构建 `{themeDir}/profiles/<name>.yaml`
-- `--profiles all` 构建 `main.yaml` 和所有 `profiles/*.yaml`
-- `--night` 包含有效的 `main@night.yaml` 或 `profiles/<name>@night.yaml`
-- 缺失或一般无效的 Night Mode 输出 `Night Mode unavailable/invalid and skipped`，并跳过 night 输出；night 文档或 token 身份违规仍为 `FORMAT_ERROR`
+- 默认只构建 `<cwd>/main.yaml`。
+- `-f <目录或main.yaml>` 构建 main。
+- `-f <Day profile.yaml>` 构建该 profile；目录名不限于 `profiles`。
+- `--profiles all` 从 main/目录构建 main 和既有发现规则下的所有 named profiles。
+- `--night` 包含当前 Day 源文档旁的有效 `<stem>@night.yaml`。
+- 缺失或一般无效的 Night Mode 输出 `Night Mode unavailable/invalid and skipped`，并跳过 night 输出；night 文档或 token 身份违规仍为 `FORMAT_ERROR`。
 
 ---
 
@@ -1418,7 +1374,7 @@ test("应处理 xxx", async () => {
 
 ## 范围边界（明确不做）
 
-- 内置主题：已移除，`wave dt build` 不接受内置主题名作为 workspace 输入
+- 内置主题：已移除，`wave token build` 不接受内置主题名作为 workspace 输入
 - Windows/Linux 平台：未测试
 - 嵌套引用条件判断：`{theme.x ? a : b}` 格式不支持
 - 跨 profile 引用：Profile A 不能引用 Profile B 的 token

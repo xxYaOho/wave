@@ -3,7 +3,7 @@ title: main.yaml 写法
 description: main.yaml 的 $config、parameterGroup、token 结构与 theme 顶级 key 写法参考。
 category: Design Token
 commands:
-  - wave dt build
+  - wave token build
 appliesTo:
   - 本地 CLI
 ---
@@ -73,7 +73,7 @@ theme:
 
 `$config` 是闭合结构。未知字段、错误类型、空字符串或无效枚举值会导致 build 失败，并在错误中显示字段路径。
 
-build 只要求 token 图中的全部引用能够唯一解析。未被引用的缺失、损坏或重复 resource 声明不会阻塞 build；`wave dt doctor` 会严格检查当前目标中的全部声明。
+build 只要求 token 图中的全部引用能够唯一解析。未被引用的缺失、损坏或重复 resource 声明不会阻塞 build；`wave token doctor` 会严格检查当前目标中的全部声明。
 
 ## parameterGroup
 
@@ -102,13 +102,7 @@ theme:
       $value: "{tailwindcss.color.indigo.600}"
 ```
 
-不传 `--platform` 时，Wave 会展开 `parameterGroup`，每个 group 生成一个 pass。仅传 `--out` 会把这些 pass 的产物写到指定目录，不改变 group 的 platform、`filterLayer` 或 `colorSpace`。
-
-传入 `--platform` 时，Wave 为每个选中的 profile 只建立一个 pass。该 pass 使用 profile 的 base `parameter`，并忽略 `parameterGroup` 中专属的 `filterLayer`、`colorSpace` 和 `outputDir`；`--out` 仍可以覆盖 single pass 的输出目录。例如，下列命令不会分别执行 `css` 和 `sketch` group，而是使用 base `filterLayer: 1` 只输出 `example2md.yml`：
-
-```bash
-wave dt build -f ./main.yaml --platform md-yml --out ./build/md
-```
+Wave 会展开 `parameterGroup`，每个 group 生成一个 pass。`--output` 只覆盖这些 pass 的输出目录，不改变 group 的 platform、`filterLayer` 或 `colorSpace`。平台列表不再通过 CLI 覆盖；需要调整时修改 `parameter` 或相应的 parameter group。
 
 Wave 会在写入前统一检查本次 build 的全部输出路径，包括 default、named profile、有效 night 和各个 parameter group。若两个 pass 最终写向同一文件，build 会直接失败，并保持已有文件不变；例如一个 group 输出 `[json, css]`、另一个 group 在相同目录输出 `[json]`，两者会因 JSON 路径重叠而失败。无效 night 仍会提示并跳过，不参与路径检查。
 
@@ -146,15 +140,15 @@ theme:
 - 文档级：main 和每个 day profile 都可以在根部声明自己的 `$id`，随 Sketch 输出的 `meta.themeId` 交付。字段可省略；声明时必须是非空字符串。Night 文件禁止声明根 `$id`，沿用 day 文档身份。
 - token 级：写在 token 上。三种状态：不写表示未登记；写成空值（`null` 或空白字符串）表示预留槽位；写成非空字符串即登记身份。token 身份在同一主题内必须唯一；group 不能声明 `$id`。
 
-推荐用 `wave dt ids` 维护两级身份：默认只输出 dry-run 报告，加 `--write` 才写回 main 和 day profile 的文档根身份及新 token 身份。缺少或为空的身份槽位会被补齐，已有文档根 ID 不会重发；`$override` 和 night 文件不参与写入。写入默认要求 Git 工作区干净；确认要保留当前未提交修改时，可显式加 `--allow-dirty`。
+推荐用 `wave token ids` 维护两级身份：默认只输出 dry-run 报告，加 `--write` 才写回 main 和 day profile 的文档根身份及新 token 身份。缺少或为空的身份槽位会被补齐，已有文档根 ID 不会重发；`$override` 和 night 文件不参与写入。写入默认要求 Git 工作区干净；确认要保留当前未提交修改时，可显式加 `--allow-dirty`。
 
 Profile 的 `$config.base` 必须等于执行前 main 已登记的根 `$id`。只要存在 profile，而 main 尚未登记，或任一 profile 的 base 缺失、不匹配，ids 就拒绝写入任何文件。应先在尚无 profile 的基础目录登记 main，再创建 profile。详情见 [WCAG 与主题模式](/design-token/quality-theming)。
 
 `$id` 不影响 json、jsonc、css 和 md-yml 的 token 值；Sketch 只用它做资产关联，不改变 key。
 
 ```bash
-wave dt ids -f ./main.yaml
-wave dt ids --write -f ./main.yaml
+wave token ids -f ./main.yaml
+wave token ids --write -f ./main.yaml
 ```
 
 ```yaml

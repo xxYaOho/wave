@@ -2,7 +2,7 @@
 
 ## 项目描述
 
-Wave 是面向 UI/UX 设计师的本地设计交付 CLI。当前能力包含 design token 生成、本地素材压缩、PNG 帧动效生成和工具链诊断/安装。Design token 主链路只接受带有效 `$config` 的 `main.yaml` 作为 workspace 入口，解析内置或自定义资源，完成引用解析、颜色转换、扩展 token 转换，并输出 `json`、`jsonc`、`css`、`sketch` 等格式。
+Wave 是面向 UI/UX 设计师的本地设计交付 CLI。当前能力包含 design token 生成、本地素材压缩、PNG 帧动效生成和工具链诊断/安装。Design token 使用 `wave token` 模块，`-f` 可选择带有效 `$config` 的 `main.yaml`、包含它的目录或任意目录中的 Day profile。解析内置或自定义资源，完成引用解析、颜色转换、扩展 token 转换，并输出 `json`、`jsonc`、`css`、`sketch` 等格式。
 
 ## 愿景
 
@@ -26,11 +26,11 @@ Wave 是面向 UI/UX 设计师的本地设计交付 CLI。当前能力包含 des
 
 ## 核心模型
 
-- `main.yaml` 同时承载 `$config` 和 default profile token，是唯一 design-token workspace 入口。
-- `profiles/<name>.yaml` 是 named profile；只能通过 `--profile` 或 `--profiles all` 选择，不能作为 workspace 入口。
+- `main.yaml` 同时承载 `$config` 和 default profile token，是 base workspace 入口。
+- Day profile 可位于 `profiles`、`themes`、`variants` 或其他目录；通过 `-f <profile.yaml>` 选择单文档，并从最近祖先目录定位 base main。批量 `--profiles all` 仍使用既有 workspace 发现规则。
 - `$config.resource` 可选，只提供引用解析数据，不直接驱动输出。build 判断有效 token 图能否解析；Doctor 严格检查声明健康。
 - `colorSpace` 在输出阶段介入，不改变引用解析过程。
-- `wave dt build` 的主链路是 `src/cli/commands/build.ts` -> `src/core/pipeline/theme-service.ts` -> `src/core/pipeline/theme-pipeline.ts` -> transformer -> generator。
+- `wave token build` 的主链路是 `src/cli/commands/build.ts` -> `src/core/pipeline/theme-service.ts` -> `src/core/pipeline/theme-pipeline.ts` -> transformer -> generator。
 
 ## 核心路径
 
@@ -53,15 +53,15 @@ Wave 是面向 UI/UX 设计师的本地设计交付 CLI。当前能力包含 des
 - Wave dimension 简写和 typography extensions 是显式方言，不代表 DTCG 标准输入。`opacity` 只存在于 `inheritColor` 或 Sketch property 等 extension，不是标准 token `$type`。
 - 未知自定义 scalar 可按平台合同兼容；未知 object/array 必须由专用 formatter 消费或明确失败，禁止生成 `[object Object]`。
 - 修改 type/reference/formatter 合同时，在 schema/reference 里程碑后尽早运行真实 Orca canary，不要等到最终 smoke 才发现 consumer 类型债务。
-- Orca 全 profile canary 使用 `--profiles all --out <guarded-temp-dir>`，保留配置中的互斥 parameter groups；不要添加全局 `--platform` 覆盖。断言 Sketch payload 前先检查 `sketch.skip`，被跳过的 token 应做负向断言。
+- Orca 全 profile canary 使用 `--profiles all --output <guarded-temp-dir>`，保留配置中的互斥 parameter groups；不要添加全局 `--platform` 覆盖。断言 Sketch payload 前先检查 `sketch.skip`，被跳过的 token 应做负向断言。
 - 真实 consumer 暴露的缺口要提炼成 hermetic fixture 和 Quality Harness case；真实仓库 smoke 不能替代仓库内回归，仓库内回归也不能替代真实 smoke。
 
 ## 必要命令
 
 ```bash
 pnpm dev -- --help
-pnpm dev -- dt build -f tests/fixtures/themes/standard/main.yaml
-pnpm dev -- dt doctor --contrast -f tests/fixtures/themes/doctor-contrast-pass/main.yaml
+pnpm dev -- token build -f tests/fixtures/themes/standard/main.yaml
+pnpm dev -- token wcag -f tests/fixtures/themes/doctor-contrast-pass/main.yaml
 pnpm typecheck
 bun test
 ```
@@ -70,7 +70,7 @@ bun test
 
 - 避免把输出逻辑塞进 resource/parser；先确认它属于 pipeline、transformer 还是 generator。
 - 不要绕过 `main.yaml` 直接从资源生成 token，除非任务明确是在修改兼容逻辑。
-- 不要恢复 `themefile`、resource、profile 或 night overlay 作为 workspace 入口。
+- 不要恢复 `themefile`、resource 或 Night overlay 作为 Day source；Day profile 则通过统一 `-f` 合同显式选择。
 
 ## Simple Wiki
 

@@ -1,102 +1,73 @@
 ---
 title: 命令索引
-description: Wave 常用命令和能力入口索引。
+description: 按任务查找 Wave 命令，并获取对应层级的 Markdown 手册。
 category: 参考
 commands:
-  - wave --help
-  - wave dt --help
-  - wave compress --help
-  - wave motion --help
-  - wave workspace --help
+  - wave
 appliesTo:
   - 本地 CLI
 ---
 
-## 顶层命令
+## 常用命令
 
 ```bash
-wave --help
-wave --version
-wave doctor
-wave install --check
-wave show
+wave token
+wave compress -f ./assets --dry-run
+wave motion -f ./frames --format gif --dry-run
+wave workspace --dry-run
 ```
+
+`wave token` 默认构建当前目录的 `main.yaml`。压缩、动效和工作区命令也直接执行各自任务，不需要额外的 `run`、`gif` 或 `create` 子命令。
 
 ## Design Token
 
-全局检查和查看：
+| 命令 | 用途 |
+| --- | --- |
+| `wave token build` | 生成 token 产物 |
+| `wave token new` | 创建 token workspace |
+| `wave token new profile <name>` | 从已登记的 base 创建 profile |
+| `wave token new night` | 从 Day main 或 profile 创建 Night overlay |
+| `wave token doctor` | 检查 workspace、resource 和身份 |
+| `wave token wcag` | 检查颜色对比度 |
+| `wave token ids` | 报告或写回文档与 token 身份 |
+| `wave token migrate extensions` | 迁移旧 `$extensions` 写法 |
+| `wave token show` | 浏览内置资源 |
+| `wave token update [name]` | 更新资源缓存 |
+| `wave token status` | 查看资源缓存状态 |
+
+裸命令 `wave token` 等价于 `wave token build`。`migrate` 没有默认迁移对象，必须写明 `extensions`。
+
+## 素材工具链
 
 ```bash
-wave dt show
-wave dt status
-wave dt doctor
-```
-
-新建 token 项目时运行：
-
-```bash
-wave dt init
-```
-
-进入已有 token 项目目录后运行：
-
-```bash
-wave dt build
-wave dt wcag
-```
-
-维护 token 身份和旧写法迁移时运行（两者默认只输出报告，加 `--write` 才写回文件）：
-
-```bash
-wave dt ids
-wave dt migrate-extensions
-```
-
-需要创建 named profile 时，先登记基础身份，再生成完整源值快照：
-
-```bash
-wave dt ids -f ./main.yaml
-wave dt ids --write -f ./main.yaml
-wave dt new-profile mobile -f ./main.yaml
-wave dt build --profile mobile -f ./main.yaml
-```
-
-`new-profile` 会写入新文件；完整前提、差量规则与名称限制见 [WCAG 与主题模式](/design-token/quality-theming)。`migrate-extensions` 只迁移旧扩展字段名，不迁移旧独立 profile。
-
-`wave dt doctor` 默认检查 main 与全部 profile 的结构和身份健康；`--profile` 只检查选中项，`--json` 和 `--status` 保留相同诊断与错误退出状态。
-
-需要刷新本地 resource cache 时运行 `wave dt update`。
-
-`wave design-token` 与 `wave dt` 等价。
-
-## 素材压缩
-
-把 `./assets` 换成你的素材目录：
-
-```bash
-wave compress ./assets --dry-run
 wave compress doctor
 wave compress install --check
-```
-
-## 动效生成
-
-把 `./frames` 换成至少包含 2 张 PNG 帧的目录：
-
-```bash
-wave motion gif ./frames --fps 24 --out loading.gif
-wave motion apng ./frames --fps 24 --out loading.png
-wave motion doctor
+wave motion doctor -f ./frames
 wave motion install --check
 ```
 
-`wave mg` 与 `wave motion` 等价。
+`--check` 只查看安装计划。确认后才使用 `--yes` 执行安装。
 
-## 工作区
+## 全局命令
 
-把 `/path/to/workspace.yaml` 换成真实配置路径。`wave workspace` 会进入交互流程。
+| 命令 | 用途 |
+| --- | --- |
+| `wave doctor` | 检查本地运行环境和工具链 |
+| `wave install` | 查看或执行推荐工具安装 |
+| `wave workspace` | 创建设计项目工作区 |
+| `wave manual` | 启动可视化网页手册 |
+| `wave version` | 显示版本号 |
+
+## 获取手册
+
+`--help` 提供简洁帮助。`-m, --manual` 输出当前命令范围的结构化 Markdown，适合 Agent 阅读：
 
 ```bash
-wave workspace --help
-WAVE_WORKSPACE_CONFIG=/path/to/workspace.yaml wave workspace
+wave -m
+wave token -m
+wave token new -m
+wave token new night -m
+wave token migrate extensions -m
 ```
+
+文档模式不执行构建、创建、压缩或编码，也不启动网页服务。

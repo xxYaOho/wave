@@ -73,15 +73,21 @@ appliesTo:
 
 ## Design Token 文档
 
-design-token 用户参考拆分为五个文件，共同构成唯一真源：
+design-token 用户参考按任务拆分：
 
-- `pages/design-token.md`：概览，覆盖用途、main-only 入口和文件职责。
-- `pages/design-token-main-yaml.md`：`main.yaml` 的 `$config`、`parameterGroup`、token 结构、theme 顶级 key、兼容字段。
-- `pages/design-token-color-typography.md`：颜色和 alpha、Typography、虚线 border。
-- `pages/design-token-extensions-output.md`：输出格式、`$extensions` 全部扩展字段。
-- `pages/design-token-quality-theming.md`：`doctor.wcagPairs`、Profile 和 Night Mode、常见错误。
+- `pages/design-token.md`：模块概览、默认 build、源文档输入和构建范围。
+- `pages/design-token-create.md`：workspace 与 profile 创建、输出和写入安全。
+- `pages/design-token-night.md`：Night 创建、profile 输入、自定义输出和消费。
+- `pages/design-token-migrate.md`：migrate 命令组与 extensions 写回。
+- `pages/design-token-doctor.md`：workspace、resource、身份和输出目录检查。
+- `pages/design-token-wcag.md`：WCAG pair、main/profile/Night 选择和评分。
+- `pages/design-token-ids.md`：身份报告、写回和 Git 安全边界。
+- `pages/design-token-main-yaml.md`：`$config`、parameterGroup、token 结构和身份字段。
+- `pages/design-token-color-typography.md`：颜色、alpha、Typography 和虚线 border。
+- `pages/design-token-extensions-output.md`：输出格式与 `$extensions` 字段。
+- `pages/design-token-quality-theming.md`：Profile、Night、base 身份和目录关系。
 
-新增或修改 design-token 行为时，必须在同一变更中更新对应子页，不要新建第六个 design-token 文件。
+新增命令时同步更新对应任务页和命令索引。只有出现新的独立用户任务时才新增页面；不要按内部模块或代码文件拆文档。
 
 `$extensions` 只记录 `src/core/schema/theme.ts` 和 transformer 测试支持的字段。`currentColor`、`sketchMap` 这类兼容字段只能标为 legacy 或 deprecated，不能作为新写法推广。
 
@@ -92,9 +98,9 @@ design-token 用户参考拆分为五个文件，共同构成唯一真源：
 推荐：
 
 ```bash
-wave dt build -f ./main.yaml --platform json,css
-wave compress ./assets --dry-run
-wave motion gif ./frames --fps 24 --out loading.gif
+wave token build -f ./main.yaml
+wave compress -f ./assets --dry-run
+wave motion -f ./frames --format gif --fps 24 --output loading.gif
 ```
 
 避免：

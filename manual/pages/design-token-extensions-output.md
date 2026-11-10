@@ -3,8 +3,8 @@ title: 扩展与输出
 description: $extensions 扩展字段与 json、jsonc、css、sketch、md-yml 输出格式参考。
 category: Design Token
 commands:
-  - wave dt doctor
-  - wave dt migrate-extensions
+  - wave token doctor
+  - wave token migrate extensions
 appliesTo:
   - 本地 CLI
 ---
@@ -19,7 +19,7 @@ appliesTo:
 | `sketch` | `{theme}2sketch.json` | Sketch 资产清单（payload v2） |
 | `md-yml` | `{theme}2md.yml` | Markdown frontmatter 用 YAML token fragment |
 
-CSS 输出包含 `color`、`state`、`shadow`、`gradient`、`border`、`radius` 和 `font` roots。`theme.dimension` 不再作为 public output root；构建时会提示迁移，完整建议由 `wave dt doctor` 输出。
+CSS 输出包含 `color`、`state`、`shadow`、`gradient`、`border`、`radius` 和 `font` roots。`theme.dimension` 不再作为 public output root；构建时会提示迁移，完整建议由 `wave token doctor` 输出。
 
 Typography token 在 CSS 中输出字段变量（`-family`、`-size`、`-weight`、`-line-height`、`-letter-spacing`、可选 `-color`），不输出聚合 shorthand 变量；在 Sketch 中输出 text 资产记录。带 `$extensions.platform.sketch.outline` 的 border token 会在 CSS 中输出 outline value 和 offset companion，在 Sketch 中生成双层 shadow 模拟 outline。
 
@@ -45,12 +45,16 @@ JSON 和 JSONC 输出扁平 key/value；dimension 和 composite 内的 dimension
 
 平台不能表达输入时，Wave 会停止构建，并报告 token path、type 和失败原因。典型失败包括：CSS 或 Sketch 无法转换且没有 `hex` fallback 的 color、CSS 的空 font family 和负或全零 dash pattern，以及 Sketch 原生数值属性无法表示的相对单位。CSS 对未知自定义 `$type` 只接受 scalar；object 或 array 会明确失败，禁止输出 `[object Object]`。
 
-当前目录存在 `main.yaml` 时，`wave dt doctor` 会默认检查它；也可以用 `wave dt doctor -f ./main.yaml` 显式指定。
+当前目录存在 `main.yaml` 时，`wave token doctor` 会默认检查它；也可以用 `wave token doctor -f ./main.yaml` 显式指定。
 
-多平台用逗号分隔：
+多平台在 `$config` 中声明：
 
-```bash
-wave dt build -f ./main.yaml --platform json,jsonc,css,sketch,md-yml
+```yaml
+$config:
+  theme: example
+  parameter:
+    outputDir: ./dist
+    platform: [json, jsonc, css, sketch, md-yml]
 ```
 
 ## md-yml
@@ -114,7 +118,7 @@ Profile 继承基础 token 和已有 group 的扩展，不允许重声明或覆�
 旧写法 `$extensions.sketch.*` 和 `$extensions.outline` 会被构建直接拒绝，并提示迁移命令。在项目目录运行一次即可完成改名（默认只预览，加 `--write` 写回）：
 
 ```bash
-wave dt migrate-extensions --write
+wave token migrate extensions --write
 ```
 
 ## smoothShadow
@@ -311,7 +315,7 @@ theme:
 }
 ```
 
-- `meta.themeId` 来自当前 day 文档的根 `$id`：main 输出用 main 的身份，named profile 输出用该 profile 自己的身份；缺失时为 `null`。使用 `wave dt ids --write` 可补齐文档身份。Night 沿用对应 day 的身份。
+- `meta.themeId` 来自当前 day 文档的根 `$id`：main 输出用 main 的身份，named profile 输出用该 profile 自己的身份；缺失时为 `null`。使用 `wave token ids --write` 可补齐文档身份。Night 沿用对应 day 的身份。
 - `meta.baseId` 在 named profile（含其 night）输出中是 main 的根 `$id`，在 main（含其 night）输出中为 `null`。它是 payload v2 新增字段，`version` 仍固定为 `2`；若 Sketch 插件严格校验旧版 `meta` 字段集合，需要先确认插件接受 `baseId`，不能仅凭版本号判断兼容。
 - 每条记录携带 `name` 与 `kind`；token 已登记 token 级 `$id` 时还会携带 `uuid`，未登记则省略该字段。
 - `kind` 只有三种：`color`（颜色 token，对应 Swatch）、`text`（typography token，对应共享文字样式）、`layer`（阴影、渐变、outline border、圆角维度等，对应共享图层样式）。

@@ -87,6 +87,41 @@ describe('wave manual', () => {
 		}
 	});
 
+	test('leaf manuals use their dedicated layered content', async () => {
+		const cases = [
+			{
+				path: ['token', 'new', 'profile'],
+				text: '输出文件的 stem 必须等于规范化后的 profile 名称',
+			},
+			{
+				path: ['token', 'new', 'night'],
+				text: '自定义位置不会被默认 build 自动发现',
+			},
+			{
+				path: ['token', 'doctor'],
+				text: '## 输出目录检查',
+			},
+			{
+				path: ['token', 'wcag'],
+				text: '## 声明检查项',
+			},
+			{
+				path: ['token', 'ids'],
+				text: '## 默认只报告',
+			},
+			{
+				path: ['token', 'migrate', 'extensions'],
+				text: '## 报告与写回',
+			},
+		];
+
+		for (const entry of cases) {
+			const { exitCode, stdout } = await runWave([...entry.path, '-m']);
+			expect(exitCode).toBe(0);
+			expect(stdout).toContain(entry.text);
+		}
+	});
+
 	test('manual mode short-circuits business options and does not write', async () => {
 		const tempDir = await fs.mkdtemp(
 			path.join(os.tmpdir(), 'wave-manual-cli-'),

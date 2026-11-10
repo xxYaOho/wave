@@ -1,53 +1,60 @@
 ---
 title: 动效生成
-description: 从 PNG 帧目录生成 GIF 或 APNG。
+description: 从 PNG 帧目录生成 GIF 或 APNG，并控制格式、输出和覆盖。
 category: 素材
 commands:
-  - wave motion --help
+  - wave motion
   - wave motion doctor
-  - wave motion install --check
+  - wave motion install
 appliesTo:
   - 本地 CLI
 ---
 
-## 用途
-
-`wave motion` 从 PNG 帧目录生成 GIF 或 APNG。`wave mg` 是 `wave motion` 的别名。
-
-## 生成 GIF
-
-把 `./frames` 换成至少包含 2 张 PNG 帧的目录：
+## 生成动效
 
 ```bash
-wave motion gif ./frames --fps 24 --out loading.gif
-wave mg gif ./frames
+wave motion -f ./frames --format gif
+wave motion -f ./frames --format apng
 ```
 
-## 生成 APNG
+输入目录至少需要两张 PNG 帧。非交互环境必须显式提供 `--format gif|apng`；TTY 中省略格式时可以交互选择。
 
-把 `./frames` 换成至少包含 2 张 PNG 帧的目录：
+## 输出
 
 ```bash
-wave motion apng ./frames --fps 24 --out loading.png
-wave mg apng ./frames
+wave motion -f ./frames --format gif --output ./loading.gif
+wave motion -f ./frames --format apng --output ./loading.png
 ```
 
-## 默认行为
+默认输出到帧目录下的 `wave-mg/`，文件名包含帧目录名和 FPS。已有输出默认拒绝覆盖，确认后使用 `--force`。
 
-- 输入必须是 PNG 帧目录。
-- 不修改源帧目录。
-- 输出文件已存在时默认报错。
-- 使用 `--force` 才允许覆盖已有输出。
-- 使用 `--dry-run` 只展示计划，不生成文件。
+只查看计划：
 
-## 检查和安装工具
+```bash
+wave motion -f ./frames --format gif --dry-run
+```
+
+## 编码参数
+
+```bash
+wave motion -f ./frames --format gif --fps 24 --quality 80 --loop forever
+```
+
+| 参数 | 默认值 |
+| --- | --- |
+| `--fps <n>` | 24 |
+| `-q, --quality <n>` | 80 |
+| `--loop <mode>` | `forever`，也可选 `once` |
+
+命令不会修改源帧。
+
+## 工具链与帧检查
 
 ```bash
 wave motion doctor
-wave motion doctor ./frames
+wave motion doctor -f ./frames
 wave motion install --check
+wave motion install --yes
 ```
 
-确认安装计划后，再添加 `--yes` 执行安装。
-
-动效生成依赖本机工具，例如 `gifski` 和 `apngasm`。
+`motion doctor` 的 `-f` 是可选 PNG 帧目录，用于同时检查帧输入。

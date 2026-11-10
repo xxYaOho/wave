@@ -1,63 +1,124 @@
 ---
 title: Design Token 概览
-description: 配置 main.yaml、profile、$extensions，并生成 json、jsonc、css 和 sketch 输出。
+description: 使用 token 模块构建产物、创建源文档、检查质量和维护资源。
 category: Design Token
 commands:
-  - wave dt init
-  - wave dt build
-  - wave dt status
+  - wave token
+  - wave token build
 appliesTo:
   - 本地 CLI
 ---
 
-## 用途
+## 默认构建
 
-`wave dt` 用来读取 design token，解析引用，转换扩展字段，并生成 `json`、`jsonc`、`css` 或 `sketch` 输出。
-
-新项目推荐从模板开始：
+进入包含 `main.yaml` 的目录后运行：
 
 ```bash
-wave dt init
-wave dt build
+wave token
 ```
 
-## 项目入口
-
-`main.yaml` 是唯一的 design-token 项目入口。`wave dt init` 生成的文件已包含 `$config`：
+它等价于：
 
 ```bash
-wave dt build
+wave token build
 ```
 
-也可以显式指定入口：
+输出平台由 `main.yaml` 的 `$config.parameter.platform` 或 parameter groups 决定。命令行不再提供 `--platform`；需要调整平台时修改配置。
+
+```yaml
+$config:
+  theme: example
+  parameter:
+    outputDir: ./dist
+    platform: [json, css]
+```
+
+## 命令分组
+
+| 分组 | 命令 |
+| --- | --- |
+| 构建 | `build` |
+| 创建 | `new`、`new profile`、`new night` |
+| 检查 | `doctor`、`wcag` |
+| 身份维护 | `ids` |
+| 迁移 | `migrate extensions` |
+| 资源 | `show`、`update`、`status` |
+
+使用 `-m` 获取某一级的完整 Markdown 手册：
 
 ```bash
-wave dt build -f ./main.yaml
+wave token -m
+wave token new -m
+wave token new night -m
 ```
 
-显式路径也必须指向名为 `main.yaml` 的普通文件。Profile、Night Mode 文件、resource 文件和目录不能作为入口。
+## 源文档输入
+
+`-f, --file` 指定本次操作的源文档：
+
+```bash
+wave token build
+wave token build -f ./themes/acme
+wave token build -f ./themes/acme/main.yaml
+wave token build -f ./themes/acme/themes/mobile.yaml
+```
+
+规则：
+
+- 省略 `-f`：读取 `./main.yaml`。
+- 输入目录：读取该目录下的 `main.yaml`。
+- 输入 `main.yaml`：处理 default profile。
+- 输入其他 Day YAML：处理该 profile，并从最近的祖先目录查找 base `main.yaml`。
+- 输入 `@night.yaml`：拒绝。Night 不是 Day 源文档。
+
+目录可以命名为 `profiles`、`themes`、`variants` 或其他名称。显式 `-f` 不依赖目录名。
+
+## 构建范围
+
+```bash
+# 只构建 main
+wave token build -f ./themes/acme
+
+# 只构建指定 profile
+wave token build -f ./themes/acme/themes/mobile.yaml
+
+# 按 workspace 的既有发现规则构建 main 和全部 named profiles
+wave token build -f ./themes/acme --profiles all
+
+# 同时消费约定位置的 Night overlay
+wave token build -f ./themes/acme/themes/mobile.yaml --night
+```
+
+`--profiles all` 只能与 main 文件或目录一起使用，不能和单个 profile 文件组合。它不会递归猜测所有目录中的 YAML。
+
+## 输出
+
+所有 token 构建产物都可以通过 `-o, --output` 覆盖配置中的输出目录：
+
+```bash
+wave token build -f ./main.yaml --output ./dist
+```
+
+输出路径碰撞会在写入前失败。Profile、Night 等源文档的创建规则见各自手册。
+
+## 检查与维护
+
+```bash
+wave token doctor -f ./main.yaml
+wave token wcag -f ./main.yaml
+wave token ids -f ./main.yaml
+wave token migrate extensions -f ./main.yaml
+```
+
+`doctor` 不执行 WCAG。`ids` 和 `migrate extensions` 默认只输出报告，加 `--write` 才修改源文件。
 
 ## 文件职责
 
 | 文件 | 职责 |
 | --- | --- |
-| `main.yaml` | 基础 token 树、default profile 和 `$config` 来源 |
-| `profiles/<name>.yaml` | 基于 main 的差量 profile：按 token ID 覆盖值，也可增加新 token |
-| `main@night.yaml` | default profile 的 Night Mode 覆盖文件，可选 |
-| `profiles/<name>@night.yaml` | named profile 的 Night Mode 覆盖文件，可选 |
+| `main.yaml` | base token 树、default profile 和 `$config` |
+| Day profile YAML | 按 token ID 覆盖 base 值或添加 token |
+| `<stem>@night.yaml` | Day 文档的 Night 路径覆盖 |
+| `$config.resource` | 提供引用数据，不直接决定输出 |
 
-`$config.resource` 是可选的外部引用依赖声明，只提供引用解析数据，不直接决定输出内容。自包含的 token 图无需声明 resource。
-
-build 以 token 图能否完整解析和生成作为成功条件。未被引用的缺失、损坏或重复 resource 声明不会阻塞 build；`wave dt doctor` 会严格检查当前检查目标中的全部声明。默认 doctor 检查 main 和全部 profile 的结构与身份健康，但 resource 严格检查仍只针对 default profile；`--profile` 则只检查选中的 profile。
-
-`$config` 使用闭合结构。字段名、类型或枚举值无效时，build 会指出对应字段路径并停止生成。完整字段和多组输出写法见 [main.yaml 写法](/design-token/main-yaml)。
-
-Profile 共享 main 的结构和扩展，只替换基础 token 的完整 `$value` 或添加新 token。创建 profile 前先登记 main 的文档和 token 身份，再运行 `wave dt new-profile <name>`。需要删除基础 token、改变结构或修改已有扩展时，应另建基础目录。完整写法见 [WCAG 与主题模式](/design-token/quality-theming)。
-
-## 命令行覆盖
-
-命令行参数优先级高于配置文件：
-
-```bash
-wave dt build --platform json,css -o ./dist
-```
+Profile 和 Night 的创建、消费与自定义输出规则见对应命令手册。Token 写法见 [main.yaml 写法](/design-token/main-yaml)。

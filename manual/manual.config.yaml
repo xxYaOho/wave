@@ -8,7 +8,7 @@ home:
     - title: Design Token
       description: 读取带 $config 的 main.yaml，生成 json、jsonc、css 和 sketch 输出。
       href: /design-token
-      command: wave dt build
+      command: wave token
     - title: 素材压缩
       description: 压缩 PNG、JPG、SVG 和 GIF，支持 dry-run、递归扫描和 SVG 图标清洗。
       href: /compress
@@ -36,6 +36,24 @@ nav:
       - title: Design Token 概览
         href: /design-token
         source: pages/design-token.md
+      - title: 创建 Workspace 与 Profile
+        href: /design-token/create
+        source: pages/design-token-create.md
+      - title: 创建 Night Overlay
+        href: /design-token/night
+        source: pages/design-token-night.md
+      - title: 迁移 Token 源文档
+        href: /design-token/migrate
+        source: pages/design-token-migrate.md
+      - title: 检查 Token Workspace
+        href: /design-token/doctor
+        source: pages/design-token-doctor.md
+      - title: 检查 WCAG 对比度
+        href: /design-token/wcag
+        source: pages/design-token-wcag.md
+      - title: 维护 Token 身份
+        href: /design-token/ids
+        source: pages/design-token-ids.md
       - title: main.yaml 写法
         href: /design-token/main-yaml
         source: pages/design-token-main-yaml.md
@@ -45,7 +63,7 @@ nav:
       - title: 扩展与输出
         href: /design-token/extensions-output
         source: pages/design-token-extensions-output.md
-      - title: WCAG 与主题模式
+      - title: Profile 与 Night 模型
         href: /design-token/quality-theming
         source: pages/design-token-quality-theming.md
       - title: 内置资源

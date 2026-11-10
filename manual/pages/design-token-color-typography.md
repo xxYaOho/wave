@@ -3,7 +3,7 @@ title: 颜色与字体
 description: DTCG 颜色对象、alpha、typography token 与虚线 border 的写法参考。
 category: Design Token
 commands:
-  - wave dt --help
+  - wave token --help
 appliesTo:
   - 本地 CLI
 ---
@@ -112,7 +112,7 @@ $override:
     $value: 16
 ```
 
-运行 `wave dt build --profile mobile -f ./main.yaml` 后，body 的字号仍是 `1rem`；CSS 根字号为 `16px`，Sketch 字号为 `16`。main 的基准仍为 `14`。Profile 的身份与完整覆盖规则见 [WCAG 与主题模式](/design-token/quality-theming)。
+运行 `wave token build -f ./profiles/mobile.yaml` 后，body 的字号仍是 `1rem`；CSS 根字号为 `16px`，Sketch 字号为 `16`。main 的基准仍为 `14`。Profile 的身份与完整覆盖规则见 [WCAG 与主题模式](/design-token/quality-theming)。
 
 ### 字体与行高输出
 

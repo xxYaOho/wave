@@ -1,9 +1,9 @@
 ---
 title: 配置路径
-description: Wave 使用到的本地配置、缓存和输出路径。
+description: 查找 Wave 的 workspace 配置、resource 缓存和默认输出位置。
 category: 参考
 commands:
-  - wave dt status
+  - wave token status
   - wave workspace --help
 appliesTo:
   - 本地 CLI
@@ -11,71 +11,72 @@ appliesTo:
 
 ## Workspace 配置
 
-默认路径：
-
 ```text
 ~/.config/wave/workspace.yaml
 ```
 
 覆盖路径：
 
-把 `/path/to/workspace.yaml` 换成真实配置路径。命令会进入 workspace 创建交互流程。
-
 ```bash
 WAVE_WORKSPACE_CONFIG=/path/to/workspace.yaml wave workspace
 ```
 
-## Resource cache 状态
-
-查看 design-token resource cache：
+## Resource Cache
 
 ```bash
-wave dt status
+wave token status
 ```
 
-输出包含：
+输出包含 cache、state、config 路径，以及 Tailwind CSS 和 Leonardo 的缓存状态。
 
-- cache 路径
-- state 路径
-- config 路径
-- tailwindcss 缓存状态
-- leonardo 缓存状态
+## Token 输出
 
-## Design Token 输出
-
-`main.yaml` 的 `$config.parameter` 中可设置输出目录：
+在 `main.yaml` 中配置：
 
 ```yaml
 $config:
   theme: example
-  resource:
-    palette:
-      - tailwindcss
-    dimension:
-      - wave
   parameter:
     outputDir: ./dist
-    platform:
-      - json
-      - css
+    platform: [json, css]
 ```
 
-进入已有 token 项目目录后，命令行也可覆盖：
+命令行覆盖本次输出目录：
 
 ```bash
-wave dt build -o ./dist
+wave token build -f ./main.yaml --output ./dist
 ```
+
+平台列表只在 `$config` 中维护，不使用 CLI `--platform`。
+
+## Profile 与 Night 输出
+
+默认位置：
+
+```text
+profiles/<name>.yaml
+<Day 所在目录>/<stem>@night.yaml
+```
+
+两者都允许 `--output` 自定义文件。自定义位置不扩大隐式发现范围；后续消费方式见对应创建手册。
 
 ## Compress 输出
 
-默认输出到输入目录下的：
-
 ```text
-wave-compress/
+<input>/wave-compress/
 ```
 
-也可以指定：
+覆盖输出目录：
 
 ```bash
-wave compress ./assets --out ./optimized --yes
+wave compress -f ./assets --output ./optimized --yes
 ```
+
+## Motion 输出
+
+```text
+<frames>/wave-mg/<frames-name>@<fps>fps.gif
+<frames>/wave-mg/<frames-name>@<fps>fps.png
+```
+
+使用 `--output` 指定完整输出文件路径。

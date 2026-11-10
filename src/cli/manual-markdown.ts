@@ -310,14 +310,21 @@ function pageForPath(
 	const group = pathParts[1];
 	let href = '/command-index';
 	if (root === 'token') {
-		href =
-			group === 'show' || group === 'update' || group === 'status'
-				? '/resources'
-				: group === 'doctor' || group === 'wcag' || group === 'new'
-					? '/design-token/quality-theming'
-					: group === 'ids' || group === 'migrate'
-						? '/design-token/extensions-output'
-						: '/design-token';
+		const leaf = pathParts[2];
+		if (group === 'new') {
+			href =
+				leaf === 'night'
+					? '/design-token/night'
+					: '/design-token/create';
+		} else if (group === 'show' || group === 'update' || group === 'status') {
+			href = '/resources';
+		} else if (group === 'doctor' || group === 'wcag' || group === 'ids') {
+			href = `/design-token/${group}`;
+		} else if (group === 'migrate') {
+			href = '/design-token/migrate';
+		} else {
+			href = '/design-token';
+		}
 	} else if (root === 'compress') href = '/compress';
 	else if (root === 'motion') href = '/motion';
 	else if (root === 'workspace') href = '/workspace';

@@ -26,13 +26,17 @@ pnpm dev -- manual
 
 | 能力 | 命令 |
 | --- | --- |
-| Design Token | `wave dt` |
+| Design Token | `wave token` |
 | 素材压缩 | `wave compress` |
-| 动效生成 | `wave motion` / `wave mg` |
+| 动效生成 | `wave motion --format gif` / `wave motion --format apng` |
 | 工作区创建 | `wave workspace` |
 | 工具链检查与安装 | `wave doctor` / `wave install` |
 
-Legacy 入口仍可用于旧项目：`wave create`、`wave init`、`wave show`。新脚本优先使用模块化入口。
+`wave token` 默认构建当前目录的 `main.yaml`。使用 `wave token --help` 查看创建、检查、身份维护、迁移和资源命令。
+
+每个命令层级都支持 `-m, --manual`，输出供 Agent 阅读的 scoped Markdown 手册。例如 `wave token new night -m` 只打印 Night 创建合同。
+
+当前版本不保留 `dt`、`design-token`、`mg` 或旧位置参数入口。
 
 ## 开发
 
