@@ -25,8 +25,8 @@ import {
  * second run is a no-op (idempotent). Files mixing legacy and new keys are
  * reported as errors — never guessed or partially merged.
  *
- * This module is the single write-back mechanism shared by `wave dt
- * migrate-extensions` (M2) and the M3 ids write-back.
+ * This module is the single write-back mechanism shared by `wave token
+ * migrate extensions` (M2) and the M3 ids write-back.
  */
 
 type WriteOptions = Parameters<Document['toString']>[0];
@@ -211,7 +211,7 @@ export function migrateExtensionsSource(
 			status: 'mixed',
 			sketchRenamed: 0,
 			outlineRenamed: 0,
-			message: `file mixes legacy (sketch/outline) and new (platform.sketch) extensions; migrate-extensions does not guess — unify the file manually\n${listed}`,
+			message: `file mixes legacy (sketch/outline) and new (platform.sketch) extensions; wave token migrate extensions does not guess — unify the file manually\n${listed}`,
 		};
 	}
 

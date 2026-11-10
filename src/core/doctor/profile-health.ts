@@ -78,10 +78,6 @@ export async function inspectWorkspaceHealth(
 				continue;
 			}
 			try {
-				if (source && entry.path === source.entry.path) {
-					result.selectedDocument = source.document;
-					continue;
-				}
 				const root = yaml.load(await Bun.file(entry.path).text());
 				if (
 					record(root) &&
@@ -133,19 +129,10 @@ export async function inspectWorkspaceHealth(
 		const files = source
 			? [
 					{
-						name: 'main',
-						path: workspace.path,
-						suffix: '',
+						name: source.entry.name,
+						path: source.entry.path,
+						suffix: source.entry.isDefault ? '' : `-${source.entry.name}`,
 					},
-					...(source.entry.isDefault
-						? []
-						: [
-								{
-									name: source.entry.name,
-									path: source.entry.path,
-									suffix: `-${source.entry.name}`,
-								},
-							]),
 					...(source.entry.nightPath
 						? [
 								{

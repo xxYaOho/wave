@@ -1,5 +1,5 @@
 export const DIMENSION_BUILD_WARNING =
-	'theme.dimension is no longer a public output root; run wave dt doctor for migration guidance.';
+	'theme.dimension is no longer a public output root; run wave token doctor for migration guidance.';
 
 export type DimensionMigrationFinding = {
 	path: string;

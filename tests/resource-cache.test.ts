@@ -246,7 +246,7 @@ describe('resource cache and adapters', () => {
 					'bun',
 					'run',
 					path.join(rootDir, 'src/index.ts'),
-					'dt',
+					'token',
 					'build',
 					'-f',
 					path.join(tempTheme, 'main.yaml'),

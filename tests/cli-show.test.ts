@@ -23,9 +23,9 @@ async function runWave(
 	return { exitCode, stdout, stderr };
 }
 
-describe('wave show', () => {
+describe('wave token show', () => {
 	test('lists built-in palettes and dimensions without args', async () => {
-		const { exitCode, stdout } = await runWave(['show']);
+		const { exitCode, stdout } = await runWave(['token', 'show']);
 
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Palettes:');
@@ -36,7 +36,7 @@ describe('wave show', () => {
 	});
 
 	test('lists resources for a category', async () => {
-		const { exitCode, stdout } = await runWave(['show', 'palette']);
+		const { exitCode, stdout } = await runWave(['token', 'show', 'palette']);
 
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Palettes:');
@@ -45,7 +45,11 @@ describe('wave show', () => {
 	});
 
 	test('outputs flat-json for a palette by default', async () => {
-		const { exitCode, stdout } = await runWave(['show', 'tailwindcss']);
+		const { exitCode, stdout } = await runWave([
+			'token',
+			'show',
+			'tailwindcss',
+		]);
 
 		expect(exitCode).toBe(0);
 		const parsed = JSON.parse(stdout);
@@ -66,6 +70,7 @@ describe('wave show', () => {
 
 	test('outputs yaml for a dimension', async () => {
 		const { exitCode, stdout } = await runWave([
+			'token',
 			'show',
 			'wave',
 			'--format',
@@ -78,6 +83,7 @@ describe('wave show', () => {
 
 	test('outputs nested json for a palette', async () => {
 		const { exitCode, stdout } = await runWave([
+			'token',
 			'show',
 			'leonardo',
 			'--format',
@@ -91,6 +97,7 @@ describe('wave show', () => {
 
 	test('outputs color-space values as CSS strings in nested json', async () => {
 		const { exitCode, stdout } = await runWave([
+			'token',
 			'show',
 			'tailwindcss',
 			'--format',
@@ -133,9 +140,12 @@ describe('wave show', () => {
 				'utf-8',
 			);
 
-			const { exitCode, stdout } = await runWave(['show', 'nonepalette'], {
-				HOME: tempHome,
-			});
+			const { exitCode, stdout } = await runWave(
+				['token', 'show', 'nonepalette'],
+				{
+					HOME: tempHome,
+				},
+			);
 
 			expect(exitCode).toBe(0);
 			const parsed = JSON.parse(stdout);
@@ -170,7 +180,7 @@ describe('wave show', () => {
 			);
 
 			const { exitCode, stdout } = await runWave(
-				['show', 'nonepalette', '--format', 'json'],
+				['token', 'show', 'nonepalette', '--format', 'json'],
 				{ HOME: tempHome },
 			);
 
@@ -184,6 +194,7 @@ describe('wave show', () => {
 
 	test('shows resource detail with category and name', async () => {
 		const { exitCode, stdout } = await runWave([
+			'token',
 			'show',
 			'palette',
 			'tailwindcss',
@@ -205,12 +216,12 @@ describe('wave show', () => {
 		};
 		try {
 			const update = await runWave(
-				['dt', 'update', 'tailwindcss', '--version', '3'],
+				['token', 'update', 'tailwindcss', '--version', '3'],
 				env,
 			);
 			expect(update.exitCode).toBe(0);
 
-			const show = await runWave(['show', 'tailwindcss'], {
+			const show = await runWave(['token', 'show', 'tailwindcss'], {
 				HOME: tempHome,
 				WAVE_TAILWIND_FIXTURE_DIR: '/no/such/fixture',
 			});
@@ -224,7 +235,11 @@ describe('wave show', () => {
 	});
 
 	test('returns error for nonexistent resource', async () => {
-		const { exitCode, stderr } = await runWave(['show', 'nonexistent']);
+		const { exitCode, stderr } = await runWave([
+			'token',
+			'show',
+			'nonexistent',
+		]);
 
 		expect(exitCode).not.toBe(0);
 		expect(stderr).toContain('not found');
@@ -232,6 +247,7 @@ describe('wave show', () => {
 
 	test('returns error for unknown format', async () => {
 		const { exitCode, stderr } = await runWave([
+			'token',
 			'show',
 			'wave',
 			'--format',
@@ -244,6 +260,7 @@ describe('wave show', () => {
 
 	test('returns error for unknown category', async () => {
 		const { exitCode, stderr } = await runWave([
+			'token',
 			'show',
 			'unknown-category',
 			'some-name',

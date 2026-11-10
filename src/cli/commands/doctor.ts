@@ -484,7 +484,9 @@ export function createDoctorCommand(
 					const health = await inspectWorkspaceHealth(
 						loadResult.source.workspace,
 						undefined,
-						loadResult.source,
+						loadResult.source.kind === 'profile'
+							? loadResult.source
+							: undefined,
 					);
 					workspaceFindings.push(...health.findings);
 					identity = health.identity;

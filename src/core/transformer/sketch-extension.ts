@@ -16,7 +16,7 @@ function parseProperty(value: unknown): SketchPropertyMap | undefined {
 /**
  * New-form sketch family: `$extensions.platform.sketch`.
  * Legacy `$extensions.sketch` / `$extensions.outline` keys are not read —
- * the schema layer rejects them with a `wave dt migrate-extensions` hint.
+ * the schema layer rejects them with a `wave token migrate extensions` hint.
  */
 export function getPlatformSketch(
 	extensions: Record<string, unknown> | undefined,

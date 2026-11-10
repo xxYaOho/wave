@@ -20,7 +20,11 @@ import {
 	type DependencyDict,
 } from '../../src/core/pipeline/theme-pipeline.ts';
 import { loadDesignTokenWorkspace } from '../../src/core/pipeline/workspace-loader.ts';
-import { sketchPassIds } from '../../src/core/pipeline/sketch-identity.ts';
+import {
+	type SketchThemeMode,
+	sketchNightPassIds,
+	sketchPassIds,
+} from '../../src/core/pipeline/sketch-identity.ts';
 import { ExitCode } from '../../src/types/index.ts';
 import {
 	collectFileArtifacts,
@@ -56,6 +60,7 @@ interface GenerateScope {
 	contentOverride: string;
 	themeId?: string;
 	baseId?: string;
+	mode: SketchThemeMode;
 	dict: DependencyDict;
 	passes: ReturnType<typeof buildGroupPasses>;
 	isNight: boolean;
@@ -221,6 +226,7 @@ export async function runDesignTokenBenchmarkCase(
 						contentOverride: document.tokenContent,
 						themeId: ids.themeId,
 						baseId: ids.baseId,
+						mode: ids.mode,
 						dict: resource.value.dict,
 						passes: groupPass.value,
 						isNight: false,
@@ -240,7 +246,7 @@ export async function runDesignTokenBenchmarkCase(
 					if (!mergedNight.ok) {
 						continue;
 					}
-					const nightIds = sketchPassIds({
+					const nightIds = sketchNightPassIds({
 						isDefault: profile.isDefault,
 						documentThemeId: document.themeId,
 						mainThemeId: baseDocument.themeId,
@@ -253,6 +259,7 @@ export async function runDesignTokenBenchmarkCase(
 						contentOverride: yaml.dump(mergedNight.tree, { lineWidth: -1 }),
 						themeId: nightIds.themeId,
 						baseId: nightIds.baseId,
+						mode: nightIds.mode,
 						dict: resource.value.dict,
 						passes: groupPass.value,
 						isNight: true,
@@ -275,6 +282,7 @@ export async function runDesignTokenBenchmarkCase(
 								themeName: scope.themeName,
 								themeId: scope.themeId,
 								baseId: scope.baseId,
+								mode: scope.mode,
 								yamlPath: scope.filePath,
 								yamlContent: scope.contentOverride,
 								dict: scope.dict,
@@ -330,6 +338,7 @@ export async function runDesignTokenBenchmarkCase(
 							colorSpace: prepared.colorSpace,
 							themeId: prepared.themeId,
 							baseId: prepared.baseId,
+							mode: prepared.mode,
 						}),
 					);
 					phases.generateMs += generate.ms;

@@ -87,7 +87,7 @@ theme:
       $value: "#ff8800"
 `;
 
-describe('wave dt ids — profile base contract', () => {
+describe('wave token ids — profile base contract', () => {
 	test.each([
 		['missing', `$override:\n  theme: {}\n`],
 		['wrong', `$config:\n  base: wrong-theme\n$override:\n  theme: {}\n`],
@@ -234,7 +234,7 @@ describe('wave dt ids — profile base contract', () => {
 	});
 });
 
-describe('wave dt ids — diff and plan', () => {
+describe('wave token ids — diff and plan', () => {
 	test('dry-run reports counts and details without touching files', async () => {
 		const dir = await makeTempWorkspace({
 			'main.yaml': MAIN_WITH_PROFILE,
@@ -384,7 +384,7 @@ theme:
 	});
 });
 
-describe('wave dt ids — surgical write-back', () => {
+describe('wave token ids — surgical write-back', () => {
 	test('write preserves comments/layout, only $id lines change, second run is a no-op', async () => {
 		const dir = await makeTempWorkspace({
 			'main.yaml': MAIN_WITH_PROFILE,
@@ -558,7 +558,7 @@ describe('wave dt ids — surgical write-back', () => {
 	});
 });
 
-describe('wave dt ids — conflicts are hard blockers', () => {
+describe('wave token ids — conflicts are hard blockers', () => {
 	const DIVERGENT_MAIN = `$id: ${MAIN_PROFILE_ROOT}
 theme:
   color:
@@ -727,7 +727,7 @@ theme:
 	});
 });
 
-describe('wave dt ids — warnings and entry contract', () => {
+describe('wave token ids — warnings and entry contract', () => {
 	test('non-canonical committed ids are advisory warnings, never rewritten', async () => {
 		const dir = await makeTempWorkspace({
 			'main.yaml': `theme:
@@ -773,7 +773,7 @@ describe('wave dt ids — warnings and entry contract', () => {
 	});
 });
 
-describe('wave dt ids — git cleanliness gate', () => {
+describe('wave token ids — git cleanliness gate', () => {
 	async function initGitRepo(dir: string): Promise<void> {
 		const git = async (args: string[]): Promise<void> => {
 			const proc = Bun.spawn(['git', ...args], {
@@ -861,7 +861,7 @@ describe('wave dt ids — git cleanliness gate', () => {
 	});
 });
 
-describe('wave dt ids CLI', () => {
+describe('wave token ids CLI', () => {
 	const rootDir = path.resolve(import.meta.dir, '..');
 	const cliEntry = path.join(rootDir, 'src/index.ts');
 
@@ -885,7 +885,12 @@ describe('wave dt ids CLI', () => {
 			'profiles/mobile.yaml': PROFILE_SHARED,
 		});
 
-		const dry = await runWave(['dt', 'ids', '-f', path.join(dir, 'main.yaml')]);
+		const dry = await runWave([
+			'token',
+			'ids',
+			'-f',
+			path.join(dir, 'main.yaml'),
+		]);
 		expect(dry.exitCode).toBe(0);
 		expect(dry.stdout).toContain('Token IDs report: 3 to add, 0 to sync');
 		expect(dry.stdout).toContain('(dry-run)');
@@ -894,7 +899,7 @@ describe('wave dt ids CLI', () => {
 		expect(await read(dir, 'main.yaml')).toBe(MAIN_WITH_PROFILE);
 
 		const write = await runWave([
-			'dt',
+			'token',
 			'ids',
 			'-f',
 			path.join(dir, 'main.yaml'),
@@ -905,7 +910,7 @@ describe('wave dt ids CLI', () => {
 		expect(await read(dir, 'main.yaml')).not.toBe(MAIN_WITH_PROFILE);
 
 		const again = await runWave([
-			'dt',
+			'token',
 			'ids',
 			'-f',
 			path.join(dir, 'main.yaml'),
@@ -932,7 +937,7 @@ describe('wave dt ids CLI', () => {
 		});
 
 		const run = await runWave([
-			'dt',
+			'token',
 			'ids',
 			'-f',
 			path.join(dir, 'main.yaml'),
@@ -961,7 +966,12 @@ theme:
 ${tokens}`,
 		});
 
-		const dry = await runWave(['dt', 'ids', '-f', path.join(dir, 'main.yaml')]);
+		const dry = await runWave([
+			'token',
+			'ids',
+			'-f',
+			path.join(dir, 'main.yaml'),
+		]);
 		expect(dry.exitCode).toBe(0);
 		// 45 tokens + the document root = 46 changes; 40 listed, 6 collapsed.
 		expect(dry.stdout).toContain('… and 6 more');
@@ -971,7 +981,7 @@ ${tokens}`,
 		expect(plusLines).toHaveLength(40);
 
 		const written = await runWave([
-			'dt',
+			'token',
 			'ids',
 			'-f',
 			path.join(dir, 'main.yaml'),
@@ -987,7 +997,7 @@ ${tokens}`,
 		await Bun.write(path.join(dir, 'junk.txt'), 'untracked\n');
 
 		const refused = await runWave([
-			'dt',
+			'token',
 			'ids',
 			'-f',
 			path.join(dir, 'main.yaml'),
@@ -999,7 +1009,7 @@ ${tokens}`,
 		expect(await read(dir, 'main.yaml')).toBe(MAIN_COMMENTS);
 
 		const allowed = await runWave([
-			'dt',
+			'token',
 			'ids',
 			'-f',
 			path.join(dir, 'main.yaml'),
@@ -1015,7 +1025,7 @@ ${tokens}`,
 		const dir = await makeTempWorkspace({ 'theme.yaml': 'theme: {}\n' });
 
 		const notMain = await runWave([
-			'dt',
+			'token',
 			'ids',
 			'-f',
 			path.join(dir, 'theme.yaml'),
@@ -1023,16 +1033,29 @@ ${tokens}`,
 		expect(notMain.exitCode).toBe(5);
 
 		const missing = await runWave([
-			'dt',
+			'token',
 			'ids',
 			'-f',
 			path.join(dir, 'missing', 'main.yaml'),
 		]);
 		expect(missing.exitCode).toBe(10);
 	});
+
+	test('rejects positional file input', async () => {
+		const dir = await makeTempWorkspace({
+			'main.yaml': MAIN_WITH_PROFILE,
+			'profiles/mobile.yaml': PROFILE_SHARED,
+		});
+
+		const result = await runWave(['token', 'ids', path.join(dir, 'main.yaml')]);
+		expect(result.exitCode).not.toBe(0);
+		expect(`${result.stdout}\n${result.stderr}`).toContain(
+			'too many arguments',
+		);
+	});
 });
 
-describe('wave dt ids — document-root $id slot', () => {
+describe('wave token ids — document-root $id slot', () => {
 	test('missing root $id is minted as the first key and never reassigned', async () => {
 		const dir = await makeTempWorkspace({ 'main.yaml': MAIN_COMMENTS });
 		const dry = await runIdsWorkspace(path.join(dir, 'main.yaml'));

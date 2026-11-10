@@ -15,6 +15,7 @@ const program = new Command();
 program
 	.name('wave')
 	.description('Wave CLI')
+	.enablePositionalOptions()
 	.version(VERSION, '-v, --version', 'Show version number')
 	.helpOption('-h, --help', 'Show help')
 	.addHelpCommand(false)

@@ -662,7 +662,7 @@ async function parseProfileContent(
 		if (!isNonEmptyIdentity(options.baseId)) {
 			throw new ProfileFormatError(
 				entry.path,
-				'Base main.yaml has no root $id; run wave dt ids --write first',
+				'Base main.yaml has no root $id; run wave token ids --write first',
 			);
 		}
 		if (configObj.base !== options.baseId) {

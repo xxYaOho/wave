@@ -532,22 +532,19 @@ describe('profile override build contract', () => {
 	});
 
 	for (const contrast of [false, true]) {
-		test(`doctor ${contrast ? 'contrast' : 'ordinary'} retains profile format exit`, async () => {
+		test(`token ${contrast ? 'wcag' : 'doctor'} retains profile format exit`, async () => {
 			await workspace(
 				{ $config: config, $override: { missing: { $value: 1 } } },
-				async (mainPath, _dir, profilePath) => {
+				async (_mainPath, _dir, profilePath) => {
 					const proc = Bun.spawn(
 						[
 							process.execPath,
 							'run',
 							path.resolve(import.meta.dir, '../src/index.ts'),
-							'dt',
-							'doctor',
+							'token',
+							...(contrast ? ['wcag'] : ['doctor']),
 							'-f',
-							mainPath,
-							'--profile',
-							'mobile',
-							...(contrast ? ['--contrast'] : []),
+							profilePath,
 						],
 						{ stdout: 'pipe', stderr: 'pipe' },
 					);

@@ -417,13 +417,13 @@ describe('every theme fixture main.yaml builds as its declared instance', () => 
 					const out = path.join(temporary, 'out');
 					await fs.mkdir(out);
 					const args = [
-						'dt',
+						'token',
 						'build',
 						'-f',
 						path.join(workspace, 'main.yaml'),
 						'--profiles',
 						'all',
-						'--out',
+						'--output',
 						out,
 					];
 					if (sources.length > 0) args.push('--night');

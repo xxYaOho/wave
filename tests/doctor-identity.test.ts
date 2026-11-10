@@ -427,10 +427,10 @@ describe('theme identity report', () => {
 	});
 });
 
-describe('dt doctor token identity output', () => {
+describe('token doctor token identity output', () => {
 	test('identity-ladder prints the identity report and passes', async () => {
 		const { exitCode, stdout } = await runWave([
-			'dt',
+			'token',
 			'doctor',
 			'-f',
 			'tests/fixtures/themes/identity-ladder/main.yaml',
@@ -450,7 +450,7 @@ describe('dt doctor token identity output', () => {
 
 	test('identity-conflict fails the doctor with the cross-file duplicate id', async () => {
 		const { exitCode, stdout } = await runWave([
-			'dt',
+			'token',
 			'doctor',
 			'-f',
 			'tests/fixtures/themes/identity-conflict/main.yaml',

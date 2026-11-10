@@ -14,7 +14,7 @@ function record(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-test('Orca CLI canary preserves parameter groups, dual identity and inherited Sketch skip', async () => {
+test('token build Orca canary preserves parameter groups, dual identity and inherited Sketch skip', async () => {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-m1-orca-canary-'));
 	const mainPath = path.resolve(
 		import.meta.dir,
@@ -26,13 +26,13 @@ test('Orca CLI canary preserves parameter groups, dual identity and inherited Sk
 				'pnpm',
 				'dev',
 				'--',
-				'dt',
+				'token',
 				'build',
 				'-f',
 				mainPath,
 				'--profiles',
 				'all',
-				'--out',
+				'--output',
 				dir,
 			],
 			{ stdout: 'pipe', stderr: 'pipe' },

@@ -24,9 +24,13 @@ export function createMigrateExtensionsCommand(
 			'--write',
 			'Apply the migration to main.yaml and profiles/*.yaml (default: dry-run report)',
 		)
-		.action(async (options: { file?: string; write?: boolean }) => {
+		.action(async (_options, command: Command) => {
+			const options = command.optsWithGlobals<{
+				file?: string;
+				write?: boolean;
+			}>();
 			const fileInput = resolveExclusiveFileInput(undefined, options.file, {
-				label: 'migrate-extensions input',
+				label: 'token migrate extensions input',
 				hint: 'Use one main.yaml path.',
 			});
 			if (!fileInput.ok) {

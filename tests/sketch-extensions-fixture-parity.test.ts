@@ -13,7 +13,8 @@ import {
  *
  * 快照对象 = 真实构建（generateTheme）产出的 sketch payload（按键排序的
  * 确定性序列化）。M4 起 payload 为 v2 形态（meta + assets 清单），四个
- * workspace 均以 --profiles all 组合构建，orca-test 不再有失败模式豁免。
+ * workspace 按 WORKSPACES 声明选择 main 或 --profiles all，orca-test 不再有失败模式豁免。
+ * 身份快照遵循已落地的 baseId 回退与 meta.mode 合同；更新时须独立比对 assets。
  *
  * 附：形态计数测试锁定迁移后的 `$extensions.platform.sketch` 节点数
  * （54 个去重后的 platform.sketch 节点）且旧形态清零。

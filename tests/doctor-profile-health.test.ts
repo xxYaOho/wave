@@ -45,7 +45,7 @@ function profile(overrides: Record<string, unknown> = {}) {
 }
 
 async function run(dir: string, args: string[] = []) {
-	const proc = Bun.spawn(['bun', 'run', cli, 'dt', 'doctor', ...args], {
+	const proc = Bun.spawn(['bun', 'run', cli, 'token', 'doctor', ...args], {
 		cwd: dir,
 		stdout: 'pipe',
 		stderr: 'pipe',
@@ -63,7 +63,7 @@ afterEach(async () => {
 		await fs.rm(dir, { recursive: true, force: true });
 });
 
-describe('doctor profile workspace health', () => {
+describe('token doctor profile workspace health', () => {
 	for (const [name, bad, message] of [
 		['missing-base', { ...profile(), $config: {} }, '$config.base'],
 		[
@@ -82,12 +82,20 @@ describe('doctor profile workspace health', () => {
 			expect(all.exitCode, all.stdout).toBe(12);
 			expect(all.stdout).toContain('profiles/bad.yaml');
 			expect(all.stdout).toContain(message);
-			const selected = await run(dir, ['--profile', 'healthy']);
+			const selected = await run(dir, [
+				'-f',
+				path.join(dir, 'profiles/healthy.yaml'),
+			]);
 			expect(selected.exitCode, selected.stdout).toBe(0);
 			expect(selected.stdout).not.toContain('profiles/bad.yaml');
-			const selectedBad = await run(dir, ['--profile', 'bad']);
+			const selectedBad = await run(dir, [
+				'-f',
+				path.join(dir, 'profiles/bad.yaml'),
+			]);
 			expect(selectedBad.exitCode).toBe(12);
-			expect(selectedBad.stdout).toContain(message);
+			expect(selectedBad.stdout).toContain(
+				name === 'missing-base' ? 'Invalid $config: base:' : message,
+			);
 		});
 		test(`JSON and status expose the same error findings: ${name}`, async () => {
 			const dir = await workspace({ bad });
@@ -117,7 +125,11 @@ describe('doctor profile workspace health', () => {
 			bad: { ...profile(), $config: { base: 'foreign' } },
 		});
 		for (const mode of ['--json', '--status']) {
-			const result = await run(dir, [mode, '--profile', 'healthy']);
+			const result = await run(dir, [
+				mode,
+				'-f',
+				path.join(dir, 'profiles/healthy.yaml'),
+			]);
 			expect(result.exitCode, result.stdout).toBe(0);
 			expect(result.stdout).not.toContain('profiles/bad.yaml');
 			if (mode === '--json') {
@@ -173,7 +185,11 @@ describe('doctor profile workspace health', () => {
 		for (const mode of [[], ['--json'], ['--status']]) {
 			const main = await run(dir, mode);
 			expect(main.exitCode, main.stdout).toBe(0);
-			const mobile = await run(dir, [...mode, '--profile', 'mobile']);
+			const mobile = await run(dir, [
+				...mode,
+				'-f',
+				path.join(dir, 'profiles/mobile.yaml'),
+			]);
 			expect(mobile.exitCode).toBe(1);
 			expect(mobile.stdout).toContain('Resource not found');
 			if (mode.includes('--json'))
@@ -229,7 +245,11 @@ describe('doctor profile workspace health', () => {
 			'Mobile One': profile(),
 			bad: { ...profile(), $config: { base: 'foreign' } },
 		});
-		const result = await run(dir, ['--profile', ' mobile one ', '--json']);
+		const result = await run(dir, [
+			'-f',
+			path.join(dir, 'profiles/Mobile One.yaml'),
+			'--json',
+		]);
 		expect(result.exitCode).toBe(0);
 		expect(
 			JSON.parse(result.stdout).identity.documents.map(

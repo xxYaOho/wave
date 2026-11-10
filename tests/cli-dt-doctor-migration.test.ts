@@ -38,7 +38,7 @@ afterEach(async () => {
 	}
 });
 
-describe('dt doctor migration guidance', () => {
+describe('token doctor migration guidance', () => {
 	test('accepts a self-contained profile without resource declarations', async () => {
 		const dir = await makeTheme(`
 $config:
@@ -47,7 +47,7 @@ theme:
   color:
     base: { $type: color, $value: "#2563eb" }
 `);
-		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+		const result = await runWave(['token', 'doctor'], { cwd: dir });
 
 		expect(result.exitCode).toBe(0);
 		expect(result.stdout).toContain(
@@ -65,7 +65,7 @@ theme:
   color:
     base: { $type: color, $value: "#2563eb" }
 `);
-		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+		const result = await runWave(['token', 'doctor'], { cwd: dir });
 
 		expect(result.exitCode).not.toBe(0);
 		expect(result.stdout).toContain('Resource not found');
@@ -81,7 +81,7 @@ theme:
   color:
     base: { $type: color, $value: "#2563eb" }
 `);
-		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+		const result = await runWave(['token', 'doctor'], { cwd: dir });
 
 		expect(result.exitCode).toBe(12);
 		expect(result.stdout).toContain('resource: Unrecognized key: "future"');
@@ -97,7 +97,7 @@ theme:
   color:
     base: { $type: color, $value: "#2563eb" }
 `);
-		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+		const result = await runWave(['token', 'doctor'], { cwd: dir });
 
 		expect(result.exitCode).not.toBe(0);
 		expect(result.stdout).toContain('Unsupported custom resource format');
@@ -117,7 +117,7 @@ theme:
 			path.join(dir, 'palette.yaml'),
 			'invalid:\n  token: value\n',
 		);
-		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+		const result = await runWave(['token', 'doctor'], { cwd: dir });
 
 		expect(result.exitCode).not.toBe(0);
 		expect(result.stdout).toContain('Palette schema error:');
@@ -141,7 +141,7 @@ theme:
 			path.join(dir, 'second.yaml'),
 			'shared:\n  token: value\n',
 		);
-		const result = await runWave(['dt', 'doctor'], { cwd: dir });
+		const result = await runWave(['token', 'doctor'], { cwd: dir });
 
 		expect(result.exitCode).not.toBe(0);
 		expect(result.stdout).toContain('Duplicate namespace "shared"');
@@ -162,7 +162,9 @@ theme:
       $value: "{tailwindcss.color.blue.600}"
 `);
 
-		const { exitCode, stdout } = await runWave(['dt', 'doctor'], { cwd: dir });
+		const { exitCode, stdout } = await runWave(['token', 'doctor'], {
+			cwd: dir,
+		});
 
 		expect(exitCode, stdout).toBe(0);
 		expect(stdout).toContain('Config File: Valid (doctor-default)');
@@ -188,9 +190,9 @@ theme:
 `,
 		);
 
-		const defaultResult = await runWave(['dt', 'doctor'], { cwd: dir });
+		const defaultResult = await runWave(['token', 'doctor'], { cwd: dir });
 		const mobileResult = await runWave(
-			['dt', 'doctor', '--profile', 'mobile'],
+			['token', 'doctor', '-f', path.join(dir, 'profiles/mobile.yaml')],
 			{ cwd: dir },
 		);
 
@@ -199,7 +201,7 @@ theme:
 		expect(mobileResult.stdout).toContain('Resource not found');
 	});
 
-	test('top-level doctor does not default to ./main.yaml', async () => {
+	test('top-level doctor runs toolchain checks without inspecting token files', async () => {
 		const dir = await makeTheme(`
 $schema: "https://www.designtokens.org/tr/2025.10/format/"
 $config:
@@ -217,8 +219,8 @@ theme:
 		const { exitCode, stdout } = await runWave(['doctor'], { cwd: dir });
 
 		expect(exitCode, stdout).toBe(0);
-		expect(stdout).toContain('Config File: No main.yaml specified');
-		expect(stdout).not.toContain('Config File: Valid (top-level-doctor)');
+		expect(stdout).toContain('PASS PNG safe compression');
+		expect(stdout).not.toContain('Config File:');
 	});
 
 	test('allows dimension resource references when public theme.dimension is absent', async () => {
@@ -239,7 +241,9 @@ theme:
         alpha: "{wave.dimension.alpha.200}"
 `);
 
-		const { exitCode, stdout } = await runWave(['dt', 'doctor'], { cwd: dir });
+		const { exitCode, stdout } = await runWave(['token', 'doctor'], {
+			cwd: dir,
+		});
 
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Config File: Valid (doctor-dimension-legacy)');
@@ -267,7 +271,9 @@ theme:
         alpha: "{wave.dimension.alpha.200}"
 `);
 
-		const { exitCode, stdout } = await runWave(['dt', 'doctor'], { cwd: dir });
+		const { exitCode, stdout } = await runWave(['token', 'doctor'], {
+			cwd: dir,
+		});
 
 		expect(exitCode).toBe(1);
 		expect(stdout).toContain('Resource not found');

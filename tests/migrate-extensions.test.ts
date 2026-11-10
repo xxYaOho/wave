@@ -396,30 +396,31 @@ describe('migrateExtensionsWorkspace', () => {
 	});
 });
 
-describe('wave dt migrate-extensions CLI', () => {
+describe('wave token migrate extensions CLI', () => {
 	const rootDir = path.resolve(import.meta.dir, '..');
 	const cliEntry = path.join(rootDir, 'src/index.ts');
 
 	async function runWave(
 		args: string[],
-	): Promise<{ exitCode: number; stdout: string }> {
+	): Promise<{ exitCode: number; stdout: string; stderr: string }> {
 		const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
 			cwd: rootDir,
 			stdout: 'pipe',
 			stderr: 'pipe',
 		});
 		const stdout = await new Response(proc.stdout).text();
-		await new Response(proc.stderr).text();
+		const stderr = await new Response(proc.stderr).text();
 		const exitCode = await proc.exited;
-		return { exitCode, stdout };
+		return { exitCode, stdout, stderr };
 	}
 
 	test('dry-run then write round trip through the CLI', async () => {
 		const dir = await makeTempWorkspace({ 'main.yaml': MAIN });
 
 		const dry = await runWave([
-			'dt',
-			'migrate-extensions',
+			'token',
+			'migrate',
+			'extensions',
 			'-f',
 			path.join(dir, 'main.yaml'),
 		]);
@@ -429,8 +430,9 @@ describe('wave dt migrate-extensions CLI', () => {
 		expect(await fs.readFile(path.join(dir, 'main.yaml'), 'utf8')).toBe(MAIN);
 
 		const write = await runWave([
-			'dt',
-			'migrate-extensions',
+			'token',
+			'migrate',
+			'extensions',
 			'-f',
 			path.join(dir, 'main.yaml'),
 			'--write',
@@ -442,8 +444,9 @@ describe('wave dt migrate-extensions CLI', () => {
 		);
 
 		const again = await runWave([
-			'dt',
-			'migrate-extensions',
+			'token',
+			'migrate',
+			'extensions',
 			'-f',
 			path.join(dir, 'main.yaml'),
 			'--write',
@@ -475,13 +478,29 @@ describe('wave dt migrate-extensions CLI', () => {
 		const before = await fs.readFile(path.join(dir, 'main.yaml'), 'utf8');
 
 		const run = await runWave([
-			'dt',
-			'migrate-extensions',
+			'token',
+			'migrate',
+			'extensions',
 			'-f',
 			path.join(dir, 'main.yaml'),
 			'--write',
 		]);
 		expect(run.exitCode).toBe(1);
 		expect(await fs.readFile(path.join(dir, 'main.yaml'), 'utf8')).toBe(before);
+	});
+
+	test('rejects positional file input', async () => {
+		const dir = await makeTempWorkspace({ 'main.yaml': MAIN });
+
+		const result = await runWave([
+			'token',
+			'migrate',
+			'extensions',
+			path.join(dir, 'main.yaml'),
+		]);
+		expect(result.exitCode).not.toBe(0);
+		expect(`${result.stdout}\n${result.stderr}`).toContain(
+			'too many arguments',
+		);
 	});
 });

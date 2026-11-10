@@ -933,7 +933,7 @@ theme:
 						expect(result.exitCode).toBe(testCase.exitCode);
 						expect(result.message).toContain(testCase.input);
 						expect(result.message).toContain('main.yaml');
-						expect(result.message).toContain('wave dt init');
+						expect(result.message).toContain('wave token new');
 					}
 					expect(await fs.readFile(markerPath)).toEqual(marker);
 					expect(await fs.readdir(outputDir)).toEqual(['existing.json']);

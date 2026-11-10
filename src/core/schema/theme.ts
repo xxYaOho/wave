@@ -67,7 +67,7 @@ const PLATFORM_SKETCH_KEYS = new Set(['path', 'property', 'skip', 'outline']);
 const SKETCH_PATH_PATTERN = /^[^/.\s][^/.]*(?:\/[^/.\s][^/.]*)*$/;
 
 const MIGRATE_HINT =
-	'run `wave dt migrate-extensions` to rename legacy sketch extensions';
+	'run `wave token migrate extensions` to rename legacy sketch extensions';
 
 /**
  * Legacy sketch family (`$extensions.sketch.*` / `$extensions.outline`) is

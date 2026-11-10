@@ -19,13 +19,13 @@ const page = {
 	title: 'Design Token',
 	description: 'Build tokens.',
 	category: '能力',
-	commands: ['wave dt doctor'],
+	commands: ['wave token doctor'],
 	appliesTo: ['Local CLI'],
 	href: '/design-token',
 	source: 'pages/design-token.md',
 	body: '## Usage',
-	html: '<h2>Usage</h2><p>Build token output.</p><pre><code>wave dt build -f ./main.yaml</code></pre>',
-	searchText: 'Design Token Build token output wave dt doctor',
+	html: '<h2>Usage</h2><p>Build token output.</p><pre><code>wave token build -f ./main.yaml</code></pre>',
+	searchText: 'Design Token Build token output wave token doctor',
 };
 
 const compressPage = {
@@ -53,7 +53,7 @@ const manualData: ManualData = {
 				title: 'Design Token',
 				description: 'Build tokens.',
 				href: '/design-token',
-				command: 'wave dt doctor',
+				command: 'wave token doctor',
 			},
 		],
 	},
@@ -132,7 +132,7 @@ describe('manual app', () => {
 
 		expect(view.getAllByText('Wave Manual').length).toBeGreaterThanOrEqual(1);
 		expect(view.getAllByTestId('manual-home-card')).toHaveLength(1);
-		expect(view.getByText('wave dt doctor')).toBeTruthy();
+		expect(view.getByText('wave token doctor')).toBeTruthy();
 
 		const directory = view.getByTestId('manual-directory');
 		expect(within(directory).getByText('目录')).toBeTruthy();
@@ -174,7 +174,7 @@ describe('manual app', () => {
 		const copyButton = await view.findByRole('button', { name: '复制代码' });
 		await user.click(copyButton);
 
-		expect(copied).toEqual(['wave dt build -f ./main.yaml']);
+		expect(copied).toEqual(['wave token build -f ./main.yaml']);
 		expect(copyButton.textContent).toBe('已复制');
 	});
 

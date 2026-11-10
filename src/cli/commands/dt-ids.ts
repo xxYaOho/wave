@@ -19,7 +19,7 @@ import { logger } from '../../utils/logger.ts';
  */
 
 /**
- * `wave dt ids` — token identity command (Milestone-3). Default is a dry-run
+ * `wave token ids` — token identity command (Milestone-3). Default is a dry-run
  * report; only an explicit `--write` touches files, and only on a clean git
  * working tree unless `--allow-dirty` is given.
  */
@@ -28,7 +28,6 @@ export function createIdsCommand(name = 'ids'): Command {
 		.description(
 			'Fill, generate and sync token $id identities across the workspace',
 		)
-		.argument('[file]', 'main.yaml path or workspace dir. Default: ./main.yaml')
 		.option('-f, --file <path>', 'main.yaml path. Default: ./main.yaml')
 		.option(
 			'--write',
@@ -40,18 +39,22 @@ export function createIdsCommand(name = 'ids'): Command {
 		)
 		.action(
 			async (
-				positionalFile: string | undefined,
-				options: {
+				_options: {
 					file?: string;
 					write?: boolean;
 					allowDirty?: boolean;
 				},
+				command: Command,
 			) => {
-				const fileInput = resolveExclusiveFileInput(
-					positionalFile,
-					options.file,
-					{ label: 'ids input', hint: 'Use one main.yaml path.' },
-				);
+				const options = command.optsWithGlobals<{
+					file?: string;
+					write?: boolean;
+					allowDirty?: boolean;
+				}>();
+				const fileInput = resolveExclusiveFileInput(undefined, options.file, {
+					label: 'ids input',
+					hint: 'Use one main.yaml path.',
+				});
 				if (!fileInput.ok) {
 					logger.error(fileInput.message);
 					process.exitCode = ExitCode.INVALID_PARAMETER;

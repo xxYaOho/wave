@@ -18,7 +18,7 @@ import {
 import { detectWriteOptions } from '../migrate/extensions.ts';
 
 /**
- * `wave dt ids` — token identity fill/generate/sync across a workspace
+ * `wave token ids` — token identity fill/generate/sync across a workspace
  * (Milestone-3, Decisions 2 / 4 / 12).
  *
  * Load surface: main.yaml + profiles/*.yaml (day files). Night overlays are

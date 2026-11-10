@@ -238,7 +238,7 @@ describe('platform.sketch extension schema (M2 new form)', () => {
 				(issue) =>
 					issue.level === 'error' &&
 					issue.path.endsWith('$extensions.sketch') &&
-					issue.message.includes('wave dt migrate-extensions'),
+					issue.message.includes('wave token migrate extensions'),
 			),
 		).toBe(true);
 

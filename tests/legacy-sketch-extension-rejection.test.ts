@@ -9,7 +9,7 @@ import type { DtcgTokenGroup } from '../src/types/index.ts';
 
 /**
  * M2 Task-5 负向断言：旧形态（$extensions.sketch.* / $extensions.outline）
- * 不再被解析，遇到即报错并指引 `wave dt migrate-extensions`。
+ * 不再被解析，遇到即报错并指引 `wave token migrate extensions`。
  * 每种旧形态键各一条：sketch.path / sketch.property / sketch.skip / outline。
  */
 
@@ -23,7 +23,7 @@ function expectLegacyRejection(
 		(i) =>
 			i.level === 'error' &&
 			i.path.endsWith(legacyPathSuffix) &&
-			i.message.includes('wave dt migrate-extensions'),
+			i.message.includes('wave token migrate extensions'),
 	);
 	expect(issue).toBeDefined();
 	return result;
@@ -145,7 +145,9 @@ describe('legacy sketch extension rejection (M2 Task-5)', () => {
 			),
 		).toBe(true);
 		expect(
-			result.issues.some((i) => i.message.includes('migrate-extensions')),
+			result.issues.some((i) =>
+				i.message.includes('wave token migrate extensions'),
+			),
 		).toBe(true);
 	});
 

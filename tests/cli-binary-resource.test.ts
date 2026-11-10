@@ -54,14 +54,14 @@ afterAll(async () => {
 
 describe('compiled wave built-in resources', () => {
 	test('loads uncached built-in palette and dimension resources', async () => {
-		const palette = await runDist(['dt', 'show', 'palette', 'tailwindcss']);
+		const palette = await runDist(['token', 'show', 'palette', 'tailwindcss']);
 		expect(palette.exitCode).toBe(0);
 		expect(palette.stdout).toContain('tailwindcss');
 		expect(
 			await Bun.file(path.join(tempCacheDir, 'tailwindcss.yaml')).exists(),
 		).toBe(false);
 
-		const dimension = await runDist(['dt', 'show', 'dimension', 'wave']);
+		const dimension = await runDist(['token', 'show', 'dimension', 'wave']);
 		expect(dimension.exitCode).toBe(0);
 		expect(dimension.stdout).toContain('dimension');
 		expect(await Bun.file(path.join(tempCacheDir, 'wave.yaml')).exists()).toBe(
@@ -71,11 +71,11 @@ describe('compiled wave built-in resources', () => {
 
 	test('builds a fixture with uncached built-in resources', async () => {
 		const result = await runDist([
-			'dt',
+			'token',
 			'build',
 			'-f',
 			'tests/fixtures/themes/standard/main.yaml',
-			'--out',
+			'--output',
 			tempOut,
 		]);
 
