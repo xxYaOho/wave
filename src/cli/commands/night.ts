@@ -23,6 +23,7 @@ const NIGHT_HELP = `Wave Night
                          Default: 0.7 (or $config.night.luminance)
     --luminance-ev <lv>  Named luminance: ${LUMINANCE_EV_LEVELS.join(' | ')}
                          → 0.5 / 0.6 / 0.7 / 0.75 / 0.85
+    -m, --manual        Print Markdown usage for this command
     -h, --help           Show help
 
   Output:
@@ -82,8 +83,10 @@ export function createNightCommand(name = 'night'): Command {
 				'Deprecated alias for --luminance-ev',
 			).hideHelp(),
 		)
+		.option('-m, --manual', 'Print Markdown usage for this command')
 		.helpOption('-h, --help', 'Show help')
-		.addHelpText('after', `\n${NIGHT_HELP}`)
+		.addHelpCommand(false)
+		.configureHelp({ formatHelp: () => NIGHT_HELP })
 		.action(async (options: NightCommandOptions) => {
 			const fileInput = resolveExclusiveFileInput(undefined, options.file, {
 				label: 'Night input',

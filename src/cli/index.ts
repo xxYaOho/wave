@@ -9,7 +9,7 @@ const program = new Command();
 program
 	.name('wave')
 	.description('Wave CLI')
-	.version(VERSION, '--version', 'Show version number')
+	.version(VERSION, '-v, --version', 'Show version number')
 	.helpOption('-h, --help', 'Show help')
 	.addHelpCommand(false)
 	.configureHelp({ formatHelp: () => TOP_LEVEL_HELP })

@@ -52,7 +52,10 @@ describe('public CLI command shape', () => {
 		expect(night.exitCode).toBe(0);
 		expect(night.stdout).toContain('wave token new night [options]');
 		expect(night.stdout).toContain('-f, --file <path>');
+		expect(night.stdout).toContain('-m, --manual');
+		expect(night.stdout).toContain('-h, --help');
 		expect(night.stdout).not.toContain('[theme]');
+		expect(night.stdout.match(/Wave Night/g)?.length).toBe(1);
 
 		const positional = await runWave(['token', 'new', 'night', './main.yaml']);
 		expect(positional.exitCode).not.toBe(0);
@@ -67,6 +70,8 @@ describe('public CLI command shape', () => {
 		expect(result.stdout).toContain('-m, --manual');
 		expect(result.stdout).toContain('-h, --help');
 		expect(result.stdout).toContain('--version');
+		const shortVersion = await runWave(['-v']);
+		expect(shortVersion.exitCode).toBe(0);
 	});
 
 	test('manual short-circuits every command level', async () => {
