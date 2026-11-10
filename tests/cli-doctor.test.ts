@@ -226,4 +226,74 @@ describe('wave doctor', () => {
 			'wave token wcag --night',
 		);
 	});
+
+	test('token doctor checks and reports a local output directory', async () => {
+		const fixture = path.join(
+			rootDir,
+			'tests/fixtures/themes/profile-model/main.yaml',
+		);
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-doctor-output-'));
+		const missing = path.join(dir, 'missing');
+		const file = path.join(dir, 'output.txt');
+		await fs.writeFile(file, 'not a directory');
+		try {
+			const valid = await runWave([
+				'token',
+				'doctor',
+				'--json',
+				'--file',
+				fixture,
+				'--output',
+				dir,
+			]);
+			expect(valid.exitCode).toBe(0);
+			expect(JSON.parse(valid.stdout).outputDirectory).toBe(dir);
+
+			const invalid = await runWave([
+				'token',
+				'doctor',
+				'--json',
+				'--file',
+				fixture,
+				'--output',
+				missing,
+			]);
+			expect(invalid.exitCode).not.toBe(0);
+			expect(JSON.parse(invalid.stdout).findings).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						message: expect.stringContaining('does not exist'),
+					}),
+				]),
+			);
+
+			const rejected = await runWave([
+				'token',
+				'doctor',
+				'--json',
+				'--file',
+				fixture,
+				'--output',
+				file,
+			]);
+			expect(rejected.exitCode).not.toBe(0);
+			expect(rejected.stdout).toContain('not a directory');
+
+			const parentBuildOutput = await runWave([
+				'token',
+				'--output',
+				missing,
+				'doctor',
+				'--json',
+				'--file',
+				fixture,
+			]);
+			expect(parentBuildOutput.exitCode).toBe(0);
+			expect(
+				JSON.parse(parentBuildOutput.stdout).outputDirectory,
+			).toBeUndefined();
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
 });

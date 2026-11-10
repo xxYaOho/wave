@@ -1,3 +1,5 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import { Command, CommanderError } from 'commander';
 import * as yaml from 'js-yaml';
 import {
@@ -118,6 +120,7 @@ function renderScoreLines(report: DoctorThemeReport): string[] {
 
 interface DoctorCommandOptions {
 	file?: string;
+	output?: string;
 	json?: boolean;
 	verbose?: boolean;
 	status?: boolean;
@@ -126,6 +129,59 @@ interface DoctorCommandOptions {
 interface CreateDoctorCommandOptions {
 	defaultMainYaml?: boolean;
 	coreOnly?: boolean;
+}
+
+async function inspectOutputDirectory(
+	output: string,
+): Promise<{ path?: string; finding?: DoctorFinding }> {
+	const resolved = path.resolve(output);
+	let stat: Awaited<ReturnType<typeof fs.stat>>;
+	try {
+		stat = await fs.stat(resolved);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+			return {
+				finding: {
+					level: 'error',
+					message: `Output directory does not exist: ${resolved}`,
+				},
+			};
+		}
+		return {
+			finding: {
+				level: 'error',
+				message: `Output directory could not be inspected: ${resolved}`,
+			},
+		};
+	}
+	if (!stat.isDirectory()) {
+		return {
+			finding: {
+				level: 'error',
+				message: `Output path is not a directory: ${resolved}`,
+			},
+		};
+	}
+	return { path: resolved };
+}
+
+function optionValueAfterCommand(
+	commandName: string,
+	flags: string[],
+): string | undefined {
+	const argv = process.argv.slice(2);
+	const commandIndex = argv.lastIndexOf(commandName);
+	if (commandIndex < 0) return undefined;
+	for (let index = commandIndex + 1; index < argv.length; index++) {
+		const argument = argv[index];
+		if (argument === undefined) continue;
+		for (const flag of flags) {
+			if (argument === flag) return argv[index + 1];
+			if (argument.startsWith(`${flag}=`))
+				return argument.slice(flag.length + 1);
+		}
+	}
+	return undefined;
 }
 
 function renderWorkspaceLoadFailure(
@@ -334,10 +390,9 @@ export function createDoctorCommand(
 			: 'Run token workspace health diagnostics',
 	);
 	if (!commandOptions.coreOnly) {
-		command.option(
-			'-f, --file <path>',
-			'Day source YAML or workspace directory',
-		);
+		command
+			.option('-f, --file <path>', 'Day source YAML or workspace directory')
+			.option('-o, --output <dir>', 'Output directory to check');
 	}
 	command
 		.option('--json', 'Output structured JSON for core diagnostics')
@@ -352,7 +407,14 @@ export function createDoctorCommand(
 						profiles?: string;
 				  }
 				| undefined;
-			options = { ...options };
+			// Commander merges duplicate parent/leaf options into optsWithGlobals.
+			// Recover the flag position so token build output cannot leak into doctor.
+			const localOutput = commandOptions.coreOnly
+				? undefined
+				: optionValueAfterCommand(command.name(), ['--output', '-o']);
+			options = { ...command.optsWithGlobals<DoctorCommandOptions>() };
+			if (localOutput === undefined) delete options.output;
+			else options.output = localOutput;
 			if (
 				commandOptions.defaultMainYaml &&
 				parentOptions?.file &&
@@ -361,12 +423,10 @@ export function createDoctorCommand(
 				options.file = parentOptions.file;
 			if (
 				commandOptions.defaultMainYaml &&
-				(parentOptions?.night ||
-					parentOptions?.output ||
-					parentOptions?.profiles)
+				(parentOptions?.night || parentOptions?.profiles)
 			) {
 				console.error(
-					'Invalid token doctor options. Use wave token wcag --night for contrast checks; token doctor only checks workspace, resources, and identity.',
+					'Invalid token doctor options. Use wave token wcag --night for contrast checks; token doctor accepts a local --output directory for output checks.',
 				);
 				process.exitCode = ExitCode.INVALID_PARAMETER;
 				return;
@@ -402,6 +462,7 @@ export function createDoctorCommand(
 				let workspaceExitCode: number = ExitCode.SUCCESS;
 				let resourcesChecked = false;
 				let resourcesOk = true;
+				let outputDirectory: string | undefined;
 				const addFailures = (findings: DoctorFinding[], exitCode: number) => {
 					workspaceFindings.push(...findings);
 					if (
@@ -492,10 +553,19 @@ export function createDoctorCommand(
 						}
 					}
 				}
+				if (options.output) {
+					const outputResult = await inspectOutputDirectory(options.output);
+					if (outputResult.finding) {
+						addFailures([outputResult.finding], ExitCode.INVALID_PARAMETER);
+					} else {
+						outputDirectory = outputResult.path;
+					}
+				}
 
 				const diagnostics = {
 					ok: workspaceExitCode === ExitCode.SUCCESS,
 					findings: workspaceFindings,
+					...(outputDirectory ? { outputDirectory } : {}),
 					...(identity ? { identity } : {}),
 				};
 				const failureExitCode =
@@ -515,6 +585,8 @@ export function createDoctorCommand(
 					);
 					for (const finding of workspaceFindings)
 						console.log(`  ${finding.level}: ${finding.message}`);
+					if (outputDirectory)
+						console.log(`  output directory: ${outputDirectory}`);
 					process.exitCode = diagnostics.ok
 						? ExitCode.SUCCESS
 						: failureExitCode;
@@ -538,6 +610,8 @@ export function createDoctorCommand(
 						? `${resourcesOk ? '✓' : '✗'} Resources: ${resourcesOk ? 'All declared resources valid' : 'Invalid declarations'}`
 						: '· Resources: Not checked',
 				);
+				if (outputDirectory)
+					console.log(`✓ Output Directory: ${outputDirectory}`);
 				console.log('');
 
 				if (diagnostics.ok) {

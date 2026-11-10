@@ -32,10 +32,14 @@ describe('toolchain CLI', () => {
 		expect(result.checks.length).toBeGreaterThan(0);
 	});
 
-	test('motion doctor is also available through mg alias', async () => {
-		const { stdout } = await runWave(['mg', 'doctor', '--json']);
+	test('removed mg alias is rejected while motion doctor stays available', async () => {
+		const removed = await runWave(['mg', 'doctor', '--json']);
+		expect(removed.exitCode).not.toBe(0);
+
+		const { exitCode, stdout } = await runWave(['motion', 'doctor', '--json']);
 		const result = JSON.parse(stdout);
 
+		expect(exitCode).toBe(0);
 		expect(result.module).toBe('motion');
 		expect(Array.isArray(result.checks)).toBe(true);
 	});
