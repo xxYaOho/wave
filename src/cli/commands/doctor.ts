@@ -14,20 +14,11 @@ import { validateDeclaredResources } from '../../core/doctor/resource-validator.
 import { createThemeDoctorContextFromContent } from '../../core/doctor/theme-context.ts';
 import { runToolchainDoctor } from '../../core/doctor/toolchain.ts';
 import {
-	discoverProfiles,
 	mergeNightOverlay,
 	NIGHT_SKIP_MESSAGE,
-	type ProfileDocument,
-	type ProfileEntry,
-	ProfileFormatError,
-	parseProfileDocument,
-	resolveProfilesToBuild,
 } from '../../core/pipeline/profile-resolver.ts';
 import { collectDependencyDictionary } from '../../core/pipeline/theme-pipeline.ts';
-import {
-	type LoadedDesignTokenWorkspace,
-	loadDesignTokenWorkspace,
-} from '../../core/pipeline/workspace-loader.ts';
+import { loadDesignTokenSource } from '../../core/pipeline/workspace-loader.ts';
 import type { DoctorFinding, DoctorThemeReport } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 import {
@@ -141,7 +132,6 @@ interface DoctorCommandOptions {
 	file?: string;
 	contrast?: boolean;
 	night?: boolean;
-	profile?: string;
 	theme?: boolean;
 	json?: boolean;
 	verbose?: boolean;
@@ -153,47 +143,9 @@ interface CreateDoctorCommandOptions {
 	coreOnly?: boolean;
 }
 
-function defaultProfileDocument(
-	workspace: LoadedDesignTokenWorkspace,
-	entry: ProfileEntry,
-): ProfileDocument {
-	return {
-		entry,
-		config: workspace.config,
-		buildDir: workspace.workspaceDir,
-		tokenContent: workspace.tokenContent,
-	};
-}
-
-async function selectProfileDocument(
-	workspace: LoadedDesignTokenWorkspace,
-	profile?: string,
-): Promise<{ document: ProfileDocument; entry: ProfileEntry }> {
-	const profiles = await discoverProfiles(workspace.workspaceDir);
-	const baseEntry = profiles.find((entry) => entry.isDefault);
-	if (!baseEntry) throw new Error('No main.yaml found');
-	const baseDocument = defaultProfileDocument(workspace, baseEntry);
-	const entry = resolveProfilesToBuild(profiles, {
-		night: false,
-		...(profile ? { profile } : {}),
-	})[0]!;
-	const document = entry.isDefault
-		? baseDocument
-		: await parseProfileDocument(entry, {
-				baseConfig: baseDocument.config,
-				baseTree: yaml.load(baseDocument.tokenContent) as Record<
-					string,
-					unknown
-				>,
-				baseId: workspace.themeId,
-				baseDir: workspace.workspaceDir,
-			});
-	return { document, entry };
-}
-
 function renderWorkspaceLoadFailure(
 	result: Extract<
-		Awaited<ReturnType<typeof loadDesignTokenWorkspace>>,
+		Awaited<ReturnType<typeof loadDesignTokenSource>>,
 		{ ok: false }
 	>,
 ): void {
@@ -272,6 +224,121 @@ function renderThemeIdentityReport(
 	}
 }
 
+export async function runDesignTokenContrastCheck(options: {
+	file?: string;
+	night?: boolean;
+}): Promise<void> {
+	const fileInput = resolveExclusiveFileInput(undefined, options.file, {
+		label: 'WCAG source input',
+		hint: 'Use one Day source YAML or workspace directory.',
+	});
+	if (!fileInput.ok) {
+		console.error(fileInput.message);
+		process.exitCode = ExitCode.INVALID_PARAMETER;
+		return;
+	}
+	const sourcePath = await expandMainYamlEntry(fileInput.path);
+	const loadResult = await loadDesignTokenSource(sourcePath);
+	if (!loadResult.ok) {
+		renderWorkspaceLoadFailure(loadResult);
+		return;
+	}
+
+	const { source } = loadResult;
+	const { workspace, entry } = source;
+	const document = source.document;
+	const profileDictResult = await collectDependencyDictionary(
+		document.config,
+		document.buildDir,
+	);
+
+	let contextPath = entry.path;
+	let contextContent = document.tokenContent;
+	let displayThemeName = entry.isDefault
+		? workspace.config.theme
+		: `${workspace.config.theme}-${entry.name}`;
+	if (options.night) {
+		if (!entry.nightPath) {
+			console.log(NIGHT_SKIP_MESSAGE);
+			process.exitCode = ExitCode.SUCCESS;
+			return;
+		}
+		const dayRaw = yaml.load(document.tokenContent);
+		const nightRaw = yaml.load(await Bun.file(entry.nightPath).text());
+		const merged =
+			typeof dayRaw === 'object' &&
+			dayRaw !== null &&
+			!Array.isArray(dayRaw) &&
+			typeof nightRaw === 'object' &&
+			nightRaw !== null &&
+			!Array.isArray(nightRaw)
+				? mergeNightOverlay(
+						dayRaw as Record<string, unknown>,
+						nightRaw as Record<string, unknown>,
+					)
+				: { ok: false as const, message: NIGHT_SKIP_MESSAGE };
+		if (!merged.ok) {
+			if ('error' in merged) {
+				console.log(`✗ ${merged.error}`);
+				process.exitCode = ExitCode.FORMAT_ERROR;
+				return;
+			}
+			console.log(NIGHT_SKIP_MESSAGE);
+			process.exitCode = ExitCode.SUCCESS;
+			return;
+		}
+		contextContent = yaml.dump(merged.tree, { lineWidth: -1 });
+		contextPath = entry.nightPath;
+		displayThemeName = `${displayThemeName}-night`;
+	}
+
+	const ctxResult = await createThemeDoctorContextFromContent(
+		contextPath,
+		contextContent,
+		profileDictResult.dict,
+	);
+	if (!ctxResult.ok) {
+		console.log(`✗ ${ctxResult.findings[0]!.message}`);
+		process.exitCode = ctxResult.exitCode;
+		return;
+	}
+
+	const checkResult = await runThemeContrastCheck(ctxResult.context);
+	console.log('Contrast Check');
+	console.log(SEPARATOR);
+	console.log(displayThemeName);
+	console.log(SEPARATOR);
+
+	if (
+		checkResult.reports.length === 0 &&
+		checkResult.blockingErrors.length === 0
+	) {
+		console.log('No wcagPairs found to evaluate.');
+		process.exitCode = ExitCode.SUCCESS;
+		return;
+	}
+
+	for (let i = 0; i < checkResult.reports.length; i++) {
+		const report = checkResult.reports[i];
+		if (!report) continue;
+		if (i > 0) console.log(SEPARATOR);
+		console.log(report.pair.name);
+		console.log(`  ${report.ratio.toFixed(2)}:1`);
+		console.log('Score');
+		for (const line of renderScoreLines(report)) console.log(line);
+	}
+	console.log(SEPARATOR);
+
+	if (checkResult.blockingErrors.length > 0) {
+		console.log('');
+		for (const err of checkResult.blockingErrors)
+			console.log(`✗ ${err.message}`);
+		process.exitCode = ExitCode.GENERAL_ERROR;
+	} else {
+		process.exitCode = ExitCode.SUCCESS;
+	}
+}
+
 export function createDoctorCommand(
 	name = 'doctor',
 	commandOptions: CreateDoctorCommandOptions = {},
@@ -283,20 +350,20 @@ export function createDoctorCommand(
 	);
 	if (!commandOptions.coreOnly) {
 		command
-			.option('-f, --file <path>', 'main.yaml path to validate')
+			.option('-f, --file <path>', 'Day source YAML or workspace directory')
 			.option('-o, --output <path>', 'Output directory to check')
 			.option('--contrast', 'Run WCAG contrast check on theme colors')
-			.option('--night', 'Check night profile (use with --contrast)')
-			.option(
-				'--profile <name>',
-				'Check a specific profile instead of the whole workspace',
-			);
+			.option('--night', 'Check Night overlay (use with --contrast)');
 	}
 	command
 		.option('--json', 'Output structured JSON for core diagnostics')
 		.option('--verbose', 'Show detailed core diagnostics')
 		.option('--status', 'Show compact core health status')
-		.action(async (options: DoctorCommandOptions) => {
+		.action(async (options: DoctorCommandOptions, command: Command) => {
+			const parentOptions = command.parent?.opts() as
+				| DoctorCommandOptions
+				| undefined;
+			options = { ...parentOptions, ...options };
 			if (commandOptions.coreOnly) {
 				const result = await runToolchainDoctor({ module: 'core' });
 				if (options.json) console.log(JSON.stringify(result, null, 2));
@@ -340,21 +407,22 @@ export function createDoctorCommand(
 					commandOptions.defaultMainYaml === true ||
 					options.file !== undefined
 				) {
-					const loadResult = await loadDesignTokenWorkspace(options.file);
+					const loadResult = await loadDesignTokenSource(options.file);
 					if (!loadResult.ok) {
 						renderWorkspaceLoadFailure(loadResult);
 						return;
 					}
 
 					const health = await inspectWorkspaceHealth(
-						loadResult.workspace,
-						options.profile,
+						loadResult.source.workspace,
+						undefined,
+						loadResult.source,
 					);
 					workspaceFindings.push(...health.findings);
 					identity = health.identity;
 					workspaceExitCode = health.exitCode;
 					const selected = health.selectedDocument;
-					workspaceTheme = loadResult.workspace.config.theme;
+					workspaceTheme = loadResult.source.workspace.config.theme;
 					if (selected) {
 						resourcesChecked = true;
 						const resourceResult = await validateDeclaredResources(
@@ -524,129 +592,7 @@ export function createDoctorCommand(
 				return;
 			}
 
-			// --contrast mode
-			const loadResult = await loadDesignTokenWorkspace(options.file);
-			if (!loadResult.ok) {
-				renderWorkspaceLoadFailure(loadResult);
-				return;
-			}
-
-			const { workspace } = loadResult;
-			const themeName = workspace.config.theme;
-			let selected: Awaited<ReturnType<typeof selectProfileDocument>>;
-			try {
-				selected = await selectProfileDocument(workspace, options.profile);
-			} catch (error) {
-				console.log(
-					`✗ ${error instanceof Error ? error.message : String(error)}`,
-				);
-				process.exitCode =
-					error instanceof ProfileFormatError
-						? error.exitCode
-						: ExitCode.FILE_NOT_FOUND;
-				return;
-			}
-			const selectedEntry = selected.entry;
-			const selectedDocument = selected.document;
-			const profileDictResult = await collectDependencyDictionary(
-				selectedDocument.config,
-				selectedDocument.buildDir,
-			);
-
-			let contextPath = selectedEntry.path;
-			let contextContent = selectedDocument.tokenContent;
-			let displayThemeName = selectedEntry.isDefault
-				? themeName
-				: `${themeName}-${selectedEntry.name}`;
-			if (options.night) {
-				if (!selectedEntry.nightPath) {
-					console.log(NIGHT_SKIP_MESSAGE);
-					process.exitCode = ExitCode.SUCCESS;
-					return;
-				}
-				const dayRaw = yaml.load(selectedDocument.tokenContent);
-				const nightRaw = yaml.load(
-					await Bun.file(selectedEntry.nightPath).text(),
-				);
-				const merged =
-					typeof dayRaw === 'object' &&
-					dayRaw !== null &&
-					!Array.isArray(dayRaw) &&
-					typeof nightRaw === 'object' &&
-					nightRaw !== null &&
-					!Array.isArray(nightRaw)
-						? mergeNightOverlay(
-								dayRaw as Record<string, unknown>,
-								nightRaw as Record<string, unknown>,
-							)
-						: { ok: false as const, message: NIGHT_SKIP_MESSAGE };
-				if (!merged.ok) {
-					if ('error' in merged) {
-						console.log(`✗ ${merged.error}`);
-						process.exitCode = ExitCode.FORMAT_ERROR;
-						return;
-					}
-					console.log(NIGHT_SKIP_MESSAGE);
-					process.exitCode = ExitCode.SUCCESS;
-					return;
-				}
-				contextContent = yaml.dump(merged.tree, { lineWidth: -1 });
-				contextPath = selectedEntry.nightPath;
-				displayThemeName = `${displayThemeName}-night`;
-			}
-
-			const ctxResult = await createThemeDoctorContextFromContent(
-				contextPath,
-				contextContent,
-				profileDictResult.dict,
-			);
-			if (!ctxResult.ok) {
-				console.log(`✗ ${ctxResult.findings[0]!.message}`);
-				process.exitCode = ctxResult.exitCode;
-				return;
-			}
-
-			const context = ctxResult.context;
-			const checkResult = await runThemeContrastCheck(context);
-
-			console.log('Contrast Check');
-			console.log(SEPARATOR);
-			console.log(displayThemeName);
-			console.log(SEPARATOR);
-
-			if (
-				checkResult.reports.length === 0 &&
-				checkResult.blockingErrors.length === 0
-			) {
-				console.log('No wcagPairs found to evaluate.');
-				process.exitCode = ExitCode.SUCCESS;
-				return;
-			}
-
-			for (let i = 0; i < checkResult.reports.length; i++) {
-				const report = checkResult.reports[i];
-				if (!report) continue;
-				if (i > 0) {
-					console.log(SEPARATOR);
-				}
-				console.log(report.pair.name);
-				console.log(`  ${report.ratio.toFixed(2)}:1`);
-				console.log('Score');
-				for (const line of renderScoreLines(report)) {
-					console.log(line);
-				}
-			}
-			console.log(SEPARATOR);
-
-			if (checkResult.blockingErrors.length > 0) {
-				console.log('');
-				for (const err of checkResult.blockingErrors) {
-					console.log(`✗ ${err.message}`);
-				}
-				process.exitCode = ExitCode.GENERAL_ERROR;
-			} else {
-				process.exitCode = ExitCode.SUCCESS;
-			}
+			await runDesignTokenContrastCheck(options);
 		});
 	return command;
 }

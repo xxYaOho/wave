@@ -27,7 +27,7 @@ import {
 	collectDependencyDictionary,
 	type LoadedDependency,
 } from './theme-pipeline.ts';
-import { loadDesignTokenWorkspace } from './workspace-loader.ts';
+import { loadDesignTokenSource } from './workspace-loader.ts';
 
 function parseYamlObject(content: string): Record<string, unknown> | undefined {
 	const parsed = yaml.load(content);
@@ -154,7 +154,7 @@ export async function generateTheme(
 		if (!ctx) logger.warn(NIGHT_SKIP_MESSAGE);
 	};
 
-	const loadResult = await loadDesignTokenWorkspace(workspacePath);
+	const loadResult = await loadDesignTokenSource(workspacePath);
 	if (!loadResult.ok) {
 		ctx?.markFailed('load', loadResult.message, {
 			phase: 'workspace load',
@@ -167,15 +167,28 @@ export async function generateTheme(
 		};
 	}
 
-	const { workspace } = loadResult;
+	const { source } = loadResult;
+	const { workspace } = source;
+	if (source.kind === 'profile' && generateOptions.profiles === 'all') {
+		const message =
+			'--profiles all requires a main.yaml or workspace directory input';
+		ctx?.markFailed('load', message, { phase: 'source selection' });
+		return { ok: false, exitCode: ExitCode.INVALID_PARAMETER, message };
+	}
 	const generatedFiles: string[] = [];
 	const preparedPasses: PreparedServicePass[] = [];
 	const recordedResources = new Set<string>();
-	const profiles = await discoverProfiles(workspace.workspaceDir);
+	const profiles =
+		source.kind === 'main'
+			? await discoverProfiles(workspace.workspaceDir)
+			: [source.entry];
 
 	let selectedProfiles: ProfileEntry[];
 	try {
-		selectedProfiles = resolveProfilesToBuild(profiles, generateOptions);
+		selectedProfiles =
+			source.kind === 'profile'
+				? [source.entry]
+				: resolveProfilesToBuild(profiles, generateOptions);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		ctx?.markFailed('load', message, { phase: 'profile resolve' });
@@ -183,16 +196,25 @@ export async function generateTheme(
 	}
 
 	ctx?.setProfiles(
-		generateOptions.profiles === 'all'
-			? 'all'
-			: generateOptions.profile
-				? 'single'
-				: 'default',
+		source.kind === 'profile'
+			? 'single'
+			: generateOptions.profiles === 'all'
+				? 'all'
+				: generateOptions.profile
+					? 'single'
+					: 'default',
 		selectedProfiles.length,
 		selectedProfiles.map((profile) => profile.name),
 	);
 
-	const baseProfile = profiles.find((profile) => profile.isDefault);
+	const baseProfile =
+		source.kind === 'main'
+			? profiles.find((profile) => profile.isDefault)
+			: {
+					name: 'main',
+					path: workspace.path,
+					isDefault: true,
+				};
 	if (!baseProfile) {
 		const message = 'No main.yaml found';
 		ctx?.markFailed('load', message, { phase: 'profile resolve' });
@@ -221,14 +243,17 @@ export async function generateTheme(
 	for (const entry of selectedProfiles) {
 		let document: ProfileDocument;
 		try {
-			document = entry.isDefault
-				? baseDocument
-				: await parseProfileDocument(entry, {
-						baseConfig: baseDocument.config,
-						baseTree: baseDayTree,
-						baseId: baseDocument.themeId,
-						baseDir: workspace.workspaceDir,
-					});
+			document =
+				source.kind === 'profile'
+					? source.document
+					: entry.isDefault
+						? baseDocument
+						: await parseProfileDocument(entry, {
+								baseConfig: baseDocument.config,
+								baseTree: baseDayTree,
+								baseId: baseDocument.themeId,
+								baseDir: workspace.workspaceDir,
+							});
 		} catch (error) {
 			if (!(error instanceof ProfileFormatError)) throw error;
 			ctx?.markFailed('parse', error.message, { phase: 'profile merge' });

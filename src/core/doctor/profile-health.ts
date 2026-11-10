@@ -10,7 +10,10 @@ import {
 	parseProfileDocument,
 	resolveProfilesToBuild,
 } from '../pipeline/profile-resolver.ts';
-import type { LoadedDesignTokenWorkspace } from '../pipeline/workspace-loader.ts';
+import type {
+	LoadedDesignTokenSource,
+	LoadedDesignTokenWorkspace,
+} from '../pipeline/workspace-loader.ts';
 import {
 	collectThemeIdentityReport,
 	identityBlockingFindings,
@@ -34,6 +37,7 @@ function record(value: unknown): value is Record<string, unknown> {
 export async function inspectWorkspaceHealth(
 	workspace: LoadedDesignTokenWorkspace,
 	profile?: string,
+	source?: LoadedDesignTokenSource,
 ): Promise<WorkspaceHealthResult> {
 	const result: WorkspaceHealthResult = {
 		findings: [],
@@ -41,12 +45,16 @@ export async function inspectWorkspaceHealth(
 		exitCode: ExitCode.SUCCESS,
 	};
 	try {
-		const entries = await discoverProfiles(workspace.workspaceDir);
-		const selected = resolveProfilesToBuild(entries, {
-			night: false,
-			...(profile ? { profile } : {}),
-		})[0]!;
-		const scope = profile ? [selected] : entries;
+		const entries = source
+			? [source.entry]
+			: await discoverProfiles(workspace.workspaceDir);
+		const selected =
+			source?.entry ??
+			resolveProfilesToBuild(entries, {
+				night: false,
+				...(profile ? { profile } : {}),
+			})[0]!;
+		const scope = source || profile ? [selected] : entries;
 		const baseTree = yaml.load(workspace.tokenContent) as Record<
 			string,
 			unknown
@@ -60,15 +68,20 @@ export async function inspectWorkspaceHealth(
 		for (const entry of scope) {
 			if (entry.isDefault) {
 				if (selected.isDefault)
-					result.selectedDocument = {
+					result.selectedDocument = source?.document ?? {
 						entry,
 						config: workspace.config,
 						buildDir: workspace.workspaceDir,
+						themeId: workspace.themeId,
 						tokenContent: workspace.tokenContent,
 					};
 				continue;
 			}
 			try {
+				if (source && entry.path === source.entry.path) {
+					result.selectedDocument = source.document;
+					continue;
+				}
 				const root = yaml.load(await Bun.file(entry.path).text());
 				if (
 					record(root) &&
@@ -117,17 +130,45 @@ export async function inspectWorkspaceHealth(
 				result.exitCode = ExitCode.FORMAT_ERROR;
 			}
 		}
-		const files = await detectThemeFiles(workspace.workspaceDir);
+		const files = source
+			? [
+					{
+						name: 'main',
+						path: workspace.path,
+						suffix: '',
+					},
+					...(source.entry.isDefault
+						? []
+						: [
+								{
+									name: source.entry.name,
+									path: source.entry.path,
+									suffix: `-${source.entry.name}`,
+								},
+							]),
+					...(source.entry.nightPath
+						? [
+								{
+									name: `${source.entry.name}@night`,
+									path: source.entry.nightPath,
+									suffix: `-${source.entry.name}-night`,
+								},
+							]
+						: []),
+				]
+			: await detectThemeFiles(workspace.workspaceDir);
 		const labels = new Map(
 			files.map((entry) => [
 				entry.name,
 				path.relative(workspace.workspaceDir, entry.path),
 			]),
 		);
-		const selectedPaths = new Set([selected.path, selected.nightPath]);
+		const selectedPaths = source
+			? new Set([workspace.path, selected.path, selected.nightPath])
+			: new Set([selected.path, selected.nightPath]);
 		const inputs = await loadIdentityInputs(
 			files
-				.filter((entry) => !profile || selectedPaths.has(entry.path))
+				.filter((entry) => source || !profile || selectedPaths.has(entry.path))
 				.map((entry) => ({
 					label: path.relative(workspace.workspaceDir, entry.path),
 					path: entry.path,

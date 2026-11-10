@@ -23,6 +23,80 @@ async function runWave(
 }
 
 describe('wave token', () => {
+	test('build consumes a Day profile from an arbitrary directory via -f', async () => {
+		const dir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-token-profile-source-'),
+		);
+		const outputDir = path.join(dir, 'out');
+		const profileDir = path.join(dir, 'themes', 'mobile');
+		await fs.mkdir(profileDir, { recursive: true });
+		const mainPath = path.join(dir, 'main.yaml');
+		const profilePath = path.join(profileDir, 'mobile.yaml');
+		try {
+			await fs.writeFile(
+				mainPath,
+				`$id: cli-source-base
+$config:
+  theme: cli-source
+  parameter:
+    platform: [json]
+theme:
+  color:
+    primary: { $id: primary-id, $type: color, $value: "#112233" }
+`,
+			);
+			await fs.writeFile(
+				profilePath,
+				`$config:
+  base: cli-source-base
+$override:
+  primary-id:
+    $value: "#445566"
+`,
+			);
+			const result = await runWave(
+				['token', 'build', '-f', profilePath, '--output', outputDir],
+				dir,
+			);
+			expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
+			expect(
+				await Bun.file(path.join(outputDir, 'cli-source-mobile.json')).exists(),
+			).toBe(true);
+			expect(result.stdout).toContain('cli-source-mobile.json');
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
+	test('build rejects --profiles all when -f selects a profile source', async () => {
+		const dir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-token-profile-all-'),
+		);
+		const profileDir = path.join(dir, 'custom');
+		await fs.mkdir(profileDir, { recursive: true });
+		const profilePath = path.join(profileDir, 'mobile.yaml');
+		try {
+			await fs.writeFile(
+				path.join(dir, 'main.yaml'),
+				'$id: cli-source-base\n$config:\n  theme: cli-source\ntheme: {}\n',
+			);
+			await fs.writeFile(
+				profilePath,
+				'$config:\n  base: cli-source-base\ntheme: {}\n',
+			);
+			const result = await runWave(
+				['token', 'build', '-f', profilePath, '--profiles', 'all'],
+				dir,
+			);
+			expect(result.exitCode).toBe(5);
+			expect(`${result.stdout}\n${result.stderr}`).toContain(
+				'--profiles all requires a main.yaml',
+			);
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
+		}
+	});
+
 	test('token and token build both enter the build implementation', async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-token-shape-'));
 		try {

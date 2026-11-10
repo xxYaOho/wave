@@ -7,9 +7,17 @@ import type {
 } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 import { validateMainConfig } from '../validator/design-token-config.ts';
+import {
+	normalizeProfileName,
+	type ProfileDocument,
+	type ProfileEntry,
+	ProfileFormatError,
+	parseProfileDocument,
+} from './profile-resolver.ts';
 
 const ENTRY_HINT =
 	'Use main.yaml as the workspace entry or run wave token new.';
+const DEFAULT_MAIN_YAML = 'main.yaml';
 
 export interface LoadedDesignTokenWorkspace {
 	path: string;
@@ -22,6 +30,18 @@ export interface LoadedDesignTokenWorkspace {
 
 export type WorkspaceLoadResult =
 	| { ok: true; workspace: LoadedDesignTokenWorkspace }
+	| { ok: false; exitCode: ExitCodeType; message: string; path: string };
+
+export interface LoadedDesignTokenSource {
+	kind: 'main' | 'profile';
+	path: string;
+	workspace: LoadedDesignTokenWorkspace;
+	entry: ProfileEntry;
+	document: ProfileDocument;
+}
+
+export type SourceLoadResult =
+	| { ok: true; source: LoadedDesignTokenSource }
 	| { ok: false; exitCode: ExitCodeType; message: string; path: string };
 
 function expandHomePath(input: string): string {
@@ -49,6 +69,205 @@ function errorCode(error: unknown): string | undefined {
 	if (!error || typeof error !== 'object' || !('code' in error))
 		return undefined;
 	return String((error as { code?: unknown }).code);
+}
+
+function sourceFailure(
+	filePath: string,
+	exitCode: ExitCodeType,
+	reason: string,
+): SourceLoadResult {
+	return {
+		ok: false,
+		exitCode,
+		path: filePath,
+		message: `${reason}: ${filePath}. ${ENTRY_HINT}`,
+	};
+}
+
+async function findAncestorMain(
+	profilePath: string,
+): Promise<string | undefined> {
+	let directory = path.dirname(profilePath);
+	while (true) {
+		const candidate = path.join(directory, DEFAULT_MAIN_YAML);
+		try {
+			const stats = await fs.stat(candidate);
+			if (stats.isFile()) return candidate;
+		} catch {
+			// Continue towards the filesystem root.
+		}
+		const parent = path.dirname(directory);
+		if (parent === directory) return undefined;
+		directory = parent;
+	}
+}
+
+async function mainProfileEntry(
+	workspace: LoadedDesignTokenWorkspace,
+): Promise<ProfileEntry> {
+	const nightPath = path.join(workspace.workspaceDir, 'main@night.yaml');
+	let hasNight = false;
+	try {
+		hasNight = (await fs.stat(nightPath)).isFile();
+	} catch {
+		// Night is optional for source selection.
+	}
+	return {
+		name: 'main',
+		path: workspace.path,
+		isDefault: true,
+		...(hasNight ? { nightPath } : {}),
+	};
+}
+
+/**
+ * Resolve a token source document for commands that operate on one Day
+ * document. A main file or directory keeps the existing workspace contract;
+ * any other YAML file is treated as a profile and merged against the nearest
+ * ancestor main.yaml.
+ */
+export async function loadDesignTokenSource(
+	input?: string,
+	cwd = process.cwd(),
+): Promise<SourceLoadResult> {
+	const expandedInput = expandHomePath(input ?? DEFAULT_MAIN_YAML);
+	const suppliedPath = path.isAbsolute(expandedInput)
+		? path.normalize(expandedInput)
+		: path.resolve(cwd, expandedInput);
+
+	let sourcePath = suppliedPath;
+	try {
+		const stats = await fs.stat(suppliedPath);
+		if (stats.isDirectory())
+			sourcePath = path.join(suppliedPath, DEFAULT_MAIN_YAML);
+		else if (!stats.isFile()) {
+			return sourceFailure(
+				suppliedPath,
+				ExitCode.INVALID_PARAMETER,
+				'Invalid design token source; expected a regular YAML file or workspace directory',
+			);
+		}
+	} catch (error) {
+		if (errorCode(error) === 'ENOENT') {
+			return sourceFailure(
+				suppliedPath,
+				ExitCode.FILE_NOT_FOUND,
+				'Design token source not found',
+			);
+		}
+		return sourceFailure(
+			suppliedPath,
+			ExitCode.GENERAL_ERROR,
+			'Unable to inspect design token source',
+		);
+	}
+
+	if (path.basename(sourcePath) === DEFAULT_MAIN_YAML) {
+		const loaded = await loadDesignTokenWorkspace(sourcePath);
+		if (!loaded.ok) return loaded;
+		const entry = await mainProfileEntry(loaded.workspace);
+		return {
+			ok: true,
+			source: {
+				kind: 'main',
+				path: loaded.workspace.path,
+				workspace: loaded.workspace,
+				entry,
+				document: {
+					entry,
+					config: loaded.workspace.config,
+					buildDir: loaded.workspace.workspaceDir,
+					themeId: loaded.workspace.themeId,
+					tokenContent: loaded.workspace.tokenContent,
+				},
+			},
+		};
+	}
+
+	if (
+		!sourcePath.endsWith('.yaml') ||
+		path.basename(sourcePath).endsWith('@night.yaml')
+	) {
+		return sourceFailure(
+			sourcePath,
+			ExitCode.INVALID_PARAMETER,
+			'Invalid design token source; expected main.yaml or a Day profile YAML file',
+		);
+	}
+
+	const mainPath = await findAncestorMain(sourcePath);
+	if (!mainPath) {
+		return sourceFailure(
+			sourcePath,
+			ExitCode.INVALID_PARAMETER,
+			'Unable to locate an ancestor main.yaml for profile source',
+		);
+	}
+	const loaded = await loadDesignTokenWorkspace(mainPath);
+	if (!loaded.ok) return loaded;
+
+	let name: string;
+	try {
+		name = normalizeProfileName(path.basename(sourcePath, '.yaml'));
+	} catch (error) {
+		return sourceFailure(
+			sourcePath,
+			ExitCode.INVALID_PARAMETER,
+			error instanceof Error ? error.message : String(error),
+		);
+	}
+	let nightPath: string | undefined;
+	const siblingNightPath = path.join(
+		path.dirname(sourcePath),
+		`${path.basename(sourcePath, '.yaml')}@night.yaml`,
+	);
+	try {
+		if ((await fs.stat(siblingNightPath)).isFile())
+			nightPath = siblingNightPath;
+	} catch {
+		// Night is optional for source selection.
+	}
+	const entry: ProfileEntry = {
+		name,
+		path: sourcePath,
+		isDefault: false,
+		nightPath,
+	};
+	try {
+		const document = await parseProfileDocument(entry, {
+			baseConfig: loaded.workspace.config,
+			baseTree: yaml.load(loaded.workspace.tokenContent) as Record<
+				string,
+				unknown
+			>,
+			baseId: loaded.workspace.themeId,
+			baseDir: loaded.workspace.workspaceDir,
+		});
+		return {
+			ok: true,
+			source: {
+				kind: 'profile',
+				path: sourcePath,
+				workspace: loaded.workspace,
+				entry,
+				document,
+			},
+		};
+	} catch (error) {
+		if (error instanceof ProfileFormatError) {
+			return {
+				ok: false,
+				exitCode: error.exitCode,
+				path: sourcePath,
+				message: `${error.message}. ${ENTRY_HINT}`,
+			};
+		}
+		return sourceFailure(
+			sourcePath,
+			ExitCode.FORMAT_ERROR,
+			error instanceof Error ? error.message : String(error),
+		);
+	}
 }
 
 export async function loadDesignTokenWorkspace(

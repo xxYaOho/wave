@@ -24,6 +24,26 @@ async function runWave(
 }
 
 describe('wave doctor', () => {
+	test('token doctor and wcag consume an explicitly selected profile source', async () => {
+		const profilePath = path.join(
+			rootDir,
+			'tests/fixtures/themes/profile-model/profiles/mobile.yaml',
+		);
+		const doctor = await runWave([
+			'token',
+			'doctor',
+			'--json',
+			'-f',
+			profilePath,
+		]);
+		expect(doctor.exitCode).toBe(0);
+		expect(doctor.stdout).toContain('profiles/mobile.yaml');
+
+		const wcag = await runWave(['token', 'wcag', '-f', profilePath]);
+		expect(wcag.exitCode).toBe(0);
+		expect(wcag.stdout).toContain('profile-model-mobile');
+	});
+
 	test('top-level doctor runs toolchain diagnostics without main.yaml', async () => {
 		const { exitCode, stdout } = await runWave(['doctor']);
 		expect(exitCode).toBe(0);

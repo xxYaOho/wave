@@ -16,16 +16,13 @@ export interface DesignTokenBuildOptions {
 	file?: string;
 	manual?: boolean;
 	night?: boolean;
-	profile?: string;
 	profiles?: string;
 	output?: string;
-	platform?: string;
 }
 
 function parseCliOptions(options: DesignTokenBuildOptions): GenerateOptions {
 	const result: GenerateOptions = { night: options.night === true };
 
-	if (options.profile) result.profile = options.profile.trim();
 	if (options.profiles !== undefined) {
 		const normalized = options.profiles.trim().toLowerCase();
 		if (normalized !== 'all') {
@@ -33,27 +30,18 @@ function parseCliOptions(options: DesignTokenBuildOptions): GenerateOptions {
 		}
 		result.profiles = 'all';
 	}
-	if (result.profile && result.profiles) {
-		throw new Error('Use either --profile <name> or --profiles all, not both');
-	}
-
 	return result;
 }
 
 export function addBuildOptions(command: Command): Command {
 	return command
-		.option('-f, --file <path>', 'main.yaml path. Default: ./main.yaml')
 		.option(
-			'--profile <name>',
-			'Build one named profile from profiles/<name>.yaml',
+			'-f, --file <path>',
+			'Day source YAML or workspace directory. Default: ./main.yaml',
 		)
 		.option('--profiles <mode>', 'Build profile set. Supported: all')
 		.option('--night', 'Include valid Night Mode overlays when available')
-		.option('--output <dir>', 'Output directory')
-		.option(
-			'--platform <list>',
-			'Output platforms (comma separated): json, jsonc, css, sketch, md-yml',
-		);
+		.option('--output <dir>', 'Output directory');
 }
 
 export async function runDesignTokenBuild(
@@ -80,7 +68,6 @@ export async function runDesignTokenBuild(
 		const input: ThemeGenerationInput = {
 			workspacePath: await expandMainYamlEntry(fileInput.path),
 			cliOutput: output,
-			cliPlatform: options.platform,
 			generateOptions: parseCliOptions(options),
 		};
 		spinner.start('Generating theme...');
@@ -107,8 +94,11 @@ export async function runDesignTokenBuild(
 export function createDesignTokenBuildCommand(name = 'build'): Command {
 	const command = new Command(name).description('Generate design token output');
 	addBuildOptions(command);
-	command.action(async (options: DesignTokenBuildOptions) => {
-		await runDesignTokenBuild(options);
+	command.action(async (options: DesignTokenBuildOptions, command: Command) => {
+		const parentOptions = command.parent?.opts() as
+			| DesignTokenBuildOptions
+			| undefined;
+		await runDesignTokenBuild({ ...parentOptions, ...options });
 	});
 	return command;
 }

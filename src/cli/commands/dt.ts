@@ -13,7 +13,7 @@ import {
 	type DesignTokenBuildOptions,
 	runDesignTokenBuild,
 } from './build.ts';
-import { createDoctorCommand } from './doctor.ts';
+import { createDoctorCommand, runDesignTokenContrastCheck } from './doctor.ts';
 import { createIdsCommand } from './dt-ids.ts';
 import { createShowCommand } from './show.ts';
 import { createTokenMigrateCommand } from './token-migrate.ts';
@@ -22,21 +22,17 @@ import { createTokenNewCommand } from './token-new.ts';
 export function createWcagCommand(): Command {
 	return new Command('wcag')
 		.description('Run WCAG contrast checks')
-		.option('-f, --file <path>', 'main.yaml path to validate')
-		.option('--night', 'Check night profile')
-		.action(async (options: { file?: string; night?: boolean }) => {
-			const args = ['--contrast'];
-			if (options.file) {
-				args.push('--file', options.file);
-			}
-			if (options.night) {
-				args.push('--night');
-			}
-			const doctor = createDoctorCommand('doctor');
-			await doctor.parseAsync(['bun', 'wave token wcag', ...args], {
-				from: 'node',
-			});
-		});
+		.option('-f, --file <path>', 'Day source YAML or workspace directory')
+		.option('--night', 'Check Night overlay')
+		.action(
+			async (options: { file?: string; night?: boolean }, command: Command) => {
+				const parentOptions = command.parent?.opts() as {
+					file?: string;
+					night?: boolean;
+				};
+				return runDesignTokenContrastCheck({ ...parentOptions, ...options });
+			},
+		);
 }
 
 function createUpdateCommand(): Command {
