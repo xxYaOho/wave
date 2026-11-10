@@ -42,6 +42,13 @@ describe('public CLI command shape', () => {
 		expect(result.stdout).not.toContain('--out <path>');
 	});
 
+	test('all token output help uses the shared short output flag', async () => {
+		const result = await runWave(['token', 'build', '--help']);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain('-o, --output <path>');
+		expect(result.stdout).not.toContain('--out <path>');
+	});
+
 	test('token new exposes profile and night creation commands', async () => {
 		const result = await runWave(['token', 'new', '--help']);
 		expect(result.exitCode).toBe(0);

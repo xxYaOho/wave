@@ -26,12 +26,18 @@ export function createToolModuleCommand(
 }
 
 export function createToolDoctorCommand(module: ToolModule): Command {
-	return new Command('doctor')
+	const command = new Command('doctor')
 		.description(`Check ${module} toolchain`)
-		.option('--json', 'Output structured JSON only')
 		.option('--verbose', 'Show detailed tool status')
-		.option('--status', 'Show compact health status')
-		.action(async (options: ToolDoctorOptions) => {
+		.option('--status', 'Show compact health status');
+	if (module !== 'compress')
+		command.option('--json', 'Output structured JSON only');
+	return command.action(
+		async (options: ToolDoctorOptions, current: Command) => {
+			const parentOptions = current.parent?.opts() as
+				| ToolDoctorOptions
+				| undefined;
+			options = { ...parentOptions, ...options };
 			const result = await runToolchainDoctor({ module });
 			if (options.json) {
 				console.log(JSON.stringify(result, null, 2));
@@ -43,7 +49,8 @@ export function createToolDoctorCommand(module: ToolModule): Command {
 				renderDefault(result);
 			}
 			process.exitCode = result.ok ? ExitCode.SUCCESS : ExitCode.GENERAL_ERROR;
-		});
+		},
+	);
 }
 
 function renderDefault(result: ToolchainDoctorResult): void {

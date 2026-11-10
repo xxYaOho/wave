@@ -212,4 +212,18 @@ describe('wave doctor', () => {
 			await fs.rm(dir, { recursive: true, force: true });
 		}
 	});
+
+	test('doctor scopes reject cross-domain options with replacement commands', async () => {
+		const topLevel = await runWave(['doctor', '--contrast']);
+		expect(topLevel.exitCode).not.toBe(0);
+		expect(`${topLevel.stdout}\n${topLevel.stderr}`).toContain(
+			'wave token wcag --night',
+		);
+
+		const token = await runWave(['token', 'doctor', '--night']);
+		expect(token.exitCode).not.toBe(0);
+		expect(`${token.stdout}\n${token.stderr}`).toContain(
+			'wave token wcag --night',
+		);
+	});
 });

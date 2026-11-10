@@ -140,6 +140,18 @@ describe('wave compress', () => {
 		expect(stderr).toContain("too many arguments for 'compress'");
 	});
 
+	test('compress keeps repeatable type and rejects comma lists and legacy output', async () => {
+		const comma = await runWave(['compress', '--type', 'png,jpg', '--dry-run']);
+		expect(comma.exitCode).not.toBe(0);
+		expect(`${comma.stdout}\n${comma.stderr}`).toContain(
+			'Unsupported compress type: png,jpg',
+		);
+
+		const legacy = await runWave(['compress', '--out', 'dist', '--dry-run']);
+		expect(legacy.exitCode).not.toBe(0);
+		expect(legacy.stderr).toContain('unknown option');
+	});
+
 	test('dry-run previews supported files without writing output', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
 		const tools = await createFakeToolDir();

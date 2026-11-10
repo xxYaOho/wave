@@ -11,6 +11,7 @@ import {
 	expandMainYamlEntry,
 	resolveExclusiveFileInput,
 } from '../file-input.ts';
+import { addOutputOption } from '../options.ts';
 
 export interface DesignTokenBuildOptions {
 	file?: string;
@@ -34,14 +35,15 @@ function parseCliOptions(options: DesignTokenBuildOptions): GenerateOptions {
 }
 
 export function addBuildOptions(command: Command): Command {
-	return command
+	command
 		.option(
 			'-f, --file <path>',
 			'Day source YAML or workspace directory. Default: ./main.yaml',
 		)
 		.option('--profiles <mode>', 'Build profile set. Supported: all')
-		.option('--night', 'Include valid Night Mode overlays when available')
-		.option('--output <dir>', 'Output directory');
+		.option('--night', 'Include valid Night Mode overlays when available');
+	addOutputOption(command, 'Output directory');
+	return command;
 }
 
 export async function runDesignTokenBuild(

@@ -87,6 +87,12 @@ export interface WorkspaceCreateResult extends WorkspacePlan {
 	openWarning?: string;
 }
 
+export interface WorkspaceCreateOptions {
+	force?: boolean;
+	dryRun?: boolean;
+	openWorkspace?: (targetDir: string) => Promise<void>;
+}
+
 export class WorkspaceError extends Error {
 	constructor(
 		public code: WorkspaceErrorCode,
@@ -287,7 +293,7 @@ export function validateWorkspaceConfig(raw: unknown): WorkspaceConfig {
 export function buildWorkspacePlan(
 	config: WorkspaceConfig,
 	answers: WorkspaceAnswers,
-	options: { cwd?: string } = {},
+	options: { cwd?: string; output?: string } = {},
 ): WorkspacePlan {
 	const cwd = options.cwd ?? process.cwd();
 	const title = answers.title.trim();
@@ -327,8 +333,11 @@ export function buildWorkspacePlan(
 		validateNameSegment(part, 'workspace name part');
 	const workspaceName = nameParts.join(config.name.separator);
 	const baseDir = resolveWorkspacePath(config.baseDir, cwd);
-	const targetDir = path.join(baseDir, workspaceName);
-	assertInsideDirectory(baseDir, targetDir, 'workspace target');
+	const targetDir = options.output
+		? path.resolve(cwd, options.output)
+		: path.join(baseDir, workspaceName);
+	if (!options.output)
+		assertInsideDirectory(baseDir, targetDir, 'workspace target');
 
 	return {
 		config,
@@ -346,33 +355,55 @@ export function buildWorkspacePlan(
 
 export async function createWorkspace(
 	plan: WorkspacePlan,
-	options: {
-		openWorkspace?: (targetDir: string) => Promise<void>;
-	} = {},
+	options: WorkspaceCreateOptions = {},
 ): Promise<WorkspaceCreateResult> {
-	if (await fileExists(plan.targetDir)) {
+	const placeholderFiles: string[] = [];
+	const readmePath = path.join(plan.targetDir, 'README.md');
+	const targetState = await readPathState(plan.targetDir);
+	if (targetState && !targetState.isDirectory()) {
+		throw new WorkspaceError(
+			'WWK_WORKSPACE_EXISTS',
+			`Workspace target must be a directory: ${plan.targetDir}`,
+		);
+	}
+	if (targetState && !options.force) {
 		throw new WorkspaceError(
 			'WWK_WORKSPACE_EXISTS',
 			`Workspace already exists: ${plan.targetDir}`,
 		);
 	}
-
-	const placeholderFiles: string[] = [];
+	if (options.dryRun) {
+		for (const folder of plan.folders) {
+			if (folder.placeholder)
+				placeholderFiles.push(
+					path.join(plan.targetDir, folder.path, folder.placeholder),
+				);
+		}
+		return {
+			...plan,
+			placeholderFiles,
+			readmePath,
+			opened: false,
+		};
+	}
 	try {
 		await fs.mkdir(path.dirname(plan.targetDir), { recursive: true });
-		await fs.mkdir(plan.targetDir);
+		if (!targetState) await fs.mkdir(plan.targetDir);
 		for (const folder of plan.folders) {
 			const folderPath = path.join(plan.targetDir, folder.path);
-			await fs.mkdir(folderPath, { recursive: true });
+			await ensureDirectory(folderPath);
 			if (folder.placeholder) {
 				const placeholderPath = path.join(folderPath, folder.placeholder);
 				assertInsideDirectory(plan.targetDir, placeholderPath, 'placeholder');
-				await fs.writeFile(placeholderPath, '', 'utf-8');
+				await writeWorkspaceFile(placeholderPath, '', !!options.force);
 				placeholderFiles.push(placeholderPath);
 			}
 		}
-		const readmePath = path.join(plan.targetDir, 'README.md');
-		await fs.writeFile(readmePath, renderWorkspaceReadme(plan), 'utf-8');
+		await writeWorkspaceFile(
+			readmePath,
+			renderWorkspaceReadme(plan),
+			!!options.force,
+		);
 
 		let opened = false;
 		let openWarning: string | undefined;
@@ -394,6 +425,46 @@ export async function createWorkspace(
 			error,
 		);
 	}
+}
+
+async function readPathState(
+	filePath: string,
+): Promise<Awaited<ReturnType<typeof fs.lstat>> | undefined> {
+	try {
+		return await fs.lstat(filePath);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+		throw error;
+	}
+}
+
+async function ensureDirectory(directory: string): Promise<void> {
+	const state = await readPathState(directory);
+	if (state && !state.isDirectory()) {
+		throw new WorkspaceError(
+			'WWK_CREATE_FAILED',
+			`Workspace folder must be a directory: ${directory}`,
+		);
+	}
+	await fs.mkdir(directory, { recursive: true });
+}
+
+async function writeWorkspaceFile(
+	filePath: string,
+	content: string,
+	force: boolean,
+): Promise<void> {
+	const state = await readPathState(filePath);
+	if (state && (!state.isFile() || state.isSymbolicLink())) {
+		throw new WorkspaceError(
+			'WWK_CREATE_FAILED',
+			`Workspace output must be a regular file: ${filePath}`,
+		);
+	}
+	await fs.writeFile(filePath, content, {
+		encoding: 'utf8',
+		flag: force ? 'w' : 'wx',
+	});
 }
 
 export function sanitizeCustomType(input: string): string {

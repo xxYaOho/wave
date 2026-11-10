@@ -25,12 +25,18 @@ export function createInstallCommand(
 	name = 'install',
 	module: InstallModule = 'core',
 ): Command {
-	return new Command(name)
+	const command = new Command(name)
 		.description('Install recommended Wave toolchain through mise')
 		.option('--check', 'Show install plan without installing')
-		.option('--yes', 'Run mise install without confirmation')
-		.option('--json', 'Output JSON and do not prompt')
-		.action(async (options: InstallCommandOptions) => {
+		.option('--yes', 'Run mise install without confirmation');
+	if (module !== 'compress')
+		command.option('--json', 'Output JSON and do not prompt');
+	return command.action(
+		async (options: InstallCommandOptions, current: Command) => {
+			const parentOptions = current.parent?.opts() as
+				| InstallCommandOptions
+				| undefined;
+			options = { ...parentOptions, ...options };
 			const plan = createInstallPlan(module);
 
 			if (options.json && !options.yes) {
@@ -120,7 +126,8 @@ export function createInstallCommand(
 			}
 			process.exitCode =
 				result.exitCode === 0 ? ExitCode.SUCCESS : ExitCode.GENERAL_ERROR;
-		});
+		},
+	);
 }
 
 export function createInstallPlan(module: InstallModule): InstallPlan {

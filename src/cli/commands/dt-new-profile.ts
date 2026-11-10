@@ -16,6 +16,7 @@ import { loadDesignTokenWorkspace } from '../../core/pipeline/workspace-loader.t
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 import { expandMainYamlEntry } from '../file-input.ts';
+import { addOutputOption } from '../options.ts';
 
 function idsHint(basePath: string): string {
 	return `Run wave token ids --write -f ${JSON.stringify(basePath)} before creating a profile.`;
@@ -65,20 +66,21 @@ function snapshotOverrides(
 }
 
 export function createNewProfileCommand(name = 'new-profile'): Command {
-	return new Command(name)
+	const command = new Command(name)
 		.description('Create a full value snapshot profile from a registered base')
 		.argument('<name>', 'Profile name (lowercase, spaces become underscores)')
 		.option(
 			'-f, --file <path>',
 			'Base main.yaml or workspace directory. Default: ./main.yaml',
 		)
-		.option(
-			'-o, --output <path>',
-			'Output YAML file (stem must match the normalized name)',
-		)
 		.option('--dry-run', 'Show the complete creation plan without writing')
-		.option('--force', 'Allow overwriting the selected profile target')
-		.action(async (rawName: string, _options: unknown, command: Command) => {
+		.option('--force', 'Allow overwriting the selected profile target');
+	addOutputOption(
+		command,
+		'Output YAML file (stem must match the normalized name)',
+	);
+	return command.action(
+		async (rawName: string, _options: unknown, command: Command) => {
 			const options = command.optsWithGlobals<{
 				file?: string;
 				output?: string;
@@ -192,5 +194,6 @@ export function createNewProfileCommand(name = 'new-profile'): Command {
 						? error.exitCode
 						: ExitCode.GENERAL_ERROR;
 			}
-		});
+		},
+	);
 }

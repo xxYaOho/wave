@@ -6,6 +6,7 @@ import {
 } from '../../core/pipeline/source-output.ts';
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
+import { addOutputOption } from '../options.ts';
 
 const TEMPLATE_MAIN_YAML = `$schema: "https://www.designtokens.org/tr/2025.10/format/"
 
@@ -116,8 +117,8 @@ export interface TokenInitOptions {
 }
 
 export function addTokenInitOptions(command: Command): Command {
+	addOutputOption(command, 'Target token workspace directory');
 	return command
-		.option('-o, --output <path>', 'Target token workspace directory')
 		.option('--dry-run', 'Show the complete creation plan without writing')
 		.option('--force', 'Allow replacing the planned main.yaml file');
 }

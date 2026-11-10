@@ -18,6 +18,7 @@ import {
 	DefaultToolResolver,
 } from '../../core/tools/index.ts';
 import { ExitCode } from '../../types/index.ts';
+import { addOutputOption, addQualityOption } from '../options.ts';
 import { createInstallCommand } from './install.ts';
 
 interface MotionCommandOptions {
@@ -96,15 +97,16 @@ export function createMotionCommand(name = 'motion'): Command {
 }
 
 function addEncodeOptions(command: Command): Command {
-	return command
+	command
 		.option('-f, --file <path>', 'PNG frame directory')
 		.option('--fps <n>', 'Frames per second. Default: 24', '24')
-		.option('--quality <n>', 'Encoder quality, 1-100. Default: 80', '80')
 		.option('--loop <mode>', 'forever or once. Default: forever', 'forever')
-		.option('-o, --output <path>', 'Output file path')
 		.option('--format <format>', 'Output format: gif or apng')
 		.option('--dry-run', 'Show plan only, no write')
 		.option('--force', 'Allow overwriting existing output file');
+	addQualityOption(command, 'Encoder quality, 1-100. Default: 80', '80');
+	addOutputOption(command, 'Output file path');
+	return command;
 }
 
 async function runEncode(

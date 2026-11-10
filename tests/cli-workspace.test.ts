@@ -387,4 +387,102 @@ describe('wave workspace', () => {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
 	});
+
+	test('--output selects the final target, dry-run does not write, and force preserves extras', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-workspace-'));
+		try {
+			const configPath = path.join(tempDir, 'workspace.yaml');
+			const target = path.join(tempDir, 'chosen-target');
+			await fs.writeFile(
+				configPath,
+				[
+					`baseDir: ${JSON.stringify(path.join(tempDir, 'configured'))}`,
+					'openAfterCreate: false',
+					'name:',
+					'  separator: "_"',
+					'  parts: [title]',
+					'type:',
+					'  enabled: false',
+					'  content: []',
+					'title:',
+					'  enabled: true',
+					'  required: true',
+					'version:',
+					'  enabled: false',
+					'  prefix: v',
+					'date:',
+					'  enabled: false',
+					'  format: YYYYMMDD',
+					'tags:',
+					'  enabled: false',
+					'  style: bracket',
+					'folders: []',
+				].join('\n'),
+				'utf-8',
+			);
+
+			const dryRun = await runWave(
+				['workspace', '--output', target, '--dry-run'],
+				{
+					env: { WAVE_WORKSPACE_CONFIG: configPath },
+					input: '项目\n',
+				},
+			);
+			expect(dryRun.exitCode).toBe(0);
+			expect(dryRun.stdout).toContain('Dry run. No files written.');
+			expect(await Bun.file(path.join(target, 'README.md')).exists()).toBe(
+				false,
+			);
+
+			const created = await runWave(
+				['workspace', '--output', target, '--yes'],
+				{
+					env: { WAVE_WORKSPACE_CONFIG: configPath },
+					input: '项目\n',
+				},
+			);
+			expect(created.exitCode).toBe(0);
+			await fs.writeFile(path.join(target, 'keep.txt'), 'keep-me');
+			await fs.writeFile(path.join(target, 'README.md'), 'old-readme');
+
+			const forced = await runWave(
+				['workspace', '--output', target, '--yes', '--force'],
+				{ env: { WAVE_WORKSPACE_CONFIG: configPath }, input: '项目\n' },
+			);
+			expect(forced.exitCode).toBe(0);
+			expect(await fs.readFile(path.join(target, 'keep.txt'), 'utf-8')).toBe(
+				'keep-me',
+			);
+			expect(
+				await fs.readFile(path.join(target, 'README.md'), 'utf-8'),
+			).toContain('# 项目');
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
+
+	test('workspace output rejects a regular file target even with force', async () => {
+		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-workspace-'));
+		try {
+			const target = path.join(tempDir, 'target-file');
+			await fs.writeFile(target, 'keep');
+			const config = {
+				...DEFAULT_WORKSPACE_CONFIG,
+				baseDir: tempDir,
+				openAfterCreate: false,
+			};
+			const plan = buildWorkspacePlan(
+				config,
+				{ title: '项目' },
+				{ output: target },
+			);
+			await expect(
+				createWorkspace(plan, { force: true }),
+			).rejects.toMatchObject({
+				code: 'WWK_WORKSPACE_EXISTS',
+			});
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+		}
+	});
 });

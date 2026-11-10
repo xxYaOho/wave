@@ -22,6 +22,7 @@ import {
 	midSolid,
 	multiValueLines,
 } from '../../utils/receipt.ts';
+import { addOutputOption } from '../options.ts';
 
 const CUSTOM_TYPE_VALUE = '__custom__';
 let plainInputQueue: Promise<string[]> | undefined;
@@ -36,6 +37,10 @@ const WORKSPACE_HELP = `Wave Workspace
     WAVE_WORKSPACE_CONFIG=/tmp/workspace.yaml
 
   Options:
+    -o, --output <path>  Final target directory
+    --dry-run            Show the plan without writing
+    --yes                Write without confirmation
+    --force              Update generated files in an existing directory
     -h, --help      Show help
 
   For more help on a command:
@@ -45,26 +50,49 @@ export function createWorkspaceCommand(name = 'workspace'): Command {
 	const command = new Command(name)
 		.description('Create local design project workspaces')
 		.helpOption('-h, --help', 'Show help')
-		.configureHelp({ formatHelp: () => WORKSPACE_HELP })
+		.configureHelp({ formatHelp: () => WORKSPACE_HELP });
+	addOutputOption(command, 'Final target directory');
+	command
+		.option('--dry-run', 'Show the plan without writing')
+		.option('--yes', 'Write without confirmation')
+		.option('--force', 'Update generated files in an existing directory')
 		.addHelpCommand(false)
 		.action(async () => {
-			await runWorkspaceCreate();
+			await runWorkspaceCreate(command.opts<WorkspaceCommandOptions>());
 		});
 
 	return command;
 }
 
-async function runWorkspaceCreate(): Promise<void> {
+interface WorkspaceCommandOptions {
+	output?: string;
+	dryRun?: boolean;
+	yes?: boolean;
+	force?: boolean;
+}
+
+async function runWorkspaceCreate(
+	options: WorkspaceCommandOptions,
+): Promise<void> {
 	try {
 		const config = await loadWorkspaceConfig();
 		const answers = await promptWorkspaceAnswers(config);
-		const plan = buildWorkspacePlan(config, answers);
-		if (!(await confirmWorkspacePlan(plan))) {
+		const plan = buildWorkspacePlan(config, answers, {
+			output: options.output,
+		});
+		if (
+			!options.yes &&
+			!options.dryRun &&
+			!(await confirmWorkspacePlan(plan))
+		) {
 			process.exitCode = ExitCode.SUCCESS;
 			return;
 		}
-		const result = await createWorkspace(plan);
-		console.log(renderWorkspaceReceipt(result));
+		const result = await createWorkspace(plan, {
+			dryRun: options.dryRun,
+			force: options.force,
+		});
+		console.log(renderWorkspaceReceipt(result, options.dryRun === true));
 		if (result.openWarning) {
 			console.warn(`Warning: ${result.openWarning}`);
 		}
@@ -195,7 +223,10 @@ async function confirmWorkspacePlan(plan: WorkspacePlan): Promise<boolean> {
 	return ['y', 'yes'].includes(answer.trim().toLowerCase());
 }
 
-export function renderWorkspaceReceipt(result: WorkspacePlan): string {
+export function renderWorkspaceReceipt(
+	result: WorkspacePlan,
+	dryRun = false,
+): string {
 	const width = Math.max(boxWidth() - 4, 76);
 	const lines: string[] = [];
 	lines.push(borderTop(width));
@@ -223,7 +254,12 @@ export function renderWorkspaceReceipt(result: WorkspacePlan): string {
 	);
 	lines.push(midSolid(width));
 	lines.push(line('', width));
-	lines.push(centerLine(pc.green('Workspace created'), width));
+	lines.push(
+		centerLine(
+			pc.green(dryRun ? 'Dry run. No files written.' : 'Workspace created'),
+			width,
+		),
+	);
 	lines.push(line('', width));
 	lines.push(borderBottom(width));
 	return lines.join('\n');

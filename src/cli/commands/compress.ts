@@ -22,6 +22,11 @@ import {
 	vpad,
 	vtruncate,
 } from '../../utils/receipt.ts';
+import {
+	addOutputOption,
+	addQualityOption,
+	addRepeatableOption,
+} from '../options.ts';
 import { createInstallCommand } from './install.ts';
 import { createToolDoctorCommand } from './tool-module.ts';
 
@@ -277,22 +282,18 @@ async function shouldWriteCompressedOutput(): Promise<boolean> {
 }
 
 function createCompressActionCommand(name = 'compress'): Command {
-	return new Command(name)
+	const command = new Command(name)
 		.description('Preview and optionally write compressed assets')
 		.option('-f, --file <path>', 'File or directory to compress')
-		.option('--recursive', 'Scan directories recursively')
-		.option('--type <type>', 'Limit file type: png, jpg, svg, gif', ((
-			value: string,
-			previous: string[] | undefined,
-		) => [...(previous ?? []), value]) as (
-			value: string,
-			previous?: string[],
-		) => string[])
-		.option(
-			'-q, --quality <value>',
-			'Enable quality mode with lossy quality 1-100',
-		)
-		.option('-o, --output <path>', 'Output directory')
+		.option('--recursive', 'Scan directories recursively');
+	addRepeatableOption(
+		command,
+		'--type <type>',
+		'Limit file type: png, jpg, svg, gif',
+	);
+	addQualityOption(command, 'Enable quality mode with lossy quality 1-100');
+	addOutputOption(command, 'Output directory');
+	return command
 		.option('--dry-run', 'Preview compression without writing output')
 		.option('--yes', 'Write previewed output without prompting')
 		.option('--force', 'Allow overwriting existing output files')

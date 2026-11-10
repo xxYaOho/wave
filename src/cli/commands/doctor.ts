@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import { Command, CommanderError } from 'commander';
 import * as yaml from 'js-yaml';
 import {
 	findDimensionMigrationFindings,
@@ -116,23 +116,8 @@ function renderScoreLines(report: DoctorThemeReport): string[] {
 	return lines;
 }
 
-function compareVersions(a: string, b: string): number {
-	const partsA = a.split('.').map(Number);
-	const partsB = b.split('.').map(Number);
-	for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-		const numA = partsA[i] ?? 0;
-		const numB = partsB[i] ?? 0;
-		if (numA > numB) return 1;
-		if (numA < numB) return -1;
-	}
-	return 0;
-}
-
 interface DoctorCommandOptions {
 	file?: string;
-	contrast?: boolean;
-	night?: boolean;
-	theme?: boolean;
 	json?: boolean;
 	verbose?: boolean;
 	status?: boolean;
@@ -349,11 +334,10 @@ export function createDoctorCommand(
 			: 'Run token workspace health diagnostics',
 	);
 	if (!commandOptions.coreOnly) {
-		command
-			.option('-f, --file <path>', 'Day source YAML or workspace directory')
-			.option('-o, --output <path>', 'Output directory to check')
-			.option('--contrast', 'Run WCAG contrast check on theme colors')
-			.option('--night', 'Check Night overlay (use with --contrast)');
+		command.option(
+			'-f, --file <path>',
+			'Day source YAML or workspace directory',
+		);
 	}
 	command
 		.option('--json', 'Output structured JSON for core diagnostics')
@@ -361,9 +345,32 @@ export function createDoctorCommand(
 		.option('--status', 'Show compact core health status')
 		.action(async (options: DoctorCommandOptions, command: Command) => {
 			const parentOptions = command.parent?.opts() as
-				| DoctorCommandOptions
+				| {
+						file?: string;
+						night?: boolean;
+						output?: string;
+						profiles?: string;
+				  }
 				| undefined;
-			options = { ...parentOptions, ...options };
+			options = { ...options };
+			if (
+				commandOptions.defaultMainYaml &&
+				parentOptions?.file &&
+				!options.file
+			)
+				options.file = parentOptions.file;
+			if (
+				commandOptions.defaultMainYaml &&
+				(parentOptions?.night ||
+					parentOptions?.output ||
+					parentOptions?.profiles)
+			) {
+				console.error(
+					'Invalid token doctor options. Use wave token wcag --night for contrast checks; token doctor only checks workspace, resources, and identity.',
+				);
+				process.exitCode = ExitCode.INVALID_PARAMETER;
+				return;
+			}
 			if (commandOptions.coreOnly) {
 				const result = await runToolchainDoctor({ module: 'core' });
 				if (options.json) console.log(JSON.stringify(result, null, 2));
@@ -388,7 +395,7 @@ export function createDoctorCommand(
 				file: await expandMainYamlEntry(fileInput.path),
 			};
 
-			if (!options.contrast) {
+			{
 				let workspaceTheme: string | undefined;
 				const workspaceFindings: DoctorFinding[] = [];
 				let identity: ThemeIdentityReport | undefined;
@@ -486,32 +493,8 @@ export function createDoctorCommand(
 					}
 				}
 
-				const toolchain = await runToolchainDoctor({ module: 'core' });
-				if (identity) {
-					const issues = workspaceFindings
-						.filter((finding) => finding.level !== 'info')
-						.map((finding) => ({
-							code: 'WDT_WORKSPACE_HEALTH',
-							title: 'Workspace health',
-							description: finding.message,
-							severity:
-								finding.level === 'error'
-									? ('error' as const)
-									: ('warning' as const),
-							module: 'core' as const,
-						}));
-					toolchain.checks.push({
-						id: 'core:workspace',
-						name: 'Workspace Health',
-						status: workspaceExitCode === ExitCode.SUCCESS ? 'pass' : 'fail',
-						message: `${workspaceFindings.filter((finding) => finding.level === 'error').length} errors, ${workspaceFindings.filter((finding) => finding.level === 'info').length} info`,
-						issues,
-					});
-					toolchain.issues.push(...issues);
-				}
 				const diagnostics = {
-					...toolchain,
-					ok: toolchain.ok && workspaceExitCode === ExitCode.SUCCESS,
+					ok: workspaceExitCode === ExitCode.SUCCESS,
 					findings: workspaceFindings,
 					...(identity ? { identity } : {}),
 				};
@@ -527,17 +510,8 @@ export function createDoctorCommand(
 					return;
 				}
 				if (options.status) {
-					const failed = toolchain.checks.filter(
-						(check) => check.status === 'fail',
-					).length;
-					const warned = toolchain.checks.filter(
-						(check) => check.status === 'warn',
-					).length;
-					const passed = toolchain.checks.filter(
-						(check) => check.status === 'pass',
-					).length;
 					console.log(
-						`wave: ${diagnostics.ok ? 'ok' : 'needs attention'} (${passed} pass, ${warned} warn, ${failed} fail)`,
+						`token: ${diagnostics.ok ? 'ok' : 'needs attention'} (${workspaceFindings.filter((finding) => finding.level === 'error').length} errors, ${workspaceFindings.filter((finding) => finding.level === 'warning').length} warnings)`,
 					);
 					for (const finding of workspaceFindings)
 						console.log(`  ${finding.level}: ${finding.message}`);
@@ -546,17 +520,8 @@ export function createDoctorCommand(
 						: failureExitCode;
 					return;
 				}
-				console.log('🔍 Running Wave diagnostics...\n');
+				console.log('🔍 Running token workspace diagnostics...\n');
 
-				const currentVersion = Bun.version;
-				const minVersion = '1.0.0';
-				const bunPassed = compareVersions(currentVersion, minVersion) >= 0;
-				const icon = bunPassed ? '✓' : '✗';
-				console.log(
-					`${icon} Bun Version: ${bunPassed ? `v${currentVersion}` : `v${currentVersion} (requires >= v${minVersion})`}`,
-				);
-
-				const allPassed = bunPassed && diagnostics.ok;
 				if (identity)
 					renderThemeIdentityReport(identity, options.verbose === true);
 				for (const finding of workspaceFindings)
@@ -573,16 +538,9 @@ export function createDoctorCommand(
 						? `${resourcesOk ? '✓' : '✗'} Resources: ${resourcesOk ? 'All declared resources valid' : 'Invalid declarations'}`
 						: '· Resources: Not checked',
 				);
-				console.log('✓ Output Directory: OK');
-				if (options.verbose || toolchain.issues.length > 0) {
-					for (const check of toolchain.checks) {
-						const icon = check.status === 'pass' ? '✓' : '✗';
-						console.log(`${icon} ${check.name}: ${check.message}`);
-					}
-				}
 				console.log('');
 
-				if (allPassed && toolchain.ok) {
+				if (diagnostics.ok) {
 					console.log('All checks passed! 🎉');
 					process.exitCode = ExitCode.SUCCESS;
 				} else {
@@ -591,9 +549,30 @@ export function createDoctorCommand(
 				}
 				return;
 			}
-
-			await runDesignTokenContrastCheck(options);
 		});
+	command.exitOverride((error) => {
+		if (
+			error instanceof CommanderError &&
+			error.code === 'commander.helpDisplayed'
+		) {
+			process.exitCode = ExitCode.SUCCESS;
+			return;
+		}
+		if (
+			error instanceof CommanderError &&
+			(error.code === 'commander.unknownOption' ||
+				error.code === 'commander.excessArguments')
+		) {
+			console.error(
+				commandOptions.coreOnly
+					? 'Invalid doctor option. Use wave token doctor -f <main.yaml> for workspace checks or wave token wcag --night for contrast checks.'
+					: 'Invalid token doctor option. Use wave token wcag --night for contrast checks.',
+			);
+			process.exitCode = ExitCode.INVALID_PARAMETER;
+			return;
+		}
+		throw error;
+	});
 	return command;
 }
 

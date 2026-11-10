@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { emitNightOverlay } from '../../core/night/emit.ts';
 import { LUMINANCE_EV_LEVELS, NIGHT_SCENES } from '../../core/night/params.ts';
 import { ExitCode } from '../../types/index.ts';
+import { addOutputOption } from '../options.ts';
 
 const NIGHT_HELP = `Wave Night
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -62,13 +63,12 @@ function parseLuminanceOption(
 }
 
 export function createNightCommand(name = 'night'): Command {
-	return new Command(name)
+	const command = new Command(name)
 		.description('Generate a Night Mode overlay draft from Day')
 		.option(
 			'-f, --file <path>',
 			'Day main/profile YAML or workspace directory. Default: ./main.yaml',
 		)
-		.option('-o, --output <path>', 'Output YAML file')
 		.option('--dry-run', 'Show the complete creation plan without writing')
 		.option('--force', 'Allow overwriting the planned overlay')
 		.option('--scene <name>', `Lighting scene (${NIGHT_SCENES.join('|')})`)
@@ -83,8 +83,10 @@ export function createNightCommand(name = 'night'): Command {
 		.option('-m, --manual', 'Print Markdown usage for this command')
 		.helpOption('-h, --help', 'Show help')
 		.addHelpCommand(false)
-		.configureHelp({ formatHelp: () => NIGHT_HELP })
-		.action(async (_options: NightCommandOptions, command: Command) => {
+		.configureHelp({ formatHelp: () => NIGHT_HELP });
+	addOutputOption(command, 'Output YAML file');
+	return command.action(
+		async (_options: NightCommandOptions, command: Command) => {
 			const options = command.optsWithGlobals<NightCommandOptions>();
 			let luminance: number | undefined;
 			try {
@@ -131,7 +133,8 @@ export function createNightCommand(name = 'night'): Command {
 				`Run wave token build -f ${JSON.stringify(result.sourcePath)} --night to consume it${result.outputPath !== result.defaultOutputPath ? ' after moving it' : ''}.`,
 			);
 			process.exitCode = ExitCode.SUCCESS;
-		});
+		},
+	);
 }
 
 export const nightCommand = createNightCommand();

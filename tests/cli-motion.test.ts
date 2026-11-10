@@ -605,6 +605,16 @@ describe('wave motion', () => {
 		expect(unknownMotion.stderr).not.toContain('node_modules');
 		expect(unknownMotion.stderr).not.toContain('Bun v');
 	});
+
+	test('motion rejects the removed overwrite and legacy output flags', async () => {
+		const overwrite = await runWave(['motion', '--overwrite']);
+		expect(overwrite.exitCode).not.toBe(0);
+		expect(overwrite.stderr).toContain('unknown option');
+
+		const legacy = await runWave(['motion', '--out', 'movie.gif']);
+		expect(legacy.exitCode).not.toBe(0);
+		expect(legacy.stderr).toContain('unknown option');
+	});
 });
 
 function tclQuote(value: string): string {
