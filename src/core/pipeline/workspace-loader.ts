@@ -138,6 +138,16 @@ export async function loadDesignTokenSource(
 	let sourcePath = suppliedPath;
 	try {
 		const stats = await fs.stat(suppliedPath);
+		if (
+			stats.isDirectory() &&
+			path.basename(suppliedPath) === DEFAULT_MAIN_YAML
+		) {
+			return sourceFailure(
+				suppliedPath,
+				ExitCode.INVALID_PARAMETER,
+				'Invalid design token source; expected a regular file, not a directory named main.yaml',
+			);
+		}
 		if (stats.isDirectory())
 			sourcePath = path.join(suppliedPath, DEFAULT_MAIN_YAML);
 		else if (!stats.isFile()) {

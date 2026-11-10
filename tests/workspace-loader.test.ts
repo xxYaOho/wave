@@ -285,7 +285,7 @@ theme: {}
 			if (result.ok) return;
 			expect(result.message).toContain(rejectedPath);
 			expect(result.message).toContain('main.yaml');
-			expect(result.message).toContain('wave dt init');
+			expect(result.message).toContain('wave token new');
 		});
 	}
 
@@ -301,7 +301,7 @@ theme: {}
 		});
 		if (result.ok) return;
 		expect(result.message).toContain(expectedPath);
-		expect(result.message).toContain('wave dt init');
+		expect(result.message).toContain('wave token new');
 	});
 
 	test('returns FILE_NOT_FOUND for an explicit missing main.yaml', async () => {

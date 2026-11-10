@@ -47,8 +47,8 @@ describe('wave doctor', () => {
 	test('top-level doctor runs toolchain diagnostics without main.yaml', async () => {
 		const { exitCode, stdout } = await runWave(['doctor']);
 		expect(exitCode).toBe(0);
-		expect(stdout).toContain('Running Wave diagnostics');
-		expect(stdout).toContain('All checks passed!');
+		expect(stdout).toContain('PASS PNG safe compression');
+		expect(stdout).toContain('PASS APNG encoding');
 	});
 
 	test('top-level doctor JSON runs without main.yaml', async () => {
@@ -68,20 +68,20 @@ describe('wave doctor', () => {
 			const status = await runWave(['doctor', '--status'], dir);
 			const verbose = await runWave(['doctor', '--verbose'], dir);
 			expect(status.exitCode).toBe(0);
-			expect(status.stdout).toContain('wave: ok');
+			expect(status.stdout).toContain('toolchain: ok');
 			expect(verbose.exitCode).toBe(0);
-			expect(verbose.stdout).toContain('Running Wave diagnostics');
+			expect(verbose.stdout).toContain('PASS PNG safe compression');
 		} finally {
 			await fs.rm(dir, { recursive: true, force: true });
 		}
 	});
 
-	test('dt doctor JSON requires main.yaml', async () => {
+	test('token doctor JSON requires main.yaml', async () => {
 		const dir = await fs.mkdtemp(
 			path.join(os.tmpdir(), 'wave-dt-doctor-json-'),
 		);
 		try {
-			const result = await runWave(['dt', 'doctor', '--json'], dir);
+			const result = await runWave(['token', 'doctor', '--json'], dir);
 			expect(result.exitCode).toBe(10);
 			expect(`${result.stdout}\n${result.stderr}`).toContain(
 				path.join(dir, 'main.yaml'),
@@ -91,10 +91,10 @@ describe('wave doctor', () => {
 		}
 	});
 
-	test('--contrast with pass fixture exits 0 and shows green scores', async () => {
+	test('token wcag with pass fixture exits 0 and shows green scores', async () => {
 		const { exitCode, stdout } = await runWave([
-			'doctor',
-			'--contrast',
+			'token',
+			'wcag',
 			'--file',
 			'tests/fixtures/themes/doctor-contrast-pass/main.yaml',
 		]);
@@ -108,10 +108,10 @@ describe('wave doctor', () => {
 		expect(stdout).not.toContain('🔴');
 	});
 
-	test('--contrast with report fixture exits 0 and shows red scores', async () => {
+	test('token wcag with report fixture exits 0 and shows red scores', async () => {
 		const { exitCode, stdout } = await runWave([
-			'doctor',
-			'--contrast',
+			'token',
+			'wcag',
 			'--file',
 			'tests/fixtures/themes/doctor-contrast-report/main.yaml',
 		]);
@@ -123,10 +123,10 @@ describe('wave doctor', () => {
 		expect(stdout).toContain('🔴 UI Components');
 	});
 
-	test('--contrast with invalid fixture exits non-zero', async () => {
+	test('token wcag with invalid fixture exits non-zero', async () => {
 		const { exitCode, stdout } = await runWave([
-			'doctor',
-			'--contrast',
+			'token',
+			'wcag',
 			'--file',
 			'tests/fixtures/themes/doctor-contrast-invalid/main.yaml',
 		]);
@@ -134,10 +134,10 @@ describe('wave doctor', () => {
 		expect(stdout).toContain('✗');
 	});
 
-	test('--contrast with empty fixture exits 0 and indicates no pairs', async () => {
+	test('token wcag with empty fixture exits 0 and indicates no pairs', async () => {
 		const { exitCode, stdout } = await runWave([
-			'doctor',
-			'--contrast',
+			'token',
+			'wcag',
 			'--file',
 			'tests/fixtures/themes/doctor-contrast-empty/main.yaml',
 		]);
@@ -145,27 +145,35 @@ describe('wave doctor', () => {
 		expect(stdout).toContain('No wcagPairs found to evaluate');
 	});
 
-	test('any explicit --file is validated before status, verbose, or JSON rendering', async () => {
-		const rejectedPath = path.join(
-			rootDir,
-			'tests/fixtures/themes/standard/themefile',
-		);
-		for (const renderer of [['--status'], ['--verbose'], ['--json']] as const) {
-			const result = await runWave([
-				'doctor',
-				...renderer,
-				'--file',
-				rejectedPath,
-			]);
-			const message = `${result.stdout}\n${result.stderr}`;
-			expect(result.exitCode).toBe(5);
-			expect(message).toContain(rejectedPath);
-			expect(message).toContain('main.yaml');
-			expect(message).toContain('wave dt init');
+	test('token doctor validates explicit --file before status, verbose, or JSON rendering', async () => {
+		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-doctor-file-'));
+		const rejectedPath = path.join(dir, 'themefile');
+		await fs.writeFile(rejectedPath, 'THEME legacy\n');
+		try {
+			for (const renderer of [
+				['--status'],
+				['--verbose'],
+				['--json'],
+			] as const) {
+				const result = await runWave([
+					'token',
+					'doctor',
+					...renderer,
+					'--file',
+					rejectedPath,
+				]);
+				const message = `${result.stdout}\n${result.stderr}`;
+				expect(result.exitCode).toBe(5);
+				expect(message).toContain(rejectedPath);
+				expect(message).toContain('main.yaml');
+				expect(message).toContain('wave token new');
+			}
+		} finally {
+			await fs.rm(dir, { recursive: true, force: true });
 		}
 	});
 
-	test('dt doctor rejects every forbidden workspace entry in JSON mode', async () => {
+	test('token doctor rejects every forbidden workspace entry in JSON mode', async () => {
 		const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-doctor-reject-'));
 		const profilesDir = path.join(dir, 'profiles');
 		const directory = path.join(dir, 'nested', 'main.yaml');
@@ -190,14 +198,14 @@ describe('wave doctor', () => {
 		try {
 			for (const entry of rejectedEntries) {
 				const result = await runWave(
-					['dt', 'doctor', '--json', '--file', entry.path],
+					['token', 'doctor', '--json', '--file', entry.path],
 					dir,
 				);
 				const message = `${result.stdout}\n${result.stderr}`;
 				expect(result.exitCode, entry.path).toBe(entry.exitCode);
 				expect(message, entry.path).toContain(entry.path);
 				expect(message, entry.path).toContain('main.yaml');
-				expect(message, entry.path).toContain('wave dt init');
+				expect(message, entry.path).toContain('wave token new');
 				expect(await fs.readFile(marker, 'utf8')).toBe('preserve-me');
 			}
 		} finally {
