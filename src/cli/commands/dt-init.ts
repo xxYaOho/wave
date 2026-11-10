@@ -105,40 +105,40 @@ doctor:
       background: "{TOKEN}"
 `;
 
+export async function runDesignTokenInit(): Promise<void> {
+	const mainPath = path.join(process.cwd(), 'main.yaml');
+	try {
+		await fs.access(mainPath);
+		logger.error('A main.yaml already exists in the current directory');
+		process.exitCode = ExitCode.GENERAL_ERROR;
+		return;
+	} catch {
+		// The workspace entry is available to create.
+	}
+
+	try {
+		await fs.writeFile(mainPath, TEMPLATE_MAIN_YAML, 'utf8');
+		logger.success('Created: main.yaml');
+		logger.info('');
+		logger.success('Theme template initialized successfully!');
+		logger.info('');
+		logger.info('Next steps:');
+		logger.info('  1. Edit main.yaml to define your tokens and output config');
+		logger.info(
+			'  2. Replace {TOKEN} placeholders with real values or references',
+		);
+		logger.info('  3. See MANUAL.md for detailed usage');
+		logger.info('  4. Run "wave token" to generate tokens');
+	} catch (error) {
+		logger.error(
+			`Failed to initialize template: ${error instanceof Error ? error.message : String(error)}`,
+		);
+		process.exitCode = ExitCode.GENERAL_ERROR;
+	}
+}
+
 export function createDesignTokenInitCommand(name = 'init'): Command {
 	return new Command(name)
 		.description('Initialize a new design-token workspace')
-		.action(async () => {
-			const mainPath = path.join(process.cwd(), 'main.yaml');
-			try {
-				await fs.access(mainPath);
-				logger.error('A main.yaml already exists in the current directory');
-				process.exitCode = ExitCode.GENERAL_ERROR;
-				return;
-			} catch {
-				// The workspace entry is available to create.
-			}
-
-			try {
-				await fs.writeFile(mainPath, TEMPLATE_MAIN_YAML, 'utf8');
-				logger.success('Created: main.yaml');
-				logger.info('');
-				logger.success('Theme template initialized successfully!');
-				logger.info('');
-				logger.info('Next steps:');
-				logger.info(
-					'  1. Edit main.yaml to define your tokens and output config',
-				);
-				logger.info(
-					'  2. Replace {TOKEN} placeholders with real values or references',
-				);
-				logger.info('  3. See MANUAL.md for detailed usage');
-				logger.info('  4. Run "wave dt" to generate tokens');
-			} catch (error) {
-				logger.error(
-					`Failed to initialize template: ${error instanceof Error ? error.message : String(error)}`,
-				);
-				process.exitCode = ExitCode.GENERAL_ERROR;
-			}
-		});
+		.action(runDesignTokenInit);
 }

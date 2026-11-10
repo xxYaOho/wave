@@ -30,7 +30,7 @@ interface CompressCommandOptions {
 	recursive?: boolean;
 	type?: string[];
 	quality?: string;
-	out?: string;
+	output?: string;
 	dryRun?: boolean;
 	yes?: boolean;
 	force?: boolean;
@@ -45,7 +45,6 @@ const COMPRESS_HELP = `Wave Compress
     wave compress <command> [options]
 
   Commands:
-    run             Compress PNG, JPG, SVG, and GIF assets
     doctor          Check compress toolchain health
     install         Show or run compress tool installation
 
@@ -54,7 +53,7 @@ const COMPRESS_HELP = `Wave Compress
     --type <type>        Limit file type. Repeatable: png, jpg, svg, gif
     --recursive          Scan nested folders
     -q, --quality <n>    Use lossy quality mode, 1-100
-    -o, --out <path>     Output directory
+    -o, --output <path>  Output directory
     --dry-run            Preview only, no prompt, no write
     --yes                Write without confirmation
     --force              Allow overwriting existing output files
@@ -277,10 +276,9 @@ async function shouldWriteCompressedOutput(): Promise<boolean> {
 	}
 }
 
-function createCompressRunCommand(name = 'run'): Command {
+function createCompressActionCommand(name = 'compress'): Command {
 	return new Command(name)
 		.description('Preview and optionally write compressed assets')
-		.argument('[input]', 'File or directory to compress')
 		.option('-f, --file <path>', 'File or directory to compress')
 		.option('--recursive', 'Scan directories recursively')
 		.option('--type <type>', 'Limit file type: png, jpg, svg, gif', ((
@@ -294,22 +292,22 @@ function createCompressRunCommand(name = 'run'): Command {
 			'-q, --quality <value>',
 			'Enable quality mode with lossy quality 1-100',
 		)
-		.option('-o, --out <path>', 'Output directory')
+		.option('-o, --output <path>', 'Output directory')
 		.option('--dry-run', 'Preview compression without writing output')
 		.option('--yes', 'Write previewed output without prompting')
 		.option('--force', 'Allow overwriting existing output files')
 		.option('--icon', 'Clean SVG icon colors for CSS styling')
 		.option('--json', 'Output JSON and do not prompt')
-		.action(async (input: string, options: CompressCommandOptions) => {
+		.action(async (options: CompressCommandOptions) => {
 			try {
-				const resolvedInput = options.file ?? input ?? '.';
+				const resolvedInput = options.file ?? '.';
 				const types = parseTypes(options.type);
 				const quality = parseQuality(options.quality);
 				const shouldPrompt = !options.dryRun && !options.yes && !options.json;
 				if (shouldPrompt) {
 					const preview = await previewCompressInput({
 						input: resolvedInput,
-						outDir: options.out,
+						outDir: options.output,
 						recursive: options.recursive,
 						types,
 					});
@@ -326,7 +324,7 @@ function createCompressRunCommand(name = 'run'): Command {
 				try {
 					result = await runCompress({
 						input: resolvedInput,
-						outDir: options.out,
+						outDir: options.output,
 						recursive: options.recursive,
 						types,
 						quality,
@@ -368,15 +366,7 @@ function createCompressRunCommand(name = 'run'): Command {
 		});
 }
 
-export const compressCommand = new Command('compress')
-	.description('Compress and optimize design assets')
-	.helpOption('-h, --help', 'Show help')
-	.configureHelp({ formatHelp: () => COMPRESS_HELP })
-	.addHelpCommand(false)
-	.addCommand(createCompressRunCommand('run'))
+export const compressCommand = createCompressActionCommand('compress')
 	.addCommand(createToolDoctorCommand('compress'))
-	.addCommand(createInstallCommand('install', 'compress'));
-
-compressCommand.command('help', { hidden: true }).action(() => {
-	console.log(COMPRESS_HELP);
-});
+	.addCommand(createInstallCommand('install', 'compress'))
+	.configureHelp({ formatHelp: () => COMPRESS_HELP });

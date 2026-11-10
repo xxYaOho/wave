@@ -1,22 +1,13 @@
 import type { Command } from 'commander';
 import { compressCommand } from './commands/compress.ts';
 import { doctorCommand } from './commands/doctor.ts';
-import { designTokenCommand, dtCommand } from './commands/dt.ts';
+import { tokenCommand } from './commands/dt.ts';
 import { installCommand } from './commands/install.ts';
 import { manualCommand } from './commands/manual.ts';
-import { mgCommand, motionCommand } from './commands/motion.ts';
-import { nightCommand } from './commands/night.ts';
-import { showCommand } from './commands/show.ts';
+import { motionCommand } from './commands/motion.ts';
 import { workspaceCommand } from './commands/workspace.ts';
 
-export type CommandCategory =
-	| 'core'
-	| 'design-token'
-	| 'compress'
-	| 'manual'
-	| 'motion'
-	| 'workspace'
-	| 'night';
+export type CommandCategory = 'common' | 'workspace' | 'toolchain' | 'other';
 
 export interface CommandDefinition {
 	name: string;
@@ -26,23 +17,18 @@ export interface CommandDefinition {
 
 export const commandRegistry: CommandDefinition[] = [
 	{
-		name: 'design-token',
-		category: 'design-token',
-		command: designTokenCommand,
-	},
-	{
-		name: 'dt',
-		category: 'design-token',
-		command: dtCommand,
+		name: 'token',
+		category: 'common',
+		command: tokenCommand,
 	},
 	{
 		name: 'compress',
-		category: 'compress',
+		category: 'common',
 		command: compressCommand,
 	},
 	{
 		name: 'motion',
-		category: 'motion',
+		category: 'common',
 		command: motionCommand,
 	},
 	{
@@ -52,33 +38,18 @@ export const commandRegistry: CommandDefinition[] = [
 	},
 	{
 		name: 'manual',
-		category: 'manual',
+		category: 'workspace',
 		command: manualCommand,
 	},
 	{
-		name: 'mg',
-		category: 'motion',
-		command: mgCommand,
-	},
-	{
-		name: 'night',
-		category: 'night',
-		command: nightCommand,
-	},
-	{
 		name: 'doctor',
-		category: 'core',
+		category: 'toolchain',
 		command: doctorCommand,
 	},
 	{
 		name: 'install',
-		category: 'core',
+		category: 'toolchain',
 		command: installCommand,
-	},
-	{
-		name: 'show',
-		category: 'design-token',
-		command: showCommand,
 	},
 ];
 

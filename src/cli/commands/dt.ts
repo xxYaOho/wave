@@ -5,97 +5,38 @@ import {
 	updateTailwind,
 } from '../../core/resources/manager.ts';
 import { ExitCode } from '../../types/index.ts';
-import { createDesignTokenBuildCommand } from './build.ts';
+import { TOKEN_HELP } from '../help.ts';
+import { addManualOption } from '../options.ts';
+import {
+	addBuildOptions,
+	createDesignTokenBuildCommand,
+	type DesignTokenBuildOptions,
+	runDesignTokenBuild,
+} from './build.ts';
 import { createDoctorCommand } from './doctor.ts';
 import { createIdsCommand } from './dt-ids.ts';
-import { createDesignTokenInitCommand } from './dt-init.ts';
-import { createMigrateExtensionsCommand } from './dt-migrate-extensions.ts';
-import { createNewProfileCommand } from './dt-new-profile.ts';
 import { createShowCommand } from './show.ts';
-
-const DESIGN_TOKEN_HELP = `Wave Design Token
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Usage:
-    wave dt [file] [options]
-    wave dt <command> [file] [options]
-
-  File:
-    Optional positional path to main.yaml (or a directory containing it).
-    Default: ./main.yaml. -f/--file is the same; do not pass both.
-
-  Commands:
-    build           Build design token output (default when no command)
-    doctor          Check design-token workspace health
-    wcag            Check color contrast
-    show            Browse built-in resources
-    update          Update local design-token resources
-    status          Show local resource cache status
-    init            Create a starter workspace
-    new-profile     Create a full value snapshot profile from base
-    ids             Fill, generate and sync token $id identities (--write to apply)
-    migrate-extensions  One-shot $extensions legacy rename (sketch -> platform.sketch)
-
-  Shortcuts (when no subcommand is named):
-    --build              Same as "dt build" (default)
-    --ids                Same as "dt ids"
-    --ids-write          Same as "dt ids --write"
-
-  Build options:
-    -f, --file <path>    main.yaml path. Default: ./main.yaml
-    -o, --out <path>     Override output directory
-    --output <dir>       Alias of --out
-    --platform <name>    Output platform. Repeatable: json, jsonc, css, sketch, md-yml
-    --profile <name>     Build one named profile from profiles/<name>.yaml
-    --profiles all       Build main and all named profiles
-    --night              Include valid Night Mode overlays when available
-    --json               Output JSON only where supported
-    -h, --help           Show help
-
-  Examples:
-    wave dt
-    wave dt ./main.yaml --night
-    wave dt ./main.yaml --ids
-    wave dt ./main.yaml --ids-write --allow-dirty
-    wave dt ids --write
-    wave dt build -o ./dist --platform json,css
-
-  For more help on a command:
-    wave dt <command> --help`;
-
-function showDesignTokenHelp(): void {
-	console.log(DESIGN_TOKEN_HELP);
-}
+import { createTokenMigrateCommand } from './token-migrate.ts';
+import { createTokenNewCommand } from './token-new.ts';
 
 export function createWcagCommand(): Command {
 	return new Command('wcag')
 		.description('Run WCAG contrast checks')
-		.argument('[scope]', 'Theme scope: main or profile name')
 		.option('-f, --file <path>', 'main.yaml path to validate')
 		.option('--night', 'Check night profile')
-		.option('--profile <name>', 'Check specific profile by name')
-		.action(
-			async (
-				scope: string | undefined,
-				options: { file?: string; night?: boolean; profile?: string },
-			) => {
-				const args = ['--contrast'];
-				if (options.file) {
-					args.push('--file', options.file);
-				}
-				if (options.night) {
-					args.push('--night');
-				}
-				const profile =
-					options.profile ?? (scope === 'main' ? undefined : scope);
-				if (profile) {
-					args.push('--profile', profile);
-				}
-				const doctor = createDoctorCommand('doctor');
-				await doctor.parseAsync(['bun', 'wave dt wcag', ...args], {
-					from: 'node',
-				});
-			},
-		);
+		.action(async (options: { file?: string; night?: boolean }) => {
+			const args = ['--contrast'];
+			if (options.file) {
+				args.push('--file', options.file);
+			}
+			if (options.night) {
+				args.push('--night');
+			}
+			const doctor = createDoctorCommand('doctor');
+			await doctor.parseAsync(['bun', 'wave token wcag', ...args], {
+				from: 'node',
+			});
+		});
 }
 
 function createUpdateCommand(): Command {
@@ -184,24 +125,28 @@ export function createStatusCommand(): Command {
 		});
 }
 
-export function createDesignTokenCommand(name = 'design-token'): Command {
-	return new Command(name)
-		.description('Build and inspect design tokens')
-		.helpOption(false)
-		.addHelpCommand(false)
-		.option('-h, --help', 'Show help')
+export function createTokenCommand(name = 'token'): Command {
+	const command = new Command(name).description(
+		'Build and maintain design tokens',
+	);
+	addManualOption(command);
+	addBuildOptions(command);
+	command
 		.addCommand(createDesignTokenBuildCommand('build'))
+		.addCommand(createTokenNewCommand())
 		.addCommand(createDoctorCommand('doctor', { defaultMainYaml: true }))
 		.addCommand(createWcagCommand())
+		.addCommand(createIdsCommand())
+		.addCommand(createTokenMigrateCommand())
 		.addCommand(createShowCommand('show'))
 		.addCommand(createUpdateCommand())
-		.addCommand(createStatusCommand())
-		.addCommand(createDesignTokenInitCommand('init'))
-		.addCommand(createNewProfileCommand())
-		.addCommand(createIdsCommand())
-		.addCommand(createMigrateExtensionsCommand())
-		.action(showDesignTokenHelp);
+		.addCommand(createStatusCommand());
+	command.configureHelp({ formatHelp: () => TOKEN_HELP });
+	command.action(async (options: DesignTokenBuildOptions) => {
+		if (options.manual) return;
+		await runDesignTokenBuild(options);
+	});
+	return command;
 }
 
-export const designTokenCommand = createDesignTokenCommand('design-token');
-export const dtCommand = createDesignTokenCommand('dt');
+export const tokenCommand = createTokenCommand('token');

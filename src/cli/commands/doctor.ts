@@ -1,8 +1,4 @@
 import { Command } from 'commander';
-import {
-	expandMainYamlEntry,
-	resolveExclusiveFileInput,
-} from '../file-input.ts';
 import * as yaml from 'js-yaml';
 import {
 	findDimensionMigrationFindings,
@@ -34,8 +30,42 @@ import {
 } from '../../core/pipeline/workspace-loader.ts';
 import type { DoctorFinding, DoctorThemeReport } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
+import {
+	expandMainYamlEntry,
+	resolveExclusiveFileInput,
+} from '../file-input.ts';
 
 const SEPARATOR = '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~';
+
+function renderToolchainStatus(
+	result: Awaited<ReturnType<typeof runToolchainDoctor>>,
+): void {
+	const counts = result.checks.reduce(
+		(acc, check) => {
+			if (
+				check.status === 'pass' ||
+				check.status === 'warn' ||
+				check.status === 'fail'
+			) {
+				acc[check.status] += 1;
+			}
+			return acc;
+		},
+		{ pass: 0, warn: 0, fail: 0 },
+	);
+	console.log(
+		`toolchain: ${result.ok ? 'ok' : 'needs attention'} (${counts.pass} pass, ${counts.warn} warn, ${counts.fail} fail)`,
+	);
+}
+
+function renderToolchainVerbose(
+	result: Awaited<ReturnType<typeof runToolchainDoctor>>,
+): void {
+	for (const check of result.checks) {
+		console.log(`${check.status.toUpperCase()} ${check.name}`);
+		console.log(check.message);
+	}
+}
 
 async function inspectRawDimensionMigration(
 	filePath: string | undefined,
@@ -120,6 +150,7 @@ interface DoctorCommandOptions {
 
 interface CreateDoctorCommandOptions {
 	defaultMainYaml?: boolean;
+	coreOnly?: boolean;
 }
 
 function defaultProfileDocument(
@@ -245,27 +276,38 @@ export function createDoctorCommand(
 	name = 'doctor',
 	commandOptions: CreateDoctorCommandOptions = {},
 ): Command {
-	return new Command(name)
-		.description('Run health diagnostics and contrast checks')
-		.argument('[file]', 'main.yaml path or workspace dir. Default: ./main.yaml when under dt')
-		.option('-f, --file <path>', 'main.yaml path to validate')
-		.option('-o, --output <path>', 'Output directory to check')
-		.option('--contrast', 'Run WCAG contrast check on theme colors')
-		.option('--night', 'Check night profile (use with --contrast)')
-		.option(
-			'--profile <name>',
-			'Check a specific profile instead of the whole workspace',
-		)
+	const command = new Command(name).description(
+		commandOptions.coreOnly
+			? 'Check local Wave environment and tools'
+			: 'Run token workspace health diagnostics',
+	);
+	if (!commandOptions.coreOnly) {
+		command
+			.option('-f, --file <path>', 'main.yaml path to validate')
+			.option('-o, --output <path>', 'Output directory to check')
+			.option('--contrast', 'Run WCAG contrast check on theme colors')
+			.option('--night', 'Check night profile (use with --contrast)')
+			.option(
+				'--profile <name>',
+				'Check a specific profile instead of the whole workspace',
+			);
+	}
+	command
 		.option('--json', 'Output structured JSON for core diagnostics')
 		.option('--verbose', 'Show detailed core diagnostics')
 		.option('--status', 'Show compact core health status')
-		.addOption(
-			new Command()
-				.createOption('--theme', '(deprecated) Use --contrast instead')
-				.hideHelp(),
-		)
-		.action(async (positionalFile: string | undefined, options: DoctorCommandOptions) => {
-			const fileInput = resolveExclusiveFileInput(positionalFile, options.file, {
+		.action(async (options: DoctorCommandOptions) => {
+			if (commandOptions.coreOnly) {
+				const result = await runToolchainDoctor({ module: 'core' });
+				if (options.json) console.log(JSON.stringify(result, null, 2));
+				else if (options.status) renderToolchainStatus(result);
+				else renderToolchainVerbose(result);
+				process.exitCode = result.ok
+					? ExitCode.SUCCESS
+					: ExitCode.GENERAL_ERROR;
+				return;
+			}
+			const fileInput = resolveExclusiveFileInput(undefined, options.file, {
 				label: 'doctor input',
 				hint: 'Use one main.yaml path.',
 			});
@@ -279,13 +321,6 @@ export function createDoctorCommand(
 				file: await expandMainYamlEntry(fileInput.path),
 			};
 
-			if (options.theme) {
-				console.error('Option "--theme" has been renamed to "--contrast".');
-				console.error('  wave doctor --contrast   Run WCAG contrast check');
-				console.error('  wave doctor --help       Show available options');
-				process.exitCode = ExitCode.INVALID_COMMAND;
-				return;
-			}
 			if (!options.contrast) {
 				let workspaceTheme: string | undefined;
 				const workspaceFindings: DoctorFinding[] = [];
@@ -613,6 +648,7 @@ export function createDoctorCommand(
 				process.exitCode = ExitCode.SUCCESS;
 			}
 		});
+	return command;
 }
 
-export const doctorCommand = createDoctorCommand('doctor');
+export const doctorCommand = createDoctorCommand('doctor', { coreOnly: true });

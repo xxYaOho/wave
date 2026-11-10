@@ -89,7 +89,16 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const { exitCode, stdout } = await runWave(
-				['mg', 'gif', framesDir, '--dry-run', '--fps', '12'],
+				[
+					'motion',
+					'--format',
+					'gif',
+					'--file',
+					framesDir,
+					'--dry-run',
+					'--fps',
+					'12',
+				],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 
@@ -122,7 +131,7 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const { exitCode, stdout } = await runWave(
-				['motion', 'apng', framesDir, '--dry-run'],
+				['motion', '--format', 'apng', '--file', framesDir, '--dry-run'],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 
@@ -145,7 +154,7 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const { exitCode, stdout } = await runWave(
-				['motion', 'apng', '--dry-run', '--fps', '12'],
+				['motion', '--format', 'apng', '--dry-run', '--fps', '12'],
 				{
 					cwd: framesDir,
 					env: { PATH: `${binDir}:${process.env.PATH ?? ''}` },
@@ -170,10 +179,13 @@ describe('wave motion', () => {
 			await writePng(path.join(framesDir, '2.png'), 100, 100);
 			const binDir = await createFakeToolDir(tempDir);
 
-			const { exitCode, stdout } = await runWave(['mg', 'gif', '--dry-run'], {
-				cwd: framesDir,
-				env: { PATH: `${binDir}:${process.env.PATH ?? ''}` },
-			});
+			const { exitCode, stdout } = await runWave(
+				['motion', '--format', 'gif', '--dry-run'],
+				{
+					cwd: framesDir,
+					env: { PATH: `${binDir}:${process.env.PATH ?? ''}` },
+				},
+			);
 
 			expect(exitCode).toBe(0);
 			expect(stdout).toContain('Format              GIF');
@@ -184,11 +196,11 @@ describe('wave motion', () => {
 	});
 
 	test('mg without format fails deterministically in non-interactive mode', async () => {
-		const { exitCode, stderr } = await runWave(['mg']);
+		const { exitCode, stderr } = await runWave(['motion']);
 
 		expect(exitCode).toBe(1);
 		expect(stderr).toContain(
-			'Missing format in non-interactive mode. Use wave mg apng or wave mg gif.',
+			'Missing format in non-interactive mode. Use wave motion --format apng or wave motion --format gif.',
 		);
 	});
 
@@ -197,14 +209,14 @@ describe('wave motion', () => {
 
 		expect(exitCode).toBe(1);
 		expect(stderr).toContain(
-			'Missing format in non-interactive mode. Use wave motion apng or wave motion gif.',
+			'Missing format in non-interactive mode. Use wave motion --format apng or wave motion --format gif.',
 		);
 	});
 
 	test('mg without format checks current directory before prompting', async () => {
 		const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-motion-'));
 		try {
-			const { exitCode, stdout } = await runWavePty(['mg'], {
+			const { exitCode, stdout } = await runWavePty(['motion'], {
 				cwd: tempDir,
 				input: '\r',
 			});
@@ -228,7 +240,7 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const { exitCode, stdout } = await runWavePty(
-				['mg', '--dry-run', '--fps', '12'],
+				['motion', '--dry-run', '--fps', '12'],
 				{
 					cwd: framesDir,
 					env: { PATH: `${binDir}:${process.env.PATH ?? ''}` },
@@ -259,7 +271,16 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const { exitCode, stdout } = await runWave(
-				['motion', 'apng', '-f', framesDir, '--out', outputPath, '--dry-run'],
+				[
+					'motion',
+					'--format',
+					'apng',
+					'-f',
+					framesDir,
+					'--output',
+					outputPath,
+					'--dry-run',
+				],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 
@@ -282,7 +303,7 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const { exitCode, stdout } = await runWave(
-				['motion', 'doctor', framesDir, '--verbose'],
+				['motion', 'doctor', '--file', framesDir, '--verbose'],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 
@@ -312,7 +333,7 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const { exitCode, stdout } = await runWave(
-				['motion', 'gif', framesDir, '--dry-run'],
+				['motion', '--format', 'gif', '--file', framesDir, '--dry-run'],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 
@@ -337,14 +358,30 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const forceResult = await runWave(
-				['motion', 'gif', framesDir, '--dry-run', '--force'],
+				[
+					'motion',
+					'--format',
+					'gif',
+					'--file',
+					framesDir,
+					'--dry-run',
+					'--force',
+				],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 			expect(forceResult.exitCode).toBe(0);
 			expect(forceResult.stdout).toContain('MOTION PLAN');
 
 			const overwriteResult = await runWave(
-				['motion', 'gif', framesDir, '--dry-run', '--overwrite'],
+				[
+					'motion',
+					'--format',
+					'gif',
+					'--file',
+					framesDir,
+					'--dry-run',
+					'--force',
+				],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 			expect(overwriteResult.exitCode).toBe(0);
@@ -364,7 +401,7 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const { exitCode, stdout } = await runWave(
-				['motion', 'apng', framesDir, '--dry-run'],
+				['motion', '--format', 'apng', '--file', framesDir, '--dry-run'],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 
@@ -387,7 +424,15 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const { exitCode, stdout } = await runWave(
-				['motion', 'gif', framesDir, '--out', outputPath],
+				[
+					'motion',
+					'--format',
+					'gif',
+					'--file',
+					framesDir,
+					'--output',
+					outputPath,
+				],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 
@@ -410,16 +455,19 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const commandResult = await runWave(
-				['motion', 'gif', framesDir, '--dry-run'],
+				['motion', '--format', 'gif', '--file', framesDir, '--dry-run'],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 			expect(commandResult.exitCode).toBe(1);
 			expect(commandResult.stdout).toContain('WMG_FRAME_FORMAT_UNSUPPORTED');
 			expect(commandResult.stderr).not.toContain('Not a PNG file');
 
-			const doctorResult = await runWave(['motion', 'doctor', framesDir], {
-				env: { PATH: `${binDir}:${process.env.PATH ?? ''}` },
-			});
+			const doctorResult = await runWave(
+				['motion', 'doctor', '--file', framesDir],
+				{
+					env: { PATH: `${binDir}:${process.env.PATH ?? ''}` },
+				},
+			);
 			expect(doctorResult.exitCode).toBe(1);
 			expect(doctorResult.stdout).toContain(
 				'ERROR WMG_FRAME_FORMAT_UNSUPPORTED',
@@ -440,14 +488,32 @@ describe('wave motion', () => {
 			const binDir = await createFakeToolDir(tempDir);
 
 			const gifResult = await runWave(
-				['motion', 'gif', framesDir, '--dry-run', '--loop', 'once'],
+				[
+					'motion',
+					'--format',
+					'gif',
+					'--file',
+					framesDir,
+					'--dry-run',
+					'--loop',
+					'once',
+				],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 			expect(gifResult.exitCode).toBe(1);
 			expect(gifResult.stdout).toContain('WMG_LOOP_UNSUPPORTED');
 
 			const invalidResult = await runWave(
-				['motion', 'apng', framesDir, '--dry-run', '--loop', 'twice'],
+				[
+					'motion',
+					'--format',
+					'apng',
+					'--file',
+					framesDir,
+					'--dry-run',
+					'--loop',
+					'twice',
+				],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 			expect(invalidResult.exitCode).toBe(1);
@@ -455,7 +521,17 @@ describe('wave motion', () => {
 
 			const apngOutput = path.join(tempDir, 'loading.png');
 			const apngResult = await runWave(
-				['motion', 'apng', framesDir, '--out', apngOutput, '--loop', 'once'],
+				[
+					'motion',
+					'--format',
+					'apng',
+					'--file',
+					framesDir,
+					'--output',
+					apngOutput,
+					'--loop',
+					'once',
+				],
 				{ env: { PATH: `${binDir}:${process.env.PATH ?? ''}` } },
 			);
 			expect(apngResult.exitCode).toBe(0);
@@ -471,44 +547,29 @@ describe('wave motion', () => {
 		}
 	});
 
-	test('motion format help documents force and default output', async () => {
-		const apng = await runWave(['motion', 'apng', '-h']);
-		expect(apng.exitCode).toBe(0);
-		expect(apng.stdout).toContain('Wave Motion APNG');
-		expect(apng.stdout).toContain('wave motion apng -f <frames-dir>');
-		expect(apng.stdout).toContain('--force');
-		expect(apng.stdout).not.toContain('Usage: wave motion apng [options]');
-		expect(apng.stdout).not.toContain('--overwrite');
-		expect(apng.stdout).toContain(
-			'<frames-dir>/wave-mg/<frames-dir-name>@<fps>fps.png',
-		);
-
-		const gif = await runWave(['motion', 'gif', '-h']);
-		expect(gif.exitCode).toBe(0);
-		expect(gif.stdout).toContain(
-			'<frames-dir>/wave-mg/<frames-dir-name>@<fps>fps.gif',
-		);
-		expect(gif.stdout).not.toContain('Usage: wave motion gif [options]');
-		expect(gif.stdout).not.toContain('--overwrite');
+	test('motion help documents direct format selection', async () => {
+		const help = await runWave(['motion', '-h']);
+		expect(help.exitCode).toBe(0);
+		expect(help.stdout).toContain('--format <format>');
+		expect(help.stdout).toContain('--force');
+		expect(help.stdout).not.toContain('--overwrite');
+		expect(help.stdout).not.toContain('motion gif');
+		expect(help.stdout).not.toContain('motion apng');
 	});
 
 	test('motion module help, doctor, install, and unknown command are not captured by empty action', async () => {
-		const help = await runWave(['mg', '-h']);
+		const help = await runWave(['motion', '-h']);
 		expect(help.exitCode).toBe(0);
 		expect(help.stdout).toContain('Usage:');
-		expect(help.stdout).toContain('wave mg [options]');
-		expect(help.stdout).toContain('wave mg <command> [options]');
+		expect(help.stdout).toContain('wave motion [options]');
+		expect(help.stdout).not.toContain('wave mg');
 		expect(help.stdout).toContain('Commands:');
-		expect(help.stdout).toContain(
-			'apng            Create APNG from PNG frames',
-		);
-		expect(help.stdout).toContain('gif             Create GIF from PNG frames');
 		expect(help.stdout).toContain('doctor          Check motion tools');
 		expect(help.stdout).toContain(
 			'install         Show or run motion tool installation',
 		);
 		expect(help.stdout).toContain('For more help on a command:');
-		expect(help.stdout).toContain('wave mg <command> --help');
+		expect(help.stdout).toContain('wave motion <command> --help');
 		expect(help.stdout).not.toContain('Defaults:');
 		expect(help.stdout).not.toContain('APNG extension');
 		expect(help.stderr).not.toContain('Missing format');
@@ -516,12 +577,11 @@ describe('wave motion', () => {
 		const motionHelp = await runWave(['motion', '-h']);
 		expect(motionHelp.exitCode).toBe(0);
 		expect(motionHelp.stdout).toContain('wave motion [options]');
-		expect(motionHelp.stdout).toContain('wave motion <command> [options]');
 		expect(motionHelp.stdout).toContain('Commands:');
 		expect(motionHelp.stdout).toContain('wave motion <command> --help');
 		expect(motionHelp.stdout).not.toContain('Defaults:');
 
-		const doctor = await runWave(['mg', 'doctor', '--status']);
+		const doctor = await runWave(['motion', 'doctor', '--status']);
 		expect(doctor.stdout).toContain('motion:');
 		expect(doctor.stderr).not.toContain('Missing format');
 
@@ -529,9 +589,9 @@ describe('wave motion', () => {
 		expect(install.stdout).toContain('wave motion install plan');
 		expect(install.stderr).not.toContain('Missing format');
 
-		const unknown = await runWave(['mg', 'webp']);
+		const unknown = await runWave(['motion', 'webp']);
 		expect(unknown.exitCode).not.toBe(0);
-		expect(unknown.stderr).toContain("too many arguments for 'mg'");
+		expect(unknown.stderr).toContain("too many arguments for 'motion'");
 		expect(unknown.stderr).not.toContain('Missing format');
 		expect(unknown.stderr).not.toContain('CommanderError');
 		expect(unknown.stderr).not.toContain('node_modules');

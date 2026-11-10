@@ -1,8 +1,4 @@
 import { Command } from 'commander';
-import {
-	expandMainYamlEntry,
-	resolveExclusiveFileInput,
-} from '../file-input.ts';
 import { VERSION } from '../../config/index.ts';
 import {
 	generateTheme,
@@ -11,13 +7,17 @@ import {
 import { ExitCode, type GenerateOptions } from '../../types/index.ts';
 import { BuildContext, renderReceipt } from '../../utils/receipt.ts';
 import { WaveSpinner } from '../../utils/spinner.ts';
+import {
+	expandMainYamlEntry,
+	resolveExclusiveFileInput,
+} from '../file-input.ts';
 
-interface DesignTokenBuildOptions {
+export interface DesignTokenBuildOptions {
 	file?: string;
+	manual?: boolean;
 	night?: boolean;
 	profile?: string;
 	profiles?: string;
-	out?: string;
 	output?: string;
 	platform?: string;
 }
@@ -40,10 +40,8 @@ function parseCliOptions(options: DesignTokenBuildOptions): GenerateOptions {
 	return result;
 }
 
-export function createDesignTokenBuildCommand(name = 'build'): Command {
-	return new Command(name)
-		.description('Generate design token output')
-		.argument('[file]', 'main.yaml path or workspace dir. Default: ./main.yaml')
+export function addBuildOptions(command: Command): Command {
+	return command
 		.option('-f, --file <path>', 'main.yaml path. Default: ./main.yaml')
 		.option(
 			'--profile <name>',
@@ -51,67 +49,66 @@ export function createDesignTokenBuildCommand(name = 'build'): Command {
 		)
 		.option('--profiles <mode>', 'Build profile set. Supported: all')
 		.option('--night', 'Include valid Night Mode overlays when available')
-		.option('-o, --out <path>', 'Output directory')
 		.option('--output <dir>', 'Output directory')
 		.option(
 			'--platform <list>',
 			'Output platforms (comma separated): json, jsonc, css, sketch, md-yml',
-		)
-		.action(
-			async (
-				positionalFile: string | undefined,
-				options: DesignTokenBuildOptions,
-			) => {
-				const fileInput = resolveExclusiveFileInput(
-					positionalFile,
-					options.file,
-					{
-						label: 'design token workspace input',
-						hint: 'Use one main.yaml path or run wave dt init.',
-					},
-				);
-				if (!fileInput.ok) {
-					console.error(fileInput.message);
-					process.exitCode = ExitCode.INVALID_PARAMETER;
-					return;
-				}
-
-				const spinner = new WaveSpinner();
-				const ctx = new BuildContext();
-				ctx.themeName = 'design-token';
-				ctx.version = VERSION;
-				const output = options.out ?? options.output;
-				ctx.outputDir = output ?? '';
-
-				try {
-					const input: ThemeGenerationInput = {
-						workspacePath: await expandMainYamlEntry(fileInput.path),
-						cliOutput: output,
-						cliPlatform: options.platform,
-						generateOptions: parseCliOptions(options),
-					};
-					spinner.start('Generating theme...');
-					const result = await generateTheme(input, ctx);
-					if (result.ok) ctx.themeName = result.themeName;
-					process.exitCode = result.ok ? ExitCode.SUCCESS : result.exitCode;
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : String(error);
-					ctx.markFailed('generate', message, { phase: 'unknown' });
-					process.exitCode = ExitCode.GENERAL_ERROR;
-				} finally {
-					spinner.stop();
-					console.log(renderReceipt(ctx));
-					if (ctx.errors.length > 0) {
-						console.log();
-						for (const error of ctx.errors) {
-							const detail = error.line
-								? `at line ${error.line}`
-								: error.detail;
-							console.error(`${error.message}${detail ? ` (${detail})` : ''}`);
-						}
-					}
-				}
-			},
 		);
+}
+
+export async function runDesignTokenBuild(
+	options: DesignTokenBuildOptions,
+): Promise<void> {
+	const fileInput = resolveExclusiveFileInput(undefined, options.file, {
+		label: 'design token workspace input',
+		hint: 'Use -f <main.yaml> or run wave token new.',
+	});
+	if (!fileInput.ok) {
+		console.error(fileInput.message);
+		process.exitCode = ExitCode.INVALID_PARAMETER;
+		return;
+	}
+
+	const spinner = new WaveSpinner();
+	const ctx = new BuildContext();
+	ctx.themeName = 'design-token';
+	ctx.version = VERSION;
+	const output = options.output;
+	ctx.outputDir = output ?? '';
+
+	try {
+		const input: ThemeGenerationInput = {
+			workspacePath: await expandMainYamlEntry(fileInput.path),
+			cliOutput: output,
+			cliPlatform: options.platform,
+			generateOptions: parseCliOptions(options),
+		};
+		spinner.start('Generating theme...');
+		const result = await generateTheme(input, ctx);
+		if (result.ok) ctx.themeName = result.themeName;
+		process.exitCode = result.ok ? ExitCode.SUCCESS : result.exitCode;
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		ctx.markFailed('generate', message, { phase: 'unknown' });
+		process.exitCode = ExitCode.GENERAL_ERROR;
+	} finally {
+		spinner.stop();
+		console.log(renderReceipt(ctx));
+		if (ctx.errors.length > 0) {
+			console.log();
+			for (const error of ctx.errors) {
+				const detail = error.line ? `at line ${error.line}` : error.detail;
+				console.error(`${error.message}${detail ? ` (${detail})` : ''}`);
+			}
+		}
+	}
+}
+
+export function createDesignTokenBuildCommand(name = 'build'): Command {
+	const command = new Command(name).description('Generate design token output');
+	addBuildOptions(command);
+	command.action(async (options: DesignTokenBuildOptions) => {
+		await runDesignTokenBuild(options);
+	});
+	return command;
 }

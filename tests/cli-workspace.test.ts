@@ -43,7 +43,7 @@ describe('wave workspace', () => {
 
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain(
-			'workspace      Create local design project workspaces',
+			'workspace          Create a local design project workspace',
 		);
 	});
 
@@ -53,7 +53,7 @@ describe('wave workspace', () => {
 		expect(exitCode).toBe(0);
 		expect(stdout).toContain('Wave Workspace');
 		expect(stdout).toContain('wave workspace');
-		expect(stdout).toContain('wave workspace create');
+		expect(stdout).not.toContain('wave workspace create');
 		expect(stdout).toContain('WAVE_WORKSPACE_CONFIG');
 	});
 

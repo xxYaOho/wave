@@ -1,16 +1,16 @@
 import * as path from 'node:path';
 import { Command } from 'commander';
 import {
-	expandMainYamlEntry,
-	resolveExclusiveFileInput,
-} from '../file-input.ts';
-import {
 	type ExtensionsMigrationReport,
 	MigrationEntryError,
 	migrateExtensionsWorkspace,
 } from '../../core/migrate/extensions.ts';
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
+import {
+	expandMainYamlEntry,
+	resolveExclusiveFileInput,
+} from '../file-input.ts';
 
 export function createMigrateExtensionsCommand(
 	name = 'migrate-extensions',
@@ -19,22 +19,16 @@ export function createMigrateExtensionsCommand(
 		.description(
 			'One-shot migration of legacy $extensions sketch family to platform.sketch',
 		)
-		.argument('[file]', 'main.yaml path or workspace dir. Default: ./main.yaml')
 		.option('-f, --file <path>', 'main.yaml path. Default: ./main.yaml')
 		.option(
 			'--write',
 			'Apply the migration to main.yaml and profiles/*.yaml (default: dry-run report)',
 		)
-		.action(
-			async (
-				positionalFile: string | undefined,
-				options: { file?: string; write?: boolean },
-			) => {
-			const fileInput = resolveExclusiveFileInput(
-				positionalFile,
-				options.file,
-				{ label: 'migrate-extensions input', hint: 'Use one main.yaml path.' },
-			);
+		.action(async (options: { file?: string; write?: boolean }) => {
+			const fileInput = resolveExclusiveFileInput(undefined, options.file, {
+				label: 'migrate-extensions input',
+				hint: 'Use one main.yaml path.',
+			});
 			if (!fileInput.ok) {
 				logger.error(fileInput.message);
 				process.exitCode = ExitCode.INVALID_PARAMETER;

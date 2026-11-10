@@ -30,10 +30,6 @@ const WORKSPACE_HELP = `Wave Workspace
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Usage:
     wave workspace
-    wave workspace create
-
-  Commands:
-    create          Create a local design project workspace
 
   Config:
     ~/.config/wave/workspace.yaml
@@ -43,7 +39,7 @@ const WORKSPACE_HELP = `Wave Workspace
     -h, --help      Show help
 
   For more help on a command:
-    wave workspace create --help`;
+    wave workspace --help`;
 
 export function createWorkspaceCommand(name = 'workspace'): Command {
 	const command = new Command(name)
@@ -54,17 +50,6 @@ export function createWorkspaceCommand(name = 'workspace'): Command {
 		.action(async () => {
 			await runWorkspaceCreate();
 		});
-
-	command
-		.command('create')
-		.description('Create a local design project workspace')
-		.action(async () => {
-			await runWorkspaceCreate();
-		});
-
-	command.command('help', { hidden: true }).action(() => {
-		console.log(WORKSPACE_HELP);
-	});
 
 	return command;
 }

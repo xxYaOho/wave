@@ -43,7 +43,7 @@ let out = '';
 let input = args[args.length - 1];
 let config = '';
 for (let i = 0; i < args.length; i++) {
-	if (['--out', '--output', '-outfile'].includes(args[i])) out = args[i + 1] ?? '';
+		if (['--out', '--output', '-outfile'].includes(args[i])) out = args[i + 1] ?? '';
 	if (args[i] === '--input') input = args[i + 1] ?? input;
 	if (args[i] === '--config') config = args[i + 1] ?? '';
 }
@@ -92,7 +92,7 @@ let out = '';
 let input = args[args.length - 1];
 let config = '';
 for (let i = 0; i < args.length; i++) {
-	if (['--out', '--output', '-outfile'].includes(args[i])) out = args[i + 1] ?? '';
+		if (['--out', '--output', '-outfile'].includes(args[i])) out = args[i + 1] ?? '';
 	if (args[i] === '--input') input = args[i + 1] ?? input;
 	if (args[i] === '--config') config = args[i + 1] ?? '';
 }
@@ -121,9 +121,6 @@ describe('wave compress', () => {
 		expect(stdout).toContain('wave compress [options]');
 		expect(stdout).toContain('wave compress <command> [options]');
 		expect(stdout).toContain('Commands:');
-		expect(stdout).toContain(
-			'run             Compress PNG, JPG, SVG, and GIF assets',
-		);
 		expect(stdout).toContain('doctor          Check compress toolchain health');
 		expect(stdout).toContain(
 			'install         Show or run compress tool installation',
@@ -135,13 +132,12 @@ describe('wave compress', () => {
 		expect(stdout).not.toContain('Default behavior:');
 	});
 
-	test('wave compress help renders help instead of treating help as input', async () => {
-		const { exitCode, stdout, stderr } = await runWave(['compress', 'help']);
+	test('wave compress run is rejected after the direct-action cutover', async () => {
+		const { exitCode, stdout, stderr } = await runWave(['compress', 'run']);
 
-		expect(exitCode).toBe(0);
-		expect(stdout).toContain('Wave Compress');
-		expect(stdout).toContain('wave compress <command> [options]');
-		expect(stderr).not.toContain('ENOENT');
+		expect(exitCode).not.toBe(0);
+		expect(stdout).toBe('');
+		expect(stderr).toContain("too many arguments for 'compress'");
 	});
 
 	test('dry-run previews supported files without writing output', async () => {
@@ -151,7 +147,7 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--dry-run'],
+				['compress', '--file', tempDir, '--dry-run'],
 				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
 			);
 
@@ -175,10 +171,13 @@ describe('wave compress', () => {
 		try {
 			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
 
-			const { exitCode, stdout } = await runWave(['compress', tempDir], {
-				env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
-				input: 'n\n',
-			});
+			const { exitCode, stdout } = await runWave(
+				['compress', '--file', tempDir],
+				{
+					env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
+					input: 'n\n',
+				},
+			);
 
 			expect(exitCode).toBe(0);
 			expect(stdout).toContain(
@@ -204,10 +203,13 @@ describe('wave compress', () => {
 		try {
 			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
 
-			const { exitCode, stdout } = await runWave(['compress', tempDir], {
-				env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
-				input: 'y\n',
-			});
+			const { exitCode, stdout } = await runWave(
+				['compress', '--file', tempDir],
+				{
+					env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
+					input: 'y\n',
+				},
+			);
 
 			expect(exitCode).toBe(0);
 			expect(stdout).toContain(
@@ -234,7 +236,7 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'png', '--yes'],
+				['compress', '--file', tempDir, '--type', 'png', '--yes'],
 				{
 					cwd: tempDir,
 					env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
@@ -275,7 +277,7 @@ describe('wave compress', () => {
 			);
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'png', '--yes'],
+				['compress', '--file', tempDir, '--type', 'png', '--yes'],
 				{
 					cwd: tempDir,
 					env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
@@ -305,7 +307,7 @@ describe('wave compress', () => {
 			await fs.writeFile(source, '0123456789');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', source, '--type', 'png', '--yes'],
+				['compress', '--file', source, '--type', 'png', '--yes'],
 				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
 			);
 
@@ -332,7 +334,16 @@ describe('wave compress', () => {
 			);
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'svg', '--out', outDir, '--yes'],
+				[
+					'compress',
+					'--file',
+					tempDir,
+					'--type',
+					'svg',
+					'--output',
+					outDir,
+					'--yes',
+				],
 				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
 			);
 
@@ -361,7 +372,7 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'sample.svg'), '<svg></svg>');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'svg', '--yes'],
+				['compress', '--file', tempDir, '--type', 'svg', '--yes'],
 				{
 					env: {
 						HOME: tempHome,
@@ -399,7 +410,7 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'sample.svg'), '<svg></svg>');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'svg', '--icon', '--yes'],
+				['compress', '--file', tempDir, '--type', 'svg', '--icon', '--yes'],
 				{
 					env: {
 						HOME: tempHome,
@@ -433,7 +444,7 @@ describe('wave compress', () => {
 			);
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'svg', '--dry-run'],
+				['compress', '--file', tempDir, '--type', 'svg', '--dry-run'],
 				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
 			);
 
@@ -454,7 +465,7 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'sample.svg'), '<svg></svg>');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'svg', '--yes'],
+				['compress', '--file', tempDir, '--type', 'svg', '--yes'],
 				{
 					env: {
 						HOME: tempHome,
@@ -485,7 +496,7 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'sample.png'), '12345');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'png', '--dry-run'],
+				['compress', '--file', tempDir, '--type', 'png', '--dry-run'],
 				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
 			);
 
@@ -506,7 +517,16 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'sample.png'), '12345');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'png', '--out', outDir, '--yes'],
+				[
+					'compress',
+					'--file',
+					tempDir,
+					'--type',
+					'png',
+					'--output',
+					outDir,
+					'--yes',
+				],
 				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
 			);
 
@@ -532,7 +552,7 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'wave-compress/sample.png'), 'old');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'png', '--yes'],
+				['compress', '--file', tempDir, '--type', 'png', '--yes'],
 				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
 			);
 
@@ -561,7 +581,7 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'wave-compress/sample.png'), 'old');
 
 			const { exitCode } = await runWave(
-				['compress', tempDir, '--type', 'png', '--yes', '--force'],
+				['compress', '--file', tempDir, '--type', 'png', '--yes', '--force'],
 				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
 			);
 
@@ -585,7 +605,7 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'png', '--json'],
+				['compress', '--file', tempDir, '--type', 'png', '--json'],
 				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
 			);
 
@@ -611,7 +631,7 @@ describe('wave compress', () => {
 			await fs.writeFile(path.join(tempDir, 'sample.png'), '0123456789');
 
 			const { exitCode, stdout } = await runWave(
-				['compress', tempDir, '--type', 'png', '--json', '--yes'],
+				['compress', '--file', tempDir, '--type', 'png', '--json', '--yes'],
 				{ env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` } },
 			);
 

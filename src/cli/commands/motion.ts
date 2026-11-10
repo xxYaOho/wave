@@ -25,13 +25,14 @@ interface MotionCommandOptions {
 	fps?: string;
 	quality?: string;
 	loop?: string;
-	out?: string;
+	output?: string;
 	force?: boolean;
-	overwrite?: boolean;
 	dryRun?: boolean;
+	format?: string;
 }
 
 interface MotionDoctorOptions {
+	file?: string;
 	json?: boolean;
 	verbose?: boolean;
 	status?: boolean;
@@ -43,8 +44,6 @@ export function createMotionCommand(name = 'motion'): Command {
 	);
 
 	addEncodeOptions(command);
-	command.addCommand(createEncodeCommand('gif'));
-	command.addCommand(createEncodeCommand('apng'));
 	command.addCommand(createMotionDoctorCommand());
 	command.addCommand(createInstallCommand('install', 'motion'));
 	command.configureHelp({
@@ -53,13 +52,23 @@ export function createMotionCommand(name = 'motion'): Command {
 	command.action(
 		async (_options: MotionCommandOptions, actionCommand: Command) => {
 			const parsedOptions = actionCommand.opts<MotionCommandOptions>();
-			if (!isInteractive()) {
+			if (
+				parsedOptions.format &&
+				!['gif', 'apng'].includes(parsedOptions.format)
+			) {
+				console.error('Invalid format. Use --format gif or --format apng.');
+				process.exitCode = ExitCode.INVALID_PARAMETER;
+				return;
+			}
+			if (!isInteractive() && !parsedOptions.format) {
 				renderMissingFormat(name);
 				return;
 			}
 			const framesDir = parsedOptions.file ?? '.';
 			if (!(await validateInteractiveFrames(framesDir, parsedOptions))) return;
-			const format = await selectMotionFormat(name);
+			const format =
+				(parsedOptions.format as MotionFormat | undefined) ??
+				(await selectMotionFormat(name));
 			if (!format) return;
 			await runEncode(format, framesDir, parsedOptions);
 		},
@@ -86,71 +95,16 @@ export function createMotionCommand(name = 'motion'): Command {
 	return command;
 }
 
-function createEncodeCommand(format: MotionFormat): Command {
-	const formatName = format.toUpperCase();
-	const extension = format === 'gif' ? '.gif' : '.png';
-	const command = new Command(format)
-		.description(`Create ${format.toUpperCase()} from a PNG frame directory`)
-		.argument('[framesDir]', 'Directory containing PNG frames');
-	addEncodeOptions(command);
-	command
-		.configureHelp({
-			formatHelp: () => formatHelp(formatName, extension),
-		})
-		.action(
-			async (
-				framesDir: string | undefined,
-				options: MotionCommandOptions,
-				command: Command,
-			) => {
-				const parsedOptions = mergeMotionOptions(command, options);
-				await runEncode(
-					format,
-					framesDir ?? parsedOptions.file ?? '.',
-					parsedOptions,
-				);
-			},
-		);
-	return command;
-}
-
-function mergeMotionOptions(
-	command: Command,
-	options: MotionCommandOptions,
-): MotionCommandOptions {
-	const parentOptions = command.parent?.opts<MotionCommandOptions>() ?? {};
-	const merged: MotionCommandOptions = { ...options };
-
-	for (const key of [
-		'file',
-		'fps',
-		'quality',
-		'loop',
-		'out',
-		'force',
-		'overwrite',
-		'dryRun',
-	] as const) {
-		const childSource = command.getOptionValueSource(key);
-		const parentSource = command.parent?.getOptionValueSource(key);
-		if (childSource !== 'cli' && parentSource && parentSource !== 'default') {
-			merged[key] = parentOptions[key] as never;
-		}
-	}
-
-	return merged;
-}
-
 function addEncodeOptions(command: Command): Command {
 	return command
 		.option('-f, --file <path>', 'PNG frame directory')
 		.option('--fps <n>', 'Frames per second. Default: 24', '24')
 		.option('--quality <n>', 'Encoder quality, 1-100. Default: 80', '80')
 		.option('--loop <mode>', 'forever or once. Default: forever', 'forever')
-		.option('-o, --out <path>', 'Output file path')
+		.option('-o, --output <path>', 'Output file path')
+		.option('--format <format>', 'Output format: gif or apng')
 		.option('--dry-run', 'Show plan only, no write')
-		.option('--force', 'Allow overwriting existing output file')
-		.option('--overwrite', 'Allow overwriting existing output file');
+		.option('--force', 'Allow overwriting existing output file');
 }
 
 async function runEncode(
@@ -167,8 +121,8 @@ async function runEncode(
 			fps: Number(options.fps),
 			quality: Number(options.quality),
 			loop: options.loop,
-			out: options.out,
-			overwrite: options.force || options.overwrite,
+			out: options.output,
+			overwrite: options.force,
 			dryRun: options.dryRun,
 		},
 		resolver,
@@ -250,33 +204,9 @@ function isInteractive(): boolean {
 
 function renderMissingFormat(commandName: string): void {
 	console.error(
-		`Missing format in non-interactive mode. Use wave ${commandName} apng or wave ${commandName} gif.`,
+		`Missing format in non-interactive mode. Use wave ${commandName} --format apng or wave ${commandName} --format gif.`,
 	);
 	process.exitCode = ExitCode.GENERAL_ERROR;
-}
-
-function formatHelp(formatName: string, extension: string): string {
-	return `
-Wave Motion ${formatName}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Usage:
-    wave motion ${formatName.toLowerCase()} [frames-dir] [options]
-    wave motion ${formatName.toLowerCase()} [options]
-    wave motion ${formatName.toLowerCase()} -f <frames-dir> [options]
-
-  Options:
-    -f, --file <path>    PNG frame directory
-    --fps <n>            Frames per second. Default: 24
-    --quality <n>        Encoder quality, 1-100. Default: 80
-    --loop <mode>        forever or once. Default: forever
-    -o, --out <path>     Output file path
-    --dry-run            Show plan only, no write
-    --force              Allow overwriting existing output file
-    -h, --help           Show help
-
-  Default output:
-    <frames-dir>/wave-mg/<frames-dir-name>@<fps>fps${extension}
-`;
 }
 
 function motionHelp(commandName: string): string {
@@ -285,11 +215,8 @@ Wave Motion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Usage:
     wave ${commandName} [options]
-    wave ${commandName} <command> [options]
 
   Commands:
-    apng            Create APNG from PNG frames
-    gif             Create GIF from PNG frames
     doctor          Check motion tools and optional PNG frame directory
     install         Show or run motion tool installation
 
@@ -298,7 +225,8 @@ Wave Motion
     --fps <n>            Frames per second. Default: 24
     --quality <n>        Encoder quality, 1-100. Default: 80
     --loop <mode>        forever or once. Default: forever
-    -o, --out <path>     Output file path
+    --format <format>    Output format: gif or apng
+    -o, --output <path>  Output file path
     --dry-run            Show plan only, no write
     --force              Allow overwriting existing output file
     -h, --help           Show help
@@ -311,55 +239,57 @@ Wave Motion
 function createMotionDoctorCommand(): Command {
 	return new Command('doctor')
 		.description('Check motion tools and optional PNG frame directory')
-		.argument('[framesDir]', 'Directory containing PNG frames')
+		.option('-f, --file <path>', 'Directory containing PNG frames')
 		.option('--json', 'Output structured JSON')
 		.option('--verbose', 'Show details even when there are no issues')
 		.option('--status', 'Show compact health status')
-		.action(
-			async (framesDir: string | undefined, options: MotionDoctorOptions) => {
-				const runner = new BunCommandRunner();
-				const resolver = new DefaultToolResolver({ runner });
-				const toolchain = await runToolchainDoctor({
-					module: 'motion',
-					resolver,
-				});
-				const result = await runMotionDoctor(framesDir, resolver);
+		.action(async (_options: MotionDoctorOptions, actionCommand: Command) => {
+			const options: MotionDoctorOptions = {
+				...(actionCommand.parent?.opts<MotionDoctorOptions>() ?? {}),
+				...actionCommand.opts<MotionDoctorOptions>(),
+			};
+			const runner = new BunCommandRunner();
+			const resolver = new DefaultToolResolver({ runner });
+			const toolchain = await runToolchainDoctor({
+				module: 'motion',
+				resolver,
+			});
+			const result = await runMotionDoctor(options.file, resolver);
 
-				if (options.json) {
-					console.log(
-						JSON.stringify(
-							{
-								...toolchain,
-								frames: result.frames,
-								frameDetails: result.details,
-								frameIssues: result.issues,
-							},
-							null,
-							2,
-						),
-					);
-				} else if (options.status) {
-					renderToolchainStatus(toolchain);
-				} else {
-					console.log('Motion Doctor');
-					renderToolchainVerbose(toolchain);
-					renderIssues(result.issues);
-					if (options.verbose || result.issues.length === 0) {
-						for (const detail of result.details) {
-							console.log(`DETAIL ${detail}`);
-						}
-					}
-					if (result.issues.length === 0) {
-						console.log('OK motion checks passed');
+			if (options.json) {
+				console.log(
+					JSON.stringify(
+						{
+							...toolchain,
+							frames: result.frames,
+							frameDetails: result.details,
+							frameIssues: result.issues,
+						},
+						null,
+						2,
+					),
+				);
+			} else if (options.status) {
+				renderToolchainStatus(toolchain);
+			} else {
+				console.log('Motion Doctor');
+				renderToolchainVerbose(toolchain);
+				renderIssues(result.issues);
+				if (options.verbose || result.issues.length === 0) {
+					for (const detail of result.details) {
+						console.log(`DETAIL ${detail}`);
 					}
 				}
+				if (result.issues.length === 0) {
+					console.log('OK motion checks passed');
+				}
+			}
 
-				process.exitCode =
-					!toolchain.ok || hasBlockingMotionIssues(result.issues)
-						? ExitCode.GENERAL_ERROR
-						: ExitCode.SUCCESS;
-			},
-		);
+			process.exitCode =
+				!toolchain.ok || hasBlockingMotionIssues(result.issues)
+					? ExitCode.GENERAL_ERROR
+					: ExitCode.SUCCESS;
+		});
 }
 
 function renderMotionReceipt(
@@ -485,4 +415,3 @@ function fit(value: string, width: number): string {
 }
 
 export const motionCommand = createMotionCommand('motion');
-export const mgCommand = createMotionCommand('mg');

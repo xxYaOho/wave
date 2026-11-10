@@ -8,7 +8,8 @@ import type {
 import { ExitCode } from '../../types/index.ts';
 import { validateMainConfig } from '../validator/design-token-config.ts';
 
-const ENTRY_HINT = 'Use main.yaml as the workspace entry or run wave dt init.';
+const ENTRY_HINT =
+	'Use main.yaml as the workspace entry or run wave token new.';
 
 export interface LoadedDesignTokenWorkspace {
 	path: string;
