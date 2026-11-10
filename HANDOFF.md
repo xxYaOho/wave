@@ -9,12 +9,12 @@ handoff-version: 0.5
 > 2. 向用户简要说明当前状态与下一步，若引用的 commit、分支或文件已失效，或工作区存在文档未记录的改动，明确指出差异
 > 3. 汇报后进入待命状态, 等待下一步安排
 
-最后更新：2026-11-10（CLI 接口 M5 待施工）
+最后更新：2026-11-10（CLI 接口计划已交付）
 
-现在：分支 `feat/cli-interface-simplification`；M1–M4 已通过 gate，HEAD 为 `b4a4409`。M4 基线 79 pass、0 fail。后续路线图草案是一份路线图加七个独立计划。
+现在：分支 `feat/cli-interface-simplification` 的 M1–M6 与 Pruner/Scout 已完成，HEAD 为 `b458db1`。完整测试 1158 pass、0 fail；build、bench、Orca fixture 和真实 Orca 均通过。Changeset 为 minor。
 
-下一步：fresh 分派 M5 的 Markdown 手册运行链路；分层内容架构与中文文案由主代理完成，随后进入 M6 完整验证。
+下一步：等待用户决定合并到 main；随后按路线图草案先展开 Q0 质量基线与性能观测实施 SPEC，再并行推进 C1/P1/P2。
 
-阻塞：完整 typecheck/style 存在父提交既有错误。手册参考站尚未取得访问许可。除主代理文档提交外，M4 实现工作树已收口。
+阻塞：完整 check:ci 仍有父提交既有的 typecheck/style 问题，由 Q0 承接。手册网页视觉重设计仍需参考站访问许可或截图；当前只交付分层内容与运行链路。
 
 [交接文档](.tmp/handoff/261110173139-cli-interface-construction.md)
