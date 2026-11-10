@@ -1,11 +1,7 @@
-import { Command, Option } from 'commander';
+import { Command } from 'commander';
 import { emitNightOverlay } from '../../core/night/emit.ts';
 import { LUMINANCE_EV_LEVELS, NIGHT_SCENES } from '../../core/night/params.ts';
 import { ExitCode } from '../../types/index.ts';
-import {
-	expandMainYamlEntry,
-	resolveExclusiveFileInput,
-} from '../file-input.ts';
 
 const NIGHT_HELP = `Wave Night
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -16,6 +12,9 @@ const NIGHT_HELP = `Wave Night
 
   Options:
     -f, --file <path>    Path to a Day main/profile source document
+    -o, --output <path> Output YAML file (default: beside Day)
+    --dry-run           Show the complete plan without writing
+    --force             Allow overwriting the planned overlay
     --scene <name>       Lighting scene: ${NIGHT_SCENES.join(' | ')}
                          Default: night (or $config.night.scene)
     --luminance <n>      Primary Night 明度 dial 0..1 (wins over --luminance-ev)
@@ -32,7 +31,7 @@ const NIGHT_HELP = `Wave Night
 
   Priority:
     --luminance > --luminance-ev > $config.night > defaults (scene=night, luminance=0.7)
-    Legacy --chroma / --chroma-ev / $config.night.chroma still accepted as aliases.
+    Legacy --chroma / --chroma-ev CLI aliases are not accepted.
 
   Note:
     luminance is Primary Night lightness (明度), NOT HCT chroma/彩度.
@@ -43,8 +42,9 @@ interface NightCommandOptions {
 	scene?: string;
 	luminance?: string;
 	luminanceEv?: string;
-	chroma?: string;
-	chromaEv?: string;
+	output?: string;
+	dryRun?: boolean;
+	force?: boolean;
 }
 
 function parseLuminanceOption(
@@ -64,7 +64,13 @@ function parseLuminanceOption(
 export function createNightCommand(name = 'night'): Command {
 	return new Command(name)
 		.description('Generate a Night Mode overlay draft from Day')
-		.option('-f, --file <path>', 'main.yaml path. Default: ./main.yaml')
+		.option(
+			'-f, --file <path>',
+			'Day main/profile YAML or workspace directory. Default: ./main.yaml',
+		)
+		.option('-o, --output <path>', 'Output YAML file')
+		.option('--dry-run', 'Show the complete creation plan without writing')
+		.option('--force', 'Allow overwriting the planned overlay')
 		.option('--scene <name>', `Lighting scene (${NIGHT_SCENES.join('|')})`)
 		.option(
 			'--luminance <n>',
@@ -74,35 +80,15 @@ export function createNightCommand(name = 'night'): Command {
 			'--luminance-ev <level>',
 			`Named luminance (${LUMINANCE_EV_LEVELS.join('|')})`,
 		)
-		.addOption(
-			new Option('--chroma <n>', 'Deprecated alias for --luminance').hideHelp(),
-		)
-		.addOption(
-			new Option(
-				'--chroma-ev <level>',
-				'Deprecated alias for --luminance-ev',
-			).hideHelp(),
-		)
 		.option('-m, --manual', 'Print Markdown usage for this command')
 		.helpOption('-h, --help', 'Show help')
 		.addHelpCommand(false)
 		.configureHelp({ formatHelp: () => NIGHT_HELP })
-		.action(async (options: NightCommandOptions) => {
-			const fileInput = resolveExclusiveFileInput(undefined, options.file, {
-				label: 'Night input',
-				hint: 'Use one main.yaml path.',
-			});
-			if (!fileInput.ok) {
-				console.error(fileInput.message);
-				process.exitCode = ExitCode.INVALID_PARAMETER;
-				return;
-			}
-
+		.action(async (_options: NightCommandOptions, command: Command) => {
+			const options = command.optsWithGlobals<NightCommandOptions>();
 			let luminance: number | undefined;
-			let chroma: number | undefined;
 			try {
 				luminance = parseLuminanceOption(options.luminance, '--luminance');
-				chroma = parseLuminanceOption(options.chroma, '--chroma');
 			} catch (error) {
 				console.error(error instanceof Error ? error.message : String(error));
 				process.exitCode = ExitCode.INVALID_PARAMETER;
@@ -110,13 +96,14 @@ export function createNightCommand(name = 'night'): Command {
 			}
 
 			const result = await emitNightOverlay({
-				themePath: await expandMainYamlEntry(fileInput.path),
+				themePath: options.file,
+				output: options.output,
+				dryRun: options.dryRun,
+				force: options.force,
 				cli: {
 					scene: options.scene,
 					luminance,
 					luminanceEv: options.luminanceEv,
-					chroma,
-					chromaEv: options.chromaEv,
 				},
 			});
 
@@ -127,13 +114,21 @@ export function createNightCommand(name = 'night'): Command {
 			}
 
 			console.log(
-				`Night overlay ${result.overwrote ? 'updated' : 'written'}: ${result.outputPath}`,
+				`Night overlay ${result.dryRun ? `dry run: would ${result.overwrote ? 'overwrite' : 'create'}` : result.overwrote ? 'updated' : 'written'}: ${result.outputPath}`,
 			);
 			console.log(
 				`  scene=${result.params.scene} luminance=${result.params.luminance} (${result.params.luminanceSource}) → accentMain T${Math.round(result.params.luminance * 100)}`,
 			);
 			console.log(
 				`  themeId=${result.themeId} baseId=${result.baseId} mode=${result.mode} roles=${result.mappedCount}`,
+			);
+			if (result.outputPath !== result.defaultOutputPath) {
+				console.log(
+					`Move the overlay to ${result.defaultOutputPath} before consuming it.`,
+				);
+			}
+			console.log(
+				`Run wave token build -f ${JSON.stringify(result.sourcePath)} --night to consume it${result.outputPath !== result.defaultOutputPath ? ' after moving it' : ''}.`,
 			);
 			process.exitCode = ExitCode.SUCCESS;
 		});

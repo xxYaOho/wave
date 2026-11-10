@@ -8,12 +8,17 @@ import {
 	normalizeProfileName,
 	ProfileFormatError,
 } from '../../core/pipeline/profile-resolver.ts';
+import {
+	planSourceOutput,
+	writeSourceOutput,
+} from '../../core/pipeline/source-output.ts';
 import { loadDesignTokenWorkspace } from '../../core/pipeline/workspace-loader.ts';
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
+import { expandMainYamlEntry } from '../file-input.ts';
 
 function idsHint(basePath: string): string {
-	return `Run wave dt ids --write -f ${JSON.stringify(basePath)} before creating a profile.`;
+	return `Run wave token ids --write -f ${JSON.stringify(basePath)} before creating a profile.`;
 }
 
 function snapshotOverrides(
@@ -63,8 +68,23 @@ export function createNewProfileCommand(name = 'new-profile'): Command {
 	return new Command(name)
 		.description('Create a full value snapshot profile from a registered base')
 		.argument('<name>', 'Profile name (lowercase, spaces become underscores)')
-		.option('-f, --file <path>', 'main.yaml path. Default: ./main.yaml')
-		.action(async (rawName: string, options: { file?: string }) => {
+		.option(
+			'-f, --file <path>',
+			'Base main.yaml or workspace directory. Default: ./main.yaml',
+		)
+		.option(
+			'-o, --output <path>',
+			'Output YAML file (stem must match the normalized name)',
+		)
+		.option('--dry-run', 'Show the complete creation plan without writing')
+		.option('--force', 'Allow overwriting the selected profile target')
+		.action(async (rawName: string, _options: unknown, command: Command) => {
+			const options = command.optsWithGlobals<{
+				file?: string;
+				output?: string;
+				dryRun?: boolean;
+				force?: boolean;
+			}>();
 			try {
 				let profileName: string;
 				try {
@@ -75,7 +95,9 @@ export function createNewProfileCommand(name = 'new-profile'): Command {
 					return;
 				}
 
-				const loaded = await loadDesignTokenWorkspace(options.file);
+				const loaded = await loadDesignTokenWorkspace(
+					await expandMainYamlEntry(options.file),
+				);
 				if (!loaded.ok) {
 					logger.error(loaded.message);
 					if (loaded.message.includes('Invalid main.yaml $id;'))
@@ -95,17 +117,43 @@ export function createNewProfileCommand(name = 'new-profile'): Command {
 					workspace.path,
 				);
 				const profiles = await discoverProfiles(workspace.workspaceDir);
-				if (profiles.some((profile) => profile.name === profileName)) {
+				const profilePath = path.resolve(
+					options.output ??
+						path.join(
+							workspace.workspaceDir,
+							'profiles',
+							`${profileName}.yaml`,
+						),
+				);
+				if (path.basename(profilePath) !== `${profileName}.yaml`) {
+					logger.error(`Profile output must be named ${profileName}.yaml`);
+					process.exitCode = ExitCode.INVALID_PARAMETER;
+					return;
+				}
+				const collision = profiles.find(
+					(profile) => profile.name === profileName,
+				);
+				// realpath comparison also accepts equivalent parent-directory aliases;
+				// the write preflight still rejects a symlink as the target file.
+				const sameTarget =
+					collision &&
+					options.force &&
+					(await fs.realpath(collision.path)) ===
+						(await fs
+							.realpath(profilePath)
+							.catch((error: NodeJS.ErrnoException) => {
+								if (error.code === 'ENOENT') return undefined;
+								throw error;
+							}));
+				if (collision && (collision.isDefault || !sameTarget)) {
 					logger.error(`Profile "${profileName}" already exists`);
 					process.exitCode = ExitCode.INVALID_PARAMETER;
 					return;
 				}
 
-				const profilePath = path.join(
-					workspace.workspaceDir,
-					'profiles',
-					`${profileName}.yaml`,
-				);
+				const plan = await planSourceOutput(profilePath, options.force, [
+					workspace.path,
+				]);
 				const content = yaml.dump(
 					{
 						$id: randomBytes(16).toString('hex'),
@@ -114,21 +162,30 @@ export function createNewProfileCommand(name = 'new-profile'): Command {
 					},
 					{ lineWidth: -1, noRefs: true },
 				);
-				await fs.mkdir(path.dirname(profilePath), { recursive: true });
-				await fs.writeFile(profilePath, content, {
-					encoding: 'utf8',
-					flag: 'wx',
-				});
-				logger.success(`Created: ${profilePath}`);
+				if (!options.dryRun)
+					await writeSourceOutput(profilePath, content, options.force);
+				logger.success(
+					`${options.dryRun ? `Dry run: would ${plan.overwrites ? 'overwrite' : 'create'}` : 'Created'}: ${profilePath}`,
+				);
 				logger.info('Next steps:');
 				logger.info('  1. Edit $override values to define the profile');
 				logger.info('  2. Delete redundant overrides to follow base changes');
-				logger.info(
-					`  3. Run wave dt build --profile ${profileName} -f ${JSON.stringify(workspace.path)} to verify`,
-				);
+				const relative = path.relative(workspace.workspaceDir, profilePath);
+				if (relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+					logger.warn(
+						`Move ${profileName}.yaml into ${workspace.workspaceDir} or one of its subdirectories before consuming it with -f.`,
+					);
+					logger.info(
+						`  3. Then run wave token build -f <moved-${profileName}.yaml-path> to verify`,
+					);
+				} else {
+					logger.info(
+						`  3. Run wave token build -f ${JSON.stringify(profilePath)} to verify`,
+					);
+				}
 			} catch (error) {
 				logger.error(
-					`new-profile failed: ${error instanceof Error ? error.message : String(error)}`,
+					`Profile creation failed: ${error instanceof Error ? error.message : String(error)}`,
 				);
 				process.exitCode =
 					error instanceof ProfileFormatError

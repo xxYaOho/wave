@@ -81,7 +81,9 @@ async function withWorkspace(
 	document: Record<string, unknown>,
 	run: (dir: string) => Promise<void>,
 ) {
-	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-new-profile-'));
+	const dir = await fs.realpath(
+		await fs.mkdtemp(path.join(os.tmpdir(), 'wave-new-profile-')),
+	);
 	try {
 		await fs.writeFile(path.join(dir, 'main.yaml'), yaml.dump(document));
 		await run(dir);
@@ -96,28 +98,29 @@ async function workspaceSnapshot(dir: string) {
 	const files: Record<string, string> = {};
 	for (const entry of entries.sort()) {
 		const target = path.join(dir, entry);
-		files[entry] = (await fs.lstat(target)).isDirectory()
+		const stats = await fs.lstat(target);
+		files[entry] = stats.isDirectory()
 			? '<directory>'
-			: await fs.readFile(target, 'utf8');
+			: stats.isSymbolicLink()
+				? `<symlink:${await fs.readlink(target)}>`
+				: await fs.readFile(target, 'utf8');
 	}
 	return files;
 }
 
-describe('wave dt new-profile', () => {
-	test('registers module and subcommand help for both aliases', async () => {
-		for (const module of ['dt', 'design-token']) {
-			const help = await runWave([module, '--help'], rootDir);
-			expect(help.exitCode).toBe(0);
-			expect(help.stdout).toContain('new-profile');
-			const commandHelp = await runWave(
-				[module, 'new-profile', '--help'],
-				rootDir,
-			);
-			expect(commandHelp.exitCode).toBe(0);
-			expect(commandHelp.stdout).toContain(
-				`wave ${module} new-profile [options] <name>`,
-			);
-			expect(commandHelp.stdout).toContain('-f, --file <path>');
+describe('wave token new profile', () => {
+	test('registers the profile creation entry and options', async () => {
+		const help = await runWave(['token', 'new', '--help'], rootDir);
+		expect(help.exitCode).toBe(0);
+		expect(help.stdout).toContain('profile');
+		const commandHelp = await runWave(
+			['token', 'new', 'profile', '--help'],
+			rootDir,
+		);
+		expect(commandHelp.exitCode).toBe(0);
+		expect(commandHelp.stdout).toContain('profile [options] <name>');
+		for (const flag of ['-f, --file', '-o, --output', '--dry-run', '--force']) {
+			expect(commandHelp.stdout).toContain(flag);
 		}
 	});
 
@@ -130,7 +133,7 @@ describe('wave dt new-profile', () => {
 			const mainPath = path.join(dir, 'main.yaml');
 			const source = await fs.readFile(mainPath, 'utf8');
 			const result = await runWave(
-				['dt', 'new-profile', '  Demo Profile  ', '-f', mainPath],
+				['token', 'new', 'profile', '  Demo Profile  ', '-f', mainPath],
 				dir,
 			);
 			expect(result.exitCode, result.stderr).toBe(0);
@@ -162,24 +165,28 @@ describe('wave dt new-profile', () => {
 			expect(result.stdout).toContain(profilePath);
 			expect(result.stdout).toContain('Edit');
 			expect(result.stdout).toContain('redundant');
-			expect(result.stdout).toContain('dt build --profile demo_profile');
+			expect(result.stdout).toContain('token build -f');
 		});
 	});
 
 	test('generated profile builds directly and matches base output', async () => {
 		await withWorkspace(baseDocument(), async (dir) => {
-			const created = await runWave(
-				['design-token', 'new-profile', 'Demo'],
-				dir,
-			);
+			const created = await runWave(['token', 'new', 'profile', 'Demo'], dir);
 			expect(created.exitCode, created.stderr).toBe(0);
 			const main = await runWave(
-				['dt', 'build', '--out', './main-output'],
+				['token', 'build', '--output', './main-output'],
 				dir,
 			);
 			expect(main.exitCode, main.stderr).toBe(0);
 			const built = await runWave(
-				['dt', 'build', '--profile', 'demo', '--out', './profile-output'],
+				[
+					'token',
+					'build',
+					'-f',
+					'./profiles/demo.yaml',
+					'--output',
+					'./profile-output',
+				],
 				dir,
 			);
 			expect(built.exitCode, built.stderr).toBe(0);
@@ -196,6 +203,190 @@ describe('wave dt new-profile', () => {
 		});
 	});
 
+	test('plans custom output without writes, then builds it via explicit -f', async () => {
+		await withWorkspace(baseDocument(), async (dir) => {
+			const output = path.join(dir, 'themes', 'nested', 'demo.yaml');
+			const args = [
+				'token',
+				'new',
+				'profile',
+				'Demo',
+				'-f',
+				dir,
+				'--output',
+				output,
+			];
+			const before = await workspaceSnapshot(dir);
+			const planned = await runWave([...args, '--dry-run'], dir);
+			expect(planned.exitCode, planned.stderr).toBe(0);
+			expect(planned.stdout).toContain(output);
+			expect(planned.stdout).toContain('Dry run');
+			expect(await workspaceSnapshot(dir)).toEqual(before);
+			const result = await runWave(args, dir);
+			expect(result.exitCode, result.stderr).toBe(0);
+			expect(result.stdout).toContain(
+				`token build -f ${JSON.stringify(output)}`,
+			);
+			expect(await fs.readFile(path.join(dir, 'main.yaml'), 'utf8')).toBe(
+				before['main.yaml']!,
+			);
+			const built = await runWave(
+				['token', 'build', '-f', output, '--output', path.join(dir, 'out')],
+				dir,
+			);
+			expect(built.exitCode, built.stderr).toBe(0);
+			expect(await fs.exists(path.join(dir, 'out/snapshot-demo.json'))).toBe(
+				true,
+			);
+		});
+	});
+
+	test('external output explains moving back to base before explicit consumption', async () => {
+		await withWorkspace(baseDocument(), async (dir) => {
+			const external = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-profile-external-'),
+			);
+			try {
+				const output = path.join(external, 'demo.yaml');
+				const created = await runWave(
+					['token', 'new', 'profile', 'demo', '-o', output],
+					dir,
+				);
+				expect(created.exitCode, created.stderr).toBe(0);
+				expect(created.stdout).toContain(
+					`Move demo.yaml into ${dir} or one of its subdirectories`,
+				);
+				expect(created.stdout).toContain('before consuming it with -f');
+				const rejected = await runWave(['token', 'build', '-f', output], dir);
+				expect(rejected.exitCode).not.toBe(0);
+				expect(`${rejected.stdout}${rejected.stderr}`).toContain(
+					'ancestor main.yaml',
+				);
+				const moved = path.join(dir, 'demo.yaml');
+				await fs.rename(output, moved);
+				const built = await runWave(
+					['token', 'build', '-f', moved, '--output', path.join(dir, 'out')],
+					dir,
+				);
+				expect(built.exitCode, built.stderr).toBe(0);
+			} finally {
+				await fs.rm(external, { recursive: true, force: true });
+			}
+		});
+	});
+
+	test('force replaces only the exact discovered profile and cannot bypass a name collision', async () => {
+		await withWorkspace(baseDocument(), async (dir) => {
+			const args = ['token', 'new', 'profile', 'demo'];
+			expect((await runWave(args, dir)).exitCode).toBe(0);
+			const before = await workspaceSnapshot(dir);
+			for (const extra of [
+				[],
+				['--dry-run'],
+				['--force', '-o', path.join(dir, 'custom/demo.yaml')],
+			]) {
+				const result = await runWave([...args, ...extra], dir);
+				expect(result.exitCode).not.toBe(0);
+				expect(await workspaceSnapshot(dir)).toEqual(before);
+			}
+			const planned = await runWave([...args, '--force', '--dry-run'], dir);
+			expect(planned.exitCode, planned.stderr).toBe(0);
+			expect(planned.stdout).toContain('would overwrite');
+			expect(await workspaceSnapshot(dir)).toEqual(before);
+			const result = await runWave([...args, '--force'], dir);
+			expect(result.exitCode, result.stderr).toBe(0);
+			const after = await workspaceSnapshot(dir);
+			expect(after['main.yaml']).toBe(before['main.yaml']!);
+			expect(after['profiles/demo.yaml']).not.toBe(
+				before['profiles/demo.yaml']!,
+			);
+			expect(Object.keys(after)).toEqual(Object.keys(before));
+		});
+	});
+
+	test('custom existing target requires force and preserves base and siblings', async () => {
+		await withWorkspace(baseDocument(), async (dir) => {
+			const target = path.join(dir, 'demo.yaml');
+			await fs.writeFile(target, 'sentinel');
+			await fs.writeFile(path.join(dir, 'keep.txt'), 'keep');
+			const before = await workspaceSnapshot(dir);
+			const args = ['token', 'new', 'profile', 'demo', '-o', target];
+			for (const extra of [[], ['--dry-run']]) {
+				expect((await runWave([...args, ...extra], dir)).exitCode).not.toBe(0);
+				expect(await workspaceSnapshot(dir)).toEqual(before);
+			}
+			expect((await runWave([...args, '--force'], dir)).exitCode).toBe(0);
+			const after = await workspaceSnapshot(dir);
+			expect(after['main.yaml']).toBe(before['main.yaml']!);
+			expect(after['keep.txt']).toBe('keep');
+			expect(after['demo.yaml']).not.toBe('sentinel');
+		});
+	});
+
+	test('force accepts a path alias only when it resolves to the discovered profile target', async () => {
+		await withWorkspace(baseDocument(), async (dir) => {
+			expect(
+				(await runWave(['token', 'new', 'profile', 'demo'], dir)).exitCode,
+			).toBe(0);
+			await fs.symlink(path.join(dir, 'profiles'), path.join(dir, 'shortcut'));
+			const before = await workspaceSnapshot(dir);
+			const result = await runWave(
+				[
+					'token',
+					'new',
+					'profile',
+					'demo',
+					'-o',
+					path.join(dir, 'shortcut/demo.yaml'),
+					'--force',
+				],
+				dir,
+			);
+			expect(result.exitCode, result.stderr).toBe(0);
+			const after = await workspaceSnapshot(dir);
+			expect(after['main.yaml']).toBe(before['main.yaml']!);
+			expect(after.shortcut).toBe(before.shortcut!);
+			expect(after['profiles/demo.yaml']).not.toBe(
+				before['profiles/demo.yaml']!,
+			);
+		});
+	});
+
+	test('invalid output names, directories and base aliases fail with zero writes even with force', async () => {
+		await withWorkspace(baseDocument(), async (dir) => {
+			await fs.mkdir(path.join(dir, 'target.yaml'));
+			await fs.symlink(
+				path.join(dir, 'main.yaml'),
+				path.join(dir, 'linked.yaml'),
+			);
+			await fs.link(path.join(dir, 'main.yaml'), path.join(dir, 'hard.yaml'));
+			const before = await workspaceSnapshot(dir);
+			for (const [name, output] of [
+				['demo', 'other.yaml'],
+				['demo', 'demo.json'],
+				['target', 'target.yaml'],
+				['linked', 'linked.yaml'],
+				['hard', 'hard.yaml'],
+				['main', 'main.yaml'],
+			]) {
+				const result = await runWave(
+					[
+						'token',
+						'new',
+						'profile',
+						name!,
+						'-o',
+						path.join(dir, output!),
+						'--force',
+					],
+					dir,
+				);
+				expect(result.exitCode).not.toBe(0);
+				expect(await workspaceSnapshot(dir)).toEqual(before);
+			}
+		});
+	});
+
 	for (const slot of ['missing', null, '', '   ', 42] as const) {
 		test(`rejects unregistered base root (${JSON.stringify(slot)}) with ids guidance and zero writes`, async () => {
 			const document = baseDocument();
@@ -203,9 +394,9 @@ describe('wave dt new-profile', () => {
 			else document.$id = slot;
 			await withWorkspace(document, async (dir) => {
 				const before = await workspaceSnapshot(dir);
-				const result = await runWave(['dt', 'new-profile', 'demo'], dir);
+				const result = await runWave(['token', 'new', 'profile', 'demo'], dir);
 				expect(result.exitCode).toBe(ExitCode.FORMAT_ERROR);
-				expect(result.stderr).toContain('wave dt ids --write');
+				expect(result.stderr).toContain('wave token ids --write');
 				expect(result.stderr).toContain(path.join(dir, 'main.yaml'));
 				expect(await workspaceSnapshot(dir)).toEqual(before);
 			});
@@ -221,9 +412,9 @@ describe('wave dt new-profile', () => {
 			else primary.$id = slot;
 			await withWorkspace(document, async (dir) => {
 				const before = await workspaceSnapshot(dir);
-				const result = await runWave(['dt', 'new-profile', 'demo'], dir);
+				const result = await runWave(['token', 'new', 'profile', 'demo'], dir);
 				expect(result.exitCode).toBe(ExitCode.FORMAT_ERROR);
-				expect(result.stderr).toContain('wave dt ids --write');
+				expect(result.stderr).toContain('wave token ids --write');
 				expect(result.stderr).toContain('theme.color.primary');
 				expect(await workspaceSnapshot(dir)).toEqual(before);
 			});
@@ -236,11 +427,11 @@ describe('wave dt new-profile', () => {
 		(theme.color!.alias as Record<string, unknown>).$id = colorId;
 		await withWorkspace(document, async (dir) => {
 			const before = await workspaceSnapshot(dir);
-			const result = await runWave(['dt', 'new-profile', 'demo'], dir);
+			const result = await runWave(['token', 'new', 'profile', 'demo'], dir);
 			expect(result.exitCode).toBe(ExitCode.FORMAT_ERROR);
 			expect(result.stderr).toContain('Duplicate');
 			expect(result.stderr).toContain(colorId);
-			expect(result.stderr).toContain('wave dt ids --write');
+			expect(result.stderr).toContain('wave token ids --write');
 			expect(await workspaceSnapshot(dir)).toEqual(before);
 		});
 	});
@@ -254,7 +445,7 @@ describe('wave dt new-profile', () => {
 			);
 			const before = await workspaceSnapshot(dir);
 			for (const name of ['demo_profile', 'DEMO PROFILE', 'Main']) {
-				const result = await runWave(['dt', 'new-profile', name], dir);
+				const result = await runWave(['token', 'new', 'profile', name], dir);
 				expect(result.exitCode).toBe(ExitCode.INVALID_PARAMETER);
 				expect(result.stderr).toContain('already exists');
 				expect(await workspaceSnapshot(dir)).toEqual(before);
@@ -266,7 +457,7 @@ describe('wave dt new-profile', () => {
 		test(`rejects invalid profile name ${JSON.stringify(name)} without writes`, async () => {
 			await withWorkspace(baseDocument(), async (dir) => {
 				const before = await workspaceSnapshot(dir);
-				const result = await runWave(['dt', 'new-profile', name], dir);
+				const result = await runWave(['token', 'new', 'profile', name], dir);
 				expect(result.exitCode).toBe(ExitCode.INVALID_PARAMETER);
 				expect(result.stderr).toContain('Invalid profile name');
 				expect(await workspaceSnapshot(dir)).toEqual(before);
@@ -280,7 +471,7 @@ describe('wave dt new-profile', () => {
 			await fs.copyFile(path.join(dir, 'main.yaml'), tokensPath);
 			const before = await workspaceSnapshot(dir);
 			const invalidEntry = await runWave(
-				['dt', 'new-profile', 'demo', '--file', tokensPath],
+				['token', 'new', 'profile', 'demo', '--file', tokensPath],
 				dir,
 			);
 			expect(invalidEntry.exitCode).toBe(ExitCode.INVALID_PARAMETER);
@@ -288,7 +479,10 @@ describe('wave dt new-profile', () => {
 		});
 		await withWorkspace({ ...baseDocument(), $config: {} }, async (dir) => {
 			const before = await workspaceSnapshot(dir);
-			const invalidConfig = await runWave(['dt', 'new-profile', 'demo'], dir);
+			const invalidConfig = await runWave(
+				['token', 'new', 'profile', 'demo'],
+				dir,
+			);
 			expect(invalidConfig.exitCode).toBe(ExitCode.FORMAT_ERROR);
 			expect(await workspaceSnapshot(dir)).toEqual(before);
 		});

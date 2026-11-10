@@ -1,6 +1,9 @@
-import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { Command } from 'commander';
+import {
+	planSourceOutput,
+	writeSourceOutput,
+} from '../../core/pipeline/source-output.ts';
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
 
@@ -105,30 +108,49 @@ doctor:
       background: "{TOKEN}"
 `;
 
-export async function runDesignTokenInit(): Promise<void> {
-	const mainPath = path.join(process.cwd(), 'main.yaml');
-	try {
-		await fs.access(mainPath);
-		logger.error('A main.yaml already exists in the current directory');
-		process.exitCode = ExitCode.GENERAL_ERROR;
-		return;
-	} catch {
-		// The workspace entry is available to create.
-	}
+export interface TokenInitOptions {
+	output?: string;
+	dryRun?: boolean;
+	force?: boolean;
+	manual?: boolean;
+}
 
+export function addTokenInitOptions(command: Command): Command {
+	return command
+		.option('-o, --output <path>', 'Target token workspace directory')
+		.option('--dry-run', 'Show the complete creation plan without writing')
+		.option('--force', 'Allow replacing the planned main.yaml file');
+}
+
+export async function runDesignTokenInit(
+	options: TokenInitOptions = {},
+): Promise<void> {
+	const mainPath = path.resolve(options.output ?? process.cwd(), 'main.yaml');
 	try {
-		await fs.writeFile(mainPath, TEMPLATE_MAIN_YAML, 'utf8');
-		logger.success('Created: main.yaml');
+		const plan = await planSourceOutput(mainPath, options.force);
+		if (!options.dryRun)
+			await writeSourceOutput(mainPath, TEMPLATE_MAIN_YAML, options.force);
+		logger.success(
+			`${options.dryRun ? `Dry run: would ${plan.overwrites ? 'overwrite' : 'create'}` : 'Created'}: ${mainPath}`,
+		);
 		logger.info('');
-		logger.success('Theme template initialized successfully!');
+		logger.success(
+			options.dryRun
+				? 'Workspace creation plan ready.'
+				: 'Theme template initialized successfully!',
+		);
 		logger.info('');
 		logger.info('Next steps:');
-		logger.info('  1. Edit main.yaml to define your tokens and output config');
+		logger.info(
+			`  1. Edit ${mainPath} to define your tokens and output config`,
+		);
 		logger.info(
 			'  2. Replace {TOKEN} placeholders with real values or references',
 		);
 		logger.info('  3. See MANUAL.md for detailed usage');
-		logger.info('  4. Run "wave token" to generate tokens');
+		logger.info(
+			`  4. Run wave token build -f ${JSON.stringify(mainPath)} to generate tokens`,
+		);
 	} catch (error) {
 		logger.error(
 			`Failed to initialize template: ${error instanceof Error ? error.message : String(error)}`,
@@ -138,7 +160,7 @@ export async function runDesignTokenInit(): Promise<void> {
 }
 
 export function createDesignTokenInitCommand(name = 'init'): Command {
-	return new Command(name)
-		.description('Initialize a new design-token workspace')
-		.action(runDesignTokenInit);
+	return addTokenInitOptions(
+		new Command(name).description('Initialize a new design-token workspace'),
+	).action(runDesignTokenInit);
 }

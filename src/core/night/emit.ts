@@ -5,11 +5,16 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import { ExitCode, type ExitCodeType } from '../../types/index.ts';
+import { sketchNightPassIds } from '../pipeline/sketch-identity.ts';
+import {
+	planSourceOutput,
+	writeSourceOutput,
+} from '../pipeline/source-output.ts';
 import {
 	collectDependencyDictionary,
 	processThemeDocument,
 } from '../pipeline/theme-pipeline.ts';
-import { loadDesignTokenWorkspace } from '../pipeline/workspace-loader.ts';
+import { loadDesignTokenSource } from '../pipeline/workspace-loader.ts';
 import { deriveNightOverlay } from './derive-overlay.ts';
 import {
 	accentMainToneFromProduct,
@@ -20,20 +25,24 @@ import {
 } from './params.ts';
 
 export interface EmitNightInput {
-	/** Path to main.yaml (default: cwd/main.yaml). */
+	/** Day main/profile file or workspace directory (default: cwd/main.yaml). */
 	themePath?: string;
 	cwd?: string;
 	cli: NightCliParams;
-	/** When true, refuse to overwrite an existing overlay. */
-	noOverwrite?: boolean;
+	output?: string;
+	force?: boolean;
+	dryRun?: boolean;
 }
 
 export interface EmitNightSuccess {
 	ok: true;
 	outputPath: string;
+	defaultOutputPath: string;
+	sourcePath: string;
+	dryRun: boolean;
 	themeStem: string;
 	/** Same as Day document identity (no @night suffix). */
-	themeId: string;
+	themeId?: string | undefined;
 	baseId: string;
 	mode: 'night';
 	params: ResolvedNightParams;
@@ -76,7 +85,7 @@ export async function emitNightOverlay(
 	input: EmitNightInput,
 ): Promise<EmitNightResult> {
 	const cwd = input.cwd ?? process.cwd();
-	const loaded = await loadDesignTokenWorkspace(input.themePath, cwd);
+	const loaded = await loadDesignTokenSource(input.themePath, cwd);
 	if (!loaded.ok) {
 		return {
 			ok: false,
@@ -84,12 +93,33 @@ export async function emitNightOverlay(
 			message: loaded.message,
 		};
 	}
+	const { source } = loaded;
+	const { document, workspace } = source;
+	const defaultOutputPath = nightOverlayPath(source.path);
+	const outputPath = input.output
+		? path.resolve(cwd, input.output)
+		: defaultOutputPath;
+	let plan: Awaited<ReturnType<typeof planSourceOutput>>;
+	try {
+		plan = await planSourceOutput(outputPath, input.force, [
+			source.path,
+			workspace.path,
+		]);
+	} catch (error) {
+		return {
+			ok: false,
+			exitCode: ExitCode.GENERAL_ERROR,
+			message: error instanceof Error ? error.message : String(error),
+		};
+	}
 
 	let params: ResolvedNightParams;
 	try {
 		params = resolveNightParams(
 			input.cli,
-			await readRawConfigNight(loaded.workspace.path),
+			// Profile config has no night section; Night settings are inherited
+			// from its actual base main, while resources come from the merged Day.
+			await readRawConfigNight(workspace.path),
 		);
 	} catch (error) {
 		return {
@@ -100,8 +130,10 @@ export async function emitNightOverlay(
 	}
 
 	const deps = await collectDependencyDictionary(
-		loaded.workspace.config,
-		loaded.workspace.workspaceDir,
+		document.config,
+		document.buildDir,
+		// Creation planning and validation must never restore caches on disk.
+		{ readOnly: true },
 	);
 	if (deps.issues.length > 0) {
 		const first = deps.issues[0]!;
@@ -113,8 +145,10 @@ export async function emitNightOverlay(
 	}
 
 	const processed = await processThemeDocument(
-		loaded.workspace.path,
+		source.path,
 		deps.dict,
+		undefined,
+		document.tokenContent,
 	);
 	if (!processed.ok) {
 		return {
@@ -132,31 +166,18 @@ export async function emitNightOverlay(
 	) as Record<string, unknown>;
 
 	const derived = deriveNightOverlay({ resolvedTheme, params });
-	const themeStem = loaded.workspace.config.theme;
+	const themeStem = document.config.theme;
 	// Day/Night share themeId; mode distinguishes appearance for Token Manage.
-	const themeId = loaded.workspace.themeId?.trim() || themeStem;
-	const baseId = themeId;
-	const mode = 'night' as const;
-	const outputPath = nightOverlayPath(loaded.workspace.path);
-
-	let overwrote = false;
-	try {
-		await fs.access(outputPath);
-		overwrote = true;
-	} catch {
-		overwrote = false;
-	}
-	if (overwrote && input.noOverwrite) {
-		return {
-			ok: false,
-			exitCode: ExitCode.GENERAL_ERROR,
-			message: `Night overlay already exists: ${outputPath}`,
-		};
-	}
+	const { themeId, baseId, mode } = sketchNightPassIds({
+		isDefault: source.entry.isDefault,
+		documentThemeId: document.themeId,
+		mainThemeId: workspace.themeId,
+		themeStem,
+	});
 
 	const header = [
-		`# Night overlay draft — wave night (pure color-rule)`,
-		`# Source Day: ${loaded.workspace.path}`,
+		`# Night overlay draft — wave token new night (pure color-rule)`,
+		`# Source Day: ${source.path}`,
 		`# Generated: ${new Date().toISOString()}`,
 		`# scene=${params.scene} (lightsLevel=${params.lightsLevel}, via ${params.sceneSource})`,
 		`# luminance=${params.luminance} → accentMain tone ${accentMainToneFromProduct(params.luminance)} (Primary Night 明度; via ${params.luminanceSource})`,
@@ -172,17 +193,30 @@ export async function emitNightOverlay(
 		sortingKeys: false,
 	});
 
-	await fs.writeFile(outputPath, `${header}${body}`, 'utf8');
+	if (!input.dryRun) {
+		try {
+			await writeSourceOutput(outputPath, `${header}${body}`, input.force);
+		} catch (error) {
+			return {
+				ok: false,
+				exitCode: ExitCode.GENERAL_ERROR,
+				message: error instanceof Error ? error.message : String(error),
+			};
+		}
+	}
 
 	return {
 		ok: true,
 		outputPath,
+		defaultOutputPath,
+		sourcePath: source.path,
+		dryRun: input.dryRun === true,
 		themeStem,
 		themeId,
 		baseId,
 		mode,
 		params,
 		mappedCount: derived.mapped.length,
-		overwrote,
+		overwrote: plan.overwrites,
 	};
 }

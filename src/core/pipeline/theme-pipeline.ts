@@ -72,6 +72,7 @@ function isParseError(result: unknown): result is ParseError {
 export async function collectDependencyDictionary(
 	config: Pick<DesignTokenBuildConfig, 'resources'>,
 	themeDir: string,
+	options: { readOnly?: boolean } = {},
 ): Promise<DependencyDictionary> {
 	const dict = Object.create(null) as DependencyDict;
 	let loaded: LoadedDependency[] = [];
@@ -83,6 +84,7 @@ export async function collectDependencyDictionary(
 			declaration.kind,
 			declaration.ref,
 			themeDir,
+			options,
 		);
 		if ('line' in resource) {
 			issues.push({ ...declaration, message: resource.message });

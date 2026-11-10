@@ -3,6 +3,7 @@ import * as yaml from 'js-yaml';
 import type { ParseError } from '../../types/index.ts';
 import { restoreResourceCache } from '../resources/manager.ts';
 import { resourceCachePath } from '../resources/paths.ts';
+import { readResourceState } from '../resources/state.ts';
 import { validateGenericResource } from '../schema/resource.ts';
 import { getResourcesDir } from './index.ts';
 
@@ -23,7 +24,10 @@ async function resolveResourcePath(
 	kind: string,
 	ref: string,
 	themeDir: string,
-): Promise<{ path: string; source: 'builtin' | 'cache' | 'user' }> {
+	readOnly = false,
+): Promise<
+	{ path: string; source: 'builtin' | 'cache' | 'user' } | ParseError
+> {
 	if (path.isAbsolute(ref)) {
 		return { path: ref, source: 'user' };
 	}
@@ -37,7 +41,20 @@ async function resolveResourcePath(
 		if (await Bun.file(cachePath).exists()) {
 			return { path: cachePath, source: 'cache' };
 		}
-		const restored = await restoreResourceCache(ref);
+		if (readOnly) {
+			const state = await readResourceState();
+			const requiresRestore =
+				ref === 'tailwindcss'
+					? state.tailwindcss?.updatedBefore
+					: ['leonardo-light', 'leonardo-dark'].includes(ref) &&
+						state.leonardo?.updatedBefore;
+			if (requiresRestore)
+				return {
+					line: 1,
+					message: `Resource cache missing: ${cachePath}. Run wave token update ${ref === 'tailwindcss' ? ref : 'leonardo'} to restore it before continuing.`,
+				};
+		}
+		const restored = readOnly ? null : await restoreResourceCache(ref);
 		if (restored) {
 			return { path: restored, source: 'cache' };
 		}
@@ -60,12 +77,16 @@ export async function loadResource(
 	kind: string,
 	ref: string,
 	themeDir: string,
+	options: { readOnly?: boolean } = {},
 ): Promise<LoadedResource | ParseError> {
-	const { path: filePath, source } = await resolveResourcePath(
+	const resolved = await resolveResourcePath(
 		kind,
 		ref,
 		themeDir,
+		options.readOnly,
 	);
+	if ('line' in resolved) return resolved;
+	const { path: filePath, source } = resolved;
 
 	let content: string;
 	try {
