@@ -1,28 +1,21 @@
 import { Command, Option } from 'commander';
+import { emitNightOverlay } from '../../core/night/emit.ts';
+import { LUMINANCE_EV_LEVELS, NIGHT_SCENES } from '../../core/night/params.ts';
+import { ExitCode } from '../../types/index.ts';
 import {
 	expandMainYamlEntry,
 	resolveExclusiveFileInput,
 } from '../file-input.ts';
-import { emitNightOverlay } from '../../core/night/emit.ts';
-import {
-	LUMINANCE_EV_LEVELS,
-	NIGHT_SCENES,
-} from '../../core/night/params.ts';
-import { ExitCode } from '../../types/index.ts';
 
 const NIGHT_HELP = `Wave Night
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Generate a Night overlay draft from a Day theme via pure color-rules.
 
   Usage:
-    wave night [theme=./main.yaml] [--scene] [--luminance|--luminance-ev]
-    wave night -f <path> [--scene] [--luminance|--luminance-ev]
-
-  Arguments:
-    theme                Path to main.yaml (default: ./main.yaml)
+    wave token new night [options]
 
   Options:
-    -f, --file <path>    Path to main.yaml (same as theme argument)
+    -f, --file <path>    Path to a Day main/profile source document
     --scene <name>       Lighting scene: ${NIGHT_SCENES.join(' | ')}
                          Default: night (or $config.night.scene)
     --luminance <n>      Primary Night 明度 dial 0..1 (wins over --luminance-ev)
@@ -70,7 +63,6 @@ function parseLuminanceOption(
 export function createNightCommand(name = 'night'): Command {
 	return new Command(name)
 		.description('Generate a Night Mode overlay draft from Day')
-		.argument('[theme]', 'main.yaml path. Default: ./main.yaml')
 		.option('-f, --file <path>', 'main.yaml path. Default: ./main.yaml')
 		.option('--scene <name>', `Lighting scene (${NIGHT_SCENES.join('|')})`)
 		.option(
@@ -92,8 +84,8 @@ export function createNightCommand(name = 'night'): Command {
 		)
 		.helpOption('-h, --help', 'Show help')
 		.addHelpText('after', `\n${NIGHT_HELP}`)
-		.action(async (theme: string | undefined, options: NightCommandOptions) => {
-			const fileInput = resolveExclusiveFileInput(theme, options.file, {
+		.action(async (options: NightCommandOptions) => {
+			const fileInput = resolveExclusiveFileInput(undefined, options.file, {
 				label: 'Night input',
 				hint: 'Use one main.yaml path.',
 			});

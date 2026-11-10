@@ -9,19 +9,22 @@ export const TOP_LEVEL_HELP = `Wave CLI
     token              Build and maintain design tokens
     compress           Compress PNG, JPG, SVG, and GIF assets
     motion             Build GIF/APNG from PNG frames
-    workspace          Create a local design project workspace
 
   Workspace:
-    manual             Open the local Wave manual
+    workspace          Create a local design project workspace
 
   Toolchain:
     doctor             Check local Wave environment and tools
     install            Show or run recommended tool installation
 
   Other:
+    manual             Open the local Wave manual
     version             Show version number
-    --version           Show version number
+
+  Options:
+    -m, --manual       Print Markdown usage for this command
     -h, --help          Show help
+    --version          Show version number
 
   Run wave <command> --help for command details.`;
 
@@ -57,6 +60,10 @@ export const TOKEN_NEW_HELP = `Wave Token New
 
   Default action:
     Create a token workspace in the current directory.
+
+  Commands:
+    profile             Create a profile from a registered base
+    night               Generate a Night overlay from a Day source document
 
   Options:
     -m, --manual        Print Markdown usage for this command

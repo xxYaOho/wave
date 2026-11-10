@@ -42,11 +42,56 @@ describe('public CLI command shape', () => {
 		expect(result.stdout).not.toContain('--out <path>');
 	});
 
+	test('token new exposes profile and night creation commands', async () => {
+		const result = await runWave(['token', 'new', '--help']);
+		expect(result.exitCode).toBe(0);
+		expect(result.stdout).toContain('profile');
+		expect(result.stdout).toContain('night');
+
+		const night = await runWave(['token', 'new', 'night', '--help']);
+		expect(night.exitCode).toBe(0);
+		expect(night.stdout).toContain('wave token new night [options]');
+		expect(night.stdout).toContain('-f, --file <path>');
+		expect(night.stdout).not.toContain('[theme]');
+
+		const positional = await runWave(['token', 'new', 'night', './main.yaml']);
+		expect(positional.exitCode).not.toBe(0);
+	});
+
+	test('top-level help uses the approved groups and options', async () => {
+		const result = await runWave(['--help']);
+		expect(result.stdout).toContain('Common commands:');
+		expect(result.stdout).toContain('Workspace:');
+		expect(result.stdout).toContain('Other:');
+		expect(result.stdout).toContain('Options:');
+		expect(result.stdout).toContain('-m, --manual');
+		expect(result.stdout).toContain('-h, --help');
+		expect(result.stdout).toContain('--version');
+	});
+
 	test('manual short-circuits every command level', async () => {
 		const result = await runWave(['token', 'build', '--manual']);
 		expect(result.exitCode).toBe(0);
 		expect(result.stdout).toContain('# token build');
 		expect(result.stdout).not.toContain('BUILD FAILED');
+	});
+
+	test('manual rejects unknown command paths', async () => {
+		const result = await runWave(['token', 'unknown', '--manual']);
+		expect(result.exitCode).not.toBe(0);
+		expect(result.stdout).toBe('');
+		expect(result.stderr).toContain('Unknown command path');
+	});
+
+	test('tailwind-version compatibility flag is rejected', async () => {
+		const result = await runWave([
+			'token',
+			'update',
+			'--tailwind-version',
+			'4',
+		]);
+		expect(result.exitCode).not.toBe(0);
+		expect(result.stderr).toContain('unknown option');
 	});
 
 	test('legacy aliases and subcommands fail', async () => {

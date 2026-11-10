@@ -1,4 +1,4 @@
-import { Command, Option } from 'commander';
+import { Command } from 'commander';
 import {
 	getResourceStatus,
 	updateLeonardo,
@@ -44,50 +44,39 @@ function createUpdateCommand(): Command {
 		.description('Update local design-token resources')
 		.argument('[name]', 'Resource name: tailwindcss or leonardo')
 		.option('--version <version>', 'Tailwind CSS version: latest, 3, or 4')
-		.addOption(
-			new Option(
-				'--tailwind-version <version>',
-				'Tailwind CSS version: latest, 3, or 4',
-			).hideHelp(),
-		)
-		.action(
-			async (
-				name: string | undefined,
-				options: { version?: string; tailwindVersion?: string },
-			) => {
-				const target = name ?? 'all';
-				const version = options.version ?? options.tailwindVersion;
-				try {
-					if (target === 'tailwindcss' || target === 'all') {
-						const result = await updateTailwind(version);
-						console.log(
-							`Updated tailwindcss ${result.resolvedVersion} (v${result.activeMajor})`,
-						);
-						for (const file of result.files) console.log(`  ${file}`);
-					}
-					if (target === 'leonardo' || target === 'all') {
-						const result = await updateLeonardo();
-						console.log(`Updated leonardo (${result.recipeSource} recipe)`);
-						for (const file of result.files) console.log(`  ${file}`);
-					}
-					if (
-						target !== 'tailwindcss' &&
-						target !== 'leonardo' &&
-						target !== 'all'
-					) {
-						console.error(
-							`Unknown resource: ${target}. Supported: tailwindcss, leonardo`,
-						);
-						process.exitCode = ExitCode.INVALID_PARAMETER;
-					}
-				} catch (error) {
-					console.error(
-						`Resource update failed: ${error instanceof Error ? error.message : String(error)}`,
+		.action(async (name: string | undefined, options: { version?: string }) => {
+			const target = name ?? 'all';
+			const version = options.version;
+			try {
+				if (target === 'tailwindcss' || target === 'all') {
+					const result = await updateTailwind(version);
+					console.log(
+						`Updated tailwindcss ${result.resolvedVersion} (v${result.activeMajor})`,
 					);
-					process.exitCode = ExitCode.GENERAL_ERROR;
+					for (const file of result.files) console.log(`  ${file}`);
 				}
-			},
-		);
+				if (target === 'leonardo' || target === 'all') {
+					const result = await updateLeonardo();
+					console.log(`Updated leonardo (${result.recipeSource} recipe)`);
+					for (const file of result.files) console.log(`  ${file}`);
+				}
+				if (
+					target !== 'tailwindcss' &&
+					target !== 'leonardo' &&
+					target !== 'all'
+				) {
+					console.error(
+						`Unknown resource: ${target}. Supported: tailwindcss, leonardo`,
+					);
+					process.exitCode = ExitCode.INVALID_PARAMETER;
+				}
+			} catch (error) {
+				console.error(
+					`Resource update failed: ${error instanceof Error ? error.message : String(error)}`,
+				);
+				process.exitCode = ExitCode.GENERAL_ERROR;
+			}
+		});
 }
 
 export function createStatusCommand(): Command {

@@ -50,11 +50,42 @@ function manualPath(argv: string[]): string[] | undefined {
 	return argv.slice(0, index);
 }
 
+function isValidManualPath(path: string[]): boolean {
+	const [root, group, leaf] = path;
+	if (!root) return true;
+	if (['manual', 'version', 'doctor', 'install', 'workspace'].includes(root)) {
+		return group === undefined;
+	}
+	if (root === 'compress' || root === 'motion') {
+		return group === undefined || group === 'doctor' || group === 'install';
+	}
+	if (root !== 'token') return false;
+	if (!group) return true;
+	if (group === 'new') {
+		return leaf === undefined || leaf === 'profile' || leaf === 'night';
+	}
+	if (group === 'migrate') {
+		return leaf === undefined || leaf === 'extensions';
+	}
+	return (
+		['build', 'doctor', 'wcag', 'ids', 'show', 'update', 'status'].includes(
+			group,
+		) && leaf === undefined
+	);
+}
+
 const argv = process.argv.slice(2);
 const requestedManualPath = manualPath(argv);
 if (requestedManualPath) {
-	renderManual(requestedManualPath);
-	process.exitCode = ExitCode.SUCCESS;
+	if (!isValidManualPath(requestedManualPath)) {
+		console.error(
+			`Unknown command path for --manual: ${requestedManualPath.join(' ')}`,
+		);
+		process.exitCode = ExitCode.INVALID_COMMAND;
+	} else {
+		renderManual(requestedManualPath);
+		process.exitCode = ExitCode.SUCCESS;
+	}
 } else {
 	program.parse(process.argv);
 }
