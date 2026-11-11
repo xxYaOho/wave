@@ -19,8 +19,7 @@
 
 ## 内容规则
 
-- 使用中文。
-- 面向使用本地 CLI 的 UI/UX 设计师。
+- 中文内容写在 `pages/`，英文内容写在 `pages-en/`；两种 locale 面向使用本地 CLI 的 UI/UX 设计师。
 - 优先给可复制的命令和配置示例，少写抽象描述。
 - 每个页面只解决一个用户任务，或只承担一个参考主题。
 - 使用真实命令、真实路径、真实字段名。
@@ -28,13 +27,21 @@
 - 不在多个页面重复维护同一张参考表；需要时指向 canonical 页面。
 - 不把路线图写成已经可用的行为。
 
+## 双语合同
+
+- `pages/<name>.md` 与 `pages-en/<name>.md` 同名一一对应；新增、重命名或删除页面时两种 locale 必须同步。
+- 两种 locale 共享同一套命令、参数、默认值、代码示例和内部 href；只翻译叙述文字和 frontmatter 的 `title`/`description`/`category`。
+- 行为变更先改 `pages/`（中文），同一变更内同步 `pages-en/` 对应页；不允许只更新单侧。
+- 页面等价性由 `tests/manual-equivalence.test.ts` 守护：文件双射、frontmatter 对齐、英文正文无中文残留。
+- 导航与站点文案的双语字段（`titleEn` 等）由 `manual.config.yaml` 单点维护，页面内不复制导航结构。
+
 ## 结构
 
-- `manual.config.yaml` 控制站点信息、首页卡片和导航。
-- `pages/*.md` 是用户可见页面。
+- `manual.config.yaml` 控制站点信息、首页卡片和导航（含双语字段）。
+- `pages/*.md` 是中文用户可见页面；`pages-en/*.md` 是同路径英文页面。
 - `AGENTS.md` 只给维护者使用，禁止加入导航。
 
-每个用户可见页面必须登记在 `manual.config.yaml` 的导航中。首页卡片只能指向导航中已经登记的页面。导航中登记的页面必须真实存在。
+每个用户可见页面必须登记在 `manual.config.yaml` 的导航中。首页卡片只能指向导航中已经登记的页面。导航中登记的页面必须真实存在，且两种 locale 内容齐全。
 
 ## 页面 Frontmatter
 
@@ -54,10 +61,10 @@ appliesTo:
 
 规则：
 
-- `title` 默认与导航文案一致，除非有明确理由。
+- `title` 默认与导航文案一致，除非有明确理由；`pages-en/` 中 `title` 使用对应英文导航短标签。
 - `description` 说明页面帮助用户完成什么。
-- `commands` 优先放安全的查看命令或 dry-run 命令。
-- `appliesTo` 保持简短；普通 CLI 文档使用 `本地 CLI`。
+- `commands` 优先放安全的查看命令或 dry-run 命令，两种 locale 完全一致。
+- `appliesTo` 保持简短；普通 CLI 文档中文使用 `本地 CLI`，英文使用 `Local CLI`。
 
 ## 导航
 

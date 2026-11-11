@@ -40,10 +40,10 @@ $extends 展开与引用解析（$config.resource 可选；未声明时使用空
 - motion：只从 PNG 帧目录生成 GIF/APNG，通过 `--format` 选择；不提供 `mg`
 - workspace：直接创建本地设计项目目录，支持最终目标目录与有限覆盖
 - install/doctor：检查和安装本地工具链，不改变 token 数据模型
-- manual：服务 `dist/manual-app/` 构建产物；`-m/--manual` 则输出当前命令范围的 Markdown，不启动服务
+- manual：内容源为 `manual/pages/`（中文）与 `manual/pages-en/`（英文）双语等价页；构建产出单一双语索引，CLI（含 `-m/--manual`）固定消费英文视图且不受 `LANG` 影响，网页按浏览器主语言选择 locale；服务 `dist/manual-app/` 构建产物；`-m/--manual` 则输出当前命令范围的 Markdown，不启动服务
 - Quality Harness：维护者使用的质量指标基座，当前第一批 consumer 是 design-token benchmark suite；它用于判断何时需要优化，不是用户向功能
 
-用户向使用说明统一维护在 `manual/`，通过 `wave manual` 查看。`docs/SPEC.md` 只记录内部行为快照和实现/review 心智模型。
+用户向使用说明统一维护在 `manual/`（`pages/` 中文、`pages-en/` 英文，同名一一对应），通过 `wave manual` 查看。`docs/SPEC.md` 只记录内部行为快照和实现/review 心智模型。本节双语手册描述如与 `/release` 生成的快照有出入，以 `/release` 校准为准。
 
 **design-token resolver 结构：**
 
@@ -98,7 +98,7 @@ $extends 展开与引用解析（$config.resource 可选；未声明时使用空
 - `--write`：仅用于 ids/migrate 的源文档写回。
 - `--yes`：只跳过确认，不授予覆盖权限。
 - `--force`：只授权覆盖当前目标。
-- `-m, --manual`：输出当前命令路径的结构化 Markdown，在任何默认业务动作之前短路。
+- `-m, --manual`：输出当前命令路径的结构化 Markdown（固定英文内容，不受 locale 影响），在任何默认业务动作之前短路。
 
 Token build 不再提供 CLI `--platform`；平台来自 `$config.parameter` 与 parameter groups。`--profiles all` 不递归猜测任意目录中的 YAML。
 

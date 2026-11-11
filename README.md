@@ -1,5 +1,7 @@
 # Wave
 
+[English](./README.en.md) | 简体中文
+
 Wave 是面向 UI/UX 设计师的本地设计交付 CLI。它把 design token 生成、素材压缩、PNG 帧动效生成、项目工作区创建和本地工具链诊断放在一个入口里。
 
 ```bash
