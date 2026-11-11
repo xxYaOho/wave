@@ -34,7 +34,7 @@ dispatch: R1 FAIL 1F/4M → F1 DELTA 修正 PASS；MAJOR M1–M4 台账 carry fo
 - 派遣：`rex send -s <会话> -b <block> '<工单>'` 后接 `rex send-key -s <会话> -b <block> enter`；长工单写入本 worktree 文件（如 `.tmp/q0/dispatch-*.md`），正文只给路径与摘要
 - 回读：`rex capture -s <会话> -b <block> --trim`；判断是否空闲可用 `rex block call ... process`
 - Fresh agent：新任务或新审查生命周期开始时，先向目标 block 发送 `/clear`；同一生命周期的修正轮不重置，保持同一 reviewer
-- 完成通知（所有派遣工单必带）：`完成后用 Rex CLI 通知 session:01a1ac63-3359-7305-a46f-01905fa5fd4b 的 block:01a1c840-368d-74ed-a73a-ff1e89c91557，含 Milestone STATUS/HEAD，再发送 enter；权限失败只记录一次`
+- 完成通知（所有派遣工单必带，直接附字面命令，不写散文指令）：`rex send -s <会话> -b block:01a1c840-368d-74ed-a73a-ff1e89c91557 '<Milestone> STATUS/HEAD'` 后接 `rex send-key -s <会话> -b block:01a1c840-368d-74ed-a73a-ff1e89c91557 enter`；rex 用法以工单给出的命令为准（允许查阅 rex 技能，但通常不必）；若沙箱拒绝 socket 访问，提权重试一次，仍失败则将完整报告留在本 block 并注明，不重复尝试
 
 ## User Stories
 
