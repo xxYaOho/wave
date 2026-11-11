@@ -165,13 +165,15 @@ function renderCompressResult(
 	if (options.prompt) {
 		lines.push(centerLine('Write compressed output? [y/N]', width));
 	} else {
-		const summary = hasError
-			? result.summary.total > 0
-				? `Compression completed with ${result.summary.hardFailed} failed`
-				: 'Compression blocked'
-			: result.written
-				? renderCompressSavedSummary(result)
-				: 'Preview only, no files written';
+		const summary = result.cancelled
+			? `Compression cancelled; ${result.summary.writtenCount} ${result.summary.writtenCount === 1 ? 'file' : 'files'} written`
+			: hasError
+				? result.summary.total > 0
+					? `Compression completed with ${result.summary.hardFailed} failed`
+					: 'Compression blocked'
+				: result.written
+					? renderCompressSavedSummary(result)
+					: 'Preview only, no files written';
 		lines.push(centerLine(summary, width));
 	}
 	lines.push(line('', width));
@@ -330,6 +332,9 @@ function createCompressActionCommand(name = 'compress'): Command {
 						? startLoading('Compressing')
 						: undefined;
 				let result: CompressResult;
+				const cancellation = new AbortController();
+				const cancel = () => cancellation.abort();
+				process.on('SIGINT', cancel);
 				try {
 					result = await runCompress(
 						{
@@ -342,10 +347,12 @@ function createCompressActionCommand(name = 'compress'): Command {
 							yes: options.yes || shouldPrompt,
 							force: options.force,
 							icon: options.icon,
+							signal: cancellation.signal,
 						},
 						preview,
 					);
 				} finally {
+					process.removeListener('SIGINT', cancel);
 					loading?.stop();
 				}
 				if (options.json) {
@@ -353,11 +360,11 @@ function createCompressActionCommand(name = 'compress'): Command {
 				} else {
 					console.log(renderCompressResult(result));
 				}
-				process.exitCode = result.issues.some(
-					(issue) => issue.severity === 'error',
-				)
-					? ExitCode.GENERAL_ERROR
-					: ExitCode.SUCCESS;
+				process.exitCode = result.cancelled
+					? 130
+					: result.issues.some((issue) => issue.severity === 'error')
+						? ExitCode.GENERAL_ERROR
+						: ExitCode.SUCCESS;
 			} catch (err) {
 				if (options.json) {
 					console.log(

@@ -1,0 +1,3731 @@
+{
+	"baselineRef": "2e4248a",
+	"environment": {
+		"runtime": "bun",
+		"node": "v24.3.0",
+		"bun": "1.3.6",
+		"platform": "darwin",
+		"arch": "arm64",
+		"cpuCount": 14,
+		"memoryBytes": 51539607552,
+		"cwd": "/Users/teatao/.worktree/cli_wave/p2-compress-performance"
+	},
+	"iterations": 16,
+	"warmup": 2,
+	"caseConfiguration": {
+		"q0Fixture": "unchanged Q0 domain, 32 internal iterations per isolated worker; duration is its per-operation mean",
+		"realEncoders": "8 fixed PNG plus 8 fixed SVG; same oxipng/SVGO versions, configuration and output policy for both variants"
+	},
+	"resourceScope": "worker parent plus all visible descendants, including encoder grandchildren; sampler and ps excluded",
+	"sampling": "ps RSS KiB and lifetime-average %CPU summed across tree; sampled maxima, 15ms wait plus ps duration; short-lived peaks may be missed; same scope and cadence for both variants",
+	"boundaries": {
+		"minMedianSpeedupLower95": 1.05,
+		"maxP95DurationRatio": 1.1,
+		"maxP95TreeRssRatio": 2,
+		"maxAbsoluteTreeRssMiB": 512,
+		"maxObservedTreeCpuPercent": 350
+	},
+	"toolVersions": {
+		"oxipng": "oxipng 10.1.1",
+		"svgo": "4.0.1"
+	},
+	"scenarios": [
+		{
+			"scenario": "q0-fixture",
+			"failedSamples": {
+				"serial": 0,
+				"parallel": 0
+			},
+			"serialStats": {
+				"meanMs": 1.2716399062500001,
+				"minMs": 1.100930875,
+				"maxMs": 1.4619648124999998,
+				"p95Ms": 1.4619648124999998,
+				"samplesMs": [
+					1.1211719062499999, 1.10752996875, 1.100930875, 1.3742057812500001,
+					1.1445572499999996, 1.2021680937499999, 1.3182800312499996,
+					1.1593710312499999, 1.4201979687500002, 1.309666718750001,
+					1.300348875, 1.2588673125000003, 1.4163945624999998,
+					1.4619648124999998, 1.2842070312499998, 1.3663762812500002
+				]
+			},
+			"parallelStats": {
+				"meanMs": 1.0716315058593748,
+				"minMs": 0.9165482187499996,
+				"maxMs": 1.2540623750000002,
+				"p95Ms": 1.2540623750000002,
+				"samplesMs": [
+					0.9274816875000002, 0.9165482187499996, 0.9226340312500001,
+					0.9404622500000005, 1.1443490624999997, 0.9479453749999998,
+					0.9470572187499997, 1.13229421875, 1.2540623750000002,
+					1.1237005312500004, 1.2013841250000001, 1.1517278749999997,
+					1.244604156250001, 1.1694310312499991, 1.0232343750000001,
+					1.0991875625
+				]
+			},
+			"pairedSpeedups": [
+				1.2088345477441027, 1.2083706520759636, 1.193247634176728,
+				1.461202489786272, 1.0001819265701544, 1.2681828778899842,
+				1.3919750624887997, 1.0239132303703637, 1.132477934959176,
+				1.165494437644461, 1.0823756098824762, 1.0930249582610827,
+				1.1380281476542744, 1.250150520580348, 1.2550468031823105,
+				1.2430783679377742
+			],
+			"medianSpeedup": 1.200809143126346,
+			"medianSpeedupCI95": {
+				"lower95": 1.1292596979527718,
+				"upper95": 1.250150520580348
+			},
+			"p95DurationRatio": 0.8716161928417089,
+			"p95TreeRssRatio": 1.0424099017109574,
+			"resourceAccepted": true,
+			"concurrencyBenefitAccepted": true,
+			"maxInFlightSerial": null,
+			"maxInFlightParallel": null,
+			"maxObservedCommandMs": 0,
+			"serial": [
+				{
+					"durationMs": 1.1211719062499999,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 43408,
+					"peakCpuPercent": 12,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.10752996875,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42336,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.100930875,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 45584,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.3742057812500001,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42080,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.1445572499999996,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42080,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.2021680937499999,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42208,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.3182800312499996,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42656,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.1593710312499999,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42896,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.4201979687500002,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 41808,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.309666718750001,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 41968,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.300348875,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42080,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.2588673125000003,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42032,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.4163945624999998,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42192,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.4619648124999998,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 41888,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.2842070312499998,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42240,
+					"peakCpuPercent": 1.8,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.3663762812500002,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42256,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				}
+			],
+			"parallel": [
+				{
+					"durationMs": 0.9274816875000002,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 45392,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 0.9165482187499996,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 45152,
+					"peakCpuPercent": 15.7,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 0.9226340312500001,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 44864,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 0.9404622500000005,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 44352,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.1443490624999997,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 44880,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 0.9479453749999998,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 45216,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 0.9470572187499997,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 46032,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.13229421875,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42464,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.2540623750000002,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 41616,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.1237005312500004,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42624,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.2013841250000001,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42576,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.1517278749999997,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 42608,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.244604156250001,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 45744,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.1694310312499991,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 41664,
+					"peakCpuPercent": 8.1,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.0232343750000001,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 44992,
+					"peakCpuPercent": 0,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				},
+				{
+					"durationMs": 1.0991875625,
+					"artifacts": [
+						{
+							"relativePath": "sample.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "sample.svg",
+							"bytes": 111,
+							"sha256": "bdbc976f109ddaede8e6534f0be48638e2994c2999127b2fdeb028d554addd18"
+						}
+					],
+					"outcome": "success",
+					"peakRssKiB": 45120,
+					"peakCpuPercent": 1.1,
+					"peakProcesses": 1,
+					"resourceSamples": 2
+				}
+			]
+		},
+		{
+			"scenario": "real-encoders",
+			"failedSamples": {
+				"serial": 0,
+				"parallel": 0
+			},
+			"serialStats": {
+				"meanMs": 944.8730651875001,
+				"minMs": 887.4500419999999,
+				"maxMs": 981.404583,
+				"p95Ms": 981.404583,
+				"samplesMs": [
+					887.4500419999999, 913.61, 888.2367089999999, 942.247458, 935.127541,
+					934.386708, 922.791459, 969.919625, 965.1074590000001, 967.090625,
+					972.141042, 961.4423330000001, 929.980875, 967.1348340000001,
+					979.89775, 981.404583
+				]
+			},
+			"parallelStats": {
+				"meanMs": 497.7639556875,
+				"minMs": 479.947916,
+				"maxMs": 518.635208,
+				"p95Ms": 518.635208,
+				"samplesMs": [
+					479.947916, 480.26412500000004, 498.66225000000003, 495.172,
+					485.46775, 494.30199999999996, 493.467375, 507.20399999999995,
+					510.20399999999995, 510.98266700000005, 507.5325, 505.675334,
+					482.761916, 481.09920800000003, 512.845042, 518.635208
+				]
+			},
+			"pairedSpeedups": [
+				1.8490548920312426, 1.9023074022029023, 1.78123912327432,
+				1.9028690192498767, 1.9262402929957756, 1.8903154508782083,
+				1.8700151332192934, 1.9122870186354999, 1.891610922297748,
+				1.8926094512712697, 1.915426188470689, 1.9013036000684187,
+				1.9263758059158917, 2.0102607069766782, 1.9107092196476765,
+				1.8922829917092707
+			],
+			"medianSpeedup": 1.9018055011356605,
+			"medianSpeedupCI95": {
+				"lower95": 1.8914583703302141,
+				"upper95": 1.9122870186354999
+			},
+			"p95DurationRatio": 0.5246414197286366,
+			"p95TreeRssRatio": 1.511789940402499,
+			"resourceAccepted": true,
+			"concurrencyBenefitAccepted": true,
+			"maxInFlightSerial": 1,
+			"maxInFlightParallel": 2,
+			"maxObservedCommandMs": 127.99645800000002,
+			"serial": [
+				{
+					"durationMs": 887.4500419999999,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 115.15658300000001,
+					"outcome": "success",
+					"peakRssKiB": 136496,
+					"peakCpuPercent": 30.7,
+					"peakProcesses": 2,
+					"resourceSamples": 24
+				},
+				{
+					"durationMs": 913.61,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 119.02304199999998,
+					"outcome": "success",
+					"peakRssKiB": 126000,
+					"peakCpuPercent": 39.599999999999994,
+					"peakProcesses": 2,
+					"resourceSamples": 24
+				},
+				{
+					"durationMs": 888.2367089999999,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 110.41045799999995,
+					"outcome": "success",
+					"peakRssKiB": 138544,
+					"peakCpuPercent": 35.1,
+					"peakProcesses": 2,
+					"resourceSamples": 24
+				},
+				{
+					"durationMs": 942.247458,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 118.58108300000004,
+					"outcome": "success",
+					"peakRssKiB": 137488,
+					"peakCpuPercent": 39.699999999999996,
+					"peakProcesses": 2,
+					"resourceSamples": 25
+				},
+				{
+					"durationMs": 935.127541,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 115.70645900000001,
+					"outcome": "success",
+					"peakRssKiB": 138336,
+					"peakCpuPercent": 40.1,
+					"peakProcesses": 2,
+					"resourceSamples": 25
+				},
+				{
+					"durationMs": 934.386708,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 119.14462499999996,
+					"outcome": "success",
+					"peakRssKiB": 137984,
+					"peakCpuPercent": 38.9,
+					"peakProcesses": 2,
+					"resourceSamples": 25
+				},
+				{
+					"durationMs": 922.791459,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 120.79862500000002,
+					"outcome": "success",
+					"peakRssKiB": 132688,
+					"peakCpuPercent": 30.3,
+					"peakProcesses": 2,
+					"resourceSamples": 25
+				},
+				{
+					"durationMs": 969.919625,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 120.73770799999994,
+					"outcome": "success",
+					"peakRssKiB": 128576,
+					"peakCpuPercent": 38.5,
+					"peakProcesses": 2,
+					"resourceSamples": 25
+				},
+				{
+					"durationMs": 965.1074590000001,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 118.411958,
+					"outcome": "success",
+					"peakRssKiB": 136160,
+					"peakCpuPercent": 39.4,
+					"peakProcesses": 2,
+					"resourceSamples": 25
+				},
+				{
+					"durationMs": 967.090625,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 118.9135,
+					"outcome": "success",
+					"peakRssKiB": 137216,
+					"peakCpuPercent": 12,
+					"peakProcesses": 2,
+					"resourceSamples": 25
+				},
+				{
+					"durationMs": 972.141042,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 121.68274999999998,
+					"outcome": "success",
+					"peakRssKiB": 122032,
+					"peakCpuPercent": 9,
+					"peakProcesses": 2,
+					"resourceSamples": 25
+				},
+				{
+					"durationMs": 961.4423330000001,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 118.990625,
+					"outcome": "success",
+					"peakRssKiB": 137760,
+					"peakCpuPercent": 25,
+					"peakProcesses": 2,
+					"resourceSamples": 25
+				},
+				{
+					"durationMs": 929.980875,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 120.18687500000001,
+					"outcome": "success",
+					"peakRssKiB": 136512,
+					"peakCpuPercent": 37.8,
+					"peakProcesses": 2,
+					"resourceSamples": 25
+				},
+				{
+					"durationMs": 967.1348340000001,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 121.36533400000008,
+					"outcome": "success",
+					"peakRssKiB": 128784,
+					"peakCpuPercent": 35.699999999999996,
+					"peakProcesses": 2,
+					"resourceSamples": 26
+				},
+				{
+					"durationMs": 979.89775,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 120.95120800000001,
+					"outcome": "success",
+					"peakRssKiB": 118608,
+					"peakCpuPercent": 26.2,
+					"peakProcesses": 2,
+					"resourceSamples": 26
+				},
+				{
+					"durationMs": 981.404583,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 1,
+					"maxCommandMs": 120.51045800000003,
+					"outcome": "success",
+					"peakRssKiB": 140096,
+					"peakCpuPercent": 32.5,
+					"peakProcesses": 2,
+					"resourceSamples": 26
+				}
+			],
+			"parallel": [
+				{
+					"durationMs": 479.947916,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 121.70541599999999,
+					"outcome": "success",
+					"peakRssKiB": 206400,
+					"peakCpuPercent": 70.4,
+					"peakProcesses": 3,
+					"resourceSamples": 13
+				},
+				{
+					"durationMs": 480.26412500000004,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 123.006125,
+					"outcome": "success",
+					"peakRssKiB": 205584,
+					"peakCpuPercent": 68.8,
+					"peakProcesses": 3,
+					"resourceSamples": 13
+				},
+				{
+					"durationMs": 498.66225000000003,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 124.85554200000001,
+					"outcome": "success",
+					"peakRssKiB": 188496,
+					"peakCpuPercent": 74.80000000000001,
+					"peakProcesses": 3,
+					"resourceSamples": 13
+				},
+				{
+					"durationMs": 495.172,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 123.85541699999999,
+					"outcome": "success",
+					"peakRssKiB": 191792,
+					"peakCpuPercent": 61.2,
+					"peakProcesses": 3,
+					"resourceSamples": 13
+				},
+				{
+					"durationMs": 485.46775,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 122.618875,
+					"outcome": "success",
+					"peakRssKiB": 197568,
+					"peakCpuPercent": 11.399999999999999,
+					"peakProcesses": 3,
+					"resourceSamples": 13
+				},
+				{
+					"durationMs": 494.30199999999996,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 124.336791,
+					"outcome": "success",
+					"peakRssKiB": 191824,
+					"peakCpuPercent": 7.4,
+					"peakProcesses": 3,
+					"resourceSamples": 13
+				},
+				{
+					"durationMs": 493.467375,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 123.28300000000002,
+					"outcome": "success",
+					"peakRssKiB": 187008,
+					"peakCpuPercent": 35.3,
+					"peakProcesses": 3,
+					"resourceSamples": 14
+				},
+				{
+					"durationMs": 507.20399999999995,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 125.83545899999999,
+					"outcome": "success",
+					"peakRssKiB": 189648,
+					"peakCpuPercent": 13.4,
+					"peakProcesses": 3,
+					"resourceSamples": 14
+				},
+				{
+					"durationMs": 510.20399999999995,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 124.757292,
+					"outcome": "success",
+					"peakRssKiB": 189920,
+					"peakCpuPercent": 70.5,
+					"peakProcesses": 3,
+					"resourceSamples": 14
+				},
+				{
+					"durationMs": 510.98266700000005,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 125.36800000000001,
+					"outcome": "success",
+					"peakRssKiB": 188640,
+					"peakCpuPercent": 32.5,
+					"peakProcesses": 3,
+					"resourceSamples": 14
+				},
+				{
+					"durationMs": 507.5325,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 126.79808400000002,
+					"outcome": "success",
+					"peakRssKiB": 187312,
+					"peakCpuPercent": 6.1,
+					"peakProcesses": 3,
+					"resourceSamples": 14
+				},
+				{
+					"durationMs": 505.675334,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 123.84520799999999,
+					"outcome": "success",
+					"peakRssKiB": 189024,
+					"peakCpuPercent": 60.4,
+					"peakProcesses": 3,
+					"resourceSamples": 14
+				},
+				{
+					"durationMs": 482.761916,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 120.366375,
+					"outcome": "success",
+					"peakRssKiB": 205712,
+					"peakCpuPercent": 71.6,
+					"peakProcesses": 3,
+					"resourceSamples": 13
+				},
+				{
+					"durationMs": 481.09920800000003,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 120.479458,
+					"outcome": "success",
+					"peakRssKiB": 188240,
+					"peakCpuPercent": 62.8,
+					"peakProcesses": 3,
+					"resourceSamples": 13
+				},
+				{
+					"durationMs": 512.845042,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 126.51929200000001,
+					"outcome": "success",
+					"peakRssKiB": 209968,
+					"peakCpuPercent": 27,
+					"peakProcesses": 3,
+					"resourceSamples": 14
+				},
+				{
+					"durationMs": 518.635208,
+					"artifacts": [
+						{
+							"relativePath": "0.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "0.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "1.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "1.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "2.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "2.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "3.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "3.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "4.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "4.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "5.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "5.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "6.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "6.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						},
+						{
+							"relativePath": "7.png",
+							"bytes": 68,
+							"sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+						},
+						{
+							"relativePath": "7.svg",
+							"bytes": 1801,
+							"sha256": "3ed58196cea20bba8c27f3a410079ce76995fa3401e6b232e65f847d68145c5b"
+						}
+					],
+					"maxInFlight": 2,
+					"maxCommandMs": 127.99645800000002,
+					"outcome": "success",
+					"peakRssKiB": 210240,
+					"peakCpuPercent": 78.1,
+					"peakProcesses": 3,
+					"resourceSamples": 14
+				}
+			]
+		}
+	]
+}

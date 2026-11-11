@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { CommandTerminationError } from '../tools/command-runner.ts';
 import type {
 	CommandRunner,
 	ToolCapability,
@@ -26,6 +27,8 @@ export interface CompressOptions {
 	resolver?: ToolResolver;
 	runner?: CommandRunner;
 	cwd?: string;
+	signal?: AbortSignal;
+	commandTimeoutMs?: number;
 }
 
 interface CompressItemIdentity {
@@ -60,6 +63,7 @@ export interface CompressSummary {
 	softFailed: number;
 	hardFailed: number;
 	writtenCount: number;
+	cancelled?: true;
 	issues: Array<CompressIssue & { path: string }>;
 }
 
@@ -74,6 +78,7 @@ export interface CompressResult {
 	issues: CompressIssue[];
 	toolResolutions: ToolResolution[];
 	summary: CompressSummary;
+	cancelled?: true;
 }
 
 export interface CompressInputPreview {
@@ -100,6 +105,13 @@ interface FileCandidate {
 // Two encoders can overlap I/O without multiplying CPU threads and memory by
 // host core count (encoders such as oxipng already use internal parallelism).
 const COMPRESS_CONCURRENCY = 2;
+// Per external command, including discovery. Calibrated with the compress
+// performance consumer; deliberately absent from default CommandRunner usage.
+const COMPRESS_COMMAND_TIMEOUT_MS = 120_000;
+
+function checkCancelled(signal?: AbortSignal): void {
+	if (signal?.aborted) throw new CommandTerminationError('cancelled');
+}
 
 interface CompressScan {
 	input: string;
@@ -162,8 +174,14 @@ export async function runCompress(
 		? path.resolve(cwd, options.outDir)
 		: await defaultCompressOutputDir(input);
 	const mode: CompressMode = options.quality === undefined ? 'safe' : 'quality';
-	const resolver = options.resolver ?? new DefaultToolResolver();
-	const runner = options.runner ?? new BunCommandRunner();
+	const managedRunner = new BunCommandRunner({
+		signal: options.signal,
+		timeoutMs: options.commandTimeoutMs ?? COMPRESS_COMMAND_TIMEOUT_MS,
+	});
+	const runner = options.runner ?? managedRunner;
+	// An injected encoder runner never implicitly becomes the discovery runner.
+	const resolver =
+		options.resolver ?? new DefaultToolResolver({ runner: managedRunner });
 	// 1. Scan, or consume the matching confirmation snapshot.
 	const scan = preview ? previewScans.get(preview) : undefined;
 	const candidates =
@@ -181,10 +199,12 @@ export async function runCompress(
 		mode,
 		resolver,
 	);
-	const issues = validateToolResolutions(resolutions);
+	const issues = options.signal?.aborted
+		? []
+		: validateToolResolutions(resolutions);
 	const shouldWrite = !!options.yes && !options.dryRun;
 
-	if (issues.length > 0) {
+	if (options.signal?.aborted || issues.length > 0) {
 		return {
 			mode,
 			input,
@@ -195,7 +215,8 @@ export async function runCompress(
 			items: [],
 			issues,
 			toolResolutions: resolutions,
-			summary: summarizeItems([], issues, input),
+			summary: summarizeItems([], issues, input, options.signal),
+			...(options.signal?.aborted ? { cancelled: true as const } : {}),
 		};
 	}
 
@@ -212,7 +233,8 @@ export async function runCompress(
 				items: [],
 				issues: outputIssues,
 				toolResolutions: resolutions,
-				summary: summarizeItems([], outputIssues, input),
+				summary: summarizeItems([], outputIssues, input, options.signal),
+				...(options.signal?.aborted ? { cancelled: true as const } : {}),
 			};
 		}
 	}
@@ -249,6 +271,7 @@ export async function runCompress(
 					svgoConfigPath: iconSvgoConfigPath ?? userSvgoConfigPath,
 					useSvgOutput: !!options.icon || !!userSvgoConfigPath,
 				}),
+			options.signal,
 		);
 	} finally {
 		await fs.rm(tempDir, { recursive: true, force: true });
@@ -265,7 +288,7 @@ export async function runCompress(
 			});
 		}
 	}
-	const summary = summarizeItems(items, issues, input);
+	const summary = summarizeItems(items, issues, input, options.signal);
 	return {
 		mode,
 		input,
@@ -277,6 +300,7 @@ export async function runCompress(
 		issues,
 		toolResolutions: resolutions,
 		summary,
+		...(options.signal?.aborted ? { cancelled: true as const } : {}),
 	};
 }
 
@@ -284,6 +308,7 @@ async function mapBounded<T, R>(
 	inputs: T[],
 	limit: number,
 	process: (input: T) => Promise<R>,
+	signal?: AbortSignal,
 ): Promise<R[]> {
 	const results = new Array<R>(inputs.length);
 	let next = 0;
@@ -291,13 +316,13 @@ async function mapBounded<T, R>(
 	// operation settles; no unbounded queue of running encoder promises.
 	await Promise.all(
 		Array.from({ length: Math.min(limit, inputs.length) }, async () => {
-			while (next < inputs.length) {
+			while (next < inputs.length && !signal?.aborted) {
 				const index = next++;
 				results[index] = await process(inputs[index]!);
 			}
 		}),
 	);
-	return results;
+	return results.slice(0, next);
 }
 
 async function processCandidate(context: {
@@ -330,11 +355,13 @@ async function processCandidate(context: {
 	};
 	let code = 'WCP_COMPRESS_FAILED';
 	try {
+		checkCancelled(options.signal);
 		const tempOutput = path.join(tempDir, candidate.relativePath);
 		await fs.mkdir(path.dirname(tempOutput), { recursive: true });
 		const resolution = getResolutionForType(resolutions, candidate.type, mode);
 		if (!resolution?.selected)
 			throw new Error(`No compressor available for ${candidate.type}`);
+		checkCancelled(options.signal);
 		await compressFile({
 			source: candidate.absolutePath,
 			output: tempOutput,
@@ -346,6 +373,7 @@ async function processCandidate(context: {
 				candidate.type === 'svg' ? context.svgoConfigPath : undefined,
 			runner,
 		});
+		checkCancelled(options.signal);
 		// 4. Classify using the same byte and SVG policies as the serial path.
 		const beforeBytes = (await fs.stat(candidate.absolutePath)).size;
 		const previewBytes = (await fs.stat(tempOutput)).size;
@@ -360,6 +388,9 @@ async function processCandidate(context: {
 		if (shouldWrite) {
 			code = 'WCP_WRITE_FAILED';
 			await fs.mkdir(path.dirname(identity.output), { recursive: true });
+			checkCancelled(options.signal);
+			// Once copyFile starts, await it even if SIGINT arrives. No encoder
+			// signal is passed into the final copy, and its failure remains real.
 			await fs.copyFile(
 				status === 'unchanged' ? candidate.absolutePath : tempOutput,
 				identity.output,
@@ -385,7 +416,7 @@ async function processCandidate(context: {
 		return {
 			...identity,
 			result: 'hard-failed',
-			code,
+			code: error instanceof CommandTerminationError ? error.code : code,
 			message: error instanceof Error ? error.message : String(error),
 		};
 	}
@@ -395,9 +426,11 @@ function summarizeItems(
 	items: CompressItemResult[],
 	issues: CompressIssue[],
 	input: string,
+	signal?: AbortSignal,
 ): CompressSummary {
 	const summary: CompressSummary = {
 		total: items.length,
+		...(signal?.aborted ? { cancelled: true as const } : {}),
 		succeeded: 0,
 		softFailed: 0,
 		hardFailed: 0,
