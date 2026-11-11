@@ -4,6 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { resolveManualAppDir } from '../src/core/manual/assets.ts';
 import { startManualServer } from '../src/core/manual/server.ts';
+import type { ManualDataView } from '../src/core/manual/types.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 const cliEntry = path.join(rootDir, 'src/index.ts');
@@ -11,9 +12,11 @@ const cliEntry = path.join(rootDir, 'src/index.ts');
 async function runWave(
 	args: string[],
 	cwd = rootDir,
+	lang = 'C',
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
 	const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
 		cwd,
+		env: { ...process.env, LANG: lang },
 		stdout: 'pipe',
 		stderr: 'pipe',
 	});
@@ -79,10 +82,11 @@ describe('wave manual', () => {
 			expect(stdout.startsWith(`# ${pathParts.join(' ') || 'wave'}\n`)).toBe(
 				true,
 			);
-			expect(stdout).toContain('## 适用范围');
-			expect(stdout).toContain('## 用法');
-			expect(stdout).toContain('## 默认行为');
-			expect(stdout).toContain('## 示例');
+			expect(stdout).toContain('## Scope');
+			expect(stdout).toContain('## Usage');
+			expect(stdout).toContain('## Default behavior');
+			expect(stdout).toContain('## Example');
+			expect(stdout).not.toMatch(/[\u4e00-\u9fff]/);
 			expect(stdout).not.toContain(String.fromCharCode(27));
 		}
 	});
@@ -91,27 +95,27 @@ describe('wave manual', () => {
 		const cases = [
 			{
 				path: ['token', 'new', 'profile'],
-				text: '输出文件的 stem 必须等于规范化后的 profile 名称',
+				text: "The output file's stem must equal the normalized profile name.",
 			},
 			{
 				path: ['token', 'new', 'night'],
-				text: '自定义位置不会被默认 build 自动发现',
+				text: 'Custom locations are not discovered by the default build.',
 			},
 			{
 				path: ['token', 'doctor'],
-				text: '## 输出目录检查',
+				text: '## Output directory check',
 			},
 			{
 				path: ['token', 'wcag'],
-				text: '## 声明检查项',
+				text: '## Declare check items',
 			},
 			{
 				path: ['token', 'ids'],
-				text: '## 默认只报告',
+				text: '## Report only by default',
 			},
 			{
 				path: ['token', 'migrate', 'extensions'],
-				text: '## 报告与写回',
+				text: '## Report and write back',
 			},
 		];
 
@@ -140,6 +144,21 @@ describe('wave manual', () => {
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}
+	});
+
+	test('manual output is English and stable across LANG', async () => {
+		const c = await runWave(['token', 'new', 'night', '-m'], rootDir, 'C');
+		const zh = await runWave(
+			['token', 'new', 'night', '-m'],
+			rootDir,
+			'zh_CN.UTF-8',
+		);
+		expect(c.exitCode).toBe(0);
+		expect(zh.exitCode).toBe(0);
+		expect(c.stderr).toBe('');
+		expect(zh.stderr).toBe('');
+		expect(c.stdout).toBe(zh.stdout);
+		expect(c.stdout).not.toMatch(/[\u4e00-\u9fff]/);
 	});
 
 	test('top-level help includes manual command', async () => {
@@ -218,7 +237,20 @@ describe('wave manual', () => {
 			expect(await page.text()).toContain('<div id="root"></div>');
 			expect(data.status).toBe(200);
 			expect(data.headers.get('content-type')).toContain('application/json');
-			expect(JSON.stringify(await data.json())).toContain('Design Token');
+			const manualData = (await data.json()) as {
+				locales: Record<'zh' | 'en', ManualDataView>;
+			};
+			expect(manualData.locales.zh.pages).toHaveLength(20);
+			expect(manualData.locales.en.pages).toHaveLength(20);
+			expect(manualData.locales.en.nav).toHaveLength(
+				manualData.locales.zh.nav.length,
+			);
+			expect(
+				manualData.locales.en.pages.map((page: { href: string }) => page.href),
+			).toEqual(
+				manualData.locales.zh.pages.map((page: { href: string }) => page.href),
+			);
+			expect(JSON.stringify(manualData)).toContain('Design Token');
 			expect(missing.status).toBe(404);
 			expect(await traversal.text()).not.toContain('"name": "wave"');
 		} finally {

@@ -1,15 +1,19 @@
 import { describe, expect, test } from 'bun:test';
 import * as path from 'node:path';
+import type { Command } from 'commander';
+import { commandRegistry } from '../src/cli/registry.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 
 async function runWave(
 	args: string[],
+	lang = 'C',
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
 	const proc = Bun.spawn(
 		['bun', 'run', path.join(rootDir, 'src/index.ts'), ...args],
 		{
 			cwd: rootDir,
+			env: { ...process.env, LANG: lang },
 			stdout: 'pipe',
 			stderr: 'pipe',
 		},
@@ -17,6 +21,18 @@ async function runWave(
 	const stdout = await new Response(proc.stdout).text();
 	const stderr = await new Response(proc.stderr).text();
 	return { exitCode: await proc.exited, stdout, stderr };
+}
+
+function commandPaths(): string[][] {
+	const paths: string[][] = [];
+	const visit = (prefix: string[], command: Command) => {
+		const current = [...prefix, command.name()];
+		paths.push(current);
+		for (const child of command.commands) visit(current, child);
+	};
+	for (const definition of commandRegistry) visit([], definition.command);
+	paths.push(['version']);
+	return paths;
 }
 
 describe('public CLI command shape', () => {
@@ -121,6 +137,21 @@ describe('public CLI command shape', () => {
 			const result = await runWave(args);
 			expect(result.exitCode).not.toBe(0);
 			expect(result.stderr).not.toContain('CommanderError');
+		}
+	});
+
+	test('every registered public help is English and LANG-stable', async () => {
+		for (const commandPath of [[], ...commandPaths()]) {
+			const outputs: string[] = [];
+			for (const lang of ['C', 'zh_CN.UTF-8', 'en_US.UTF-8']) {
+				const result = await runWave([...commandPath, '--help'], lang);
+				expect(result.exitCode).toBe(0);
+				expect(result.stderr).toBe('');
+				expect(result.stdout).not.toMatch(/[\u4e00-\u9fff]/);
+				outputs.push(result.stdout);
+			}
+			expect(outputs[1]).toBe(outputs[0]);
+			expect(outputs[2]).toBe(outputs[0]);
 		}
 	});
 });

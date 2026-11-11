@@ -5,6 +5,7 @@ import { parseManualMarkdown } from './markdown.ts';
 import {
 	type LoadedManual,
 	type LoadManualOptions,
+	type Locale,
 	type ManualConfig,
 	type ManualHomeCardConfig,
 	ManualLoadError,
@@ -12,6 +13,7 @@ import {
 	type ManualNavSectionConfig,
 	type ManualPage,
 	type ManualSiteConfig,
+	type ManualView,
 } from './types.ts';
 
 const DEFAULT_MANUAL_DIR = 'manual';
@@ -43,6 +45,17 @@ function readString(
 	return value.trim();
 }
 
+function readLocalizedString(
+	data: Record<string, unknown>,
+	key: string,
+	fallbackKey: string,
+	sourcePath: string,
+): string {
+	const value = data[key];
+	if (value === undefined) return readString(data, fallbackKey, sourcePath);
+	return readString(data, key, sourcePath);
+}
+
 function assertHref(href: string, sourcePath: string) {
 	if (!href.startsWith('/') || href.startsWith('//') || href.includes('..')) {
 		throw new ManualLoadError(`Invalid manual href "${href}"`, sourcePath);
@@ -67,7 +80,14 @@ function parseSite(raw: unknown, sourcePath: string): ManualSiteConfig {
 	}
 	return {
 		title: readString(site, 'title', sourcePath),
+		titleEn: readLocalizedString(site, 'titleEn', 'title', sourcePath),
 		description: readString(site, 'description', sourcePath),
+		descriptionEn: readLocalizedString(
+			site,
+			'descriptionEn',
+			'description',
+			sourcePath,
+		),
 		basePath,
 	};
 }
@@ -78,7 +98,14 @@ function parseHomeCard(raw: unknown, sourcePath: string): ManualHomeCardConfig {
 	assertHref(href, sourcePath);
 	return {
 		title: readString(card, 'title', sourcePath),
+		titleEn: readLocalizedString(card, 'titleEn', 'title', sourcePath),
 		description: readString(card, 'description', sourcePath),
+		descriptionEn: readLocalizedString(
+			card,
+			'descriptionEn',
+			'description',
+			sourcePath,
+		),
 		href,
 		command: readString(card, 'command', sourcePath),
 	};
@@ -90,10 +117,14 @@ function parseNavPage(raw: unknown, sourcePath: string): ManualNavPageConfig {
 	const source = readString(page, 'source', sourcePath);
 	assertHref(href, sourcePath);
 	assertSource(source, sourcePath);
+	const sourceEn = readLocalizedString(page, 'sourceEn', 'source', sourcePath);
+	assertSource(sourceEn, sourcePath);
 	return {
 		title: readString(page, 'title', sourcePath),
+		titleEn: readLocalizedString(page, 'titleEn', 'title', sourcePath),
 		href,
 		source,
+		sourceEn,
 	};
 }
 
@@ -104,6 +135,7 @@ function parseNavSection(
 	const section = asRecord(raw, 'nav section', sourcePath);
 	return {
 		title: readString(section, 'title', sourcePath),
+		titleEn: readLocalizedString(section, 'titleEn', 'title', sourcePath),
 		pages: asArray(section.pages, 'nav section pages', sourcePath).map((page) =>
 			parseNavPage(page, sourcePath),
 		),
@@ -154,65 +186,134 @@ function assertUnique(
 	seen.set(value, sourcePath);
 }
 
-export async function loadManual(
-	options: LoadManualOptions = {},
-): Promise<LoadedManual> {
-	const rootDir = options.rootDir ?? process.cwd();
+async function loadLocale(
+	rootDir: string,
+	config: ManualConfig,
+	locale: Locale,
+): Promise<ManualView> {
 	const manualDir = path.join(rootDir, DEFAULT_MANUAL_DIR);
-	const configPath =
-		options.configPath ?? path.join(manualDir, DEFAULT_CONFIG_FILE);
-	const config = await readYamlConfig(configPath);
 	const hrefs = new Map<string, string>();
 	const sources = new Map<string, string>();
 	const pages: ManualPage[] = [];
-
 	for (const section of config.nav) {
 		for (const pageConfig of section.pages) {
-			assertUnique(pageConfig.href, hrefs, 'href', pageConfig.source);
-			assertUnique(pageConfig.source, sources, 'source', pageConfig.source);
-			const sourcePath = path.join(manualDir, pageConfig.source);
+			const source =
+				locale === 'en'
+					? (pageConfig.sourceEn ?? pageConfig.source)
+					: pageConfig.source;
+			assertUnique(pageConfig.href, hrefs, 'href', source);
+			assertUnique(source, sources, 'source', source);
+			const sourcePath = path.join(manualDir, source);
 			let raw: string;
 			try {
 				raw = await fs.readFile(sourcePath, 'utf-8');
 			} catch (error) {
-				throw new ManualLoadError(
-					`Failed to read manual page: ${error instanceof Error ? error.message : String(error)}`,
-					sourcePath,
-				);
+				if (
+					locale === 'en' &&
+					(pageConfig.sourceEn ?? pageConfig.source) === pageConfig.source
+				) {
+					// Legacy or temporary configs without an English source keep the
+					// original loader contract; the production config always declares
+					// distinct pages-en sources.
+					raw = await fs.readFile(
+						path.join(manualDir, pageConfig.source),
+						'utf-8',
+					);
+				} else {
+					throw new ManualLoadError(
+						`Failed to read manual page: ${error instanceof Error ? error.message : String(error)}`,
+						sourcePath,
+					);
+				}
 			}
 			const parsed = parseManualMarkdown(raw, sourcePath);
-			if (parsed.frontmatter.title !== pageConfig.title) {
+			const expectedTitle =
+				locale === 'en'
+					? (pageConfig.titleEn ?? pageConfig.title)
+					: pageConfig.title;
+			if (parsed.frontmatter.title !== expectedTitle) {
 				throw new ManualLoadError(
-					`Page title "${parsed.frontmatter.title}" does not match nav title "${pageConfig.title}"`,
+					`Page title "${parsed.frontmatter.title}" does not match nav title "${expectedTitle}"`,
 					sourcePath,
 				);
 			}
 			pages.push({
 				...parsed.frontmatter,
 				href: pageConfig.href,
-				source: pageConfig.source,
+				source,
 				body: parsed.body,
 			});
 		}
 	}
 
-	for (const card of config.home.cards) {
+	const cards = config.home.cards.map((card) => ({
+		title: locale === 'en' ? (card.titleEn ?? card.title) : card.title,
+		description:
+			locale === 'en'
+				? (card.descriptionEn ?? card.description)
+				: card.description,
+		href: card.href,
+		command: card.command,
+	}));
+	for (const card of cards) {
 		if (!hrefs.has(card.href)) {
 			throw new ManualLoadError(
 				`Home card href does not match any nav page "${card.href}"`,
-				configPath,
+				path.join(manualDir, DEFAULT_CONFIG_FILE),
 			);
 		}
 	}
 
 	let pageIndex = 0;
+	const sections = config.nav.map((section) => ({
+		title: locale === 'en' ? (section.titleEn ?? section.title) : section.title,
+		pages: section.pages.map(() => pages[pageIndex++]!),
+	}));
 	return {
-		site: config.site,
-		home: config.home,
-		sections: config.nav.map((section) => ({
-			title: section.title,
-			pages: section.pages.map(() => pages[pageIndex++]!),
-		})),
-		pages,
+		site: {
+			title:
+				locale === 'en'
+					? (config.site.titleEn ?? config.site.title)
+					: config.site.title,
+			description:
+				locale === 'en'
+					? (config.site.descriptionEn ?? config.site.description)
+					: config.site.description,
+			basePath: config.site.basePath,
+		},
+		home: { cards },
+		sections,
+		nav: sections,
+		pages: pages as ManualView['pages'],
 	};
+}
+
+export async function loadManual(
+	options: LoadManualOptions = {},
+): Promise<LoadedManual> {
+	const rootDir = options.rootDir ?? process.cwd();
+	const configPath =
+		options.configPath ??
+		path.join(rootDir, DEFAULT_MANUAL_DIR, DEFAULT_CONFIG_FILE);
+	const config = await readYamlConfig(configPath);
+	const [zh, en] = await Promise.all([
+		loadLocale(rootDir, config, 'zh'),
+		loadLocale(rootDir, config, 'en'),
+	]);
+	return { ...zh, locales: { zh, en } };
+}
+
+export async function loadManualLocales(
+	options: LoadManualOptions = {},
+): Promise<Record<Locale, ManualView>> {
+	const rootDir = options.rootDir ?? process.cwd();
+	const configPath =
+		options.configPath ??
+		path.join(rootDir, DEFAULT_MANUAL_DIR, DEFAULT_CONFIG_FILE);
+	const config = await readYamlConfig(configPath);
+	const [zh, en] = await Promise.all([
+		loadLocale(rootDir, config, 'zh'),
+		loadLocale(rootDir, config, 'en'),
+	]);
+	return { zh, en };
 }

@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Command, Option } from 'commander';
+import type { ManualDataView } from '../core/manual/types.ts';
 import { type CommandDefinition, commandRegistry } from './registry.ts';
 
 export interface ManualPageSummary {
@@ -15,6 +16,7 @@ export interface ManualPageSummary {
 
 export interface ManualDataIndex {
 	pages: ManualPageSummary[];
+	locales?: Record<'zh' | 'en', ManualDataView>;
 }
 
 interface ManualNode {
@@ -55,73 +57,73 @@ const OPTION_VALUES = new Set([
 const FALLBACK_PAGES: ManualPageSummary[] = [
 	{
 		href: '/command-index',
-		title: '命令索引',
-		description: '按命令层级查找 Wave 的使用合同。',
-		category: '参考',
-		appliesTo: ['本地 CLI'],
+		title: 'Command index',
+		description: 'Find the Wave usage contract by command level.',
+		category: 'Reference',
+		appliesTo: ['Local CLI'],
 	},
 	{
 		href: '/design-token',
 		title: 'Design Token',
-		description: '读取 token workspace 并生成设计交付产物。',
+		description: 'Build design delivery outputs from a token workspace.',
 		category: 'Design Token',
-		appliesTo: ['本地 CLI'],
+		appliesTo: ['Local CLI'],
 	},
 	{
 		href: '/design-token/quality-theming',
-		title: '质量与主题模式',
-		description: '检查 token workspace、对比度和主题模式。',
+		title: 'Profile and Night Model',
+		description: 'Check token workspace quality, contrast, and theme models.',
 		category: 'Design Token',
-		appliesTo: ['本地 CLI'],
+		appliesTo: ['Local CLI'],
 	},
 	{
 		href: '/design-token/extensions-output',
-		title: '扩展与输出',
-		description: '了解 token 输出格式和扩展字段。',
+		title: 'Extensions and Outputs',
+		description: 'Review token output formats and extension fields.',
 		category: 'Design Token',
-		appliesTo: ['本地 CLI'],
+		appliesTo: ['Local CLI'],
 	},
 	{
 		href: '/resources',
-		title: '内置资源',
-		description: '查看和维护 Wave 的内置资源。',
+		title: 'Built-in Resources',
+		description: 'Inspect and maintain Wave built-in resources.',
 		category: 'Design Token',
-		appliesTo: ['本地 CLI'],
+		appliesTo: ['Local CLI'],
 	},
 	{
 		href: '/compress',
-		title: '素材压缩',
-		description: '压缩设计素材并预览写入计划。',
-		category: '素材',
-		appliesTo: ['本地 CLI'],
+		title: 'Asset compression',
+		description: 'Compress design assets and preview the write plan.',
+		category: 'Assets',
+		appliesTo: ['Local CLI'],
 	},
 	{
 		href: '/motion',
-		title: '动效生成',
-		description: '从 PNG 帧目录生成 GIF 或 APNG。',
-		category: '素材',
-		appliesTo: ['本地 CLI'],
+		title: 'Motion generation',
+		description: 'Create GIF or APNG output from a PNG frame directory.',
+		category: 'Assets',
+		appliesTo: ['Local CLI'],
 	},
 	{
 		href: '/workspace',
-		title: '工作区创建',
-		description: '按本地配置创建设计项目工作区。',
-		category: '工作区',
-		appliesTo: ['本地 CLI'],
+		title: 'Workspace creation',
+		description: 'Create a design project workspace from local configuration.',
+		category: 'Workspace',
+		appliesTo: ['Local CLI'],
 	},
 	{
 		href: '/toolchain',
-		title: '安装与工具链',
-		description: '检查 Wave 运行环境和推荐工具。',
-		category: '开始',
-		appliesTo: ['本地 CLI'],
+		title: 'Installation and toolchain',
+		description: 'Check the Wave runtime and recommended tools.',
+		category: 'Getting started',
+		appliesTo: ['Local CLI'],
 	},
 	{
 		href: '/quickstart',
-		title: '快速开始',
-		description: '从安装依赖到运行第一个 Wave 命令。',
-		category: '开始',
-		appliesTo: ['本地 CLI'],
+		title: 'Quick start',
+		description: 'Go from installing dependencies to your first Wave command.',
+		category: 'Getting started',
+		appliesTo: ['Local CLI'],
 	},
 ];
 
@@ -130,7 +132,7 @@ function readEmbeddedManualData(): ManualDataIndex {
 	if (encoded) {
 		try {
 			const parsed: unknown = JSON.parse(encoded);
-			if (isManualDataIndex(parsed)) return parsed;
+			if (isManualDataIndex(parsed)) return normalizeManualData(parsed);
 		} catch {
 			// A malformed build define must not make -m execute business code.
 		}
@@ -151,8 +153,10 @@ function readEmbeddedManualData(): ManualDataIndex {
 }
 
 function normalizeManualData(data: ManualDataIndex): ManualDataIndex {
+	const english = data.locales?.en;
+	const selected = english ?? data;
 	return {
-		pages: data.pages.map((page) => ({
+		pages: selected.pages.map((page) => ({
 			...page,
 			body: page.body
 				?.replace(/&quot;/g, '"')
@@ -166,9 +170,18 @@ function normalizeManualData(data: ManualDataIndex): ManualDataIndex {
 
 function isManualDataIndex(value: unknown): value is ManualDataIndex {
 	if (!value || typeof value !== 'object') return false;
-	const pages = (value as { pages?: unknown }).pages;
+	const candidate = value as { pages?: unknown; locales?: unknown };
+	const locales = candidate.locales;
+	if (locales && typeof locales === 'object' && !Array.isArray(locales)) {
+		const english = (locales as { en?: unknown }).en;
+		if (isManualDataIndex(english)) {
+			return true;
+		}
+	}
+	const pages = candidate.pages;
 	return (
 		Array.isArray(pages) &&
+		!/[\u4e00-\u9fff]/u.test(JSON.stringify(pages)) &&
 		pages.every(
 			(page) =>
 				page &&
@@ -288,13 +301,13 @@ function commandUsage(pathParts: readonly string[], command?: Command): string {
 function formatOption(option: Option): string {
 	const defaultValue =
 		option.defaultValue !== undefined
-			? `；默认值：\`${String(option.defaultValue)}\``
+			? `; default: \`${String(option.defaultValue)}\``
 			: '';
-	return `- \`${option.flags}\`：${option.description || '无说明'}${defaultValue}`;
+	return `- \`${option.flags}\`: ${option.description || 'No description'}${defaultValue}`;
 }
 
 function formatSyntheticOption(flags: string, description: string): string {
-	return `- \`${flags}\`：${description}`;
+	return `- \`${flags}\`: ${description}`;
 }
 
 function titleFor(pathParts: readonly string[]): string {
@@ -312,10 +325,7 @@ function pageForPath(
 	if (root === 'token') {
 		const leaf = pathParts[2];
 		if (group === 'new') {
-			href =
-				leaf === 'night'
-					? '/design-token/night'
-					: '/design-token/create';
+			href = leaf === 'night' ? '/design-token/night' : '/design-token/create';
 		} else if (group === 'show' || group === 'update' || group === 'status') {
 			href = '/resources';
 		} else if (group === 'doctor' || group === 'wcag' || group === 'ids') {
@@ -335,15 +345,16 @@ function pageForPath(
 
 function defaultBehavior(pathParts: readonly string[]): string {
 	if (pathParts.length === 0)
-		return '只输出当前命令范围的 Markdown；不会执行构建、写入、交互或启动服务。';
+		return 'Prints Markdown for the current command scope without building, writing, prompting, or starting a service.';
 	if (pathParts.join(' ') === 'manual')
-		return '不带 `-m` 时启动已构建的网页手册；带 `-m` 时只输出本页 Markdown。';
-	if (pathParts.join(' ') === 'version') return '显示当前 Wave 版本号。';
+		return 'Without `-m`, starts the built web manual; with `-m`, prints only this command page.';
+	if (pathParts.join(' ') === 'version')
+		return 'Displays the current Wave version.';
 	if (pathParts[0] === 'token' && pathParts.length === 1)
-		return '省略子命令时执行 token build。';
+		return 'Runs token build when no subcommand is provided.';
 	if (pathParts[0] === 'token' && pathParts[1] === 'migrate')
-		return '必须明确选择迁移对象；手册模式不会触发迁移。';
-	return '带 `-m` 时只输出说明；不带 `-m` 时执行该命令的默认动作。';
+		return 'Requires an explicit migration target; manual mode never runs a migration.';
+	return 'With `-m`, prints documentation only; without it, runs the command default.';
 }
 
 function exampleFor(pathParts: readonly string[]): string {
@@ -377,16 +388,17 @@ export function renderManualMarkdown(pathParts: readonly string[]): string {
 		`# ${pathParts.length ? pathKey(pathParts) : 'wave'}`,
 		'',
 	];
-	lines.push('## 适用范围', '');
-	for (const scope of page?.appliesTo ?? ['本地 CLI']) lines.push(`- ${scope}`);
-	lines.push('', '## 用法', '', `\`${commandUsage(pathParts, command)}\``, '');
+	lines.push('## Scope', '');
+	for (const scope of page?.appliesTo ?? ['Local CLI'])
+		lines.push(`- ${scope}`);
+	lines.push('', '## Usage', '', `\`${commandUsage(pathParts, command)}\``, '');
 
 	if (node.children.length > 0) {
-		lines.push('## 命令', '');
+		lines.push('## Commands', '');
 		for (const child of node.children) {
 			const childName = child.path.at(-1)!;
 			lines.push(
-				`- \`${childName}\`：${child.command?.description() ?? '命令'}`,
+				`- \`${childName}\`: ${child.command?.description() ?? 'Command'}`,
 			);
 		}
 		lines.push('');
@@ -396,32 +408,32 @@ export function renderManualMarkdown(pathParts: readonly string[]): string {
 	const optionLines = options.map(formatOption);
 	if (!options.some((option) => option.long === '--manual')) {
 		optionLines.push(
-			formatSyntheticOption('-m, --manual', '输出当前命令范围的 Markdown。'),
+			formatSyntheticOption('-m, --manual', 'Print Markdown for this command.'),
 		);
 	}
 	if (pathParts.length === 0) {
 		optionLines.push(
-			formatSyntheticOption('-h, --help', '显示简洁帮助。'),
-			formatSyntheticOption('-v, --version', '显示版本号。'),
+			formatSyntheticOption('-h, --help', 'Show concise help.'),
+			formatSyntheticOption('-v, --version', 'Show the version.'),
 		);
 	}
 	if (optionLines.length > 0) {
-		lines.push('## 参数', '', ...optionLines, '');
+		lines.push('## Options', '', ...optionLines, '');
 	}
 
 	lines.push(
-		'## 默认行为',
+		'## Default behavior',
 		'',
 		page?.description ?? titleFor(pathParts),
 		defaultBehavior(pathParts),
 		'',
 	);
-	lines.push('## 示例', '', '```bash', exampleFor(pathParts), '```', '');
+	lines.push('## Example', '', '```bash', exampleFor(pathParts), '```', '');
 
 	const related = relatedCommands(node);
 	if (related.length > 0) {
 		lines.push(
-			'## 相关命令',
+			'## Related commands',
 			'',
 			...related.map((item) => `- \`wave ${item}\``),
 			'',
@@ -429,7 +441,7 @@ export function renderManualMarkdown(pathParts: readonly string[]): string {
 	}
 
 	if (page?.body?.trim()) {
-		lines.push('## 用户手册参考', '', page.body.trim(), '');
+		lines.push('## Manual reference', '', page.body.trim(), '');
 	}
 
 	const ansiEscape = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');

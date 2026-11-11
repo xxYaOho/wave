@@ -76,9 +76,10 @@ describe('build:cli', () => {
 			expect(result.exitCode).toBe(0);
 			expect(result.stderr).toBe('');
 			expect(result.stdout).toContain('# token new night');
-			expect(result.stdout).toContain('## 适用范围');
-			expect(result.stdout).toContain('## 参数');
-			expect(result.stdout).toContain('## 相关命令');
+			expect(result.stdout).toContain('## Scope');
+			expect(result.stdout).toContain('## Options');
+			expect(result.stdout).toContain('## Related commands');
+			expect(result.stdout).not.toMatch(/[\u4e00-\u9fff]/);
 		} finally {
 			await fs.rm(tempDir, { recursive: true, force: true });
 		}

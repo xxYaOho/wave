@@ -1,95 +1,150 @@
 site:
   title: Wave Manual
+  titleEn: Wave Manual
   description: Wave 面向 UI/UX 设计师的本地设计交付手册。
+  descriptionEn: A local design delivery manual for UI/UX designers using Wave.
   basePath: /
 
 home:
   cards:
     - title: Design Token
+      titleEn: Design Token
       description: 读取带 $config 的 main.yaml，生成 json、jsonc、css 和 sketch 输出。
+      descriptionEn: Read a main.yaml with $config and generate json, jsonc, css, and Sketch outputs.
       href: /design-token
       command: wave token
     - title: 素材压缩
+      titleEn: Asset compression
       description: 压缩 PNG、JPG、SVG 和 GIF，支持 dry-run、递归扫描和 SVG 图标清洗。
+      descriptionEn: Compress PNG, JPG, SVG, and GIF assets with dry runs, recursive scans, and SVG cleanup.
       href: /compress
       command: wave compress --help
     - title: 动效生成
+      titleEn: Motion generation
       description: 从 PNG 帧目录生成 GIF 或 APNG。
+      descriptionEn: Create GIF or APNG animations from a directory of PNG frames.
       href: /motion
       command: wave motion --help
     - title: 工作区创建
+      titleEn: Workspace creation
       description: 按本地配置创建设计项目目录。
+      descriptionEn: Create a design project workspace from local configuration.
       href: /workspace
       command: wave workspace --help
 
 nav:
   - title: 开始
+    titleEn: Getting started
     pages:
       - title: 快速开始
+        titleEn: Quick start
         href: /quickstart
         source: pages/quickstart.md
+        sourceEn: pages-en/quickstart.md
       - title: 安装与工具链
+        titleEn: Installation and toolchain
         href: /toolchain
         source: pages/toolchain.md
+        sourceEn: pages-en/toolchain.md
   - title: Design Token
+    titleEn: Design Token
     pages:
       - title: Design Token 概览
+        titleEn: Design token overview
         href: /design-token
         source: pages/design-token.md
+        sourceEn: pages-en/design-token.md
       - title: 创建 Workspace 与 Profile
+        titleEn: Create a workspace and profiles
         href: /design-token/create
         source: pages/design-token-create.md
+        sourceEn: pages-en/design-token-create.md
       - title: 创建 Night Overlay
+        titleEn: Create a Night overlay
         href: /design-token/night
         source: pages/design-token-night.md
+        sourceEn: pages-en/design-token-night.md
       - title: 迁移 Token 源文档
+        titleEn: Migrate token source documents
         href: /design-token/migrate
         source: pages/design-token-migrate.md
+        sourceEn: pages-en/design-token-migrate.md
       - title: 检查 Token Workspace
+        titleEn: Check a token workspace
         href: /design-token/doctor
         source: pages/design-token-doctor.md
+        sourceEn: pages-en/design-token-doctor.md
       - title: 检查 WCAG 对比度
+        titleEn: Check WCAG contrast
         href: /design-token/wcag
         source: pages/design-token-wcag.md
+        sourceEn: pages-en/design-token-wcag.md
       - title: 维护 Token 身份
+        titleEn: Maintain token identity
         href: /design-token/ids
         source: pages/design-token-ids.md
+        sourceEn: pages-en/design-token-ids.md
       - title: main.yaml 写法
+        titleEn: main.yaml syntax
         href: /design-token/main-yaml
         source: pages/design-token-main-yaml.md
+        sourceEn: pages-en/design-token-main-yaml.md
       - title: 颜色与字体
+        titleEn: Colors and typography
         href: /design-token/color-typography
         source: pages/design-token-color-typography.md
+        sourceEn: pages-en/design-token-color-typography.md
       - title: 扩展与输出
+        titleEn: Extensions and output
         href: /design-token/extensions-output
         source: pages/design-token-extensions-output.md
+        sourceEn: pages-en/design-token-extensions-output.md
       - title: Profile 与 Night 模型
+        titleEn: Profile and Night model
         href: /design-token/quality-theming
         source: pages/design-token-quality-theming.md
+        sourceEn: pages-en/design-token-quality-theming.md
       - title: 内置资源
+        titleEn: Built-in resources
         href: /resources
         source: pages/resources.md
+        sourceEn: pages-en/resources.md
   - title: 素材
+    titleEn: Assets
     pages:
       - title: 素材压缩
+        titleEn: Asset compression
         href: /compress
         source: pages/compress.md
+        sourceEn: pages-en/compress.md
       - title: 动效生成
+        titleEn: Motion generation
         href: /motion
         source: pages/motion.md
+        sourceEn: pages-en/motion.md
   - title: 工作区
+    titleEn: Workspace
     pages:
       - title: 工作区创建
+        titleEn: Workspace creation
         href: /workspace
         source: pages/workspace.md
+        sourceEn: pages-en/workspace.md
   - title: 参考
+    titleEn: Reference
     pages:
       - title: 命令索引
+        titleEn: Command index
         href: /command-index
         source: pages/command-index.md
+        sourceEn: pages-en/command-index.md
       - title: 配置路径
+        titleEn: Configuration paths
         href: /config-paths
         source: pages/config-paths.md
+        sourceEn: pages-en/config-paths.md
       - title: 故障排除
+        titleEn: Troubleshooting
         href: /troubleshooting
         source: pages/troubleshooting.md
+        sourceEn: pages-en/troubleshooting.md

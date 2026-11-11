@@ -18,7 +18,7 @@ const NIGHT_HELP = `Wave Night
     --force             Allow overwriting the planned overlay
     --scene <name>       Lighting scene: ${NIGHT_SCENES.join(' | ')}
                          Default: night (or $config.night.scene)
-    --luminance <n>      Primary Night 明度 dial 0..1 (wins over --luminance-ev)
+    --luminance <n>      Primary Night lightness dial 0..1 (wins over --luminance-ev)
                          → accentMain HCT tone = n×100 (0.9 ≈ near white)
                          Default: 0.7 (or $config.night.luminance)
     --luminance-ev <lv>  Named luminance: ${LUMINANCE_EV_LEVELS.join(' | ')}
@@ -35,7 +35,7 @@ const NIGHT_HELP = `Wave Night
     Legacy --chroma / --chroma-ev CLI aliases are not accepted.
 
   Note:
-    luminance is Primary Night lightness (明度), NOT HCT chroma/彩度.
+    luminance is Primary Night lightness, NOT HCT chroma.
 `;
 
 interface NightCommandOptions {
@@ -74,7 +74,7 @@ export function createNightCommand(name = 'night'): Command {
 		.option('--scene <name>', `Lighting scene (${NIGHT_SCENES.join('|')})`)
 		.option(
 			'--luminance <n>',
-			'Primary Night 明度 dial 0..1 (accentMain tone = n×100)',
+			'Primary Night lightness dial 0..1 (accentMain tone = n×100)',
 		)
 		.option(
 			'--luminance-ev <level>',

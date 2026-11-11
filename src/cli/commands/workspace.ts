@@ -161,7 +161,7 @@ async function promptWorkspaceAnswersTty(
 			answers.version = String(version);
 		}
 		if (part === 'tags' && config.tags.enabled) {
-			const tags = await text({ message: 'Tags', placeholder: 'UI,前端' });
+			const tags = await text({ message: 'Tags', placeholder: 'UI,frontend' });
 			if (isCancel(tags)) throw new Error('Workspace creation cancelled.');
 			answers.tags = String(tags);
 		}

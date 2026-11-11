@@ -1,12 +1,13 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { marked } from 'marked';
-import { loadManual } from './loader.ts';
+import { loadManualLocales } from './loader.ts';
 import type {
-	LoadedManual,
 	ManualData,
 	ManualDataPage,
+	ManualDataView,
 	ManualPage,
+	ManualView,
 } from './types.ts';
 
 export interface BuildManualDataOptions {
@@ -92,7 +93,7 @@ function pageToData(page: ManualPage): ManualDataPage {
 	};
 }
 
-function toManualData(source: LoadedManual): ManualData {
+function toManualDataView(source: ManualView): ManualDataView {
 	const pageByHref = new Map<string, ManualDataPage>();
 	const pages = source.pages.map((page) => {
 		const dataPage = pageToData(page);
@@ -100,22 +101,37 @@ function toManualData(source: LoadedManual): ManualData {
 		return dataPage;
 	});
 
+	const sections = source.sections.map((section) => ({
+		title: section.title,
+		pages: section.pages.map((page) => pageByHref.get(page.href)!),
+	}));
+
 	return {
 		site: source.site,
 		home: source.home,
 		pages,
-		sections: source.sections.map((section) => ({
-			title: section.title,
-			pages: section.pages.map((page) => pageByHref.get(page.href)!),
-		})),
+		sections,
+		nav: sections,
+	};
+}
+
+export async function createManualData(rootDir: string): Promise<ManualData> {
+	const source = await loadManualLocales({ rootDir });
+	const locales = {
+		zh: toManualDataView(source.zh),
+		en: toManualDataView(source.en),
+	};
+
+	return {
+		...locales.en,
+		locales,
 	};
 }
 
 export async function buildManualData(
 	options: BuildManualDataOptions,
 ): Promise<ManualData> {
-	const source = await loadManual({ rootDir: options.rootDir });
-	const data = toManualData(source);
+	const data = await createManualData(options.rootDir);
 
 	await fs.mkdir(options.outDir, { recursive: true });
 	await fs.writeFile(
