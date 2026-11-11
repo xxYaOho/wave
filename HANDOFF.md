@@ -11,9 +11,9 @@ handoff-version: 0.5
 
 最后更新：2026-11-11（双语手册与 README 计划已交付）
 
-现在：分支 `feat/cli-interface-simplification` 在 CLI 接口交付（b458db1）之上完成双语手册计划：Task-1 双语数据与 CLI 英文化 `63c014c`、Task-3 英文正文与双语 README `1caa93a`、Task-2 网页主语言选择 `e82ea13`、gate 修复 `abd2915`，HEAD 为 `abd2915`。完整测试 1185 pass、0 fail；typecheck 仅剩 Q0 存量；build、bench:smoke、Orca 全 profile canary（含 `sketch.skip` 负向断言）均通过。台账 M1–M5 全 RESOLVED（`.tmp/dispatch/major-ledger-bilingual.md`）。
+现在：分支 `feat/cli-interface-simplification` 在 CLI 接口交付（b458db1）之上完成双语手册计划：Task-1 双语数据与 CLI 英文化 `63c014c`、Task-3 英文正文与双语 README `1caa93a`、Task-2 网页主语言选择 `e82ea13`、gate 修复 `abd2915`。手册网页视觉重设计（Rheinblau Swiss）已由用户侧 agent 合并 `642af5e`，主代理按冻结双语合同复审通过并以 `387bd64` 完成 Biome 清理。HEAD 为 `387bd64`。完整测试 1185 pass、0 fail；typecheck 仅剩 Q0 存量；build、bench:smoke、Orca 全 profile canary（含 `sketch.skip` 负向断言）均通过。台账 M1–M5 全 RESOLVED（`.tmp/dispatch/major-ledger-bilingual.md`）。
 
-下一步：等待用户决定合并到 main；手册网页视觉重设计正由另一环境 agent 合并，落地后需按冻结双语合同复审（`locale.ts` 唯一判定、`locales` 双视图绑定、无语言参数）；随后按路线图草案展开 Q0 质量基线与性能观测实施 SPEC。
+下一步：等待用户决定合并到 main；随后按路线图草案展开 Q0 质量基线与性能观测实施 SPEC，再并行推进 C1/P1/P2。
 
 阻塞：完整 check:ci 仍有父提交既有的 typecheck/style 问题，由 Q0 承接。
 
