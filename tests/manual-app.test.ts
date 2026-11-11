@@ -219,8 +219,10 @@ describe('manual app', () => {
 		const view = await renderManualApp();
 
 		expect(view.getAllByText('Wave Manual').length).toBeGreaterThanOrEqual(1);
-		expect(view.getAllByTestId('manual-home-card')).toHaveLength(1);
-		expect(view.getByText('wave token doctor')).toBeTruthy();
+		const cards = view.getAllByTestId('manual-home-card');
+		expect(cards).toHaveLength(1);
+		expect(within(cards[0] as HTMLElement).getByText('Design Token')).toBeTruthy();
+		expect(within(cards[0] as HTMLElement).queryByText('wave token doctor')).toBeNull();
 
 		const directory = view.getByTestId('manual-directory');
 		expect(within(directory).getByText('目录')).toBeTruthy();
@@ -260,10 +262,11 @@ describe('manual app', () => {
 		});
 
 		const copyButton = await view.findByRole('button', { name: '复制代码' });
+		expect(copyButton.querySelector('svg')).not.toBeNull();
 		await user.click(copyButton);
 
 		expect(copied).toEqual(['wave token build -f ./main.yaml']);
-		expect(copyButton.textContent).toBe('已复制');
+		await waitFor(() => expect(copyButton.getAttribute('aria-label')).toBe('已复制'));
 	});
 
 	test('search result navigates to a manual page', async () => {

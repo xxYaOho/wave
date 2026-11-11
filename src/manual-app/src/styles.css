@@ -1,21 +1,32 @@
 :root {
-	--paper: #f7f9fb;
-	--surface: #ffffff;
-	--ink: #1f2937;
-	--ink-secondary: #5b6b7c;
-	--ink-faint: #8da0b3;
-	--primary: #0e3a5c;
-	--primary-bright: #2563eb;
-	--line: rgba(14, 58, 92, 0.12);
-	--line-strong: rgba(14, 58, 92, 0.25);
-	--active-bg: rgba(14, 58, 92, 0.08);
-	--code-bg: #eff3f8;
+	--paper: #f3f7fb;
+	--surface: #f3f7fb;
+	--ink: #121d2a;
+	--ink-secondary: #4a5b6e;
+	--ink-faint: #8699ae;
+	--ink-quiet: #71839a;
+	--primary: #0a6ed1;
+	--primary-bright: #0859b0;
+	--primary-tint: #3f8ce0;
+	--primary-wash: #8fbdf0;
+	--line: rgba(10, 110, 209, 0.18);
+	--line-strong: rgba(10, 110, 209, 0.36);
+	--active-bg: rgba(10, 110, 209, 0.08);
+	--code-bg: #e7f0f9; /* paper + 5% Rheinblau, opaque so the dot grid stays out of code */
 	--error: #b3402a;
+	--grid-dot: rgba(10, 110, 209, 0.07);
+	--grid-line: rgba(10, 110, 209, 0.02);
+	--mark: rgba(10, 110, 209, 0.5);
 	--font-display: Georgia, "Songti SC", "Noto Serif SC", "SimSun", serif;
-	--font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--font-body: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
 	--font-mono:
 		"Departure Mono", "Maple Mono", ui-monospace, "SF Mono", "Cascadia Mono",
 		Menlo, Consolas, monospace;
+	--sheet:
+		linear-gradient(var(--grid-line) 1px, transparent 1px),
+		linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+		radial-gradient(circle, var(--grid-dot) 0.55px, transparent 0.8px);
+	--sheet-size: 56px 56px, 56px 56px, 16px 16px;
 }
 
 * {
@@ -25,11 +36,12 @@
 body {
 	margin: 0;
 	min-width: 320px;
-	background: var(--paper);
+	background-color: var(--paper);
 	color: var(--ink);
 	font-family: var(--font-body);
 	font-size: 15px;
-	line-height: 1.75;
+	line-height: 1.65;
+	-webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -46,9 +58,14 @@ button {
 	outline-offset: 2px;
 }
 
+kbd {
+	font-family: var(--font-mono);
+}
+
 .appShell {
+	--sidebar-width: 260px;
 	display: grid;
-	grid-template-columns: 260px minmax(0, 1fr);
+	grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
 	min-height: 100vh;
 }
 
@@ -59,9 +76,12 @@ button {
 	height: 100vh;
 	flex-direction: column;
 	overflow-y: auto;
-	border-right: 1px solid var(--line);
-	background: var(--surface);
-	padding: 22px 20px;
+	overscroll-behavior: contain;
+	scrollbar-width: thin;
+	scrollbar-color: var(--line-strong) transparent;
+	border-right: 1px solid var(--line-strong);
+	background: var(--paper);
+	padding: 22px 16px 16px;
 }
 
 .brand {
@@ -72,20 +92,15 @@ button {
 	border: 0;
 	background: transparent;
 	color: inherit;
-	padding: 4px 2px 20px;
+	padding: 4px 4px 16px;
 	text-align: left;
 }
 
 .brandMark {
-	display: grid;
+	display: block;
+	flex: none;
 	width: 32px;
 	height: 32px;
-	place-items: center;
-	border-radius: 2px;
-	background: var(--primary);
-	color: var(--surface);
-	font-family: var(--font-display);
-	font-size: 16px;
 }
 
 .brand strong,
@@ -108,85 +123,26 @@ button {
 	text-transform: uppercase;
 }
 
-.navList {
-	display: grid;
-	gap: 24px;
-}
-
-.navSection p {
-	margin: 0 0 6px;
-	color: var(--primary);
-	font-family: var(--font-mono);
-	font-size: 11px;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-}
-
-.navLink {
-	display: block;
-	width: 100%;
-	border: 0;
-	border-left: 2px solid transparent;
-	border-radius: 2px;
-	background: transparent;
-	color: var(--ink-secondary);
-	font-size: 14px;
-	padding: 6px 10px;
-	text-align: left;
-}
-
-.navLink:hover {
-	color: var(--primary);
-}
-
-.navLink.active {
-	border-left-color: var(--primary);
-	background: var(--active-bg);
-	color: var(--primary);
-}
-
-.sidebarFooter {
-	margin-top: auto;
-	border-top: 1px solid var(--line);
-	color: var(--ink-faint);
-	font-size: 12px;
-	padding-top: 16px;
-}
-
-.mainShell {
-	min-width: 0;
-}
-
-.topbar {
-	position: sticky;
-	top: 0;
-	z-index: 2;
-	border-bottom: 1px solid var(--line);
-	background: var(--paper);
-	padding: 16px 32px;
-}
-
 .searchWrap {
 	position: relative;
-	max-width: 720px;
+	z-index: 6;
+	margin: 0 4px 24px;
 }
 
 .searchBox {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	border: 1px solid var(--line-strong);
-	border-radius: 2px;
-	background: var(--surface);
-	padding: 8px 12px;
+	gap: 8px;
+	border: 0;
+	border-bottom: 1px solid var(--line);
+	border-radius: 0;
+	background: transparent;
+	padding: 6px 0;
 }
 
-.searchBox span {
+.searchIcon {
+	flex: none;
 	color: var(--ink-faint);
-	font-family: var(--font-mono);
-	font-size: 11px;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
 }
 
 .searchBox input {
@@ -196,31 +152,51 @@ button {
 	outline: 0;
 	background: transparent;
 	color: var(--ink);
-	font-size: 14px;
+	font-size: 13px;
 }
 
 .searchBox input::placeholder {
 	color: var(--ink-faint);
 }
 
+.searchBox:focus-within {
+	border-bottom-color: var(--primary);
+}
+
+.searchBox:focus-within .searchIcon {
+	color: var(--primary);
+}
+
+.searchShortcut {
+	flex: none;
+	border: 0;
+	background: none;
+	color: var(--ink-faint);
+	font-size: 11px;
+	letter-spacing: 0;
+	line-height: 1;
+	padding: 0;
+	opacity: 0.7;
+}
+
 .searchResults {
 	position: absolute;
 	top: calc(100% + 6px);
 	left: 0;
-	right: 0;
-	z-index: 5;
+	z-index: 8;
 	display: grid;
 	gap: 2px;
+	width: min(380px, calc(100vw - 32px));
 	border: 1px solid var(--line-strong);
-	border-radius: 2px;
-	background: var(--surface);
-	box-shadow: 0 16px 40px rgba(14, 58, 92, 0.08);
-	padding: 6px;
+	border-radius: 0;
+	background: var(--paper);
+	box-shadow: 0 1px 0 rgba(10, 110, 209, 0.07);
+	padding: 4px;
 }
 
 .searchResults button {
 	border: 0;
-	border-radius: 2px;
+	border-radius: 0;
 	background: transparent;
 	padding: 8px 10px;
 	text-align: left;
@@ -245,7 +221,118 @@ button {
 	margin: 0;
 	color: var(--ink-secondary);
 	font-size: 13px;
+	padding: 8px 10px;
 }
+
+.searchResults span {
+	padding: 0;
+}
+
+.navList {
+	display: grid;
+	gap: 24px;
+	padding-right: 4px;
+	padding-bottom: 28px;
+}
+
+.navSection p {
+	margin: 0 0 4px;
+	padding: 0 10px;
+	color: var(--ink-faint);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	font-weight: 400;
+	letter-spacing: 0.08em;
+}
+
+.navLink {
+	display: block;
+	width: 100%;
+	border: 0;
+	border-left: 2px solid transparent;
+	border-radius: 0;
+	background: transparent;
+	color: var(--ink);
+	font-size: 14px;
+	padding: 5px 10px;
+	text-align: left;
+}
+
+.navLink:hover {
+	color: var(--primary);
+}
+
+.navLink.active {
+	border-left-color: var(--primary);
+	background: transparent;
+	color: var(--primary);
+	font-weight: 600;
+}
+
+.sidebarFooter {
+	flex: none;
+	margin-top: auto;
+	border-top: 1px solid var(--line);
+	background: var(--paper);
+	color: var(--ink-faint);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	padding: 16px 10px 4px;
+}
+
+.mainShell {
+	position: relative;
+	min-width: 0;
+	min-height: 100vh;
+	background-color: var(--paper);
+	background-image: var(--sheet);
+	background-size: var(--sheet-size);
+	background-attachment: fixed;
+}
+
+.frameMarks {
+	pointer-events: none;
+	position: fixed;
+	top: 18px;
+	right: 22px;
+	bottom: 22px;
+	left: calc(var(--sidebar-width) + 28px);
+	z-index: 2;
+}
+
+.mark {
+	position: absolute;
+	width: 14px;
+	height: 14px;
+}
+
+.mark::before,
+.mark::after {
+	content: "";
+	position: absolute;
+	background: var(--mark);
+}
+
+.mark::before {
+	top: 6px;
+	left: 0;
+	width: 14px;
+	height: 1px;
+}
+
+.mark::after {
+	top: 0;
+	left: 6px;
+	width: 1px;
+	height: 14px;
+}
+
+.markTl { top: 0; left: 0; }
+.markTr { top: 0; right: 0; }
+.markBl { bottom: 0; left: 0; }
+.markBr { bottom: 0; right: 0; }
 
 .content {
 	max-width: 1120px;
@@ -261,7 +348,7 @@ button {
 	color: var(--primary);
 	font-family: var(--font-mono);
 	font-size: 11px;
-	letter-spacing: 0.1em;
+	letter-spacing: 0.14em;
 	text-transform: uppercase;
 }
 
@@ -283,53 +370,75 @@ h1 {
 }
 
 .hero {
-	border: 1px solid var(--line);
-	border-radius: 2px;
-	background-color: var(--surface);
-	background-image:
-		linear-gradient(var(--line) 1px, transparent 1px),
-		linear-gradient(90deg, var(--line) 1px, transparent 1px);
-	background-size: 24px 24px;
-	padding: 64px 48px;
+	border: 0;
+	background: transparent;
+	padding: 8px 0 16px;
+}
+
+.heroMeta {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	margin: 0 0 16px;
+	border-bottom: 1px solid var(--line-strong);
+	padding-bottom: 8px;
+	color: var(--ink-faint);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
 }
 
 .hero h1 {
-	font-size: 40px;
-	line-height: 1.15;
+	font-size: 56px;
+	letter-spacing: -0.02em;
+	line-height: 1.08;
 }
 
 .homeGrid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 14px;
-	margin-top: 24px;
+	column-gap: 56px;
+	row-gap: 36px;
+	margin-top: 64px;
 }
 
 .homeCard {
 	display: grid;
 	align-content: start;
-	gap: 10px;
-	min-height: 148px;
-	border: 1px solid var(--line-strong);
-	border-radius: 2px;
-	background: var(--surface);
-	padding: 20px;
+	gap: 8px;
+	min-height: 0;
+	border: 0;
+	border-top: 1px solid var(--line);
+	border-radius: 0;
+	background: transparent;
+	padding: 16px 0 0;
 	text-align: left;
 }
 
-.homeCard:hover {
-	border-color: var(--primary);
+.homeCard:hover .homeCardTitle {
+	color: var(--primary-bright);
+}
+
+.homeCardIndex {
+	color: var(--ink-faint);
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.14em;
 }
 
 .homeCardTitle {
 	color: var(--primary);
 	font-family: var(--font-display);
-	font-size: 18px;
+	font-size: 22px;
+	font-weight: 400;
 }
 
 .homeCardDescription {
+	max-width: 28em;
 	color: var(--ink-secondary);
 	font-size: 14px;
+	line-height: 1.6;
 }
 
 .directory {
@@ -360,17 +469,16 @@ h1 {
 
 .directorySectionTitle {
 	margin: 0 0 8px;
-	color: var(--primary);
+	color: var(--ink-faint);
 	font-family: var(--font-mono);
-	font-size: 11px;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
+	font-size: 10px;
+	letter-spacing: 0.08em;
 }
 
 .directoryLink {
 	border: 0;
 	background: transparent;
-	color: var(--ink-secondary);
+	color: var(--ink);
 	font-size: 14px;
 	padding: 2px 0;
 	text-align: left;
@@ -383,9 +491,9 @@ h1 {
 
 .pageBody {
 	display: grid;
-	max-width: 1120px;
-	column-gap: 48px;
-	grid-template-columns: minmax(0, 760px) 200px;
+	grid-template-columns: minmax(0, 1fr) 220px;
+	column-gap: 32px;
+	align-items: start;
 	padding: 0 56px;
 }
 
@@ -393,7 +501,7 @@ h1 {
 	min-height: 100vh;
 	border-right: 1px solid var(--line);
 	border-left: 1px solid var(--line);
-	padding: 64px 48px 88px;
+	padding: 48px 48px 88px;
 }
 
 .pageHeader {
@@ -408,28 +516,81 @@ h1 {
 	margin-top: 20px;
 }
 
-.commandCode {
-	display: inline-block;
-	border: 1px solid var(--line-strong);
-	border-radius: 4px;
-	background: var(--surface);
-	color: var(--primary);
-	font-family: var(--font-mono);
-	font-size: 12px;
-	padding: 4px 8px;
+.commandChip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	border: 0;
+	border-radius: 0;
+	background: var(--code-bg);
+	padding: 2px 2px 2px 10px;
 }
 
-.homeCard .commandCode {
-	justify-self: start;
+.commandCode {
+	display: inline-block;
+	color: var(--ink);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.commandChip .commandCode {
+	padding: 2px 4px 2px 0;
+}
+
+.homeCard .commandCode,
+.commandRow > .commandCode {
+	border: 0;
+	border-radius: 0;
+	background: var(--code-bg);
+	padding: 5px 8px;
+}
+
+.commandCopyButton,
+.copyCodeButton {
+	display: grid;
+	width: 28px;
+	height: 28px;
+	place-items: center;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	color: var(--ink-quiet);
+	padding: 0;
+	transition: color 120ms ease;
+}
+
+.commandCopyButton {
+	width: 24px;
+	height: 24px;
+}
+
+.commandCopyButton:hover,
+.copyCodeButton:hover,
+.commandCopyButton[data-copied],
+.copyCodeButton[data-copied] {
+	color: var(--primary);
+}
+
+.commandCopyButton svg,
+.copyCodeButton svg {
+	display: block;
 }
 
 .toc {
 	position: sticky;
-	top: 96px;
+	top: 48px;
 	align-self: start;
-	display: grid;
+	display: flex;
+	flex-direction: column;
 	gap: 2px;
-	margin-top: 64px;
+	width: 100%;
+	max-height: calc(100vh - 80px);
+	overflow-x: hidden;
+	overflow-y: auto;
+	margin-top: 48px;
+	border-left: 1px solid var(--line);
+	padding-left: 14px;
 }
 
 .tocTitle {
@@ -443,11 +604,14 @@ h1 {
 
 .tocLink {
 	border: 0;
+	border-radius: 0;
 	background: transparent;
 	color: var(--ink-secondary);
 	font-size: 13px;
 	line-height: 1.5;
-	padding: 3px 0;
+	margin-left: -15px;
+	padding: 3px 0 3px 13px;
+	border-left: 2px solid transparent;
 	text-align: left;
 }
 
@@ -455,8 +619,14 @@ h1 {
 	color: var(--primary);
 }
 
+.tocLink.active {
+	border-left-color: var(--primary);
+	color: var(--primary);
+	font-weight: 600;
+}
+
 .tocLinkNested {
-	padding-left: 14px;
+	padding-left: 25px;
 }
 
 .article {
@@ -473,7 +643,7 @@ h1 {
 	font-size: 22px;
 	font-weight: 400;
 	line-height: 1.3;
-	scroll-margin-top: 96px;
+	scroll-margin-top: 32px;
 }
 
 .article h3 {
@@ -481,7 +651,7 @@ h1 {
 	color: var(--ink);
 	font-size: 16px;
 	font-weight: 700;
-	scroll-margin-top: 96px;
+	scroll-margin-top: 32px;
 }
 
 .article p,
@@ -516,9 +686,9 @@ h1 {
 }
 
 .article code {
-	border-radius: 4px;
-	background: var(--code-bg);
-	color: var(--primary);
+	border-radius: 0;
+	background: rgba(10, 110, 209, 0.07);
+	color: var(--primary-bright);
 	font-family: var(--font-mono);
 	font-size: 13px;
 	padding: 1px 5px;
@@ -527,48 +697,60 @@ h1 {
 .article pre {
 	position: relative;
 	overflow-x: auto;
-	border: 1px solid var(--line-strong);
-	border-radius: 2px;
+	border: 0;
+	border-radius: 0;
 	background: var(--code-bg);
 	color: var(--ink);
 	font-size: 13px;
-	padding: 44px 16px 16px;
+	line-height: 1.7;
+	padding: 16px 48px 16px 18px;
+}
+
+.article pre.commandPre {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 6px 6px 6px 18px;
 }
 
 .article pre code {
 	border: 0;
 	background: transparent;
 	color: inherit;
+	flex: 1;
+	min-width: 0;
 	padding: 0;
+}
+
+.copyCodeHost {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+}
+
+.article pre.commandPre .copyCodeHost {
+	position: static;
+	flex: none;
+	margin-left: auto;
+}
+
+.tableScroll {
+	overflow-x: auto;
+	margin: 18px 0;
+}
+
+.article .tableScroll > table {
+	margin: 0;
 }
 
 .article kbd {
 	border: 1px solid var(--line-strong);
-	border-radius: 4px;
-	background: var(--surface);
+	border-radius: 0;
+	background: var(--code-bg);
 	color: var(--primary);
 	font-family: var(--font-mono);
 	font-size: 12px;
 	padding: 1px 5px;
-}
-
-.copyCodeButton {
-	position: absolute;
-	top: 8px;
-	right: 8px;
-	border: 1px solid var(--line-strong);
-	border-radius: 4px;
-	background: var(--surface);
-	color: var(--primary);
-	font-family: var(--font-mono);
-	font-size: 11px;
-	letter-spacing: 0.05em;
-	line-height: 1.5;
-	padding: 3px 9px;
-}
-
-.copyCodeButton:hover {
-	background: var(--active-bg);
 }
 
 .article table {
@@ -609,8 +791,8 @@ h1 {
 	min-width: 160px;
 	gap: 4px;
 	border: 1px solid var(--line-strong);
-	border-radius: 2px;
-	background: var(--surface);
+	border-radius: 0;
+	background: transparent;
 	padding: 12px 16px;
 	text-align: left;
 }
@@ -640,7 +822,7 @@ h1 {
 .primaryButton {
 	margin-top: 22px;
 	border: 1px solid var(--primary);
-	border-radius: 2px;
+	border-radius: 0;
 	background: var(--primary);
 	color: var(--surface);
 	font-size: 14px;
@@ -652,7 +834,7 @@ h1 {
 	background: var(--primary-bright);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 960px) {
 	.pageBody {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -667,14 +849,30 @@ h1 {
 		grid-template-columns: 1fr;
 	}
 
+	.frameMarks {
+		left: 14px;
+		right: 14px;
+		top: 12px;
+		bottom: 12px;
+	}
+
 	.sidebar {
 		position: static;
 		height: auto;
+		overflow: visible;
 		padding: 16px;
 	}
 
 	.brand {
 		padding-bottom: 14px;
+	}
+
+	.searchWrap {
+		margin-bottom: 16px;
+	}
+
+	.searchResults {
+		width: 100%;
 	}
 
 	.navList {
@@ -703,16 +901,20 @@ h1 {
 		margin-top: 16px;
 	}
 
-	.topbar {
-		padding: 14px 18px;
-	}
-
 	.content {
 		padding: 42px 22px 72px;
 	}
 
 	.hero {
-		padding: 42px 24px;
+		padding: 4px 0 12px;
+	}
+
+	.heroMeta {
+		margin-bottom: 12px;
+	}
+
+	.frameMarks {
+		inset: 10px 12px;
 	}
 
 	.pageBody {
@@ -739,6 +941,11 @@ h1 {
 @media (max-width: 560px) {
 	.commandRow {
 		display: grid;
+	}
+
+	.commandChip {
+		width: 100%;
+		justify-content: space-between;
 	}
 
 	.pagerLink {

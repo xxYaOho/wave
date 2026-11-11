@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Copy } from 'lucide-react';
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { localeFromPrimaryLanguage } from '../../core/manual/locale.ts';
 import type {
 	Locale,
@@ -8,6 +10,7 @@ import type {
 	ManualHomeCardConfig,
 } from '../../core/manual/types.ts';
 import { loadManualData, selectManualView } from './manual-data.ts';
+import { BrandMark } from './BrandMark.tsx';
 
 type ManualRenderableData = Pick<
 	ManualDataView,
@@ -50,7 +53,7 @@ const UI_TEXT: Record<Locale, ManualUiText> = {
 		previous: '上一页',
 		next: '下一页',
 		searchLabel: '搜索',
-		searchPlaceholder: '搜索命令、配置或能力',
+		searchPlaceholder: '搜索',
 		noResults: '没有匹配结果',
 		notFound: '页面不存在',
 		notFoundEyebrow: '找不到页面',
@@ -72,7 +75,7 @@ const UI_TEXT: Record<Locale, ManualUiText> = {
 		previous: 'Previous',
 		next: 'Next',
 		searchLabel: 'Search',
-		searchPlaceholder: 'Search commands, configuration, or capabilities',
+		searchPlaceholder: 'Search',
 		noResults: 'No matching results',
 		notFound: 'Page not found',
 		notFoundEyebrow: 'Not Found',
@@ -95,8 +98,10 @@ function navigate(href: string): void {
 	window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
-function CommandCode({ value }: { value: string }) {
-	return <code className="commandCode">{value}</code>;
+function shortcutLabel(): string {
+	if (typeof navigator === 'undefined') return 'Ctrl K';
+	const platform = navigator.platform || navigator.userAgent || '';
+	return /Mac|iPhone|iPad|iPod/i.test(platform) ? '⌘K' : 'Ctrl K';
 }
 
 async function copyTextToClipboard(text: string): Promise<void> {
@@ -122,7 +127,101 @@ async function copyTextToClipboard(text: string): Promise<void> {
 	}
 }
 
-function HomeCard({ card }: { card: ManualHomeCardConfig }) {
+function useCopiedFlag() {
+	const [copied, setCopied] = useState(false);
+	const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+		undefined,
+	);
+
+	useEffect(() => {
+		return () => {
+			if (timerRef.current) clearTimeout(timerRef.current);
+		};
+	}, []);
+
+	const markCopied = () => {
+		setCopied(true);
+		if (timerRef.current) clearTimeout(timerRef.current);
+		timerRef.current = setTimeout(() => setCopied(false), 1600);
+	};
+
+	return { copied, markCopied };
+}
+
+function CopyIconButton({
+	text,
+	label,
+	copiedLabel,
+	failedLabel,
+	className,
+}: {
+	text: string;
+	label: string;
+	copiedLabel: string;
+	failedLabel: string;
+	className: string;
+}) {
+	const { copied, markCopied } = useCopiedFlag();
+	const [failed, setFailed] = useState(false);
+
+	const handleCopy = async () => {
+		try {
+			await copyTextToClipboard(text);
+			setFailed(false);
+			markCopied();
+		} catch {
+			setFailed(true);
+		}
+	};
+
+	const state = failed ? failedLabel : copied ? copiedLabel : label;
+
+	return (
+		<button
+			type="button"
+			className={className}
+			aria-label={state}
+			title={state}
+			data-copied={copied || undefined}
+			onClick={handleCopy}
+		>
+			{copied ? (
+				<Check size={14} strokeWidth={1.75} aria-hidden="true" />
+			) : (
+				<Copy size={14} strokeWidth={1.5} aria-hidden="true" />
+			)}
+		</button>
+	);
+}
+
+function CopyableCommand({
+	value,
+	copy,
+}: {
+	value: string;
+	copy: ManualUiText;
+}) {
+	return (
+		<span className="commandChip">
+			<code className="commandCode">{value}</code>
+			<CopyIconButton
+				text={value}
+				label={`${copy.copy} ${value}`}
+				copiedLabel={copy.copied}
+				failedLabel={copy.copyFailed}
+				className="commandCopyButton"
+			/>
+		</span>
+	);
+}
+
+function HomeCard({
+	card,
+	index,
+}: {
+	card: ManualHomeCardConfig;
+	index: number;
+}) {
 	return (
 		<button
 			type="button"
@@ -130,64 +229,25 @@ function HomeCard({ card }: { card: ManualHomeCardConfig }) {
 			className="homeCard"
 			onClick={() => navigate(card.href)}
 		>
+			<span className="homeCardIndex">{String(index + 1).padStart(2, '0')}</span>
 			<span className="homeCardTitle">{card.title}</span>
 			<span className="homeCardDescription">{card.description}</span>
-			<CommandCode value={card.command} />
 		</button>
 	);
 }
 
-function ManualHtml({ html, copy }: { html: string; copy: ManualUiText }) {
-	const articleRef = useRef<HTMLElement | null>(null);
+interface CodeCopyTarget {
+	host: HTMLElement;
+	text: string;
+}
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: html changes remount rendered manual content via dangerouslySetInnerHTML, so copy buttons must be rebound after route changes.
-	useEffect(() => {
-		const article = articleRef.current;
-		if (!article) return;
-
-		const cleanupFns: Array<() => void> = [];
-
-		for (const pre of article.querySelectorAll('pre')) {
-			if (pre.querySelector('.copyCodeButton')) continue;
-			const code = pre.querySelector('code');
-			if (!code) continue;
-
-			const button = document.createElement('button');
-			button.type = 'button';
-			button.className = 'copyCodeButton';
-			button.textContent = copy.copy;
-			button.setAttribute('aria-label', copy.copyCode);
-
-			let resetTimer: ReturnType<typeof setTimeout> | undefined;
-			const handleClick = async () => {
-				const text = code.textContent ?? '';
-
-				try {
-					await copyTextToClipboard(text);
-					button.textContent = copy.copied;
-				} catch {
-					button.textContent = copy.copyFailed;
-				}
-
-				if (resetTimer) clearTimeout(resetTimer);
-				resetTimer = setTimeout(() => {
-					button.textContent = copy.copy;
-				}, 1600);
-			};
-
-			button.addEventListener('click', handleClick);
-			pre.appendChild(button);
-			cleanupFns.push(() => {
-				if (resetTimer) clearTimeout(resetTimer);
-				button.removeEventListener('click', handleClick);
-			});
-		}
-
-		return () => {
-			for (const cleanup of cleanupFns) cleanup();
-		};
-	}, [copy, html]);
-
+const ManualArticle = memo(function ManualArticle({
+	html,
+	articleRef,
+}: {
+	html: string;
+	articleRef: RefObject<HTMLElement | null>;
+}) {
 	return (
 		<article
 			ref={articleRef}
@@ -195,6 +255,66 @@ function ManualHtml({ html, copy }: { html: string; copy: ManualUiText }) {
 			// biome-ignore lint/security/noDangerouslySetInnerHtml: manual-data.html is generated locally with raw HTML escaped in src/core/manual/build.ts.
 			dangerouslySetInnerHTML={{ __html: html }}
 		/>
+	);
+});
+
+function ManualHtml({ html, copy }: { html: string; copy: ManualUiText }) {
+	const articleRef = useRef<HTMLElement | null>(null);
+	const [targets, setTargets] = useState<CodeCopyTarget[]>([]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: html changes remount rendered manual content via dangerouslySetInnerHTML, so copy buttons must be rebound after route changes.
+	useEffect(() => {
+		const article = articleRef.current;
+		if (!article) return;
+
+		const next: CodeCopyTarget[] = [];
+		const doc = article.ownerDocument;
+
+		for (const pre of article.querySelectorAll('pre')) {
+			const code = pre.querySelector('code');
+			if (!code) continue;
+
+			const text = code.textContent ?? '';
+			if (!/\n/.test(text.trim())) pre.classList.add('commandPre');
+
+			let host = pre.querySelector<HTMLElement>('.copyCodeHost');
+			if (!host) {
+				host = doc.createElement('span');
+				host.className = 'copyCodeHost';
+				pre.appendChild(host);
+			}
+			next.push({ host, text });
+		}
+
+		// Some snapshot tables are wider than the reading column; give them their own scroller.
+		for (const table of article.querySelectorAll('table')) {
+			if (table.parentElement?.classList.contains('tableScroll')) continue;
+			const wrap = doc.createElement('div');
+			wrap.className = 'tableScroll';
+			table.replaceWith(wrap);
+			wrap.appendChild(table);
+		}
+
+		setTargets(next);
+	}, [copy, html]);
+
+	return (
+		<>
+			<ManualArticle html={html} articleRef={articleRef} />
+			{targets.map((target, index) =>
+				createPortal(
+					<CopyIconButton
+						text={target.text}
+						label={copy.copyCode}
+						copiedLabel={copy.copied}
+						failedLabel={copy.copyFailed}
+						className="copyCodeButton"
+					/>,
+					target.host,
+					`copy-${index}`,
+				),
+			)}
+		</>
 	);
 }
 
@@ -225,6 +345,42 @@ function OnThisPage({ html, copy }: { html: string; copy: ManualUiText }) {
 		return items;
 	}, [html]);
 
+	const [active, setActive] = useState<string | null>(
+		headings[0]?.text ?? null,
+	);
+
+	useEffect(() => {
+		const article = document.querySelector('.article');
+		if (!article) return;
+
+		const headingEls = [
+			...article.querySelectorAll<HTMLElement>('h2, h3'),
+		];
+		if (headingEls.length === 0) return;
+
+		setActive(headingEls[0]?.textContent?.trim() ?? null);
+
+		if (typeof IntersectionObserver === 'undefined') return;
+
+		const visible = new Map<Element, boolean>();
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					visible.set(entry.target, entry.isIntersecting);
+				}
+
+				const current = headingEls.find((el) => visible.get(el));
+				if (current) {
+					setActive(current.textContent?.trim() ?? null);
+				}
+			},
+			{ rootMargin: '-96px 0px -55% 0px', threshold: [0, 1] },
+		);
+
+		for (const el of headingEls) observer.observe(el);
+		return () => observer.disconnect();
+	}, [html]);
+
 	if (headings.length === 0) return null;
 
 	const scrollToHeading = (text: string) => {
@@ -234,6 +390,7 @@ function OnThisPage({ html, copy }: { html: string; copy: ManualUiText }) {
 		for (const heading of article.querySelectorAll('h2, h3')) {
 			if (heading.textContent?.trim() === text) {
 				heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				setActive(text);
 				return;
 			}
 		}
@@ -246,7 +403,14 @@ function OnThisPage({ html, copy }: { html: string; copy: ManualUiText }) {
 				<button
 					key={heading.id}
 					type="button"
-					className={heading.depth === 3 ? 'tocLink tocLinkNested' : 'tocLink'}
+					className={[
+						'tocLink',
+						heading.depth === 3 ? 'tocLinkNested' : '',
+						heading.text === active ? 'active' : '',
+					]
+						.filter(Boolean)
+						.join(' ')}
+					aria-current={heading.text === active ? 'location' : undefined}
 					onClick={() => scrollToHeading(heading.text)}
 				>
 					{heading.text}
@@ -312,13 +476,16 @@ function Home({
 	return (
 		<main className="content">
 			<header className="hero">
-				<p className="eyebrow">{copy.manual}</p>
+				<div className="heroMeta">
+					<span>Wave CLI</span>
+					<span>Spec 00</span>
+				</div>
 				<h1>{data.site.title}</h1>
 				<p className="lede">{data.site.description}</p>
 			</header>
 			<div className="homeGrid">
-				{data.home.cards.map((card) => (
-					<HomeCard key={card.href} card={card} />
+				{data.home.cards.map((card, index) => (
+					<HomeCard key={card.href} card={card} index={index} />
 				))}
 			</div>
 			<section className="directory" data-testid="manual-directory">
@@ -363,7 +530,7 @@ function PageView({
 					<p className="lede">{page.description}</p>
 					<div className="commandRow">
 						{page.commands.map((command) => (
-							<CommandCode key={command} value={command} />
+							<CopyableCommand key={command} value={command} copy={copy} />
 						))}
 					</div>
 				</header>
@@ -404,20 +571,23 @@ function Sidebar({
 	data,
 	path,
 	copy,
+	search,
 }: {
 	data: ManualRenderableData;
 	path: string;
 	copy: ManualUiText;
+	search: ReactNode;
 }) {
 	return (
 		<aside className="sidebar">
 			<button type="button" className="brand" onClick={() => navigate('/')}>
-				<span className="brandMark">W</span>
+				<BrandMark className="brandMark" />
 				<span>
 					<strong>Wave</strong>
 					<small>{copy.manualWord}</small>
 				</span>
 			</button>
+			{search}
 			<nav className="navList" aria-label={copy.directory}>
 				{data.sections.map((section) => (
 					<div key={section.title} className="navSection">
@@ -451,6 +621,7 @@ function Search({
 	setQuery: (value: string) => void;
 	copy: ManualUiText;
 }) {
+	const inputRef = useRef<HTMLInputElement | null>(null);
 	const results = useMemo(() => {
 		const normalized = query.trim().toLowerCase();
 		if (!normalized) return [];
@@ -459,15 +630,54 @@ function Search({
 			.slice(0, 8);
 	}, [data.pages, query]);
 
+	useEffect(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			const isShortcut =
+				(event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
+			if (isShortcut) {
+				event.preventDefault();
+				inputRef.current?.focus();
+				inputRef.current?.select();
+				return;
+			}
+			if (event.key === 'Escape' && document.activeElement === inputRef.current) {
+				setQuery('');
+				inputRef.current?.blur();
+			}
+		};
+
+		window.addEventListener('keydown', onKeyDown);
+		return () => window.removeEventListener('keydown', onKeyDown);
+	}, [setQuery]);
+
 	return (
 		<div className="searchWrap">
 			<label className="searchBox">
-				<span>{copy.searchLabel}</span>
+				<svg
+					className="searchIcon"
+					width="14"
+					height="14"
+					viewBox="0 0 16 16"
+					fill="none"
+					aria-hidden="true"
+				>
+					<circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.25" />
+					<path
+						d="M10.5 10.5L14 14"
+						stroke="currentColor"
+						strokeWidth="1.25"
+						strokeLinecap="round"
+					/>
+				</svg>
 				<input
+					ref={inputRef}
 					value={query}
+					aria-label={copy.searchLabel}
 					placeholder={copy.searchPlaceholder}
+					autoComplete="off"
 					onChange={(event) => setQuery(event.currentTarget.value)}
 				/>
+				<kbd className="searchShortcut">{shortcutLabel()}</kbd>
 			</label>
 			{query.trim() ? (
 				<div className="searchResults">
@@ -547,11 +757,21 @@ export function App() {
 
 	return (
 		<div className="appShell">
-			<Sidebar data={view} path={path} copy={copy} />
-			<div className="mainShell">
-				<header className="topbar">
+			<Sidebar
+				data={view}
+				path={path}
+				copy={copy}
+				search={
 					<Search data={view} query={query} setQuery={setQuery} copy={copy} />
-				</header>
+				}
+			/>
+			<div className="mainShell">
+				<div className="frameMarks" aria-hidden="true">
+					<span className="mark markTl" />
+					<span className="mark markTr" />
+					<span className="mark markBl" />
+					<span className="mark markBr" />
+				</div>
 				{path === '/' ? (
 					<Home data={view} copy={copy} />
 				) : page ? (
