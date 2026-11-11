@@ -1,7 +1,7 @@
 ---
 date: 2026-11-11
-state: 草案（STRICT R1 待派遣）
-dispatch: ~
+state: 已批准（STRICT DELTA PASS，2026-11-11）
+dispatch: R1 FAIL 1F/3M/1m → F-01 DELTA PASS；MAJOR M-01–M-03 处方已入 SPEC，台账 carry（交付证据关闭），见 .tmp/c1/strict-major-ledger.md
 ---
 
 # Wave C1 CLI 控制面 Plan
@@ -53,7 +53,7 @@ dispatch: ~
 
 - 行为一致性：迁移前后全部既有 CLI 测试（约 20 文件）逐字节断言不回归，是本计划的主要安全网。
 - 元数据完整性：`cli-command-shape` 扩展断言——每个注册命令（含二级）具备 help 与 manual 元数据，且文案与迁移前输出一致（快照对照）。
-- 懒加载证据：文档路径（`-h`、`-m`、错误用法）进程内无业务模块加载条目；任一执行路径按需加载且仅加载所需命令模块。
+- 懒加载证据：文档路径（`-h`、`-m`、错误用法）进程内无业务模块加载条目；任一执行路径按需加载且仅加载所需命令模块；失败注入矩阵覆盖模块加载拒绝与加载成功后业务失败两类路径，各自固定 stdout / stderr / 退出码并断言异步错误归属。
 - 基座迁移：迁移后测试文件不含本地 spawn helper 定义（grep 断言）。
 - 质量门：`pnpm check:ci` 不退化。
 
@@ -67,7 +67,7 @@ dispatch: ~
 ## Draft Plan
 
 - 结构总览：`registry.ts` 成为元数据唯一组装点（静态、纯数据）；`help.ts`/`manual-markdown.ts`/`cli-command-shape` 三个消费者读同一来源；action 薄包装动态加载 `commands/*`；`tests/utils/cli-runner.ts` 为基座，测试文件改为消费。
-- 关键契约：元数据字段形状（`help`、`manual` 映射）是 C2/M1 消费的下游接口；action 包装签名稳定。
+- 关键契约（下游接口冻结，C2/M1 依赖）：`help` 字段为文案值（非键），类型自 `registry.ts` 导出；`manual` 映射为命令路径 → 手册 source/href 的节点形状，含子树继承规则显式定义；action 薄包装的 Commander 参数透传顺序、返回值与错误约定（异步拒绝归属）显式冻结；`CommandDefinition` 从「含真实 Commander Command」过渡到「静态纯数据 + 包装层」的边界在此合同定义；gate 核验导出类型与合同一致。
 - 文件结构：`src/cli/registry.ts`（元数据扩展）、`src/cli/help.ts`（消费重构）、`src/cli/manual-markdown.ts`（路径解析消费）、`src/cli/options.ts`（`-m` 注入不变）、`src/cli/index.ts`（装配）、`src/cli/commands/*`（action 包装，业务函数体不动）、`tests/utils/cli-runner.ts`（新增基座）、既有 CLI 测试文件（helper 迁移）。
 - 风险与未决：Commander action 签名在动态 import 下的参数透传需逐一核对（错误用法/选项缺省路径）；`help.ts` 文案与 commander description 的重复内容合并规则需在实现时逐字对照（零文案变更约束）；20 文件迁移是体量最大的机械工作，放独立里程碑。无阻塞拆分的未决项。
 - 里程碑草案：M1 元数据统一（行为不变收敛）；M2 懒加载与加载证据；M3 测试基座迁移。
@@ -88,8 +88,8 @@ worktree `c1-cli-control-plane` 已建（基点 b245c71），SPEC 与施工均�
 
 元数据扩展与 help 收敛（来源：User Story 1；Implementation Decisions 1–2）
 
-- 验收标准：`registry` 元数据含全部命令（含二级树）的 help 字段；`help.ts` 删除硬编码常量改为派生；`-h` 输出与迁移前逐字节一致；不同 `LANG` 下输出一致。
-- 可动文件范围：`src/cli/registry.ts`、`src/cli/help.ts`、`tests/cli-command-shape.test.ts`。
+- 验收标准：`registry` 元数据含全部命令（含二级树）的 help 字段；`help.ts` 删除硬编码常量改为派生；`-h` 输出与迁移前逐字节一致；不同 `LANG` 下输出一致；**命令内平行帮助来源全部改接元数据**——`commands/compress.ts:46,373`、`workspace.ts:30,53`、`manual.ts:16,58-60`、`motion.ts:50` 的帮助输出（含 `manual -h` 在 action 内输出的路径）改接点逐一迁移，快照对照确认零文案变更。
+- 可动文件范围：`src/cli/registry.ts`、`src/cli/help.ts`、`tests/cli-command-shape.test.ts`、`src/cli/commands/compress.ts` / `workspace.ts` / `manual.ts` / `motion.ts` 的**帮助文案消费层**（仅帮助输出改接，不改业务逻辑）。
 - 依赖：Q0 已集成 main。
 - 固有风险：硬编码字符串与 commander description 的合并必须零文案变更，逐字对照；转义/换行细节易漂移。
 
@@ -116,20 +116,21 @@ worktree `c1-cli-control-plane` 已建（基点 b245c71），SPEC 与施工均�
 业务模块懒加载
 
 - 验证主题：文档路径零业务模块加载；执行路径按需加载且行为一致。
-- 核验基线：模块加载证据测试；全部既有 CLI 测试回归；`pnpm check:ci`。
+- 核验基线：模块加载证据测试与失败注入矩阵（含观测协议冻结与阳性对照）；全部既有 CLI 测试回归；`pnpm check:ci`。
 - 来源：User Stories 2–3；Implementation Decisions 3–4；Testing Decision 3。
 
 ### Task-3
 
 action 薄包装与动态加载（来源：User Stories 2–3；Implementation Decisions 3–4）
 
-- 验收标准：`registry` 静态 import 不含任何业务模块；action 为动态 import 薄包装；全部命令懒加载前后行为一致（全量 CLI 测试回归）；文档路径与执行路径的模块加载证据测试通过。
+- 验收标准：`registry` 静态 import 不含任何业务模块；action 为动态 import 薄包装；全部命令懒加载前后行为一致（全量 CLI 测试回归）；文档路径与执行路径的模块加载证据测试通过；**动态 import 失败注入验收**——「模块加载拒绝」与「加载成功后业务失败」两类路径分别固定 stdout / stderr / 退出码，异步拒绝归属正确（归因到加载层或命令层，二者不混淆）；**加载证据观测协议冻结**——同一 CLI 进程内的可重复观测步骤、被观测业务模块集合的显式定义、阳性对照（业务执行 / 故意加载使探针可检出）；Bun 模块缓存观测接口可行性由施工验证，不可用时以替代机制达成同等可证伪性并记录。
 - 可动文件范围：`src/cli/index.ts`、`src/cli/registry.ts`、`src/cli/commands/*`（action 包装）、模块加载证据测试。
 - 依赖：M1 闸门。
 - 固有风险：动态 import 的错误处理路径（模块加载失败 vs 命令失败）不得混淆退出码；`compress.ts` 等文件内二级命令装配需随包装层调整且保持注册语义。
 
 - [ ] action 包装改造与装配调整。
 - [ ] 模块加载证据测试与全量回归。
+- [ ] 失败注入矩阵：加载拒绝 / 加载成功后业务失败两类路径的输出、退出码与错误归属固定测试。
 
 > [!IMPORTANT]
 > Milestone-2 闸门：主代理复核加载证据与行为一致性，通过后进入 M3。
@@ -147,7 +148,7 @@ action 薄包装与动态加载（来源：User Stories 2–3；Implementation D
 共享基座与迁移（来源：User Story 4；Implementation Decision 5）
 
 - 验收标准：`tests/utils/cli-runner.ts` 提供进程启动/输出捕获/退出码/fixture 隔离/LANG 注入能力；约 20 个测试文件的私有 helper 全部迁移为共享消费，断言逐条不变；`tests/utils/` 内新增基座单测。
-- 可动文件范围：`tests/utils/cli-runner.ts`（新增）、既有 CLI 测试文件的 helper 迁移。
+- 可动文件范围：`tests/utils/cli-runner.ts`（新增）、`tests/utils/cli-runner.test.ts`（新增基座单测）、既有 CLI 测试文件的 helper 迁移。
 - 依赖：M2 闸门。
 - 固有风险：个别 helper 的私有变体（如 `runWavePty`）语义需保留；迁移是纯机械重构，任何断言修改都属越界。
 
