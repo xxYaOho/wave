@@ -10,7 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { Window } from 'happy-dom';
 import React from 'react';
 import { buildManualData } from '../src/core/manual/build.ts';
-import type { ManualData } from '../src/core/manual/types.ts';
+import type { ManualData, ManualDataView } from '../src/core/manual/types.ts';
 import { App } from '../src/manual-app/src/App.tsx';
 
 const realFetch = globalThis.fetch;
@@ -70,8 +70,62 @@ const manualData: ManualData = {
 	],
 };
 
-function installWindow(path = '/') {
+const zhView: ManualDataView = {
+	site: {
+		title: 'Wave 手册',
+		description: '中文手册。',
+		basePath: '/',
+	},
+	home: {
+		cards: [
+			{
+				title: '设计令牌',
+				description: '构建令牌。',
+				href: '/design-token',
+				command: 'wave token doctor',
+			},
+		],
+	},
+	pages: [
+		{
+			...page,
+			title: '设计令牌',
+			description: '构建令牌。',
+			searchText: '设计令牌 构建令牌',
+		},
+		{ ...compressPage, title: '素材压缩', searchText: '素材压缩' },
+	],
+	sections: [
+		{ title: '能力', pages: [{ ...page, title: '设计令牌' }] },
+		{ title: '素材', pages: [{ ...compressPage, title: '素材压缩' }] },
+	],
+	nav: [],
+};
+zhView.nav = zhView.sections;
+
+const enView: ManualDataView = {
+	site: {
+		title: 'Wave Manual',
+		description: 'English manual.',
+		basePath: '/',
+	},
+	home: manualData.home,
+	pages: manualData.pages,
+	sections: manualData.sections,
+	nav: manualData.sections,
+};
+
+const bilingualManualData: ManualData = {
+	...enView,
+	locales: { zh: zhView, en: enView },
+};
+
+function installWindow(path = '/', language = 'zh-CN') {
 	const window = new Window({ url: `http://127.0.0.1${path}` });
+	Object.defineProperty(window.navigator, 'language', {
+		configurable: true,
+		value: language,
+	});
 
 	Object.assign(globalThis, {
 		window,
@@ -109,15 +163,19 @@ async function renderManualApp({
 	path = '/',
 	ok = true,
 	status = 200,
+	language = 'zh-CN',
+	data = manualData,
 }: {
 	path?: string;
 	ok?: boolean;
 	status?: number;
+	language?: string;
+	data?: ManualData;
 } = {}) {
-	installWindow(path);
-	mockFetch({ ok, status });
+	installWindow(path, language);
+	mockFetch({ data, ok, status });
 	const view = render(React.createElement(App));
-	await view.findByText('Wave Manual');
+	await view.findByText(/Wave (Manual|手册)/);
 	return view;
 }
 
@@ -127,6 +185,36 @@ afterEach(() => {
 });
 
 describe('manual app', () => {
+	test('selects the browser primary language for home, deep links, and search', async () => {
+		const zhViewResult = await renderManualApp({
+			data: bilingualManualData,
+			path: '/design-token',
+			language: 'zh-TW',
+		});
+		expect(zhViewResult.getByText('Wave 手册')).toBeTruthy();
+		expect(zhViewResult.getByTestId('manual-page-title').textContent).toBe(
+			'设计令牌',
+		);
+
+		cleanup();
+		const enViewResult = await renderManualApp({
+			data: bilingualManualData,
+			path: '/design-token',
+			language: 'fr-FR',
+		});
+		expect(enViewResult.getByTestId('manual-page-title').textContent).toBe(
+			'Design Token',
+		);
+		const user = userEvent.setup({ document: window.document });
+		await user.type(
+			enViewResult.getByRole('textbox', { name: 'Search' }),
+			'Design',
+		);
+		expect(
+			(await enViewResult.findByTestId('manual-search-result')).textContent,
+		).toContain('Design Token');
+	});
+
 	test('fetches manual data and renders the home cards', async () => {
 		const view = await renderManualApp();
 
@@ -182,7 +270,7 @@ describe('manual app', () => {
 		const view = await renderManualApp();
 		const user = userEvent.setup({ document: window.document });
 
-		await user.type(view.getByRole('textbox', { name: 'Search' }), 'token');
+		await user.type(view.getByRole('textbox', { name: '搜索' }), 'token');
 
 		const result = await view.findByTestId('manual-search-result');
 		expect(result.textContent).toContain('Design Token');
