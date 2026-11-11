@@ -131,9 +131,9 @@ dispatch: R1 FAIL 1F/4M → F1 DELTA 修正 PASS；MAJOR M1–M4 台账 carry fo
 - 依赖：Task-1（配置边界与已知存量失败清单建立后；错误清单以 Task-1 交付为准）。
 - 固有风险：输出等价验证必须使用与 lockfile 一致的 js-yaml 版本实测；若实测出现键序差异，停止并升级 Human 裁决。
 
-- [ ] 修复 color-rules.ts 类型收窄并通过测试。
-- [ ] `sortingKeys` 更名为显式 `sortKeys: false`，同版本实测输出等价并记录。
-- [ ] 运行 Orca 全 profile canary 验证不退化。
+- [x] 修复 color-rules.ts 类型收窄并通过测试。（b7deb69；9 错误系 `split('.')` 解构单根因，`root = ''` 默认值运行时等价）
+- [x] `sortingKeys` 更名为显式 `sortKeys: false`，同版本实测输出等价并记录。（b7deb69）
+- [x] 运行 Orca 全 profile canary 验证不退化。（fixture 1 pass/87 断言 + 真实 canary exit 0，7 profile + Night）
 
 ### Task-3
 
@@ -144,12 +144,14 @@ biome 存量清零（来源：User Story 1；Implementation Decision 5）
 - 依赖：Task-1（ignore 边界先行，避免修生成物）。
 - 固有风险：机械修复混入行为改动；organizeImports 改动需保持 `verbatimModuleSyntax` 合同。
 
-- [ ] 运行 `biome check --write` 自动修复并复核 diff。
-- [ ] 手工修复剩余诊断，保持行为不变。
-- [ ] 全仓 `biome check .` 清零验证。
+- [x] 运行 `biome check --write` 自动修复并复核 diff。
+- [x] 手工修复剩余诊断，保持行为不变。
+- [x] 全仓 `biome check .` 清零验证。（0 errors / 0 warnings / 0 infos，277 files）
 
 > [!IMPORTANT]
 > Milestone-1 闸门：主代理整合三个 Task，在干净引导的 worktree 中重跑全部核验基线。任一未过则不得进入 M2。
+>
+> 闸门结果（2026-11-11，通过）：交付 HEAD `b7deb69`（施工）+ `7b1736d`（主代理文档）。`pnpm check:ci` exit 0；bun test 1185 pass / 0 fail；`biome check` 0/0/0（277 files）；fixture canary 1 pass（87 断言）；真实 Orca 全 profile canary exit 0（7 profile + Night，mktemp 隔离输出）；emit.ts `sortKeys` 输出等价（js-yaml 4.1 dumper 默认 false，双方独立实测一致）。台账 M1/M2 RESOLVED，M3/M4 随 M2 关闭。披露：交付报告混入 Task-1 历史片段（报告纪律问题，不影响验收）；施工包薄壳「禁动 experiments」行与 SPEC Task-3 矛盾，施工方以 SPEC 为准正确取舍，责任在薄壳作者。
 
 ## Milestone-2
 
