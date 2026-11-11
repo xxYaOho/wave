@@ -146,12 +146,12 @@ worktree `p2-compress-performance` 已建（基点 b245c71），SPEC 与施工�
 取消与子进程超时（来源：User Story 2；Implementation Decisions 5–6）
 
 - 验收标准：SIGINT 停止派发并**有界终止**子进程（等待进程树与 stdout/stderr 关闭），已写入保留、未写入不存在、退出码 130、汇总含 `cancelled: true`；子进程超时记为逐项硬失败；取消与超时**仅 compress 链路启用**（Motion / install 消费者行为不变，含针对性回归）；忽略终止信号与后代持有管道样本下终止完成有测试；提交发起期间取消的 settle 语义有固定测试。
-- 可动文件范围：`src/core/compress/index.ts`、`src/core/tools/command-runner.ts`、取消与超时测试。
+- 可动文件范围：`src/core/compress/index.ts`、`src/core/tools/command-runner.ts`、`src/cli/commands/compress.ts` 的**取消消费层**（SIGINT 生命周期处理、cancelled 渲染、退出码 130 落定——不新增公共参数）、取消与超时测试。
 - 依赖：M1 闸门。
 - 固有风险：有界终止的主要风险源是信号忽略与后代进程持管道；提交发起后的中断语义由合同顺序性唯一决定（不主张文件系统原子性）。
 
-- [ ] AbortSignal 贯穿与 SIGINT 处理。
-- [ ] command-runner 超时与测试。
+- [x] AbortSignal 贯穿与 SIGINT 处理。（0dde4fe；信号贯穿、停止派发、提交前检查 + 发起后 settle；CLI 消费层 SIGINT 生命周期 / cancelled 渲染 / 退出码 130）
+- [x] command-runner 超时与测试。（opt-in 作用域仅 compress，Motion/install 原实现 + 回归；TERM→200ms→KILL 有界终止，等待进程树与流关闭，进程组消失有界核验；18 项生命周期/终止/边界回归）
 
 ### Task-4
 
@@ -162,8 +162,10 @@ worktree `p2-compress-performance` 已建（基点 b245c71），SPEC 与施工�
 - 依赖：Task-3。
 - 固有风险：基线可比性要求同域同入口同 case（M4 契约字段）；素材 fixture 必须 hermetic。
 
-- [ ] 基线对比运行与收益分布记录。
-- [ ] 常量终值校准与文档记录。
+- [x] 基线对比运行与收益分布记录。（Q0 基线配对中位加速 1.20x；真实 oxipng/SVGO 中位加速 1.90x（CI 1.89–1.91）、p95 比 0.52；树 RSS 峰值 136/205MiB、CPU 40/78%、最大在途 2——全部在拒绝条件内）
+- [x] 常量终值校准与文档记录。（采样前固定拒绝条件：中位加速 95% 下界 >1.05、p95 比 ≤1.10、树 RSS p95 比 ≤2、RSS ≤512MiB、CPU ≤350%、零失败；calibration.json + CALIBRATION.md 入库）
 
 > [!IMPORTANT]
 > Milestone-2 闸门：主代理核验收益分布与资源峰值证据，重跑完整 `pnpm check:ci`。通过后 pruner 收尾，按路线图集成 main。
+>
+> 闸门结果（2026-11-12，通过）：交付 HEAD `0dde4fe`（8 文件，含测量消费脚本与校准记录，工作区冻结，主代理 Task-3 范围扩编为唯一 dirty 项）。1224 pass / 0 fail（独立复跑）、typecheck/build/style 全 0；18 项生命周期/终止/边界回归；性能真实收益：oxipng/SVGO 配对中位加速 1.90x（95% CI 1.89–1.91）、Q0 基线 1.20x，树 RSS 峰值 136/205MiB、CPU 40/78%、最大在途 2——全部在拒绝条件内；拒绝条件采样前固定（M4 关闭）；超时作用域限 compress + 非 compress 回归（M1 关闭）；有界终止含进程组消失核验（M2 关闭）；Task-4 限定源码边界闭环（M5 关闭）——**P2 台账全清，计划交付完成**。平台披露：进程组终止依赖 POSIX（Windows 显式拒绝），验证平台 macOS。
