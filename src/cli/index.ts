@@ -1,14 +1,12 @@
 import { Command, CommanderError } from 'commander';
 import { VERSION } from '../config/index.ts';
 import { ExitCode } from '../types/index.ts';
-import { TOP_LEVEL_HELP } from './help.ts';
 import {
 	isValidManualPath,
 	renderManual,
 	resolveManualPath,
 } from './manual-markdown.ts';
-import { addManualOption } from './options.ts';
-import { registerCommands } from './registry.ts';
+import { ROOT_HELP, registerCommands } from './registry.ts';
 
 const program = new Command();
 
@@ -20,8 +18,7 @@ program
 	.helpOption('-h, --help', 'Show help')
 	.addHelpCommand(false)
 	.configureHelp({
-		formatHelp: () =>
-			TOP_LEVEL_HELP.replace('manual             Open', 'manual         Open'),
+		formatHelp: () => ROOT_HELP,
 	})
 	.exitOverride((error) => {
 		if (error instanceof CommanderError) {
@@ -44,14 +41,6 @@ program
 		}
 		throw error;
 	});
-
-const versionCommand = program
-	.command('version')
-	.description('Show version number')
-	.action(() => {
-		console.log(VERSION);
-	});
-addManualOption(versionCommand);
 
 registerCommands(program);
 

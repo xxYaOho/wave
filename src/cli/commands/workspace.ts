@@ -27,30 +27,10 @@ import { addOutputOption } from '../options.ts';
 const CUSTOM_TYPE_VALUE = '__custom__';
 let plainInputQueue: Promise<string[]> | undefined;
 
-const WORKSPACE_HELP = `Wave Workspace
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Usage:
-    wave workspace
-
-  Config:
-    ~/.config/wave/workspace.yaml
-    WAVE_WORKSPACE_CONFIG=/tmp/workspace.yaml
-
-  Options:
-    -o, --output <path>  Final target directory
-    --dry-run            Show the plan without writing
-    --yes                Write without confirmation
-    --force              Update generated files in an existing directory
-    -h, --help      Show help
-
-  For more help on a command:
-    wave workspace --help`;
-
 export function createWorkspaceCommand(name = 'workspace'): Command {
 	const command = new Command(name)
 		.description('Create local design project workspaces')
-		.helpOption('-h, --help', 'Show help')
-		.configureHelp({ formatHelp: () => WORKSPACE_HELP });
+		.helpOption('-h, --help', 'Show help');
 	addOutputOption(command, 'Final target directory');
 	command
 		.option('--dry-run', 'Show the plan without writing')

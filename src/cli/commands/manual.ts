@@ -13,17 +13,6 @@ interface ManualCommandOptions {
 	port?: string;
 }
 
-const MANUAL_HELP = `Wave Manual
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Usage:
-    wave manual [options]
-
-  Options:
-    --port <port>      Port to bind. Default: 4567
-    --host <host>      Host to bind. Default: 127.0.0.1
-    --no-open          Do not open the browser automatically
-    -h, --help         Show help`;
-
 function parsePort(value: string | undefined): number {
 	if (!value) return 4567;
 
@@ -55,46 +44,48 @@ export const manualCommand = new Command('manual')
 	.option('--port <port>', 'Port to bind. Default: 4567')
 	.option('--host <host>', 'Host to bind. Default: 127.0.0.1')
 	.option('--no-open', 'Do not open the browser automatically')
-	.action(async (options: ManualCommandOptions & { help?: boolean }) => {
-		if (options.help) {
-			console.log(MANUAL_HELP);
-			process.exitCode = ExitCode.SUCCESS;
-			return;
-		}
-
-		try {
-			const host = options.host ?? '127.0.0.1';
-			const requestedPort = parsePort(options.port);
-			const port = options.port
-				? requestedPort
-				: await findAvailablePort(host, requestedPort);
-			const appDir = await resolveManualAppDir();
-			const server = startManualServer({ appDir, host, port });
-			const localUrl = `http://127.0.0.1:${server.port}/`;
-
-			console.log('Wave Manual');
-			console.log(`Local: ${localUrl}`);
-			if (host === '0.0.0.0') {
-				console.log(`Network: http://0.0.0.0:${server.port}/`);
+	.action(
+		async (options: ManualCommandOptions & { help?: boolean }, command) => {
+			if (options.help) {
+				console.log(command.helpInformation());
+				process.exitCode = ExitCode.SUCCESS;
+				return;
 			}
-			console.log('Press Ctrl+C to stop.');
 
-			if (options.open !== false) {
-				try {
-					openBrowser(localUrl);
-				} catch {
-					console.error(`Could not open browser. Open manually: ${localUrl}`);
+			try {
+				const host = options.host ?? '127.0.0.1';
+				const requestedPort = parsePort(options.port);
+				const port = options.port
+					? requestedPort
+					: await findAvailablePort(host, requestedPort);
+				const appDir = await resolveManualAppDir();
+				const server = startManualServer({ appDir, host, port });
+				const localUrl = `http://127.0.0.1:${server.port}/`;
+
+				console.log('Wave Manual');
+				console.log(`Local: ${localUrl}`);
+				if (host === '0.0.0.0') {
+					console.log(`Network: http://0.0.0.0:${server.port}/`);
 				}
-			}
+				console.log('Press Ctrl+C to stop.');
 
-			await new Promise<void>((resolve) => {
-				process.once('SIGINT', () => {
-					server.stop(true);
-					resolve();
+				if (options.open !== false) {
+					try {
+						openBrowser(localUrl);
+					} catch {
+						console.error(`Could not open browser. Open manually: ${localUrl}`);
+					}
+				}
+
+				await new Promise<void>((resolve) => {
+					process.once('SIGINT', () => {
+						server.stop(true);
+						resolve();
+					});
 				});
-			});
-		} catch (error) {
-			console.error(error instanceof Error ? error.message : String(error));
-			process.exitCode = ExitCode.GENERAL_ERROR;
-		}
-	});
+			} catch (error) {
+				console.error(error instanceof Error ? error.message : String(error));
+				process.exitCode = ExitCode.GENERAL_ERROR;
+			}
+		},
+	);

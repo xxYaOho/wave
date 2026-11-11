@@ -4,40 +4,6 @@ import { LUMINANCE_EV_LEVELS, NIGHT_SCENES } from '../../core/night/params.ts';
 import { ExitCode } from '../../types/index.ts';
 import { addOutputOption } from '../options.ts';
 
-const NIGHT_HELP = `Wave Night
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Generate a Night overlay draft from a Day theme via pure color-rules.
-
-  Usage:
-    wave token new night [options]
-
-  Options:
-    -f, --file <path>    Path to a Day main/profile source document
-    -o, --output <path> Output YAML file (default: beside Day)
-    --dry-run           Show the complete plan without writing
-    --force             Allow overwriting the planned overlay
-    --scene <name>       Lighting scene: ${NIGHT_SCENES.join(' | ')}
-                         Default: night (or $config.night.scene)
-    --luminance <n>      Primary Night lightness dial 0..1 (wins over --luminance-ev)
-                         → accentMain HCT tone = n×100 (0.9 ≈ near white)
-                         Default: 0.7 (or $config.night.luminance)
-    --luminance-ev <lv>  Named luminance: ${LUMINANCE_EV_LEVELS.join(' | ')}
-                         → 0.5 / 0.6 / 0.7 / 0.75 / 0.85
-    -m, --manual        Print Markdown usage for this command
-    -h, --help           Show help
-
-  Output:
-    Writes <stem>@night.yaml beside the theme file (e.g. main@night.yaml).
-    Sketch identity: same themeId/baseId as Day; meta.mode=night.
-
-  Priority:
-    --luminance > --luminance-ev > $config.night > defaults (scene=night, luminance=0.7)
-    Legacy --chroma / --chroma-ev CLI aliases are not accepted.
-
-  Note:
-    luminance is Primary Night lightness, NOT HCT chroma.
-`;
-
 interface NightCommandOptions {
 	file?: string;
 	scene?: string;
@@ -82,8 +48,7 @@ export function createNightCommand(name = 'night'): Command {
 		)
 		.option('-m, --manual', 'Print Markdown usage for this command')
 		.helpOption('-h, --help', 'Show help')
-		.addHelpCommand(false)
-		.configureHelp({ formatHelp: () => NIGHT_HELP });
+		.addHelpCommand(false);
 	addOutputOption(command, 'Output YAML file');
 	return command.action(
 		async (_options: NightCommandOptions, command: Command) => {

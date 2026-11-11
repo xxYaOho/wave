@@ -31,7 +31,35 @@ function commandPaths(): string[][] {
 		for (const child of command.commands) visit(current, child);
 	};
 	for (const definition of commandRegistry) visit([], definition.command);
-	paths.push(['version']);
+	return paths;
+}
+
+function registryPaths(): Array<{
+	path: string[];
+	help: string;
+	href: string;
+	source: string;
+}> {
+	const paths: Array<{
+		path: string[];
+		help: string;
+		href: string;
+		source: string;
+	}> = [];
+	const visit = (
+		prefix: string[],
+		definition: (typeof commandRegistry)[number],
+	) => {
+		const path = [...prefix, definition.name];
+		paths.push({
+			path,
+			help: definition.help,
+			href: definition.manual.href,
+			source: definition.manual.source,
+		});
+		for (const child of definition.children) visit(path, child);
+	};
+	for (const definition of commandRegistry) visit([], definition);
 	return paths;
 }
 
@@ -152,6 +180,17 @@ describe('public CLI command shape', () => {
 			}
 			expect(outputs[1]).toBe(outputs[0]);
 			expect(outputs[2]).toBe(outputs[0]);
+		}
+	});
+
+	test('registry metadata covers every public command level', () => {
+		const entries = registryPaths();
+		expect(entries.length).toBeGreaterThan(20);
+		for (const entry of entries) {
+			expect(entry.help.length).toBeGreaterThan(0);
+			expect(entry.help).not.toMatch(/[\u4e00-\u9fff]/);
+			expect(entry.source).toBe('manual-data');
+			expect(entry.href.startsWith('/')).toBe(true);
 		}
 	});
 });

@@ -2,7 +2,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Command, Option } from 'commander';
 import type { ManualDataView } from '../core/manual/types.ts';
-import { type CommandDefinition, commandRegistry } from './registry.ts';
+import {
+	type CommandDefinition,
+	commandManual,
+	commandRegistry,
+} from './registry.ts';
 
 export interface ManualPageSummary {
 	href: string;
@@ -195,23 +199,25 @@ function isManualDataIndex(value: unknown): value is ManualDataIndex {
 const manualData = readEmbeddedManualData();
 const pageByHref = new Map(manualData.pages.map((page) => [page.href, page]));
 
-function commandChildren(command: Command): ManualNode[] {
-	return command.commands.map((child) => ({
+function commandChildren(definition: CommandDefinition): ManualNode[] {
+	return definition.children.map((child) => ({
 		path: [],
-		command: child,
+		command: child.command,
 		children: commandChildren(child),
 	}));
 }
 
 function buildManualTree(): ManualNode {
 	const rootChildren: ManualNode[] = commandRegistry.map(
-		(definition: CommandDefinition) => ({
-			path: [],
-			command: definition.command,
-			children: commandChildren(definition.command),
-		}),
+		(definition: CommandDefinition) =>
+			definition.name === 'version'
+				? { path: [], label: 'version', children: [] }
+				: {
+						path: [],
+						command: definition.command,
+						children: commandChildren(definition),
+					},
 	);
-	rootChildren.push({ path: ['version'], label: 'version', children: [] });
 	return { path: [], children: rootChildren };
 }
 
@@ -319,27 +325,7 @@ function titleFor(pathParts: readonly string[]): string {
 function pageForPath(
 	pathParts: readonly string[],
 ): ManualPageSummary | undefined {
-	const root = pathParts[0];
-	const group = pathParts[1];
-	let href = '/command-index';
-	if (root === 'token') {
-		const leaf = pathParts[2];
-		if (group === 'new') {
-			href = leaf === 'night' ? '/design-token/night' : '/design-token/create';
-		} else if (group === 'show' || group === 'update' || group === 'status') {
-			href = '/resources';
-		} else if (group === 'doctor' || group === 'wcag' || group === 'ids') {
-			href = `/design-token/${group}`;
-		} else if (group === 'migrate') {
-			href = '/design-token/migrate';
-		} else {
-			href = '/design-token';
-		}
-	} else if (root === 'compress') href = '/compress';
-	else if (root === 'motion') href = '/motion';
-	else if (root === 'workspace') href = '/workspace';
-	else if (['doctor', 'install'].includes(root ?? '')) href = '/toolchain';
-	else if (root === 'manual' || root === 'version') href = '/quickstart';
+	const href = commandManual(pathParts)?.href ?? '/command-index';
 	return pageByHref.get(href);
 }
 

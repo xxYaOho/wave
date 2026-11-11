@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { TOKEN_NEW_HELP } from '../help.ts';
 import { addManualOption } from '../options.ts';
 import {
 	addTokenInitOptions,
@@ -14,10 +13,6 @@ export function createTokenNewCommand(name = 'new'): Command {
 	const command = new Command(name).description('Create a token workspace');
 	addManualOption(command);
 	addTokenInitOptions(command);
-	command.configureHelp({
-		formatHelp: () =>
-			`${TOKEN_NEW_HELP}\n\n  Creation options:\n    -o, --output <path> Target directory (profile/night: output file)\n    --dry-run           Show the complete plan without writing\n    --force             Allow overwriting the planned target file`,
-	});
 	command
 		.addCommand(createNewProfileCommand('profile'))
 		.addCommand(createNightCommand('night'));

@@ -47,9 +47,6 @@ export function createMotionCommand(name = 'motion'): Command {
 	addEncodeOptions(command);
 	command.addCommand(createMotionDoctorCommand());
 	command.addCommand(createInstallCommand('install', 'motion'));
-	command.configureHelp({
-		formatHelp: () => motionHelp(name),
-	});
 	command.action(
 		async (_options: MotionCommandOptions, actionCommand: Command) => {
 			const parsedOptions = actionCommand.opts<MotionCommandOptions>();
@@ -209,33 +206,6 @@ function renderMissingFormat(commandName: string): void {
 		`Missing format in non-interactive mode. Use wave ${commandName} --format apng or wave ${commandName} --format gif.`,
 	);
 	process.exitCode = ExitCode.GENERAL_ERROR;
-}
-
-function motionHelp(commandName: string): string {
-	return `
-Wave Motion
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Usage:
-    wave ${commandName} [options]
-
-  Commands:
-    doctor          Check motion tools and optional PNG frame directory
-    install         Show or run motion tool installation
-
-  Options:
-    -f, --file <path>    PNG frame directory
-    --fps <n>            Frames per second. Default: 24
-    --quality <n>        Encoder quality, 1-100. Default: 80
-    --loop <mode>        forever or once. Default: forever
-    --format <format>    Output format: gif or apng
-    -o, --output <path>  Output file path
-    --dry-run            Show plan only, no write
-    --force              Allow overwriting existing output file
-    -h, --help           Show help
-
-  For more help on a command:
-    wave ${commandName} <command> --help
-`;
 }
 
 function createMotionDoctorCommand(): Command {

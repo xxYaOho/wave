@@ -44,32 +44,6 @@ interface CompressCommandOptions {
 	json?: boolean;
 }
 
-const COMPRESS_HELP = `Wave Compress
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Usage:
-    wave compress [options]
-    wave compress <command> [options]
-
-  Commands:
-    doctor          Check compress toolchain health
-    install         Show or run compress tool installation
-
-  Options:
-    -f, --file <path>    File or directory to compress. Default: .
-    --type <type>        Limit file type. Repeatable: png, jpg, svg, gif
-    --recursive          Scan nested folders
-    -q, --quality <n>    Use lossy quality mode, 1-100
-    -o, --output <path>  Output directory
-    --dry-run            Preview only, no prompt, no write
-    --yes                Write without confirmation
-    --force              Allow overwriting existing output files
-    --icon               Clean SVG icon colors for CSS styling
-    --json               Output JSON only, no prompt
-    -h, --help           Show help
-
-  For more help on a command:
-    wave compress <command> --help`;
-
 function parseQuality(value: string | undefined): number | undefined {
 	if (value === undefined) return undefined;
 	const quality = Number(value);
@@ -387,5 +361,4 @@ function createCompressActionCommand(name = 'compress'): Command {
 
 export const compressCommand = createCompressActionCommand('compress')
 	.addCommand(createToolDoctorCommand('compress'))
-	.addCommand(createInstallCommand('install', 'compress'))
-	.configureHelp({ formatHelp: () => COMPRESS_HELP });
+	.addCommand(createInstallCommand('install', 'compress'));

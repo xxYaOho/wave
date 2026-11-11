@@ -5,7 +5,6 @@ import {
 	updateTailwind,
 } from '../../core/resources/manager.ts';
 import { ExitCode } from '../../types/index.ts';
-import { TOKEN_HELP } from '../help.ts';
 import { addManualOption } from '../options.ts';
 import {
 	addBuildOptions,
@@ -126,7 +125,6 @@ export function createTokenCommand(name = 'token'): Command {
 		.addCommand(createShowCommand('show'))
 		.addCommand(createUpdateCommand())
 		.addCommand(createStatusCommand());
-	command.configureHelp({ formatHelp: () => TOKEN_HELP });
 	command.action(async (options: DesignTokenBuildOptions) => {
 		if (options.manual) return;
 		await runDesignTokenBuild(options);

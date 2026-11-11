@@ -1,91 +1,31 @@
 import type { Command } from 'commander';
+import { commandHelp, findCommandDefinition, ROOT_HELP } from './registry.ts';
 
-export const TOP_LEVEL_HELP = `Wave CLI
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Usage:
-    wave <command> [options]
-
-  Common commands:
-    token              Build and maintain design tokens
-    compress           Compress PNG, JPG, SVG, and GIF assets
-    motion             Build GIF/APNG from PNG frames
-
-  Workspace:
-    workspace          Create a local design project workspace
-
-  Toolchain:
-    doctor             Check local Wave environment and tools
-    install            Show or run recommended tool installation
-
-  Other:
-    manual             Open the local Wave manual
-    version             Show version number
-
-  Options:
-    -m, --manual       Print Markdown usage for this command
-    -h, --help          Show help
-    --version          Show version number
-
-  Run wave <command> --help for command details.`;
-
-export const TOKEN_HELP = `Wave Token
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Usage:
-    wave token [options]
-    wave token <command> [options]
-
-  Commands:
-    build               Build design token output (default)
-    new                 Create a token workspace
-    doctor              Check token workspace health
-    wcag                Check color contrast
-    ids                 Maintain token and document identities
-    migrate             Migrate token source documents
-
-  Resources:
-    show                Browse built-in resources
-    update              Update local token resources
-    status              Show local resource cache status
-
-  Options:
-    -f, --file <path>   Source main.yaml (defaults to ./main.yaml)
-    -o, --output <path> Output directory
-    -m, --manual        Print Markdown usage for this command
-    -h, --help          Show help`;
-
-export const TOKEN_NEW_HELP = `Wave Token New
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Usage:
-    wave token new [options]
-
-  Default action:
-    Create a token workspace in the current directory.
-
-  Commands:
-    profile             Create a profile from a registered base
-    night               Generate a Night overlay from a Day source document
-
-  Options:
-    -m, --manual        Print Markdown usage for this command
-    -h, --help          Show help`;
-
-export const TOKEN_MIGRATE_HELP = `Wave Token Migrate
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  Usage:
-    wave token migrate <migration> [options]
-
-  Migrations:
-    extensions          Rename legacy $extensions sketch fields
-
-  Options:
-    -m, --manual        Print Markdown usage for this command
-    -h, --help          Show help`;
+/** Compatibility exports for callers that used the pre-metadata help names. */
+export const TOP_LEVEL_HELP = ROOT_HELP;
+export const TOKEN_HELP = commandHelp(['token']) ?? '';
+export const TOKEN_NEW_HELP = commandHelp(['token', 'new']) ?? '';
+export const TOKEN_MIGRATE_HELP = commandHelp(['token', 'migrate']) ?? '';
 
 export function configureStaticHelp(command: Command, help: string): Command {
 	return command
 		.helpOption('-h, --help', 'Show help')
 		.addHelpCommand(false)
 		.configureHelp({ formatHelp: () => help });
+}
+
+export function helpForCommand(command: Command): string | undefined {
+	const path: string[] = [];
+	let current: Command | undefined = command;
+	while (current) {
+		path.unshift(current.name());
+		current = current.parent ?? undefined;
+	}
+	return commandHelp(path);
+}
+
+export function hasRegisteredHelp(path: readonly string[]): boolean {
+	return findCommandDefinition(path) !== undefined;
 }
 
 export function renderManual(path: string[]): void {

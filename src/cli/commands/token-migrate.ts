@@ -1,6 +1,5 @@
 import { Command } from 'commander';
 import { ExitCode } from '../../types/index.ts';
-import { TOKEN_MIGRATE_HELP } from '../help.ts';
 import { addManualOption } from '../options.ts';
 import { createMigrateExtensionsCommand } from './dt-migrate-extensions.ts';
 
@@ -10,7 +9,6 @@ export function createTokenMigrateCommand(name = 'migrate'): Command {
 	);
 	addManualOption(command);
 	command
-		.configureHelp({ formatHelp: () => TOKEN_MIGRATE_HELP })
 		.addCommand(createMigrateExtensionsCommand('extensions'))
 		.action((options: { manual?: boolean }) => {
 			if (options.manual) return;
