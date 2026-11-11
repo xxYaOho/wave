@@ -28,11 +28,15 @@ export interface CompressOptions {
 	cwd?: string;
 }
 
-export interface CompressItemResult {
+interface CompressItemIdentity {
 	source: string;
 	output: string;
 	relativePath: string;
 	type: CompressFileType;
+}
+
+export interface CompressCompletedItem extends CompressItemIdentity {
+	result: 'success' | 'soft-failed';
 	status: 'optimized' | 'cleaned' | 'unchanged';
 	beforeBytes: number;
 	afterBytes: number;
@@ -40,6 +44,23 @@ export interface CompressItemResult {
 	savedPercent: number;
 	tool: string;
 	written: boolean;
+}
+
+export interface CompressFailedItem extends CompressItemIdentity {
+	result: 'hard-failed';
+	code: string;
+	message: string;
+}
+
+export type CompressItemResult = CompressCompletedItem | CompressFailedItem;
+
+export interface CompressSummary {
+	total: number;
+	succeeded: number;
+	softFailed: number;
+	hardFailed: number;
+	writtenCount: number;
+	issues: Array<CompressIssue & { path: string }>;
 }
 
 export interface CompressResult {
@@ -52,6 +73,7 @@ export interface CompressResult {
 	items: CompressItemResult[];
 	issues: CompressIssue[];
 	toolResolutions: ToolResolution[];
+	summary: CompressSummary;
 }
 
 export interface CompressInputPreview {
@@ -75,6 +97,30 @@ interface FileCandidate {
 	type: CompressFileType;
 }
 
+// Two encoders can overlap I/O without multiplying CPU threads and memory by
+// host core count (encoders such as oxipng already use internal parallelism).
+const COMPRESS_CONCURRENCY = 2;
+
+interface CompressScan {
+	input: string;
+	outDir: string;
+	key: string;
+	candidates: FileCandidate[];
+}
+
+// Scope reuse to the exact preview object handed back by the caller. Never
+// retain a process-wide directory snapshot across independent invocations.
+const previewScans = new WeakMap<CompressInputPreview, CompressScan>();
+
+function scanKey(
+	options: Pick<CompressOptions, 'recursive' | 'types'>,
+): string {
+	return JSON.stringify([
+		!!options.recursive,
+		[...new Set(options.types ?? ['png', 'jpg', 'svg', 'gif'])].sort(),
+	]);
+}
+
 export async function previewCompressInput(
 	options: Pick<
 		CompressOptions,
@@ -91,16 +137,24 @@ export async function previewCompressInput(
 		types: options.types,
 	});
 
-	return {
+	const preview = {
 		input,
 		outDir,
 		scanned: candidates.length,
 		matched: candidates.length,
 	};
+	previewScans.set(preview, {
+		input,
+		outDir,
+		key: scanKey(options),
+		candidates,
+	});
+	return preview;
 }
 
 export async function runCompress(
 	options: CompressOptions,
+	preview?: CompressInputPreview,
 ): Promise<CompressResult> {
 	const cwd = options.cwd ?? process.cwd();
 	const input = path.resolve(cwd, options.input);
@@ -110,10 +164,18 @@ export async function runCompress(
 	const mode: CompressMode = options.quality === undefined ? 'safe' : 'quality';
 	const resolver = options.resolver ?? new DefaultToolResolver();
 	const runner = options.runner ?? new BunCommandRunner();
-	const candidates = await scanCompressCandidates(input, {
-		recursive: !!options.recursive,
-		types: options.types,
-	});
+	// 1. Scan, or consume the matching confirmation snapshot.
+	const scan = preview ? previewScans.get(preview) : undefined;
+	const candidates =
+		scan?.input === input &&
+		scan.outDir === outDir &&
+		scan.key === scanKey(options)
+			? scan.candidates
+			: await scanCompressCandidates(input, {
+					recursive: !!options.recursive,
+					types: options.types,
+				});
+	// 2. Complete all tool and output preflight checks before dispatch.
 	const resolutions = await resolveToolsForCandidates(
 		candidates,
 		mode,
@@ -133,6 +195,7 @@ export async function runCompress(
 			items: [],
 			issues,
 			toolResolutions: resolutions,
+			summary: summarizeItems([], issues, input),
 		};
 	}
 
@@ -149,103 +212,210 @@ export async function runCompress(
 				items: [],
 				issues: outputIssues,
 				toolResolutions: resolutions,
+				summary: summarizeItems([], outputIssues, input),
 			};
 		}
 	}
 
 	const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-'));
-	const items: CompressItemResult[] = [];
+	let items: CompressItemResult[];
 	try {
 		const hasSvg = candidates.some((candidate) => candidate.type === 'svg');
 		const iconSvgoConfigPath =
 			options.icon && hasSvg ? await writeIconSvgoConfig(tempDir) : undefined;
 		const userSvgoConfigPath =
 			!options.icon && hasSvg ? await findUserSvgoConfigPath() : undefined;
-		for (const candidate of candidates) {
-			const tempOutput = path.join(tempDir, candidate.relativePath);
-			await fs.mkdir(path.dirname(tempOutput), { recursive: true });
-			const resolution = getResolutionForType(
-				resolutions,
-				candidate.type,
-				mode,
-			);
-			if (!resolution?.selected) {
-				issues.push({
-					code: 'WCP_TOOL_MISSING',
-					severity: 'error',
-					message: `No compressor available for ${candidate.type}`,
-					path: candidate.absolutePath,
-					fix: 'Run wave compress doctor or wave compress install --check.',
-				});
-				continue;
-			}
-			await compressFile({
-				source: candidate.absolutePath,
-				output: tempOutput,
-				type: candidate.type,
-				mode,
-				quality: options.quality,
-				toolName: resolution.selected.name,
-				svgoConfigPath:
-					candidate.type === 'svg'
-						? (iconSvgoConfigPath ?? userSvgoConfigPath)
-						: undefined,
-				runner,
-			});
-
-			const beforeBytes = (await fs.stat(candidate.absolutePath)).size;
-			const previewBytes = (await fs.stat(tempOutput)).size;
-			const shouldUseToolOutput =
-				candidate.type === 'svg' && (options.icon || !!userSvgoConfigPath);
-			const status =
-				previewBytes < beforeBytes
-					? 'optimized'
-					: shouldUseToolOutput
-						? 'cleaned'
-						: 'unchanged';
-			const afterBytes = status === 'unchanged' ? beforeBytes : previewBytes;
-			const finalOutput = path.join(outDir, candidate.relativePath);
-			if (shouldWrite) {
-				await fs.mkdir(path.dirname(finalOutput), { recursive: true });
-				await fs.copyFile(
-					status === 'unchanged' ? candidate.absolutePath : tempOutput,
-					finalOutput,
-				);
-			}
-			items.push({
-				source: candidate.absolutePath,
-				output: finalOutput,
-				relativePath: candidate.relativePath,
-				type: candidate.type,
-				status,
-				beforeBytes,
-				afterBytes,
-				savedBytes: beforeBytes - afterBytes,
-				savedPercent:
-					beforeBytes === 0
-						? 0
-						: Number(
-								(((beforeBytes - afterBytes) / beforeBytes) * 100).toFixed(1),
-							),
-				tool: resolution.selected.name,
-				written: shouldWrite,
-			});
-		}
+		const sources = new Set(
+			candidates.map((candidate) => candidate.absolutePath),
+		);
+		const overlaps = candidates.some((candidate) =>
+			sources.has(path.join(outDir, candidate.relativePath)),
+		);
+		// 3. Bound encoder execution. Overlap preserves the old scan-order reads
+		// and writes, including recursive reruns that consume previous outputs.
+		items = await mapBounded(
+			candidates,
+			overlaps ? 1 : COMPRESS_CONCURRENCY,
+			(candidate) =>
+				processCandidate({
+					candidate,
+					outDir,
+					tempDir,
+					resolutions,
+					mode,
+					options,
+					runner,
+					shouldWrite,
+					svgoConfigPath: iconSvgoConfigPath ?? userSvgoConfigPath,
+					useSvgOutput: !!options.icon || !!userSvgoConfigPath,
+				}),
+		);
 	} finally {
 		await fs.rm(tempDir, { recursive: true, force: true });
 	}
 
+	// Report in scan order, independently of encoder completion order.
+	for (const item of items) {
+		if (item.result === 'hard-failed') {
+			issues.push({
+				code: item.code,
+				severity: 'error',
+				message: item.message,
+				path: item.source,
+			});
+		}
+	}
+	const summary = summarizeItems(items, issues, input);
 	return {
 		mode,
 		input,
 		outDir,
 		scanned: candidates.length,
 		matched: candidates.length,
-		written: items.some((item) => item.written),
+		written: summary.writtenCount > 0,
 		items,
 		issues,
 		toolResolutions: resolutions,
+		summary,
 	};
+}
+
+async function mapBounded<T, R>(
+	inputs: T[],
+	limit: number,
+	process: (input: T) => Promise<R>,
+): Promise<R[]> {
+	const results = new Array<R>(inputs.length);
+	let next = 0;
+	// Each worker holds one permit until its complete encode/classify/commit
+	// operation settles; no unbounded queue of running encoder promises.
+	await Promise.all(
+		Array.from({ length: Math.min(limit, inputs.length) }, async () => {
+			while (next < inputs.length) {
+				const index = next++;
+				results[index] = await process(inputs[index]!);
+			}
+		}),
+	);
+	return results;
+}
+
+async function processCandidate(context: {
+	candidate: FileCandidate;
+	outDir: string;
+	tempDir: string;
+	resolutions: ToolResolution[];
+	mode: CompressMode;
+	options: CompressOptions;
+	runner: CommandRunner;
+	shouldWrite: boolean;
+	svgoConfigPath?: string;
+	useSvgOutput: boolean;
+}): Promise<CompressItemResult> {
+	const {
+		candidate,
+		outDir,
+		tempDir,
+		resolutions,
+		mode,
+		options,
+		runner,
+		shouldWrite,
+	} = context;
+	const identity: CompressItemIdentity = {
+		source: candidate.absolutePath,
+		output: path.join(outDir, candidate.relativePath),
+		relativePath: candidate.relativePath,
+		type: candidate.type,
+	};
+	let code = 'WCP_COMPRESS_FAILED';
+	try {
+		const tempOutput = path.join(tempDir, candidate.relativePath);
+		await fs.mkdir(path.dirname(tempOutput), { recursive: true });
+		const resolution = getResolutionForType(resolutions, candidate.type, mode);
+		if (!resolution?.selected)
+			throw new Error(`No compressor available for ${candidate.type}`);
+		await compressFile({
+			source: candidate.absolutePath,
+			output: tempOutput,
+			type: candidate.type,
+			mode,
+			quality: options.quality,
+			toolName: resolution.selected.name,
+			svgoConfigPath:
+				candidate.type === 'svg' ? context.svgoConfigPath : undefined,
+			runner,
+		});
+		// 4. Classify using the same byte and SVG policies as the serial path.
+		const beforeBytes = (await fs.stat(candidate.absolutePath)).size;
+		const previewBytes = (await fs.stat(tempOutput)).size;
+		const status =
+			previewBytes < beforeBytes
+				? 'optimized'
+				: candidate.type === 'svg' && context.useSvgOutput
+					? 'cleaned'
+					: 'unchanged';
+		const afterBytes = status === 'unchanged' ? beforeBytes : previewBytes;
+		// 5. Commit only after encoding and classification have settled.
+		if (shouldWrite) {
+			code = 'WCP_WRITE_FAILED';
+			await fs.mkdir(path.dirname(identity.output), { recursive: true });
+			await fs.copyFile(
+				status === 'unchanged' ? candidate.absolutePath : tempOutput,
+				identity.output,
+			);
+		}
+		return {
+			...identity,
+			result: 'success',
+			status,
+			beforeBytes,
+			afterBytes,
+			savedBytes: beforeBytes - afterBytes,
+			savedPercent:
+				beforeBytes === 0
+					? 0
+					: Number(
+							(((beforeBytes - afterBytes) / beforeBytes) * 100).toFixed(1),
+						),
+			tool: resolution.selected.name,
+			written: shouldWrite,
+		};
+	} catch (error) {
+		return {
+			...identity,
+			result: 'hard-failed',
+			code,
+			message: error instanceof Error ? error.message : String(error),
+		};
+	}
+}
+
+function summarizeItems(
+	items: CompressItemResult[],
+	issues: CompressIssue[],
+	input: string,
+): CompressSummary {
+	const summary: CompressSummary = {
+		total: items.length,
+		succeeded: 0,
+		softFailed: 0,
+		hardFailed: 0,
+		writtenCount: 0,
+		// Preflight issues describe the whole input batch; item failures already
+		// carry the exact source path. Keep the existing top-level issues intact.
+		issues: issues.map((issue) => ({ ...issue, path: issue.path ?? input })),
+	};
+	for (const item of items) {
+		if (item.result === 'hard-failed') {
+			summary.hardFailed++;
+		} else {
+			if (item.result === 'success') summary.succeeded++;
+			else summary.softFailed++;
+			if (item.written) summary.writtenCount++;
+		}
+	}
+	return summary;
 }
 
 async function defaultCompressOutputDir(input: string): Promise<string> {

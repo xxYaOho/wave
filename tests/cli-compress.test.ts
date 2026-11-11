@@ -685,3 +685,113 @@ describe('wave compress', () => {
 		expect(stdout).toContain('Command: mise run install:compress');
 	});
 });
+
+describe('wave compress aggregate outcomes', () => {
+	for (const json of [true, false]) {
+		test(`partial encoder failure completes healthy outputs and exits 1 (${json ? 'JSON' : 'receipt'})`, async () => {
+			const tempDir = await fs.mkdtemp(
+				path.join(os.tmpdir(), 'wave-compress-aggregate-'),
+			);
+			const tools = await createFakeToolDir();
+			try {
+				const scriptPath = path.join(tools, 'oxipng');
+				const script = await fs.readFile(scriptPath, 'utf8');
+				await fs.writeFile(
+					scriptPath,
+					script.replace(
+						'const content = await fs.readFile(input);',
+						"if (input.endsWith('bad.png')) { console.error('fixture encoder failure'); process.exit(9); }\nconst content = await fs.readFile(input);",
+					),
+				);
+				await fs.writeFile(path.join(tempDir, 'a-bad.png'), '0123456789');
+				await fs.writeFile(path.join(tempDir, 'b-good.png'), '0123456789');
+				await fs.writeFile(path.join(tempDir, 'c-good.png'), '0123456789');
+				const { exitCode, stdout, stderr } = await runWave(
+					['compress', '-f', tempDir, '--yes', ...(json ? ['--json'] : [])],
+					{
+						env: { PATH: `${tools}${path.delimiter}${process.env.PATH ?? ''}` },
+					},
+				);
+				expect(exitCode).toBe(1);
+				expect(stderr).toBe('');
+				expect(
+					await Bun.file(
+						path.join(tempDir, 'wave-compress/a-bad.png'),
+					).exists(),
+				).toBe(false);
+				expect(
+					await Bun.file(path.join(tempDir, 'wave-compress/c-good.png')).text(),
+				).toBe('01234');
+				if (json) {
+					const result = JSON.parse(stdout);
+					expect(result.written).toBe(true);
+					expect(
+						result.items.map((item: { result: string }) => item.result),
+					).toEqual(['hard-failed', 'success', 'success']);
+					expect(result.summary).toMatchObject({
+						total: 3,
+						succeeded: 2,
+						softFailed: 0,
+						hardFailed: 1,
+						writtenCount: 2,
+					});
+					expect(result.items[0]).not.toHaveProperty('afterBytes');
+					expect(result.items[0]).not.toHaveProperty('status');
+					expect(result.issues[0]).toMatchObject({
+						path: path.join(tempDir, 'a-bad.png'),
+						code: 'WCP_COMPRESS_FAILED',
+					});
+				} else {
+					expect(stdout.match(/COMPRESS RECEIPT/g)?.length).toBe(1);
+					expect(stdout).toContain('a-bad.png');
+					expect(stdout).toContain('c-good.png');
+					expect(stdout).toContain('WCP_COMPRESS_FAILED');
+					expect(stdout).toContain('Compression completed with 1 failed');
+					expect(stdout).not.toContain('NaN');
+					expect(stdout).not.toContain('undefined');
+				}
+			} finally {
+				await fs.rm(tempDir, { recursive: true, force: true });
+				await fs.rm(tools, { recursive: true, force: true });
+			}
+		});
+	}
+
+	test('mixed missing tools produce JSON exit 1 with zero encoder calls and writes', async () => {
+		const tempDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'wave-compress-preflight-'),
+		);
+		const tools = await createSingleFakeTool('oxipng');
+		try {
+			await fs.writeFile(path.join(tempDir, 'a.png'), '0123456789');
+			await fs.writeFile(path.join(tempDir, 'b.svg'), '<svg/>');
+			await fs.symlink(process.execPath, path.join(tools, 'bun'));
+			const scriptPath = path.join(tools, 'oxipng');
+			const script = await fs.readFile(scriptPath, 'utf8');
+			const marker = path.join(tempDir, 'encoder-started');
+			await fs.writeFile(
+				scriptPath,
+				script.replace(
+					'let out =',
+					`await fs.writeFile(${JSON.stringify(marker)}, 'started');\nlet out =`,
+				),
+			);
+			const { exitCode, stdout, stderr } = await runWave(
+				['compress', '-f', tempDir, '--yes', '--json'],
+				{ env: { PATH: tools } },
+			);
+			expect(exitCode).toBe(1);
+			expect(stderr).toBe('');
+			const result = JSON.parse(stdout);
+			expect(result.items).toEqual([]);
+			expect(result.written).toBe(false);
+			expect(result.issues[0].code).toBe('WCP_TOOL_MISSING');
+			expect(result.summary.writtenCount).toBe(0);
+			expect(await Bun.file(marker).exists()).toBe(false);
+			expect(await fs.exists(path.join(tempDir, 'wave-compress'))).toBe(false);
+		} finally {
+			await fs.rm(tempDir, { recursive: true, force: true });
+			await fs.rm(tools, { recursive: true, force: true });
+		}
+	});
+});
