@@ -128,7 +128,7 @@ export function classifyRole(path: string): {
 	root: string;
 	slot: string;
 } {
-	const [root, slot = ''] = path.split('.');
+	const [root = '', slot = ''] = path.split('.');
 	if (path === 'transparent') return { kind: 'transparent', root, slot };
 	if (path === 'scrim') return { kind: 'scrim', root, slot };
 	if (path === 'shadow') return { kind: 'shadow', root, slot };

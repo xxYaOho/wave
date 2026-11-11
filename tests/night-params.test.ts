@@ -53,7 +53,10 @@ describe('night param resolution', () => {
 	});
 
 	test('legacy chroma aliases still resolve', () => {
-		const fromLegacyCli = resolveNightParams({ chroma: 0.8, chromaEv: 'minimal' });
+		const fromLegacyCli = resolveNightParams({
+			chroma: 0.8,
+			chromaEv: 'minimal',
+		});
 		expect(fromLegacyCli.luminance).toBe(0.8);
 		expect(fromLegacyCli.luminanceSource).toBe('cli-chroma');
 

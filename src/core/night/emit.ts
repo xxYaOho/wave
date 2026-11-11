@@ -190,7 +190,7 @@ export async function emitNightOverlay(
 	const body = yaml.dump(derived.overlay, {
 		lineWidth: 100,
 		noRefs: true,
-		sortingKeys: false,
+		sortKeys: false,
 	});
 
 	if (!input.dryRun) {

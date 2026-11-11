@@ -15,16 +15,16 @@ import {
 	parseProfileDocument,
 } from '../../src/core/pipeline/profile-resolver.ts';
 import {
+	type SketchThemeMode,
+	sketchNightPassIds,
+	sketchPassIds,
+} from '../../src/core/pipeline/sketch-identity.ts';
+import {
 	buildGroupPasses,
 	collectDependencyDictionary,
 	type DependencyDict,
 } from '../../src/core/pipeline/theme-pipeline.ts';
 import { loadDesignTokenWorkspace } from '../../src/core/pipeline/workspace-loader.ts';
-import {
-	type SketchThemeMode,
-	sketchNightPassIds,
-	sketchPassIds,
-} from '../../src/core/pipeline/sketch-identity.ts';
 import { ExitCode } from '../../src/types/index.ts';
 import {
 	collectFileArtifacts,

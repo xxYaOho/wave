@@ -8,7 +8,10 @@ import {
 	DEFAULT_TRIAL_KNOBS,
 	remapFlatDayToNight,
 } from './color-rules.ts';
-import { accentMainToneFromProduct, type ResolvedNightParams } from './params.ts';
+import {
+	accentMainToneFromProduct,
+	type ResolvedNightParams,
+} from './params.ts';
 
 export type NightMappedRole = {
 	path: string;

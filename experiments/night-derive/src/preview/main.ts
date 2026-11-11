@@ -1,123 +1,193 @@
 import './styles.css';
 import {
-  remapFlatDayToNight,
-  DEFAULT_TRIAL_KNOBS,
-  applyNightScene,
-  clampLightsLevel,
-  LIGHTS_LINKED_KEYS,
-  ACCENT_ANCHOR_TONES,
-  DEFAULT_LIGHTS_LEVEL,
-  LIGHTS_LEVEL_MAX,
-  nightSceneName,
-  NIGHT_SCENE_NAMES,
-  type ColorRuleKnobs,
-  type TrialToneKnobs,
+	ACCENT_ANCHOR_TONES,
+	applyNightScene,
+	type ColorRuleKnobs,
+	clampLightsLevel,
+	DEFAULT_LIGHTS_LEVEL,
+	DEFAULT_TRIAL_KNOBS,
+	LIGHTS_LEVEL_MAX,
+	LIGHTS_LINKED_KEYS,
+	NIGHT_SCENE_NAMES,
+	nightSceneName,
+	remapFlatDayToNight,
+	type TrialToneKnobs,
 } from '../color-rules';
-import { bindSliderNumber, refreshIcons, sliderFieldHtml } from './ui-kit';
 import {
-  PRIMARY_FAMILY_IDS,
-  PRIMARY_FAMILY_LABELS,
-  PRIMARY_FAMILY_ACCENT_MAIN_HINT,
-  detectPrimaryFamilyFromOverrides,
-  primaryDayHexFor,
-  primaryDayOverridesFor,
-  type PrimaryFamilyId,
+	detectPrimaryFamilyFromOverrides,
+	PRIMARY_FAMILY_ACCENT_MAIN_HINT,
+	PRIMARY_FAMILY_IDS,
+	PRIMARY_FAMILY_LABELS,
+	type PrimaryFamilyId,
+	primaryDayHexFor,
+	primaryDayOverridesFor,
 } from '../palettes';
+import { bindSliderNumber, refreshIcons, sliderFieldHtml } from './ui-kit';
 
 type Tokens = {
-  day: Record<string, string>;
-  night: Record<string, string>;
-  mapped?: Array<{ path: string; strategy: string; dayHex?: string | null; nightHex?: string | null }>;
-  knobs?: ColorRuleKnobs;
+	day: Record<string, string>;
+	night: Record<string, string>;
+	mapped?: Array<{
+		path: string;
+		strategy: string;
+		dayHex?: string | null;
+		nightHex?: string | null;
+	}>;
+	knobs?: ColorRuleKnobs;
 };
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('#app missing');
 
 const holdings = [
-  { name: '华夏成长混合', code: '000001', qty: '1,200', cost: '1.842', price: '2.156', pnl: '+17.05%', up: true },
-  { name: '易方达蓝筹精选', code: '005827', qty: '860', cost: '1.120', price: '1.053', pnl: '-5.98%', up: false },
-  { name: '招商中证白酒', code: '161725', qty: '2,400', cost: '0.986', price: '1.124', pnl: '+14.00%', up: true },
-  { name: '南方固收增强', code: '004997', qty: '5,000', cost: '1.021', price: '1.038', pnl: '+1.67%', up: true },
-  { name: '嘉实新能源车', code: '011052', qty: '640', cost: '1.455', price: '1.289', pnl: '-11.41%', up: false },
+	{
+		name: '华夏成长混合',
+		code: '000001',
+		qty: '1,200',
+		cost: '1.842',
+		price: '2.156',
+		pnl: '+17.05%',
+		up: true,
+	},
+	{
+		name: '易方达蓝筹精选',
+		code: '005827',
+		qty: '860',
+		cost: '1.120',
+		price: '1.053',
+		pnl: '-5.98%',
+		up: false,
+	},
+	{
+		name: '招商中证白酒',
+		code: '161725',
+		qty: '2,400',
+		cost: '0.986',
+		price: '1.124',
+		pnl: '+14.00%',
+		up: true,
+	},
+	{
+		name: '南方固收增强',
+		code: '004997',
+		qty: '5,000',
+		cost: '1.021',
+		price: '1.038',
+		pnl: '+1.67%',
+		up: true,
+	},
+	{
+		name: '嘉实新能源车',
+		code: '011052',
+		qty: '640',
+		cost: '1.455',
+		price: '1.289',
+		pnl: '-11.41%',
+		up: false,
+	},
 ];
 
 const watch = [
-  { name: '上证指数', price: '3,128.46', chg: '+0.62%' },
-  { name: '深证成指', price: '9,842.15', chg: '+0.41%' },
-  { name: '创业板指', price: '1,986.33', chg: '-0.28%' },
-  { name: '恒生科技', price: '3,654.20', chg: '+1.15%' },
-  { name: '美元兑人民币', price: '7.1245', chg: '-0.06%' },
+	{ name: '上证指数', price: '3,128.46', chg: '+0.62%' },
+	{ name: '深证成指', price: '9,842.15', chg: '+0.41%' },
+	{ name: '创业板指', price: '1,986.33', chg: '-0.28%' },
+	{ name: '恒生科技', price: '3,654.20', chg: '+1.15%' },
+	{ name: '美元兑人民币', price: '7.1245', chg: '-0.06%' },
 ];
 
 const kpis = [
-  { label: '总资产 (CNY)', value: '¥ 2,486,320.18', hint: '较昨日', delta: '+1.24%', up: true },
-  { label: '当日盈亏', value: '¥ 30,412.66', hint: '已实现+浮盈', delta: '+0.87%', up: true },
-  { label: '可用资金', value: '¥ 186,540.00', hint: '含在途', delta: '—', up: true },
-  { label: '持仓市值', value: '¥ 2,299,780.18', hint: '12 只标的', delta: '+1.31%', up: true },
+	{
+		label: '总资产 (CNY)',
+		value: '¥ 2,486,320.18',
+		hint: '较昨日',
+		delta: '+1.24%',
+		up: true,
+	},
+	{
+		label: '当日盈亏',
+		value: '¥ 30,412.66',
+		hint: '已实现+浮盈',
+		delta: '+0.87%',
+		up: true,
+	},
+	{
+		label: '可用资金',
+		value: '¥ 186,540.00',
+		hint: '含在途',
+		delta: '—',
+		up: true,
+	},
+	{
+		label: '持仓市值',
+		value: '¥ 2,299,780.18',
+		hint: '12 只标的',
+		delta: '+1.31%',
+		up: true,
+	},
 ];
 
 const SWATCH_PATHS = [
-  'primary.main',
-  'primary.on-main',
-  'primary.container',
-  'secondary.main',
-  'success.main',
-  'error.main',
-  'neutral.main',
-  'surface.default',
-  'container.default',
-  'text.default',
+	'primary.main',
+	'primary.on-main',
+	'primary.container',
+	'secondary.main',
+	'success.main',
+	'error.main',
+	'neutral.main',
+	'surface.default',
+	'container.default',
+	'text.default',
 ];
 
 const TONE_KEYS: Array<{ key: keyof TrialToneKnobs; label: string }> = [
-  { key: 'accentMain', label: 'accentMain' },
-  { key: 'accentOnMain', label: 'accentOnMain' },
-  { key: 'accentContainer', label: 'accentContainer' },
-  { key: 'accentOnContainer', label: 'accentOnContainer' },
-  { key: 'neutralMain', label: 'neutralMain' },
-  { key: 'neutralOnMain', label: 'neutralOnMain' },
-  { key: 'neutralContainer', label: 'neutralContainer' },
-  { key: 'neutralOnContainer', label: 'neutralOnContainer' },
-  { key: 'textEmphasis', label: 'textEmphasis' },
-  { key: 'textDefault', label: 'textDefault' },
-  { key: 'textSubtle', label: 'textSubtle' },
-  { key: 'textSubtlest', label: 'textSubtlest' },
-  { key: 'surfaceDefault', label: 'surfaceDefault' },
-  { key: 'surfaceBright', label: 'surfaceBright' },
-  { key: 'surfaceDim', label: 'surfaceDim' },
-  { key: 'containerLowest', label: 'containerLowest' },
-  { key: 'containerLow', label: 'containerLow' },
-  { key: 'containerDefault', label: 'containerDefault' },
-  { key: 'containerHigh', label: 'containerHigh' },
-  { key: 'containerHighest', label: 'containerHighest' },
-  { key: 'inverseSurface', label: 'inverseSurface' },
+	{ key: 'accentMain', label: 'accentMain' },
+	{ key: 'accentOnMain', label: 'accentOnMain' },
+	{ key: 'accentContainer', label: 'accentContainer' },
+	{ key: 'accentOnContainer', label: 'accentOnContainer' },
+	{ key: 'neutralMain', label: 'neutralMain' },
+	{ key: 'neutralOnMain', label: 'neutralOnMain' },
+	{ key: 'neutralContainer', label: 'neutralContainer' },
+	{ key: 'neutralOnContainer', label: 'neutralOnContainer' },
+	{ key: 'textEmphasis', label: 'textEmphasis' },
+	{ key: 'textDefault', label: 'textDefault' },
+	{ key: 'textSubtle', label: 'textSubtle' },
+	{ key: 'textSubtlest', label: 'textSubtlest' },
+	{ key: 'surfaceDefault', label: 'surfaceDefault' },
+	{ key: 'surfaceBright', label: 'surfaceBright' },
+	{ key: 'surfaceDim', label: 'surfaceDim' },
+	{ key: 'containerLowest', label: 'containerLowest' },
+	{ key: 'containerLow', label: 'containerLow' },
+	{ key: 'containerDefault', label: 'containerDefault' },
+	{ key: 'containerHigh', label: 'containerHigh' },
+	{ key: 'containerHighest', label: 'containerHighest' },
+	{ key: 'inverseSurface', label: 'inverseSurface' },
 ];
 
 function sparkPath(seed: number, up: boolean): string {
-  const pts: string[] = [];
-  let y = 28;
-  for (let i = 0; i < 24; i++) {
-    const wobble = Math.sin((i + seed) * 0.55) * 8 + Math.cos((i + seed) * 0.21) * 4;
-    y = Math.min(40, Math.max(8, y + (up ? -0.35 : 0.25) + wobble * 0.15));
-    pts.push(`${i * 8},${y.toFixed(1)}`);
-  }
-  return `M${pts.join(' L')}`;
+	const pts: string[] = [];
+	let y = 28;
+	for (let i = 0; i < 24; i++) {
+		const wobble =
+			Math.sin((i + seed) * 0.55) * 8 + Math.cos((i + seed) * 0.21) * 4;
+		y = Math.min(40, Math.max(8, y + (up ? -0.35 : 0.25) + wobble * 0.15));
+		pts.push(`${i * 8},${y.toFixed(1)}`);
+	}
+	return `M${pts.join(' L')}`;
 }
 
 function deepCloneKnobs(k: ColorRuleKnobs): ColorRuleKnobs {
-  return JSON.parse(JSON.stringify(k)) as ColorRuleKnobs;
+	return JSON.parse(JSON.stringify(k)) as ColorRuleKnobs;
 }
 
 const sceneSegmentHtml = NIGHT_SCENE_NAMES.map((name, i) => {
-  const level = i + 1;
-  const checked = level === DEFAULT_LIGHTS_LEVEL;
-  return `<button type="button" role="radio" data-level="${level}" aria-checked="${checked ? 'true' : 'false'}" tabindex="${checked ? '0' : '-1'}"${checked ? ' class="is-selected"' : ''}>${name}</button>`;
+	const level = i + 1;
+	const checked = level === DEFAULT_LIGHTS_LEVEL;
+	return `<button type="button" role="radio" data-level="${level}" aria-checked="${checked ? 'true' : 'false'}" tabindex="${checked ? '0' : '-1'}"${checked ? ' class="is-selected"' : ''}>${name}</button>`;
 }).join('\n                ');
 
-const primarySegmentHtml = PRIMARY_FAMILY_IDS.map((id, i) => {
-  const checked = id === 'cyan';
-  return `<button type="button" role="radio" data-primary="${id}" aria-checked="${checked ? 'true' : 'false'}" tabindex="${checked ? '0' : '-1'}"${checked ? ' class="is-selected"' : ''}>${PRIMARY_FAMILY_LABELS[id]}</button>`;
+const primarySegmentHtml = PRIMARY_FAMILY_IDS.map((id, _i) => {
+	const checked = id === 'cyan';
+	return `<button type="button" role="radio" data-primary="${id}" aria-checked="${checked ? 'true' : 'false'}" tabindex="${checked ? '0' : '-1'}"${checked ? ' class="is-selected"' : ''}>${PRIMARY_FAMILY_LABELS[id]}</button>`;
 }).join('\n                ');
 
 app.innerHTML = `
@@ -161,16 +231,22 @@ app.innerHTML = `
       </header>
 
       <section class="ticker" aria-label="行情条">
-        ${watch.map((w) => `
+        ${watch
+					.map(
+						(w) => `
           <div class="tick">
             <span>${w.name}</span>
             <strong>${w.price}</strong>
             <em class="${w.chg.startsWith('-') ? 'down' : 'up'}">${w.chg}</em>
-          </div>`).join('')}
+          </div>`,
+					)
+					.join('')}
       </section>
 
       <section class="kpis" aria-label="关键指标">
-        ${kpis.map((k, i) => `
+        ${kpis
+					.map(
+						(k, i) => `
           <article class="kpi">
             <div class="kpi-head"><span>${k.label}</span><em class="${k.up ? 'up' : 'down'}">${k.delta}</em></div>
             <strong>${k.value}</strong>
@@ -178,7 +254,9 @@ app.innerHTML = `
               <path d="${sparkPath(i * 3, k.up)}" fill="none" stroke="currentColor" stroke-width="2" />
             </svg>
             <small>${k.hint}</small>
-          </article>`).join('')}
+          </article>`,
+					)
+					.join('')}
       </section>
 
       <section class="grid-2">
@@ -215,14 +293,18 @@ app.innerHTML = `
         <article class="panel">
           <div class="panel-head"><h2>自选盯盘</h2><span class="muted">延迟行情 · 示意</span></div>
           <ul class="watch">
-            ${watch.map((w) => `
+            ${watch
+							.map(
+								(w) => `
               <li>
                 <div><strong>${w.name}</strong><small>关注中</small></div>
                 <div class="watch-right">
                   <strong>${w.price}</strong>
                   <em class="${w.chg.startsWith('-') ? 'down' : 'up'}">${w.chg}</em>
                 </div>
-              </li>`).join('')}
+              </li>`,
+							)
+							.join('')}
           </ul>
         </article>
       </section>
@@ -240,7 +322,9 @@ app.innerHTML = `
               </tr>
             </thead>
             <tbody>
-              ${holdings.map((h) => `
+              ${holdings
+								.map(
+									(h) => `
                 <tr>
                   <td><strong>${h.name}</strong></td>
                   <td class="mono">${h.code}</td>
@@ -248,7 +332,9 @@ app.innerHTML = `
                   <td class="mono">${h.cost}</td>
                   <td class="mono">${h.price}</td>
                   <td class="mono ${h.up ? 'up' : 'down'}">${h.pnl}</td>
-                </tr>`).join('')}
+                </tr>`,
+								)
+								.join('')}
             </tbody>
           </table>
         </div>
@@ -377,149 +463,239 @@ app.innerHTML = `
 `;
 
 function applyTokens(tokens: Record<string, string>) {
-  const root = document.documentElement;
-  const map: Record<string, string> = {
-    '--surface-default': tokens['surface.default'] ?? '#f5f7fa',
-    '--surface-bright': tokens['surface.bright'] ?? '#fafbfc',
-    '--surface-dim': tokens['surface.dim'] ?? '#eef1f5',
-    '--container-default': tokens['container.default'] ?? '#ffffff',
-    '--container-high': tokens['container.high'] ?? '#ffffff',
-    '--container-low': tokens['container.low'] ?? '#ffffff',
-    '--container-lowest': tokens['container.lowest'] ?? '#ffffff',
-    '--text-default': tokens['text.default'] ?? '#0f172a',
-    '--text-subtle': tokens['text.subtle'] ?? '#334155',
-    '--text-subtlest': tokens['text.subtlest'] ?? '#64748b',
-    '--text-emphasis': tokens['text.emphasis'] ?? '#020617',
-    '--border-default': tokens['neutral.main'] ?? '#1e293b',
-    '--primary-main': tokens['primary.main'] ?? '#1872f0',
-    '--primary-on-main': tokens['primary.on-main'] ?? '#ffffff',
-    '--color-primary-on-main': tokens['primary.on-main'] ?? '#ffffff',
-    '--primary-container': tokens['primary.container'] ?? '#eff8ff',
-    '--primary-on-container': tokens['primary.on-container'] ?? '#1872f0',
-    '--secondary-main': tokens['secondary.main'] ?? '#2cd9ff',
-    '--success-main': tokens['success.main'] ?? '#16a34a',
-    '--error-main': tokens['error.main'] ?? '#ef4444',
-    '--warning-main': tokens['warning.main'] ?? '#f97316',
-    '--inverse-surface': tokens['inverse.surface'] ?? '#0f172a',
-    '--inverse-on-surface': tokens['inverse.on-surface'] ?? '#ffffff',
-    '--scrim': tokens['scrim'] ?? '#000000',
-    '--shadow': tokens['shadow'] ?? '#0f172a',
-  };
-  for (const [k, v] of Object.entries(map)) root.style.setProperty(k, v);
+	const root = document.documentElement;
+	const map: Record<string, string> = {
+		'--surface-default': tokens['surface.default'] ?? '#f5f7fa',
+		'--surface-bright': tokens['surface.bright'] ?? '#fafbfc',
+		'--surface-dim': tokens['surface.dim'] ?? '#eef1f5',
+		'--container-default': tokens['container.default'] ?? '#ffffff',
+		'--container-high': tokens['container.high'] ?? '#ffffff',
+		'--container-low': tokens['container.low'] ?? '#ffffff',
+		'--container-lowest': tokens['container.lowest'] ?? '#ffffff',
+		'--text-default': tokens['text.default'] ?? '#0f172a',
+		'--text-subtle': tokens['text.subtle'] ?? '#334155',
+		'--text-subtlest': tokens['text.subtlest'] ?? '#64748b',
+		'--text-emphasis': tokens['text.emphasis'] ?? '#020617',
+		'--border-default': tokens['neutral.main'] ?? '#1e293b',
+		'--primary-main': tokens['primary.main'] ?? '#1872f0',
+		'--primary-on-main': tokens['primary.on-main'] ?? '#ffffff',
+		'--color-primary-on-main': tokens['primary.on-main'] ?? '#ffffff',
+		'--primary-container': tokens['primary.container'] ?? '#eff8ff',
+		'--primary-on-container': tokens['primary.on-container'] ?? '#1872f0',
+		'--secondary-main': tokens['secondary.main'] ?? '#2cd9ff',
+		'--success-main': tokens['success.main'] ?? '#16a34a',
+		'--error-main': tokens['error.main'] ?? '#ef4444',
+		'--warning-main': tokens['warning.main'] ?? '#f97316',
+		'--inverse-surface': tokens['inverse.surface'] ?? '#0f172a',
+		'--inverse-on-surface': tokens['inverse.on-surface'] ?? '#ffffff',
+		'--scrim': tokens.scrim ?? '#000000',
+		'--shadow': tokens.shadow ?? '#0f172a',
+	};
+	for (const [k, v] of Object.entries(map)) root.style.setProperty(k, v);
 }
 
 function toast(msg: string) {
-  const el = document.querySelector<HTMLElement>('#toast')!;
-  el.hidden = false;
-  el.textContent = msg;
-  setTimeout(() => { el.hidden = true; }, 1800);
+	const el = document.querySelector<HTMLElement>('#toast')!;
+	el.hidden = false;
+	el.textContent = msg;
+	setTimeout(() => {
+		el.hidden = true;
+	}, 1800);
 }
 
 function mergeKnobs(raw?: ColorRuleKnobs): ColorRuleKnobs {
-  const base = deepCloneKnobs(DEFAULT_TRIAL_KNOBS);
-  if (!raw) return base;
-  return {
-    ...base,
-    ...raw,
-    trialTone: { ...base.trialTone, ...(raw.trialTone ?? {}) },
-    chromaScale: { ...base.chromaScale, ...(raw.chromaScale ?? {}) },
-    chromaFloor: { ...base.chromaFloor, ...(raw.chromaFloor ?? {}) },
-    cctHueShiftDeg: { ...base.cctHueShiftDeg, ...(raw.cctHueShiftDeg ?? {}) },
-    hueShiftByRole: { ...base.hueShiftByRole, ...(raw.hueShiftByRole ?? {}) },
-    dayRoleOverrides: { ...(base.dayRoleOverrides ?? {}), ...(raw.dayRoleOverrides ?? {}) },
-  };
+	const base = deepCloneKnobs(DEFAULT_TRIAL_KNOBS);
+	if (!raw) return base;
+	return {
+		...base,
+		...raw,
+		trialTone: { ...base.trialTone, ...(raw.trialTone ?? {}) },
+		chromaScale: { ...base.chromaScale, ...(raw.chromaScale ?? {}) },
+		chromaFloor: { ...base.chromaFloor, ...(raw.chromaFloor ?? {}) },
+		cctHueShiftDeg: { ...base.cctHueShiftDeg, ...(raw.cctHueShiftDeg ?? {}) },
+		hueShiftByRole: { ...base.hueShiftByRole, ...(raw.hueShiftByRole ?? {}) },
+		dayRoleOverrides: {
+			...(base.dayRoleOverrides ?? {}),
+			...(raw.dayRoleOverrides ?? {}),
+		},
+	};
 }
 
 async function boot() {
-  const res = await fetch('/preview-tokens.json');
-  if (!res.ok) throw new Error('缺少 public/preview-tokens.json，请先 pnpm derive');
-  const data = (await res.json()) as Tokens;
-  const shell = document.querySelector<HTMLElement>('.shell')!;
-  const modeInput = document.querySelector<HTMLInputElement>('#mode')!;
-  const modeLabel = document.querySelector<HTMLElement>('#mode-label')!;
-  const debugPanel = document.querySelector<HTMLElement>('#debug-panel')!;
-  const toneBox = document.querySelector<HTMLElement>('#tone-controls')!;
-  const swatchBox = document.querySelector<HTMLElement>('#swatches')!;
-  const strategyDump = document.querySelector<HTMLElement>('#strategy-dump')!;
+	const res = await fetch('/preview-tokens.json');
+	if (!res.ok)
+		throw new Error('缺少 public/preview-tokens.json，请先 pnpm derive');
+	const data = (await res.json()) as Tokens;
+	const shell = document.querySelector<HTMLElement>('.shell')!;
+	const modeInput = document.querySelector<HTMLInputElement>('#mode')!;
+	const modeLabel = document.querySelector<HTMLElement>('#mode-label')!;
+	const debugPanel = document.querySelector<HTMLElement>('#debug-panel')!;
+	const toneBox = document.querySelector<HTMLElement>('#tone-controls')!;
+	const swatchBox = document.querySelector<HTMLElement>('#swatches')!;
+	const strategyDump = document.querySelector<HTMLElement>('#strategy-dump')!;
 
-  let baseKnobs = mergeKnobs(data.knobs);
-  let liveKnobs = deepCloneKnobs(baseKnobs);
-  let liveDay: Record<string, string> = { ...data.day };
-  let liveNight = { ...data.night };
-  let liveStrategies: Record<string, string> = Object.fromEntries(
-    (data.mapped ?? []).map((m) => [m.path, m.strategy]),
-  );
-  let primaryFamily: PrimaryFamilyId = detectPrimaryFamilyFromOverrides(liveKnobs.dayRoleOverrides);
+	const baseKnobs = mergeKnobs(data.knobs);
+	let liveKnobs = deepCloneKnobs(baseKnobs);
+	let liveDay: Record<string, string> = { ...data.day };
+	let liveNight = { ...data.night };
+	let liveStrategies: Record<string, string> = Object.fromEntries(
+		(data.mapped ?? []).map((m) => [m.path, m.strategy]),
+	);
+	let primaryFamily: PrimaryFamilyId = detectPrimaryFamilyFromOverrides(
+		liveKnobs.dayRoleOverrides,
+	);
 
-  // —— Chroma / floor fields (slider + number) ——
-  const chromaHost = document.querySelector<HTMLElement>('#chroma-floor-controls')!;
-  const scaleFields = [
-    { id: 'k-c-accent', label: 'chroma · accent', min: 0, max: 1.5, step: 0.05, get: () => liveKnobs.chromaScale.accent, set: (v: number) => { liveKnobs.chromaScale.accent = v; } },
-    { id: 'k-c-surface', label: 'chroma · surface', min: 0, max: 2, step: 0.05, get: () => liveKnobs.chromaScale.surface, set: (v: number) => { liveKnobs.chromaScale.surface = v; } },
-    { id: 'k-c-neutral', label: 'chroma · neutral', min: 0, max: 1.5, step: 0.05, get: () => liveKnobs.chromaScale.neutral, set: (v: number) => { liveKnobs.chromaScale.neutral = v; } },
-    { id: 'k-c-text', label: 'chroma · text', min: 0, max: 1.5, step: 0.05, get: () => liveKnobs.chromaScale.text, set: (v: number) => { liveKnobs.chromaScale.text = v; } },
-    { id: 'k-f-accent', label: 'floor · accent', min: 0, max: 40, step: 1, get: () => liveKnobs.chromaFloor.accent, set: (v: number) => { liveKnobs.chromaFloor.accent = v; } },
-    { id: 'k-f-surface', label: 'floor · surface', min: 0, max: 16, step: 0.5, get: () => liveKnobs.chromaFloor.surface, set: (v: number) => { liveKnobs.chromaFloor.surface = v; } },
-    { id: 'k-f-neutral', label: 'floor · neutral', min: 0, max: 16, step: 0.5, get: () => liveKnobs.chromaFloor.neutral, set: (v: number) => { liveKnobs.chromaFloor.neutral = v; } },
-  ] as const;
+	// —— Chroma / floor fields (slider + number) ——
+	const chromaHost = document.querySelector<HTMLElement>(
+		'#chroma-floor-controls',
+	)!;
+	const scaleFields = [
+		{
+			id: 'k-c-accent',
+			label: 'chroma · accent',
+			min: 0,
+			max: 1.5,
+			step: 0.05,
+			get: () => liveKnobs.chromaScale.accent,
+			set: (v: number) => {
+				liveKnobs.chromaScale.accent = v;
+			},
+		},
+		{
+			id: 'k-c-surface',
+			label: 'chroma · surface',
+			min: 0,
+			max: 2,
+			step: 0.05,
+			get: () => liveKnobs.chromaScale.surface,
+			set: (v: number) => {
+				liveKnobs.chromaScale.surface = v;
+			},
+		},
+		{
+			id: 'k-c-neutral',
+			label: 'chroma · neutral',
+			min: 0,
+			max: 1.5,
+			step: 0.05,
+			get: () => liveKnobs.chromaScale.neutral,
+			set: (v: number) => {
+				liveKnobs.chromaScale.neutral = v;
+			},
+		},
+		{
+			id: 'k-c-text',
+			label: 'chroma · text',
+			min: 0,
+			max: 1.5,
+			step: 0.05,
+			get: () => liveKnobs.chromaScale.text,
+			set: (v: number) => {
+				liveKnobs.chromaScale.text = v;
+			},
+		},
+		{
+			id: 'k-f-accent',
+			label: 'floor · accent',
+			min: 0,
+			max: 40,
+			step: 1,
+			get: () => liveKnobs.chromaFloor.accent,
+			set: (v: number) => {
+				liveKnobs.chromaFloor.accent = v;
+			},
+		},
+		{
+			id: 'k-f-surface',
+			label: 'floor · surface',
+			min: 0,
+			max: 16,
+			step: 0.5,
+			get: () => liveKnobs.chromaFloor.surface,
+			set: (v: number) => {
+				liveKnobs.chromaFloor.surface = v;
+			},
+		},
+		{
+			id: 'k-f-neutral',
+			label: 'floor · neutral',
+			min: 0,
+			max: 16,
+			step: 0.5,
+			get: () => liveKnobs.chromaFloor.neutral,
+			set: (v: number) => {
+				liveKnobs.chromaFloor.neutral = v;
+			},
+		},
+	] as const;
 
-  chromaHost.innerHTML = scaleFields
-    .map((f) =>
-      sliderFieldHtml({
-        id: f.id,
-        label: f.label,
-        min: f.min,
-        max: f.max,
-        step: f.step,
-        value: f.get(),
-      }),
-    )
-    .join('');
+	chromaHost.innerHTML = scaleFields
+		.map((f) =>
+			sliderFieldHtml({
+				id: f.id,
+				label: f.label,
+				min: f.min,
+				max: f.max,
+				step: f.step,
+				value: f.get(),
+			}),
+		)
+		.join('');
 
-  type Binder = { setValue: (v: number) => void; getValue: () => number };
-  const scaleBinders: Record<string, Binder> = {};
-  for (const f of scaleFields) {
-    const range = document.querySelector<HTMLInputElement>(`#${f.id}`)!;
-    const num = document.querySelector<HTMLInputElement>(`#n-${f.id.replace(/^k-/, '')}`)!;
-    scaleBinders[f.id] = bindSliderNumber(range, num, {
-      min: f.min,
-      max: f.max,
-      step: f.step,
-      value: f.get(),
-      onChange: () => liveRemap(),
-    });
-  }
-  const requireScaleBinder = (id: string): Binder => {
-    const binder = scaleBinders[id];
-    if (!binder) throw new Error(`Missing scale binder: ${id}`);
-    return binder;
-  };
+	type Binder = { setValue: (v: number) => void; getValue: () => number };
+	const scaleBinders: Record<string, Binder> = {};
+	for (const f of scaleFields) {
+		const range = document.querySelector<HTMLInputElement>(`#${f.id}`)!;
+		const num = document.querySelector<HTMLInputElement>(
+			`#n-${f.id.replace(/^k-/, '')}`,
+		)!;
+		scaleBinders[f.id] = bindSliderNumber(range, num, {
+			min: f.min,
+			max: f.max,
+			step: f.step,
+			value: f.get(),
+			onChange: () => liveRemap(),
+		});
+	}
+	const requireScaleBinder = (id: string): Binder => {
+		const binder = scaleBinders[id];
+		if (!binder) throw new Error(`Missing scale binder: ${id}`);
+		return binder;
+	};
 
-  // —— Primary Night 明度 host (binder wired after toneBinders) ——
-  const accentMainHost = document.querySelector<HTMLElement>('#accent-main-control')!;
-  accentMainHost.innerHTML = sliderFieldHtml({
-    id: 'k-accentMain',
-    label: 'accentMain tone · Primary Night 明度',
-    min: 0,
-    max: 100,
-    step: 1,
-    value: liveKnobs.trialTone.accentMain,
-  });
+	// —— Primary Night 明度 host (binder wired after toneBinders) ——
+	const accentMainHost = document.querySelector<HTMLElement>(
+		'#accent-main-control',
+	)!;
+	accentMainHost.innerHTML = sliderFieldHtml({
+		id: 'k-accentMain',
+		label: 'accentMain tone · Primary Night 明度',
+		min: 0,
+		max: 100,
+		step: 1,
+		value: liveKnobs.trialTone.accentMain,
+	});
 
-  // —— Tone sliders (grouped) with number inputs ——
-  const toneGroups: Array<{ title: string; prefix: (k: string) => boolean }> = [
-    { title: 'Accent', prefix: (k) => k.startsWith('accent') },
-    { title: 'Surface', prefix: (k) => k.startsWith('surface') },
-    { title: 'Container（表面容器阶梯）', prefix: (k) => k.startsWith('container') },
-    { title: 'Neutral', prefix: (k) => k.startsWith('neutral') },
-    { title: 'Text', prefix: (k) => k.startsWith('text') },
-    { title: 'Inverse', prefix: (k) => k.startsWith('inverse') },
-  ];
-  const used = new Set<string>();
-  const parts: string[] = [];
-  const pushTone = (key: TrialToneKnobs extends never ? string : string, label: string) => {
-    const v = liveKnobs.trialTone[key as keyof TrialToneKnobs];
-    parts.push(`
+	// —— Tone sliders (grouped) with number inputs ——
+	const toneGroups: Array<{ title: string; prefix: (k: string) => boolean }> = [
+		{ title: 'Accent', prefix: (k) => k.startsWith('accent') },
+		{ title: 'Surface', prefix: (k) => k.startsWith('surface') },
+		{
+			title: 'Container（表面容器阶梯）',
+			prefix: (k) => k.startsWith('container'),
+		},
+		{ title: 'Neutral', prefix: (k) => k.startsWith('neutral') },
+		{ title: 'Text', prefix: (k) => k.startsWith('text') },
+		{ title: 'Inverse', prefix: (k) => k.startsWith('inverse') },
+	];
+	const used = new Set<string>();
+	const parts: string[] = [];
+	const pushTone = (
+		key: TrialToneKnobs extends never ? string : string,
+		label: string,
+	) => {
+		const v = liveKnobs.trialTone[key as keyof TrialToneKnobs];
+		parts.push(`
     <div class="ui-field tone-row" data-tone-field="${key}">
       <label class="ui-label" for="tone-${key}">${label}</label>
       <div class="ui-control-row">
@@ -527,180 +703,212 @@ async function boot() {
         <input type="number" class="ui-input ui-num" data-tone-num="${key}" min="0" max="100" step="1" value="${v}" />
       </div>
     </div>`);
-  };
-  for (const g of toneGroups) {
-    const keys = TONE_KEYS.filter(({ key }) => g.prefix(key));
-    if (!keys.length) continue;
-    keys.forEach(({ key }) => used.add(key));
-    parts.push(`<div class="tone-group-title">${g.title}</div>`);
-    for (const { key, label } of keys) pushTone(key, label);
-  }
-  for (const { key, label } of TONE_KEYS) {
-    if (used.has(key)) continue;
-    pushTone(key, label);
-  }
-  toneBox.innerHTML = parts.join('');
+	};
+	for (const g of toneGroups) {
+		const keys = TONE_KEYS.filter(({ key }) => g.prefix(key));
+		if (!keys.length) continue;
+		keys.forEach(({ key }) => {
+			used.add(key);
+		});
+		parts.push(`<div class="tone-group-title">${g.title}</div>`);
+		for (const { key, label } of keys) pushTone(key, label);
+	}
+	for (const { key, label } of TONE_KEYS) {
+		if (used.has(key)) continue;
+		pushTone(key, label);
+	}
+	toneBox.innerHTML = parts.join('');
 
-  const toneBinders = new Map<string, Binder>();
-  let accentMainBinder: Binder;
-  for (const { key } of TONE_KEYS) {
-    const range = toneBox.querySelector<HTMLInputElement>(`input[data-tone="${key}"]`);
-    const num = toneBox.querySelector<HTMLInputElement>(`input[data-tone-num="${key}"]`);
-    if (!range || !num) continue;
-    toneBinders.set(
-      key,
-      bindSliderNumber(range, num, {
-        min: 0,
-        max: 100,
-        step: 1,
-        value: liveKnobs.trialTone[key],
-        onChange: (v) => {
-          if (key === 'accentMain') accentMainBinder.setValue(v);
-          liveRemap();
-        },
-      }),
-    );
-  }
+	const toneBinders = new Map<string, Binder>();
+	let accentMainBinder: Binder;
+	for (const { key } of TONE_KEYS) {
+		const range = toneBox.querySelector<HTMLInputElement>(
+			`input[data-tone="${key}"]`,
+		);
+		const num = toneBox.querySelector<HTMLInputElement>(
+			`input[data-tone-num="${key}"]`,
+		);
+		if (!range || !num) continue;
+		toneBinders.set(
+			key,
+			bindSliderNumber(range, num, {
+				min: 0,
+				max: 100,
+				step: 1,
+				value: liveKnobs.trialTone[key],
+				onChange: (v) => {
+					if (key === 'accentMain') accentMainBinder.setValue(v);
+					liveRemap();
+				},
+			}),
+		);
+	}
 
-  const accentMainRange = document.querySelector<HTMLInputElement>('#k-accentMain')!;
-  const accentMainNum = document.querySelector<HTMLInputElement>('#n-accentMain')!;
-  accentMainBinder = bindSliderNumber(accentMainRange, accentMainNum, {
-    min: 0,
-    max: 100,
-    step: 1,
-    value: liveKnobs.trialTone.accentMain,
-    onChange: (v) => {
-      toneBinders.get('accentMain')?.setValue(v);
-      liveRemap();
-    },
-  });
+	const accentMainRange =
+		document.querySelector<HTMLInputElement>('#k-accentMain')!;
+	const accentMainNum =
+		document.querySelector<HTMLInputElement>('#n-accentMain')!;
+	accentMainBinder = bindSliderNumber(accentMainRange, accentMainNum, {
+		min: 0,
+		max: 100,
+		step: 1,
+		value: liveKnobs.trialTone.accentMain,
+		onChange: (v) => {
+			toneBinders.get('accentMain')?.setValue(v);
+			liveRemap();
+		},
+	});
 
-  const hueKeep = document.querySelector<HTMLInputElement>('#k-hueKeep')!;
-  const cctBias = document.querySelector<HTMLSelectElement>('#k-cctBias')!;
-  const onInvert = document.querySelector<HTMLInputElement>('#k-onInvert')!;
-  const lightsSegment = document.querySelector<HTMLElement>('#k-lights-segment')!;
-  let lightsLevelUi = clampLightsLevel(liveKnobs.lightsLevel ?? DEFAULT_LIGHTS_LEVEL);
-  const primarySegment = document.querySelector<HTMLElement>('#k-primary-segment')!;
+	const hueKeep = document.querySelector<HTMLInputElement>('#k-hueKeep')!;
+	const cctBias = document.querySelector<HTMLSelectElement>('#k-cctBias')!;
+	const onInvert = document.querySelector<HTMLInputElement>('#k-onInvert')!;
+	const lightsSegment =
+		document.querySelector<HTMLElement>('#k-lights-segment')!;
+	let lightsLevelUi = clampLightsLevel(
+		liveKnobs.lightsLevel ?? DEFAULT_LIGHTS_LEVEL,
+	);
+	const primarySegment =
+		document.querySelector<HTMLElement>('#k-primary-segment')!;
 
+	function syncAccentOnMainFromDerive(
+		primaryOnTone: number | null | undefined,
+	) {
+		if (primaryOnTone == null || !Number.isFinite(primaryOnTone)) return;
+		liveKnobs.trialTone.accentOnMain = primaryOnTone;
+		toneBinders.get('accentOnMain')?.setValue(primaryOnTone);
+	}
 
-  function syncAccentOnMainFromDerive(primaryOnTone: number | null | undefined) {
-    if (primaryOnTone == null || !Number.isFinite(primaryOnTone)) return;
-    liveKnobs.trialTone.accentOnMain = primaryOnTone;
-    toneBinders.get('accentOnMain')?.setValue(primaryOnTone);
-  }
+	function updatePrimaryFamilyLabel(id: PrimaryFamilyId) {
+		const label = document.querySelector<HTMLElement>('#primary-family-label');
+		if (label)
+			label.textContent = `${PRIMARY_FAMILY_LABELS[id]} · primary family`;
+	}
 
-  function updatePrimaryFamilyLabel(id: PrimaryFamilyId) {
-    const label = document.querySelector<HTMLElement>('#primary-family-label');
-    if (label) label.textContent = `${PRIMARY_FAMILY_LABELS[id]} · primary family`;
-  }
+	function syncPrimarySegment(id: PrimaryFamilyId) {
+		primaryFamily = id;
+		for (const btn of Array.from(
+			primarySegment.querySelectorAll<HTMLButtonElement>(
+				'button[data-primary]',
+			),
+		)) {
+			const on = btn.dataset.primary === primaryFamily;
+			btn.setAttribute('aria-checked', on ? 'true' : 'false');
+			btn.tabIndex = on ? 0 : -1;
+			btn.classList.toggle('is-selected', on);
+		}
+		updatePrimaryFamilyLabel(primaryFamily);
+	}
 
-  function syncPrimarySegment(id: PrimaryFamilyId) {
-    primaryFamily = id;
-    for (const btn of Array.from(primarySegment.querySelectorAll<HTMLButtonElement>('button[data-primary]'))) {
-      const on = btn.dataset.primary === primaryFamily;
-      btn.setAttribute('aria-checked', on ? 'true' : 'false');
-      btn.tabIndex = on ? 0 : -1;
-      btn.classList.toggle('is-selected', on);
-    }
-    updatePrimaryFamilyLabel(primaryFamily);
-  }
+	function applyPrimaryFamily(
+		id: PrimaryFamilyId,
+		opts: { toast?: boolean } = {},
+	) {
+		const hex = primaryDayHexFor(id);
+		const overrides = primaryDayOverridesFor(id);
+		liveDay = { ...liveDay };
+		liveDay['primary.main'] = hex.main;
+		liveDay['primary.container'] = hex.container;
+		liveDay['primary.on-container'] = hex.onContainer;
+		liveDay['inverse.primary'] = hex.inverse;
+		// theme follow-refs flattened to primary.main at emit time
+		if (liveDay['outline.default']) liveDay['outline.default'] = hex.main;
+		if (liveDay['outline.ring']) liveDay['outline.ring'] = hex.main;
+		liveKnobs = readKnobsFromControls();
+		liveKnobs.dayRoleOverrides = {
+			...(liveKnobs.dayRoleOverrides ?? {}),
+			...overrides,
+		};
+		// Soft per-family accentMain preset (user can still dial); does not rewrite knobs.json global default.
+		const hint = PRIMARY_FAMILY_ACCENT_MAIN_HINT[id];
+		liveKnobs.trialTone.accentMain = hint;
+		accentMainBinder.setValue(hint);
+		toneBinders.get('accentMain')?.setValue(hint);
+		syncPrimarySegment(id);
+		const { night, strategies, primaryOnTone } = remapFlatDayToNight(
+			liveDay,
+			liveKnobs,
+		);
+		liveNight = night;
+		liveStrategies = strategies;
+		syncAccentOnMainFromDerive(primaryOnTone);
+		if (!modeInput.checked) modeInput.checked = true;
+		paint();
+		if (opts.toast) {
+			toast(
+				`Primary → ${PRIMARY_FAMILY_LABELS[id]}（accentMain≈${hint}；on.main 已按亮度重算）`,
+			);
+		}
+	}
 
-  function applyPrimaryFamily(id: PrimaryFamilyId, opts: { toast?: boolean } = {}) {
-    const hex = primaryDayHexFor(id);
-    const overrides = primaryDayOverridesFor(id);
-    liveDay = { ...liveDay };
-    liveDay['primary.main'] = hex.main;
-    liveDay['primary.container'] = hex.container;
-    liveDay['primary.on-container'] = hex.onContainer;
-    liveDay['inverse.primary'] = hex.inverse;
-    // theme follow-refs flattened to primary.main at emit time
-    if (liveDay['outline.default']) liveDay['outline.default'] = hex.main;
-    if (liveDay['outline.ring']) liveDay['outline.ring'] = hex.main;
-    liveKnobs = readKnobsFromControls();
-    liveKnobs.dayRoleOverrides = {
-      ...(liveKnobs.dayRoleOverrides ?? {}),
-      ...overrides,
-    };
-    // Soft per-family accentMain preset (user can still dial); does not rewrite knobs.json global default.
-    const hint = PRIMARY_FAMILY_ACCENT_MAIN_HINT[id];
-    liveKnobs.trialTone.accentMain = hint;
-    accentMainBinder.setValue(hint);
-    toneBinders.get('accentMain')?.setValue(hint);
-    syncPrimarySegment(id);
-    const { night, strategies, primaryOnTone } = remapFlatDayToNight(liveDay, liveKnobs);
-    liveNight = night;
-    liveStrategies = strategies;
-    syncAccentOnMainFromDerive(primaryOnTone);
-    if (!modeInput.checked) modeInput.checked = true;
-    paint();
-    if (opts.toast) {
-      toast(`Primary → ${PRIMARY_FAMILY_LABELS[id]}（accentMain≈${hint}；on.main 已按亮度重算）`);
-    }
-  }
+	function updateSceneLabel(level: number) {
+		const label = document.querySelector<HTMLElement>('#lights-scene-label');
+		if (label) label.textContent = `${nightSceneName(level)} · lightsLevel`;
+	}
 
-  function updateSceneLabel(level: number) {
-    const label = document.querySelector<HTMLElement>('#lights-scene-label');
-    if (label) label.textContent = `${nightSceneName(level)} · lightsLevel`;
-  }
+	function syncLightsSegment(level: number) {
+		lightsLevelUi = clampLightsLevel(level);
+		for (const btn of Array.from(
+			lightsSegment.querySelectorAll<HTMLButtonElement>('button[data-level]'),
+		)) {
+			const on = Number(btn.dataset.level) === lightsLevelUi;
+			btn.setAttribute('aria-checked', on ? 'true' : 'false');
+			btn.tabIndex = on ? 0 : -1;
+			btn.classList.toggle('is-selected', on);
+		}
+		updateSceneLabel(lightsLevelUi);
+	}
 
-  function syncLightsSegment(level: number) {
-    lightsLevelUi = clampLightsLevel(level);
-    for (const btn of Array.from(lightsSegment.querySelectorAll<HTMLButtonElement>('button[data-level]'))) {
-      const on = Number(btn.dataset.level) === lightsLevelUi;
-      btn.setAttribute('aria-checked', on ? 'true' : 'false');
-      btn.tabIndex = on ? 0 : -1;
-      btn.classList.toggle('is-selected', on);
-    }
-    updateSceneLabel(lightsLevelUi);
-  }
+	function syncControlsFromKnobs() {
+		hueKeep.checked = !!liveKnobs.hueKeep;
+		cctBias.value = String(liveKnobs.cctBias ?? 'neutral');
+		onInvert.checked = !!liveKnobs.onRoleUseInvert;
+		syncPrimarySegment(
+			detectPrimaryFamilyFromOverrides(liveKnobs.dayRoleOverrides),
+		);
+		scaleBinders['k-c-accent']?.setValue(liveKnobs.chromaScale.accent);
+		scaleBinders['k-c-surface']?.setValue(liveKnobs.chromaScale.surface);
+		scaleBinders['k-c-neutral']?.setValue(liveKnobs.chromaScale.neutral);
+		scaleBinders['k-c-text']?.setValue(liveKnobs.chromaScale.text);
+		scaleBinders['k-f-accent']?.setValue(liveKnobs.chromaFloor.accent);
+		scaleBinders['k-f-surface']?.setValue(liveKnobs.chromaFloor.surface);
+		scaleBinders['k-f-neutral']?.setValue(liveKnobs.chromaFloor.neutral);
+		const level = clampLightsLevel(
+			liveKnobs.lightsLevel ?? DEFAULT_LIGHTS_LEVEL,
+		);
+		syncLightsSegment(level);
+		for (const { key } of TONE_KEYS) {
+			toneBinders.get(key)?.setValue(liveKnobs.trialTone[key]);
+		}
+		accentMainBinder.setValue(liveKnobs.trialTone.accentMain);
+	}
 
-  function syncControlsFromKnobs() {
-    hueKeep.checked = !!liveKnobs.hueKeep;
-    cctBias.value = String(liveKnobs.cctBias ?? 'neutral');
-    onInvert.checked = !!liveKnobs.onRoleUseInvert;
-    syncPrimarySegment(detectPrimaryFamilyFromOverrides(liveKnobs.dayRoleOverrides));
-    scaleBinders['k-c-accent']?.setValue(liveKnobs.chromaScale.accent);
-    scaleBinders['k-c-surface']?.setValue(liveKnobs.chromaScale.surface);
-    scaleBinders['k-c-neutral']?.setValue(liveKnobs.chromaScale.neutral);
-    scaleBinders['k-c-text']?.setValue(liveKnobs.chromaScale.text);
-    scaleBinders['k-f-accent']?.setValue(liveKnobs.chromaFloor.accent);
-    scaleBinders['k-f-surface']?.setValue(liveKnobs.chromaFloor.surface);
-    scaleBinders['k-f-neutral']?.setValue(liveKnobs.chromaFloor.neutral);
-    const level = clampLightsLevel(liveKnobs.lightsLevel ?? DEFAULT_LIGHTS_LEVEL);
-    syncLightsSegment(level);
-    for (const { key } of TONE_KEYS) {
-      toneBinders.get(key)?.setValue(liveKnobs.trialTone[key]);
-    }
-    accentMainBinder.setValue(liveKnobs.trialTone.accentMain);
-  }
+	function readKnobsFromControls(): ColorRuleKnobs {
+		const next = deepCloneKnobs(liveKnobs);
+		next.lightsLevel = clampLightsLevel(lightsLevelUi);
+		next.hueKeep = hueKeep.checked;
+		next.cctBias = cctBias.value;
+		next.onRoleUseInvert = onInvert.checked;
+		next.chromaScale.accent = requireScaleBinder('k-c-accent').getValue();
+		next.chromaScale.surface = requireScaleBinder('k-c-surface').getValue();
+		next.chromaScale.neutral = requireScaleBinder('k-c-neutral').getValue();
+		next.chromaScale.text = requireScaleBinder('k-c-text').getValue();
+		next.chromaFloor.accent = requireScaleBinder('k-f-accent').getValue();
+		next.chromaFloor.surface = requireScaleBinder('k-f-surface').getValue();
+		next.chromaFloor.neutral = requireScaleBinder('k-f-neutral').getValue();
+		for (const { key } of TONE_KEYS) {
+			const b = toneBinders.get(key);
+			if (b) next.trialTone[key] = b.getValue();
+		}
+		// Prominent Primary Night 明度 dial is source of truth for accentMain (keeps dual controls in sync).
+		next.trialTone.accentMain = accentMainBinder.getValue();
+		return next;
+	}
 
-  function readKnobsFromControls(): ColorRuleKnobs {
-    const next = deepCloneKnobs(liveKnobs);
-    next.lightsLevel = clampLightsLevel(lightsLevelUi);
-    next.hueKeep = hueKeep.checked;
-    next.cctBias = cctBias.value;
-    next.onRoleUseInvert = onInvert.checked;
-    next.chromaScale.accent = requireScaleBinder('k-c-accent').getValue();
-    next.chromaScale.surface = requireScaleBinder('k-c-surface').getValue();
-    next.chromaScale.neutral = requireScaleBinder('k-c-neutral').getValue();
-    next.chromaScale.text = requireScaleBinder('k-c-text').getValue();
-    next.chromaFloor.accent = requireScaleBinder('k-f-accent').getValue();
-    next.chromaFloor.surface = requireScaleBinder('k-f-surface').getValue();
-    next.chromaFloor.neutral = requireScaleBinder('k-f-neutral').getValue();
-    for (const { key } of TONE_KEYS) {
-      const b = toneBinders.get(key);
-      if (b) next.trialTone[key] = b.getValue();
-    }
-    // Prominent Primary Night 明度 dial is source of truth for accentMain (keeps dual controls in sync).
-    next.trialTone.accentMain = accentMainBinder.getValue();
-    return next;
-  }
-
-  function renderSwatches() {
-    swatchBox.innerHTML = SWATCH_PATHS.map((path) => {
-      const day = liveDay[path] ?? '#ccc';
-      const night = liveNight[path] ?? '#333';
-      return `
+	function renderSwatches() {
+		swatchBox.innerHTML = SWATCH_PATHS.map((path) => {
+			const day = liveDay[path] ?? '#ccc';
+			const night = liveNight[path] ?? '#333';
+			return `
         <div class="swatch">
           <div class="swatch-pair">
             <span class="chip" style="background:${day}" title="day ${day}"></span>
@@ -709,199 +917,225 @@ async function boot() {
           <code>${path}</code>
           <small>${day} → ${night}</small>
         </div>`;
-    }).join('');
-  }
+		}).join('');
+	}
 
-  function renderStrategy() {
-    const lines = SWATCH_PATHS.map((p) => `${p}: ${liveStrategies[p] ?? '—'}`);
-    strategyDump.textContent =
-      `engine: pure-color (resolve Day hex → HCT rule → Night hex)\n` +
-      `primaryFamily=${primaryFamily} day.primary.main=${liveDay['primary.main'] ?? '—'}\n` +
-      `scene=${nightSceneName(liveKnobs.lightsLevel)} lightsLevel=${liveKnobs.lightsLevel} (1月光…${LIGHTS_LEVEL_MAX}晚霞; surface+cct follow scene; accent@晚间)\n` +
-      `cctBias=${liveKnobs.cctBias} hueKeep=${liveKnobs.hueKeep} onInvert=${liveKnobs.onRoleUseInvert}\n` +
-      `trialTone.accentMain=${liveKnobs.trialTone.accentMain} (Primary Night 明度 dial; scene-preserved; default 75)\n` +
-      `dynamic on.main: accentOnMain=${liveKnobs.trialTone.accentOnMain} night.primary.on-main=${liveNight['primary.on-main'] ?? '—'} (WCAG-ish T100/T10 vs primary.main; prefer ≥4.5)\n` +
-      `surface.default=${liveKnobs.trialTone.surfaceDefault} (trial)\n` +
-      lines.join('\n');
-  }
+	function renderStrategy() {
+		const lines = SWATCH_PATHS.map((p) => `${p}: ${liveStrategies[p] ?? '—'}`);
+		strategyDump.textContent =
+			`engine: pure-color (resolve Day hex → HCT rule → Night hex)\n` +
+			`primaryFamily=${primaryFamily} day.primary.main=${liveDay['primary.main'] ?? '—'}\n` +
+			`scene=${nightSceneName(liveKnobs.lightsLevel)} lightsLevel=${liveKnobs.lightsLevel} (1月光…${LIGHTS_LEVEL_MAX}晚霞; surface+cct follow scene; accent@晚间)\n` +
+			`cctBias=${liveKnobs.cctBias} hueKeep=${liveKnobs.hueKeep} onInvert=${liveKnobs.onRoleUseInvert}\n` +
+			`trialTone.accentMain=${liveKnobs.trialTone.accentMain} (Primary Night 明度 dial; scene-preserved; default 75)\n` +
+			`dynamic on.main: accentOnMain=${liveKnobs.trialTone.accentOnMain} night.primary.on-main=${liveNight['primary.on-main'] ?? '—'} (WCAG-ish T100/T10 vs primary.main; prefer ≥4.5)\n` +
+			`surface.default=${liveKnobs.trialTone.surfaceDefault} (trial)\n` +
+			lines.join('\n');
+	}
 
-  const paint = () => {
-    const night = modeInput.checked;
-    shell.dataset.mode = night ? 'night' : 'day';
-    applyTokens(night ? liveNight : liveDay);
-    modeLabel.textContent = night
-      ? '当前：Night（夜间 · 可由调试面板实时重映射）'
-      : '当前：Day（日间）';
-    renderSwatches();
-    renderStrategy();
-    refreshIcons(document);
-  };
+	const paint = () => {
+		const night = modeInput.checked;
+		shell.dataset.mode = night ? 'night' : 'day';
+		applyTokens(night ? liveNight : liveDay);
+		modeLabel.textContent = night
+			? '当前：Night（夜间 · 可由调试面板实时重映射）'
+			: '当前：Day（日间）';
+		renderSwatches();
+		renderStrategy();
+		refreshIcons(document);
+	};
 
-  function liveRemap(opts: { toast?: boolean } = {}) {
-    liveKnobs = readKnobsFromControls();
-    const { night, strategies, primaryOnTone } = remapFlatDayToNight(liveDay, liveKnobs);
-    liveNight = night;
-    liveStrategies = strategies;
-    syncAccentOnMainFromDerive(primaryOnTone);
-    if (!modeInput.checked) modeInput.checked = true;
-    paint();
-    if (opts.toast) toast('已实时重映射 Night（仅浏览器；落盘请 pnpm derive）');
-  }
+	function liveRemap(opts: { toast?: boolean } = {}) {
+		liveKnobs = readKnobsFromControls();
+		const { night, strategies, primaryOnTone } = remapFlatDayToNight(
+			liveDay,
+			liveKnobs,
+		);
+		liveNight = night;
+		liveStrategies = strategies;
+		syncAccentOnMainFromDerive(primaryOnTone);
+		if (!modeInput.checked) modeInput.checked = true;
+		paint();
+		if (opts.toast) toast('已实时重映射 Night（仅浏览器；落盘请 pnpm derive）');
+	}
 
-  function applyLightsMaster(levelRaw: number) {
-    const level = clampLightsLevel(levelRaw);
-    syncLightsSegment(level);
-    liveKnobs = readKnobsFromControls();
-    liveKnobs = applyNightScene(liveKnobs, level);
-    updateSceneLabel(level);
-    // Sync linked surface/text/neutral tones
-    for (const key of LIGHTS_LINKED_KEYS) {
-      toneBinders.get(key)?.setValue(liveKnobs.trialTone[key]);
-    }
-    // Pin other accent* + inversePrimary to 晚间 anchor; accentMain preserved by applyNightScene
-    for (const key of Object.keys(ACCENT_ANCHOR_TONES) as Array<keyof typeof ACCENT_ANCHOR_TONES>) {
-      toneBinders.get(key)?.setValue(liveKnobs.trialTone[key]);
-    }
-    accentMainBinder.setValue(liveKnobs.trialTone.accentMain);
-    // Sync cct + surface/neutral floor/scale sliders from scene
-    cctBias.value = String(liveKnobs.cctBias ?? 'neutral');
-    scaleBinders['k-f-surface']?.setValue(liveKnobs.chromaFloor.surface);
-    scaleBinders['k-f-neutral']?.setValue(liveKnobs.chromaFloor.neutral);
-    scaleBinders['k-c-surface']?.setValue(liveKnobs.chromaScale.surface);
-    scaleBinders['k-c-neutral']?.setValue(liveKnobs.chromaScale.neutral);
-    const { night, strategies, primaryOnTone } = remapFlatDayToNight(liveDay, liveKnobs);
-    liveNight = night;
-    liveStrategies = strategies;
-    syncAccentOnMainFromDerive(primaryOnTone);
-    if (!modeInput.checked) modeInput.checked = true;
-    paint();
-  }
+	function applyLightsMaster(levelRaw: number) {
+		const level = clampLightsLevel(levelRaw);
+		syncLightsSegment(level);
+		liveKnobs = readKnobsFromControls();
+		liveKnobs = applyNightScene(liveKnobs, level);
+		updateSceneLabel(level);
+		// Sync linked surface/text/neutral tones
+		for (const key of LIGHTS_LINKED_KEYS) {
+			toneBinders.get(key)?.setValue(liveKnobs.trialTone[key]);
+		}
+		// Pin other accent* + inversePrimary to 晚间 anchor; accentMain preserved by applyNightScene
+		for (const key of Object.keys(ACCENT_ANCHOR_TONES) as Array<
+			keyof typeof ACCENT_ANCHOR_TONES
+		>) {
+			toneBinders.get(key)?.setValue(liveKnobs.trialTone[key]);
+		}
+		accentMainBinder.setValue(liveKnobs.trialTone.accentMain);
+		// Sync cct + surface/neutral floor/scale sliders from scene
+		cctBias.value = String(liveKnobs.cctBias ?? 'neutral');
+		scaleBinders['k-f-surface']?.setValue(liveKnobs.chromaFloor.surface);
+		scaleBinders['k-f-neutral']?.setValue(liveKnobs.chromaFloor.neutral);
+		scaleBinders['k-c-surface']?.setValue(liveKnobs.chromaScale.surface);
+		scaleBinders['k-c-neutral']?.setValue(liveKnobs.chromaScale.neutral);
+		const { night, strategies, primaryOnTone } = remapFlatDayToNight(
+			liveDay,
+			liveKnobs,
+		);
+		liveNight = night;
+		liveStrategies = strategies;
+		syncAccentOnMainFromDerive(primaryOnTone);
+		if (!modeInput.checked) modeInput.checked = true;
+		paint();
+	}
 
-  lightsSegment.addEventListener('click', (ev) => {
-    const btn = (ev.target as HTMLElement | null)?.closest?.('button[data-level]');
-    if (!btn || !lightsSegment.contains(btn)) return;
-    applyLightsMaster(Number((btn as HTMLButtonElement).dataset.level));
-  });
+	lightsSegment.addEventListener('click', (ev) => {
+		const btn = (ev.target as HTMLElement | null)?.closest?.(
+			'button[data-level]',
+		);
+		if (!btn || !lightsSegment.contains(btn)) return;
+		applyLightsMaster(Number((btn as HTMLButtonElement).dataset.level));
+	});
 
-  lightsSegment.addEventListener('keydown', (ev) => {
-    let level = lightsLevelUi;
-    switch (ev.key) {
-      case 'ArrowRight':
-      case 'ArrowDown':
-        level = level % NIGHT_SCENE_NAMES.length + 1;
-        break;
-      case 'ArrowLeft':
-      case 'ArrowUp':
-        level = (level + NIGHT_SCENE_NAMES.length - 2) % NIGHT_SCENE_NAMES.length + 1;
-        break;
-      case 'Home':
-        level = 1;
-        break;
-      case 'End':
-        level = NIGHT_SCENE_NAMES.length;
-        break;
-      default:
-        return;
-    }
-    ev.preventDefault();
-    applyLightsMaster(level);
-    lightsSegment.querySelector<HTMLButtonElement>(`button[data-level="${level}"]`)?.focus();
-  });
+	lightsSegment.addEventListener('keydown', (ev) => {
+		let level = lightsLevelUi;
+		switch (ev.key) {
+			case 'ArrowRight':
+			case 'ArrowDown':
+				level = (level % NIGHT_SCENE_NAMES.length) + 1;
+				break;
+			case 'ArrowLeft':
+			case 'ArrowUp':
+				level =
+					((level + NIGHT_SCENE_NAMES.length - 2) % NIGHT_SCENE_NAMES.length) +
+					1;
+				break;
+			case 'Home':
+				level = 1;
+				break;
+			case 'End':
+				level = NIGHT_SCENE_NAMES.length;
+				break;
+			default:
+				return;
+		}
+		ev.preventDefault();
+		applyLightsMaster(level);
+		lightsSegment
+			.querySelector<HTMLButtonElement>(`button[data-level="${level}"]`)
+			?.focus();
+	});
 
-  primarySegment.addEventListener('click', (ev) => {
-    const btn = (ev.target as HTMLElement | null)?.closest?.('button[data-primary]');
-    if (!btn || !primarySegment.contains(btn)) return;
-    const id = (btn as HTMLButtonElement).dataset.primary as PrimaryFamilyId;
-    if (!PRIMARY_FAMILY_IDS.includes(id)) return;
-    applyPrimaryFamily(id);
-  });
+	primarySegment.addEventListener('click', (ev) => {
+		const btn = (ev.target as HTMLElement | null)?.closest?.(
+			'button[data-primary]',
+		);
+		if (!btn || !primarySegment.contains(btn)) return;
+		const id = (btn as HTMLButtonElement).dataset.primary as PrimaryFamilyId;
+		if (!PRIMARY_FAMILY_IDS.includes(id)) return;
+		applyPrimaryFamily(id);
+	});
 
-  primarySegment.addEventListener('keydown', (ev) => {
-    const idx = PRIMARY_FAMILY_IDS.indexOf(primaryFamily);
-    let next = idx;
-    switch (ev.key) {
-      case 'ArrowRight':
-      case 'ArrowDown':
-        next = (idx + 1) % PRIMARY_FAMILY_IDS.length;
-        break;
-      case 'ArrowLeft':
-      case 'ArrowUp':
-        next = (idx + PRIMARY_FAMILY_IDS.length - 1) % PRIMARY_FAMILY_IDS.length;
-        break;
-      case 'Home':
-        next = 0;
-        break;
-      case 'End':
-        next = PRIMARY_FAMILY_IDS.length - 1;
-        break;
-      default:
-        return;
-    }
-    ev.preventDefault();
-    const nextFamily = PRIMARY_FAMILY_IDS[next];
-    if (!nextFamily) return;
-    applyPrimaryFamily(nextFamily);
-    primarySegment.querySelector<HTMLButtonElement>(`button[data-primary="${nextFamily}"]`)?.focus();
-  });
+	primarySegment.addEventListener('keydown', (ev) => {
+		const idx = PRIMARY_FAMILY_IDS.indexOf(primaryFamily);
+		let next = idx;
+		switch (ev.key) {
+			case 'ArrowRight':
+			case 'ArrowDown':
+				next = (idx + 1) % PRIMARY_FAMILY_IDS.length;
+				break;
+			case 'ArrowLeft':
+			case 'ArrowUp':
+				next =
+					(idx + PRIMARY_FAMILY_IDS.length - 1) % PRIMARY_FAMILY_IDS.length;
+				break;
+			case 'Home':
+				next = 0;
+				break;
+			case 'End':
+				next = PRIMARY_FAMILY_IDS.length - 1;
+				break;
+			default:
+				return;
+		}
+		ev.preventDefault();
+		const nextFamily = PRIMARY_FAMILY_IDS[next];
+		if (!nextFamily) return;
+		applyPrimaryFamily(nextFamily);
+		primarySegment
+			.querySelector<HTMLButtonElement>(`button[data-primary="${nextFamily}"]`)
+			?.focus();
+	});
 
-  syncControlsFromKnobs();
-  modeInput.addEventListener('change', paint);
-  paint();
+	syncControlsFromKnobs();
+	modeInput.addEventListener('change', paint);
+	paint();
 
-  document.querySelector('#toggle-debug')?.addEventListener('click', () => {
-    const hidden = debugPanel.classList.toggle('collapsed');
-    document.querySelector('#toggle-debug')?.setAttribute('aria-expanded', String(!hidden));
-    refreshIcons(document);
-  });
+	document.querySelector('#toggle-debug')?.addEventListener('click', () => {
+		const hidden = debugPanel.classList.toggle('collapsed');
+		document
+			.querySelector('#toggle-debug')
+			?.setAttribute('aria-expanded', String(!hidden));
+		refreshIcons(document);
+	});
 
-  document.querySelector('#apply-live')?.addEventListener('click', () => liveRemap({ toast: true }));
+	document
+		.querySelector('#apply-live')
+		?.addEventListener('click', () => liveRemap({ toast: true }));
 
-  for (const el of [hueKeep, cctBias, onInvert]) {
-    el.addEventListener('change', () => liveRemap());
-    el.addEventListener('input', () => liveRemap());
-  }
+	for (const el of [hueKeep, cctBias, onInvert]) {
+		el.addEventListener('change', () => liveRemap());
+		el.addEventListener('input', () => liveRemap());
+	}
 
-    document.querySelector('#reset-knobs')?.addEventListener('click', () => {
-    liveKnobs = deepCloneKnobs(baseKnobs);
-    liveDay = { ...data.day };
-    const fam = detectPrimaryFamilyFromOverrides(liveKnobs.dayRoleOverrides);
-    const hex = primaryDayHexFor(fam);
-    liveDay['primary.main'] = hex.main;
-    liveDay['primary.container'] = hex.container;
-    liveDay['primary.on-container'] = hex.onContainer;
-    liveDay['inverse.primary'] = hex.inverse;
-    if (liveDay['outline.default']) liveDay['outline.default'] = hex.main;
-    if (liveDay['outline.ring']) liveDay['outline.ring'] = hex.main;
-    syncControlsFromKnobs();
-    const { night, strategies, primaryOnTone } = remapFlatDayToNight(liveDay, liveKnobs);
-    liveNight = night;
-    liveStrategies = strategies;
-    syncAccentOnMainFromDerive(primaryOnTone);
-    paint();
-    toast('已重置为 derive 时 knobs');
-  });
+	document.querySelector('#reset-knobs')?.addEventListener('click', () => {
+		liveKnobs = deepCloneKnobs(baseKnobs);
+		liveDay = { ...data.day };
+		const fam = detectPrimaryFamilyFromOverrides(liveKnobs.dayRoleOverrides);
+		const hex = primaryDayHexFor(fam);
+		liveDay['primary.main'] = hex.main;
+		liveDay['primary.container'] = hex.container;
+		liveDay['primary.on-container'] = hex.onContainer;
+		liveDay['inverse.primary'] = hex.inverse;
+		if (liveDay['outline.default']) liveDay['outline.default'] = hex.main;
+		if (liveDay['outline.ring']) liveDay['outline.ring'] = hex.main;
+		syncControlsFromKnobs();
+		const { night, strategies, primaryOnTone } = remapFlatDayToNight(
+			liveDay,
+			liveKnobs,
+		);
+		liveNight = night;
+		liveStrategies = strategies;
+		syncAccentOnMainFromDerive(primaryOnTone);
+		paint();
+		toast('已重置为 derive 时 knobs');
+	});
 
+	document.querySelector('#copy-knobs')?.addEventListener('click', async () => {
+		liveKnobs = readKnobsFromControls();
+		const payload = {
+			$comment: 'TRIAL knobs copied from preview — NOT product defaults',
+			...liveKnobs,
+		};
+		await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+		toast('已复制 knobs JSON（可粘贴覆盖 knobs.json）');
+	});
 
-  document.querySelector('#copy-knobs')?.addEventListener('click', async () => {
-    liveKnobs = readKnobsFromControls();
-    const payload = {
-      $comment: 'TRIAL knobs copied from preview — NOT product defaults',
-      ...liveKnobs,
-    };
-    await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-    toast('已复制 knobs JSON（可粘贴覆盖 knobs.json）');
-  });
-
-  document.querySelector('#copy-mode')?.addEventListener('click', async () => {
-    const night = modeInput.checked;
-    const pack = night ? liveNight : liveDay;
-    const summary = SWATCH_PATHS.map((k) => `${k}: ${pack[k] ?? '—'}`).join('\n');
-    await navigator.clipboard.writeText(summary);
-    toast('已复制色板摘要');
-  });
+	document.querySelector('#copy-mode')?.addEventListener('click', async () => {
+		const night = modeInput.checked;
+		const pack = night ? liveNight : liveDay;
+		const summary = SWATCH_PATHS.map((k) => `${k}: ${pack[k] ?? '—'}`).join(
+			'\n',
+		);
+		await navigator.clipboard.writeText(summary);
+		toast('已复制色板摘要');
+	});
 }
 
-
 boot().catch((err) => {
-  app.innerHTML = `<pre class="boot-error">${String(err)}\n\n请在 experiments/night-derive 运行：pnpm install && pnpm derive && pnpm preview:only</pre>`;
+	app.innerHTML = `<pre class="boot-error">${String(err)}\n\n请在 experiments/night-derive 运行：pnpm install && pnpm derive && pnpm preview:only</pre>`;
 });

@@ -1,16 +1,16 @@
 import * as path from 'node:path';
 import { Command } from 'commander';
 import {
-	expandMainYamlEntry,
-	resolveExclusiveFileInput,
-} from '../file-input.ts';
-import {
 	IdsEntryError,
 	type IdsWorkspaceReport,
 	runIdsWorkspace,
 } from '../../core/ids/ids.ts';
 import { ExitCode } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
+import {
+	expandMainYamlEntry,
+	resolveExclusiveFileInput,
+} from '../file-input.ts';
 
 /**
  * The ids core lists at most 40 changes (`MAX_LISTED_CHANGES`); the full
