@@ -1,5 +1,13 @@
 import { Check, Copy } from 'lucide-react';
-import { memo, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import {
+	memo,
+	type ReactNode,
+	type RefObject,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { localeFromPrimaryLanguage } from '../../core/manual/locale.ts';
 import type {
@@ -9,8 +17,8 @@ import type {
 	ManualDataView,
 	ManualHomeCardConfig,
 } from '../../core/manual/types.ts';
-import { loadManualData, selectManualView } from './manual-data.ts';
 import { BrandMark } from './BrandMark.tsx';
+import { loadManualData, selectManualView } from './manual-data.ts';
 
 type ManualRenderableData = Pick<
 	ManualDataView,
@@ -129,9 +137,7 @@ async function copyTextToClipboard(text: string): Promise<void> {
 
 function useCopiedFlag() {
 	const [copied, setCopied] = useState(false);
-	const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-		undefined,
-	);
+	const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	useEffect(() => {
 		return () => {
@@ -229,7 +235,9 @@ function HomeCard({
 			className="homeCard"
 			onClick={() => navigate(card.href)}
 		>
-			<span className="homeCardIndex">{String(index + 1).padStart(2, '0')}</span>
+			<span className="homeCardIndex">
+				{String(index + 1).padStart(2, '0')}
+			</span>
 			<span className="homeCardTitle">{card.title}</span>
 			<span className="homeCardDescription">{card.description}</span>
 		</button>
@@ -349,13 +357,12 @@ function OnThisPage({ html, copy }: { html: string; copy: ManualUiText }) {
 		headings[0]?.text ?? null,
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: html changes update .article in place via dangerouslySetInnerHTML, so the scroll-spy observer must rebind after route changes.
 	useEffect(() => {
 		const article = document.querySelector('.article');
 		if (!article) return;
 
-		const headingEls = [
-			...article.querySelectorAll<HTMLElement>('h2, h3'),
-		];
+		const headingEls = [...article.querySelectorAll<HTMLElement>('h2, h3')];
 		if (headingEls.length === 0) return;
 
 		setActive(headingEls[0]?.textContent?.trim() ?? null);
@@ -640,7 +647,10 @@ function Search({
 				inputRef.current?.select();
 				return;
 			}
-			if (event.key === 'Escape' && document.activeElement === inputRef.current) {
+			if (
+				event.key === 'Escape' &&
+				document.activeElement === inputRef.current
+			) {
 				setQuery('');
 				inputRef.current?.blur();
 			}
@@ -661,7 +671,13 @@ function Search({
 					fill="none"
 					aria-hidden="true"
 				>
-					<circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.25" />
+					<circle
+						cx="7"
+						cy="7"
+						r="4.5"
+						stroke="currentColor"
+						strokeWidth="1.25"
+					/>
 					<path
 						d="M10.5 10.5L14 14"
 						stroke="currentColor"

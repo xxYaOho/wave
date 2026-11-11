@@ -329,10 +329,22 @@ kbd {
 	height: 14px;
 }
 
-.markTl { top: 0; left: 0; }
-.markTr { top: 0; right: 0; }
-.markBl { bottom: 0; left: 0; }
-.markBr { bottom: 0; right: 0; }
+.markTl {
+	top: 0;
+	left: 0;
+}
+.markTr {
+	top: 0;
+	right: 0;
+}
+.markBl {
+	bottom: 0;
+	left: 0;
+}
+.markBr {
+	bottom: 0;
+	right: 0;
+}
 
 .content {
 	max-width: 1120px;
@@ -416,6 +428,13 @@ h1 {
 	text-align: left;
 }
 
+.homeCardTitle {
+	color: var(--primary);
+	font-family: var(--font-display);
+	font-size: 22px;
+	font-weight: 400;
+}
+
 .homeCard:hover .homeCardTitle {
 	color: var(--primary-bright);
 }
@@ -425,13 +444,6 @@ h1 {
 	font-family: var(--font-mono);
 	font-size: 10px;
 	letter-spacing: 0.14em;
-}
-
-.homeCardTitle {
-	color: var(--primary);
-	font-family: var(--font-display);
-	font-size: 22px;
-	font-weight: 400;
 }
 
 .homeCardDescription {
@@ -734,6 +746,13 @@ h1 {
 	margin-left: auto;
 }
 
+.article table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 18px 0;
+	font-size: 14px;
+}
+
 .tableScroll {
 	overflow-x: auto;
 	margin: 18px 0;
@@ -751,13 +770,6 @@ h1 {
 	font-family: var(--font-mono);
 	font-size: 12px;
 	padding: 1px 5px;
-}
-
-.article table {
-	width: 100%;
-	border-collapse: collapse;
-	margin: 18px 0;
-	font-size: 14px;
 }
 
 .article th {
