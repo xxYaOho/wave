@@ -20,9 +20,12 @@ async function readPage(dir: string, name: string): Promise<string> {
 }
 
 function extractInternalHrefs(body: string): string[] {
-	return [...body.matchAll(internalHrefPattern)]
-		.map((match) => match[1])
-		.sort();
+	const hrefs: string[] = [];
+	for (const match of body.matchAll(internalHrefPattern)) {
+		const href = match[1];
+		if (href) hrefs.push(href);
+	}
+	return hrefs.sort();
 }
 
 function stripLanguageSwitchLines(content: string): string {
@@ -38,7 +41,9 @@ function stripLanguageSwitchLines(content: string): string {
 function extractFencedWaveCommands(content: string): string[] {
 	const commands: string[] = [];
 	for (const block of content.matchAll(/```[^\n]*\n([\s\S]*?)```/g)) {
-		for (const rawLine of block[1].split('\n')) {
+		const body = block[1];
+		if (!body) continue;
+		for (const rawLine of body.split('\n')) {
 			const line = rawLine.trim();
 			if (!line.startsWith('wave ')) {
 				continue;
