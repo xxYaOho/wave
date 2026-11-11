@@ -81,7 +81,9 @@ const THEME_REF = /^\{theme\.color\.([a-zA-Z0-9_.-]+)\}$/;
 export function parsePaletteRef(value: string): { root: string; family: string; step: string } | null {
   const m = value.match(REF);
   if (!m) return null;
-  return { root: m[1], family: m[2], step: m[3] };
+  const [, root, family, step] = m;
+  if (!root || !family || !step) return null;
+  return { root, family, step };
 }
 
 export function rewritePaletteStep(value: string, newStep: string): string | null {
@@ -153,11 +155,15 @@ export function primaryDayHexFor(family: PrimaryFamilyId): {
 } {
   const ramp = TW3[family];
   if (!ramp) throw new Error(`missing TW3 family ${family}`);
+  const main = ramp['600'];
+  const container = ramp['50'];
+  const inverse = ramp['100'];
+  if (!main || !container || !inverse) throw new Error(`missing TW3 step for ${family}`);
   return {
-    main: ramp['600'],
-    container: ramp['50'],
-    onContainer: ramp['600'],
-    inverse: ramp['100'],
+    main,
+    container,
+    onContainer: main,
+    inverse,
   };
 }
 

@@ -208,6 +208,7 @@ function modePanel(colors: DynamicScheme, label: 'Day' | 'Night'): string {
 function yellowCandidate(seed: Hct, index: number): number {
   const reference = yellowReference[index];
   const anchor = yellowReference[5];
+  if (!reference || !anchor) throw new Error(`Missing yellow reference at index ${index}`);
   const tone = index < 5
     ? seed.tone + (100 - seed.tone) * (reference.tone - anchor.tone) / (100 - anchor.tone)
     : seed.tone * reference.tone / anchor.tone;

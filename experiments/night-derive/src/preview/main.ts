@@ -489,6 +489,11 @@ async function boot() {
       onChange: () => liveRemap(),
     });
   }
+  const requireScaleBinder = (id: string): Binder => {
+    const binder = scaleBinders[id];
+    if (!binder) throw new Error(`Missing scale binder: ${id}`);
+    return binder;
+  };
 
   // —— Primary Night 明度 host (binder wired after toneBinders) ——
   const accentMainHost = document.querySelector<HTMLElement>('#accent-main-control')!;
@@ -675,13 +680,13 @@ async function boot() {
     next.hueKeep = hueKeep.checked;
     next.cctBias = cctBias.value;
     next.onRoleUseInvert = onInvert.checked;
-    next.chromaScale.accent = scaleBinders['k-c-accent'].getValue();
-    next.chromaScale.surface = scaleBinders['k-c-surface'].getValue();
-    next.chromaScale.neutral = scaleBinders['k-c-neutral'].getValue();
-    next.chromaScale.text = scaleBinders['k-c-text'].getValue();
-    next.chromaFloor.accent = scaleBinders['k-f-accent'].getValue();
-    next.chromaFloor.surface = scaleBinders['k-f-surface'].getValue();
-    next.chromaFloor.neutral = scaleBinders['k-f-neutral'].getValue();
+    next.chromaScale.accent = requireScaleBinder('k-c-accent').getValue();
+    next.chromaScale.surface = requireScaleBinder('k-c-surface').getValue();
+    next.chromaScale.neutral = requireScaleBinder('k-c-neutral').getValue();
+    next.chromaScale.text = requireScaleBinder('k-c-text').getValue();
+    next.chromaFloor.accent = requireScaleBinder('k-f-accent').getValue();
+    next.chromaFloor.surface = requireScaleBinder('k-f-surface').getValue();
+    next.chromaFloor.neutral = requireScaleBinder('k-f-neutral').getValue();
     for (const { key } of TONE_KEYS) {
       const b = toneBinders.get(key);
       if (b) next.trialTone[key] = b.getValue();
@@ -833,8 +838,10 @@ async function boot() {
         return;
     }
     ev.preventDefault();
-    applyPrimaryFamily(PRIMARY_FAMILY_IDS[next]);
-    primarySegment.querySelector<HTMLButtonElement>(`button[data-primary="${PRIMARY_FAMILY_IDS[next]}"]`)?.focus();
+    const nextFamily = PRIMARY_FAMILY_IDS[next];
+    if (!nextFamily) return;
+    applyPrimaryFamily(nextFamily);
+    primarySegment.querySelector<HTMLButtonElement>(`button[data-primary="${nextFamily}"]`)?.focus();
   });
 
   syncControlsFromKnobs();

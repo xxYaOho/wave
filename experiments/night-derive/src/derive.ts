@@ -67,7 +67,9 @@ export function resolvePreviewHex(
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if (obj.colorSpace === 'hsl' && Array.isArray(obj.components)) {
-      const [h, s, l] = obj.components as number[];
+      const components = obj.components;
+      if (components.length < 3 || !components.every((component) => typeof component === 'number')) return null;
+      const [h, s, l] = components as [number, number, number];
       return hslToHex(h, s, l);
     }
     if (typeof obj.color === 'string') {
@@ -94,13 +96,16 @@ function walkLeaves(node: unknown, path = ''): Array<{ path: string; leaf: Token
 
 function setPath(target: Record<string, unknown>, path: string, value: unknown) {
   const parts = path.split('.');
+  const leafKey = parts.at(-1);
+  if (!leafKey) return;
   let cur: Record<string, unknown> = target;
   for (let i = 0; i < parts.length - 1; i++) {
     const p = parts[i];
+    if (p === undefined) return;
     if (!cur[p] || typeof cur[p] !== 'object') cur[p] = {};
     cur = cur[p] as Record<string, unknown>;
   }
-  cur[parts[parts.length - 1]] = value;
+  cur[leafKey] = value;
 }
 
 
@@ -118,12 +123,15 @@ export function applyDayRoleOverrides(
     let cur: Record<string, unknown> = out;
     let ok = true;
     for (let i = 0; i < parts.length - 1; i++) {
-      const n = cur[parts[i]];
+      const part = parts[i];
+      if (part === undefined) { ok = false; break; }
+      const n = cur[part];
       if (!n || typeof n !== 'object') { ok = false; break; }
       cur = n as Record<string, unknown>;
     }
     if (!ok) continue;
-    const leafKey = parts[parts.length - 1];
+    const leafKey = parts.at(-1);
+    if (!leafKey) continue;
     const leaf = cur[leafKey];
     if (leaf && typeof leaf === 'object' && !Array.isArray(leaf) && '$value' in (leaf as object)) {
       (leaf as TokenLeaf).$value = value;
@@ -157,11 +165,13 @@ export function flattenDayHex(
     const v = leaf.$value;
     if (typeof v === 'string') {
       const m = v.match(/^\{theme\.color\.(.+)\}$/);
-      if (m && flat[m[1]]) flat[path] = flat[m[1]];
+      const key = m?.[1];
+      if (key && flat[key]) flat[path] = flat[key];
     } else if (v && typeof v === 'object' && typeof (v as { color?: string }).color === 'string') {
       const c = (v as { color: string }).color;
       const m = c.match(/^\{theme\.color\.(.+)\}$/);
-      if (m && flat[m[1]]) flat[path] = flat[m[1]];
+      const key = m?.[1];
+      if (key && flat[key]) flat[path] = flat[key];
       else {
         const hx = resolvePreviewHex(c, corerain, 'day');
         if (hx) flat[path] = hx;
@@ -170,8 +180,11 @@ export function flattenDayHex(
       const ref = (v as { $ref: string }).$ref;
       const m = ref.match(/^#\/theme\/color\/(.+)\/\$value$/);
       if (m) {
-        const key = m[1].replace(/\//g, '.');
-        if (flat[key]) flat[path] = flat[key];
+        const key = m[1];
+        if (key) {
+          const normalizedKey = key.replace(/\//g, '.');
+          if (flat[normalizedKey]) flat[path] = flat[normalizedKey];
+        }
       }
     }
   }
