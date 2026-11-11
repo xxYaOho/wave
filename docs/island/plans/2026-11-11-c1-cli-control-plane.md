@@ -93,8 +93,8 @@ worktree `c1-cli-control-plane` 已建（基点 b245c71），SPEC 与施工均�
 - 依赖：Q0 已集成 main。
 - 固有风险：硬编码字符串与 commander description 的合并必须零文案变更，逐字对照；转义/换行细节易漂移。
 
-- [ ] 元数据 help 字段全量补齐。
-- [ ] help.ts 派生改造与快照对照测试。
+- [x] 元数据 help 字段全量补齐。（7d9b6a6；registry.ts +380 行元数据，help.ts -100 行硬编码）
+- [x] help.ts 派生改造与快照对照测试。（9 条 -h 路径逐字节对照零差异）
 
 ### Task-2
 
@@ -105,11 +105,13 @@ worktree `c1-cli-control-plane` 已建（基点 b245c71），SPEC 与施工均�
 - 依赖：Task-1。
 - 固有风险：不能触碰双语内容管线与 fallback 英文正文（只动入口映射层）。
 
-- [ ] manual 入口映射入元数据并改造解析。
-- [ ] `-m` 全命令路径输出对照验证。
+- [x] manual 入口映射入元数据并改造解析。（manual-markdown.ts 消费元数据映射，三级回退链保留）
+- [x] `-m` 全命令路径输出对照验证。（4 条 -m 路径逐字节对照零差异）
 
 > [!IMPORTANT]
 > Milestone-1 闸门：主代理对照全部命令 `-h/-m` 输出快照，任一漂移不得进入 M2。
+>
+> 闸门结果（2026-11-12，通过）：交付 HEAD `7d9b6a6`（13 文件全在 Task-1/2 范围，含 M-02 处方要求的散落帮助生产者改接：manual/motion/night/token-migrate/token-new/workspace）。主代理直审：baseline（main）与交付构建的 9 条 `-h` + 4 条 `-m` 输出**逐字节零差异**；bun test --timeout 15000 全量 1188 pass / 0 fail（新增 cli-command-shape 扩展断言）；工作区冻结。台账 M-02 于本闸门 RESOLVED（改接点全部落地并有快照背书），M-03 待 M2 包装层交付核验，M-01 待 M2 交付核验。
 
 ## Milestone-2
 
