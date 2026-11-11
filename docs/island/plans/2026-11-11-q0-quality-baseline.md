@@ -170,8 +170,8 @@ biome 存量清零（来源：User Story 1；Implementation Decision 5）
 - 依赖：M1 闸门通过。
 - 固有风险：不得破坏既有 design-token runner 与历史 `.results` 的兼容读取。
 
-- [ ] 抽取并固化跨域观测契约类型与报告结构。
-- [ ] compare.ts 按统一契约对齐多域结果。
+- [x] 抽取并固化跨域观测契约类型与报告结构。（bb16749：`BenchmarkOperationContract` 含每域操作/参数/timing 起止/成功条件/comparison 条件字段，`readiness-signal` 完成语义覆盖 SIGINT 型入口）
+- [x] compare.ts 按统一契约对齐多域结果。（bb16749；多域 A/B 对齐 + 跨代 v1 样本兼容验证）
 
 ### Task-5
 
@@ -182,9 +182,11 @@ biome 存量清零（来源：User Story 1；Implementation Decision 5）
 - 依赖：Task-4。
 - 固有风险：测量必须进程级隔离，不得复用上一轮进程暖态；fixture 必须仓库内 hermetic，不得依赖外部网络或用户目录。
 
-- [ ] 实现六域 runner 与统一入口。
-- [ ] 建立观测契约回归测试。
-- [ ] 双次重跑验证可复现并记录基线分布。
+- [x] 实现六域 runner 与统一入口。（bb16749：`benchmarks/run.ts` + `domains/{cold-start,token,compress,manual,suite,helpers}.ts`，六域全 ok）
+- [x] 建立观测契约回归测试。（`tests/quality-observability.test.ts`：schemaVersion:1 读取与对齐断言，2 pass）
+- [x] 双次重跑验证可复现并记录基线分布。（gate A/B 复现：6/6 对齐，最大漂移 3.3%）
 
 > [!IMPORTANT]
 > Milestone-2 闸门：主代理核验六域输出 schema、分布与环境元数据完整性，重跑完整 `pnpm check:ci`。通过后进入统一 gate、清理与合并。
+>
+> 闸门结果（2026-11-12，通过）：交付 HEAD `bb16749`（单笔提交，16 文件全在 benchmarks/** + 观测测试，工作区冻结）。六域统一采样 2×2 全 ok（cold-start 45.7ms / token-single 10.1ms / token-multi 7.1ms / night 4.0ms / compress 1.5ms / manual 59.7ms）；A/B compare 6/6 对齐（最大漂移 3.3%）；真实 v1 `.results` 样本可读取并对齐（新域标 new）；`bench:smoke` 不回归；`tests/quality-observability` 2 pass；`pnpm check:ci` exit 0；bun test 1187 pass / 0 fail。台账 M3/M4 于本闸门 RESOLVED——Q0 台账全清。施工披露：git index.lock 沙箱写权限受限，按协议提权一次完成暂存提交。
