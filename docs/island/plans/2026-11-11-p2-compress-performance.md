@@ -21,7 +21,7 @@ compress 链路当前完全串行：`runCompress()` 的编码+写入是单 `for`
 | 角色 | Rex block | Agent | 职责 |
 | --- | --- | --- | --- |
 | STRICT | `block:01a1c9cb-24c5-74f1-80a9-599a67db4f09` | Codex GPT-6.1-Sol (max) | 本 SPEC 与交付的独立审查（SPEC 通过后 strict 不进入施工期） |
-| CODER-PLUS | `block:01a1c9ca-3f36-72f9-a222-a01f4d48c776a` | Codex GPT-6.1-Sol (high) | Milestone 施工 |
+| CODER-PLUS | `block:01a1c9ca-3f36-72f9-a222-a01f4d48c776` | Codex GPT-6.1-Sol (high) | Milestone 施工 |
 
 - 会话：`session:01a1ac63-3359-7305-a46f-01905fa5fd4b`
 - 派遣/回读/fresh agent 规则同 Q0 SPEC「Rex 对话协议」节（`/clear` 取 fresh、长工单落 `.tmp/` 文件给路径）
