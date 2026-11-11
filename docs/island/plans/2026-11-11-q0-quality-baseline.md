@@ -96,6 +96,11 @@ dispatch: R1 FAIL 1F/4M → F1 DELTA 修正 PASS；MAJOR M1–M4 台账 carry fo
 
 环境引导：worktree 尚未安装依赖，施工前执行 `mise install && pnpm install`。执行顺序：Task-1 先行（配置边界是其余 Task 的判定基础）；Task-2 与 Task-3 在 Task-1 后可并行；M1 闸门由主代理执行；通过后依次 Task-4 → Task-5；M2 闸门后主代理统一 gate，Pruner/Scout 收尾，按路线图集成 main。STRICT 审查 SPEC（R1）与各 Task 交付；主代理担任统一 gate（Human 指定）。每个 Task 交付后由 coder-plus 按 Rex 对话协议回报 STATUS/HEAD。
 
+> [!NOTE]
+> 施工注记（2026-11-11，Human 裁决）：计划已通过 STRICT 终审，对抗阶段结束。原「STRICT 审查各 Task 交付」修订为：各 Task 交付由主代理直接 gate（对照冻结验收标准与台账关闭点），仅在直接验证暴露超出其覆盖面的契约/隐藏正确性风险时按需派遣 critic-gate 形态的独立审查，不再逐 Task 派 strict。已派遣的 T1 strict 审查作为一次性 gate 证据消费，不作为流程先例。
+>
+> 施工注记二（2026-11-11，Human 裁决）：施工包与 gate 粒度遵循 workflow/coding.md——一次派遣交付一个 Milestone 施工包，coder-plus 内部消费 Task 并自验证，Orchestrator 作为该计划唯一 gate reviewer 在 Milestone 边界核验（开工 HEAD → 交付 HEAD、提交审计、全量核验基线、MAJOR 台账关闭），不逐 Task gate、不干预其内部 Task 分派。Milestone-1 剩余范围（Task-2、Task-3）以单一施工包派往同一 coder-plus 会话（continuity: retain，依赖 Task-1 建立的配置边界与已知存量失败清单）。
+
 ## Milestone-1
 
 质量门恢复
@@ -113,9 +118,9 @@ dispatch: R1 FAIL 1F/4M → F1 DELTA 修正 PASS；MAJOR M1–M4 台账 carry fo
 - 依赖：无。
 - 固有风险：排除根扫描后若 experiments project 未覆盖全部源文件，会产生检查盲区；experiments 非 preview 文件（derive/color-rules/palettes/emit-night）需逐一枚举修复，不得以放宽 strict 换通过。
 
-- [ ] 枚举 experiments 全部源文件与所属 project 的覆盖关系，建立已知存量失败清单（生产 Night 10 处）。
-- [ ] 调整 tsconfig 边界并修复 experiments 类型错误。
-- [ ] biome ignore 生成物并串联 typecheck 脚本；运行 Task-1 验证。
+- [x] 枚举 experiments 全部源文件与所属 project 的覆盖关系，建立已知存量失败清单（生产 Night 10 处）。（0de0c84/effc379；8/8 覆盖，STRICT T1 PASS 0/0/0）
+- [x] 调整 tsconfig 边界并修复 experiments 类型错误。（effc379；选项对齐核验通过）
+- [x] biome ignore 生成物并串联 typecheck 脚本；运行 Task-1 验证。（b278021；typecheck 仅余清单 10 处，1185 pass）
 
 ### Task-2
 
