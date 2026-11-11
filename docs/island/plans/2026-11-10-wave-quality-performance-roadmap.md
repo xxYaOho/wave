@@ -21,6 +21,7 @@ dispatch: ~
 - 主代理维护路线图状态、依赖和集成顺序，不把未提交改动跨 worktree 共享。
 - 只有当前计划通过 gate 且其依赖已集成，后续计划才可进入施工。
 - 计划数量按独立合同与风险划分，不按文件数量或预估工时划分。
+- 计划评审形态（2026-11-11 Human 裁决）：每计划 SPEC 通过 STRICT 审查后冻结进入施工（FAIL 走修正轮直至 PASS，轮次由飞轮决定）；施工编排与 gate 生命周期遵循 workflow/coding.md——Milestone 为施工包与 gate 单元，coder-plus 一次派遣消费一个 Milestone 并自验证其内部 Task，Orchestrator 兼任该计划的 gate reviewer 且全程复用，在 Milestone 边界核验（开工 HEAD → 交付 HEAD、提交审计、全量核验基线、MAJOR 台账关闭）；strict 不进入施工期。
 
 ## User Stories
 
@@ -123,10 +124,10 @@ C1、P1、P2 若出现共享文件，以实际依赖为准暂停冲突分支。�
 
 | ID | 计划 | 依赖 | 状态 | Worktree / HEAD | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| Q0 | 质量基线与性能观测 | 当前 CLI 计划 | 未撰写 | 未创建 | 必须先恢复可信基线 |
-| C1 | CLI 控制面 | 当前 CLI 计划、Q0 | 未撰写 | 未创建 | 元数据、懒加载、测试基座 |
-| P1 | Token 性能 | Q0 | 未撰写 | 未创建 | 与 C1/P2 可并行 |
-| P2 | Compress 性能 | Q0 | 未撰写 | 未创建 | 独立业务链路 |
+| Q0 | 质量基线与性能观测 | 当前 CLI 计划 | 已交付（2026-11-12 集成 main，台账全清） | main @ 0d7d36c | SPEC: docs/island/plans/2026-11-11-q0-quality-baseline.md |
+| C1 | CLI 控制面 | 当前 CLI 计划、Q0 | 已批准待施工（R1→DELTA PASS；M-01–M-03 台账 carry） | c1 worktree @ 0fbb6cc | SPEC: docs/island/plans/2026-11-11-c1-cli-control-plane.md |
+| P1 | Token 性能 | Q0 | R1 FAIL 修正延后（Q0 M2 已集成，可开始修正 + fresh FULL） | p1 worktree @ a4c62c8 | SPEC: docs/island/plans/2026-11-11-p1-token-performance.md |
+| P2 | Compress 性能 | Q0 | 已批准待施工（R1→DELTA R2 PASS；M1–M5 台账 carry） | p2 worktree @ 65e5a16 | SPEC: docs/island/plans/2026-11-11-p2-compress-performance.md |
 | C2 | Token 应用服务 | C1、P1 | 未撰写 | 未创建 | 避免与 P1 双写 pipeline |
 | M1 | Manual 性能 | 当前手册施工、C1 | 未撰写 | 未创建 | 可与 C2 并行 |
 | C3 | OutputPlan 输出合同 | C2 | 未撰写 | 未创建 | 最后统一输出语义 |
