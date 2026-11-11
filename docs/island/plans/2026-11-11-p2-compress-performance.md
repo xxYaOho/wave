@@ -1,7 +1,7 @@
 ---
 date: 2026-11-11
-state: 草案（STRICT R1 待派遣）
-dispatch: ~
+state: 已批准（STRICT DELTA R2 PASS，2026-11-11）
+dispatch: R1 FAIL 4F/5M → Human 裁决 DELTA → F2/F3/F4 R1-DELTA PASS、F1 DELTA R2 PASS；MAJOR M1–M5 台账 carry forward，见 .tmp/p2/strict-major-ledger.md
 ---
 
 # Wave P2 Compress 性能 Plan
@@ -39,7 +39,7 @@ compress 链路当前完全串行：`runCompress()` 的编码+写入是单 `for`
 
 - 压缩算法与编码器实现不变（路线图 Out of Scope）。
 - 成功路径的公共 CLI 行为与输出内容不变：dry-run 语义、`--yes`/prompt 交互、`--force` 覆盖、输出冲突 `WCP_OUTPUT_EXISTS` 防护与「校验后写入」安全语义不变。
-- **声明式行为变更（本计划交付项）**：工具硬失败的处理从「首错冒泡中止整批」改为「逐项失败聚合、其余项继续、退出码反映聚合结果」；`WCP_TOOL_MISSING` 既有软失败语义不变。此项是路线图 Decision 6 明确交付，其余失败场景语义不变。
+- **声明式行为变更（本计划交付项）**：工具硬失败的处理从「首错冒泡中止整批」改为「逐项失败聚合、其余项继续、退出码反映聚合结果」。`WCP_TOOL_MISSING` 的 preflight 语义不变——默认路径任一工具缺失即整批零写入（`index.ts:117-136,373-385`：items=[]、written=false），不做「缺工具部分落盘」变更。此项是路线图 Decision 6 明确交付，其余失败场景语义不变。
 - 并发必须有界且以子进程为并行单位；不引入 worker 线程、原生模块或复杂调度（路线图约束）。
 - 不引入持久缓存与跨进程缓存协议；工具发现复用限于单次进程内。
 - 不新增公共 CLI 参数；并发上限与超时为内部常量，初值依 CPU 核数设定，终值依 Q0 M2 compress 基线与实测分布校准并记录依据。
@@ -47,23 +47,24 @@ compress 链路当前完全串行：`runCompress()` 的编码+写入是单 `for`
 
 ## Implementation Decisions
 
-1. 编排重构：`runCompress` 拆分为扫描、解析、校验、编码调度、聚合报告五阶段；编码阶段以任务队列 + 有界并发执行，单文件 `compressFile` 保持原子（临时目录产物 → 大小比较 → 拷贝），并发不改变单文件流程。
-2. 工具发现复用：`DefaultToolResolver` 结果在单次进程内缓存（同能力去重后仅探测一次）；跨进程不缓存。
+1. 编排重构：`runCompress` 拆分为扫描、解析、校验、编码调度、聚合报告五阶段；编码阶段以任务队列 + 有界并发执行，单文件 `compressFile` 保持原子（临时目录产物 → 大小比较 → 拷贝），并发不改变单文件流程；检测到源/目标重叠的批次回退串行（见决策 8）。
+2. 工具发现复用（实证驱动）：先实测确认重复探测的真实路径与计数基线；仅当存在可复用探测且缓存有实测收益时引入进程内缓存，缓存 key 按 capability + mode + preferred 隔离、不缓存完整 resolution（避免改变候选诊断信息）；无收益即撤回本机制（撤回合同见决策 7）。
 3. 扫描复用：同一次 CLI 调用内 preview 与 run 共享一次扫描结果。
-4. 失败聚合：逐项捕获工具失败，结果结构记录 per-item 状态（成功/软失败/硬失败），汇总报告 + 聚合退出码；`WCP_TOOL_MISSING` 语义保持。
-5. 取消：`AbortSignal` 贯穿扫描与编码调度；SIGINT 触发取消——停止派发新任务、终止运行中子进程（kill 信号传递）、已写入文件保留、退出码反映取消状态。
-6. 子进程超时：`tools/command-runner` 增加超时常量，超时 kill 并记为该项失败；超时值记录校准依据。
-7. 资源边界：并发上限（有界信号量）+ 子进程超时构成边界；Q0 M2 compress 域测量观测资源峰值，作为验收证据而非新增机制。
-8. 输出冲突防护复用：`validateOutputTargets` 校验时点不变；并发编码的目标集互不相交（逐文件独立输出名），不引入新的冲突面。
+4. 失败聚合：逐项捕获工具失败，结果结构按「结果与退出码合同（冻结）」执行——per-item 处理态与既有结果态共存、issues 汇总与计数、聚合退出码；`WCP_TOOL_MISSING` 的 preflight 语义不变（任一工具缺失即整批零写入）。
+5. 取消：`AbortSignal` 贯穿扫描与编码调度；SIGINT 停止派发、终止运行中子进程并等待**有界终止**完成（进程树与 stdout/stderr 流关闭）；取消检查点位于提交发起前，提交发起后 await settle 不中断；已写入文件保留，退出码按合同。
+6. 子进程超时：超时常量**仅 compress 链路启用**，`tools/command-runner` 对既有 Motion / install 消费者行为不变；超时为有界终止（等待进程树与流关闭，必要时升级 kill），记该项硬失败；超时值记录校准依据。
+7. 资源边界与撤回合同：并发上限 + 子进程超时构成边界；资源验收口径**含编码器子进程树的 CPU / 内存峰值**（非仅父进程 RSS），与同 case 串行基线同口径比较，由实测分布记录可接受边界与撤回条件，并核验实际最大在途任务数；任一机制无统计意义收益即撤回并记录。
+8. 源/目标重叠合同：批次检测到任一输出路径属于输入集（含递归复跑 outputDir ⊆ inputDir）时，该批次**强制回退串行**按扫描顺序执行，行为与旧版逐字节一致；非重叠批次沿用 `validateOutputTargets` 既有校验时点与 `WCP_OUTPUT_EXISTS` / force 语义。
 
 ## Testing Decisions
 
 - 等价性：同一文件集与工具集下，并发实现的输出字节与串行基线一致（含 unchanged 回退原始字节语义）。
-- 失败聚合：构造单个工具中途失败，断言其余项完成、逐项状态正确、聚合退出码；`WCP_TOOL_MISSING` 软失败既有测试不回归。
-- 取消：模拟 SIGINT 断言停止派发、子进程被终止、已写入保留、未写入不存在、退出码正确。
-- 超时：构造挂起工具断言超时 kill 与逐项失败。
-- 冲突与安全：既有 `WCP_OUTPUT_EXISTS`/force/dry-run 测试不回归；并发下无重复写入。
-- 性能证据：以 Q0 M2 compress 域基线为比较对象，输出收益分布（不只成功耗时）；资源峰值有观测数据。
+- 失败聚合：构造单个工具中途失败，断言其余项完成、逐项状态正确、聚合退出码；**preflight 基线回归**——混合工具集缺一工具（如 PNG 可用、SVG 缺失）断言整批零写入、items=[]、written=false、退出码与现状一致。
+- 结果合同：按「结果与退出码合同（冻结）」对 JSON 字段、计数、退出码与取消终态逐项断言（含既有字段不变）。
+- 取消：模拟 SIGINT 断言停止派发、子进程**有界终止**（进程树与流关闭）、已写入保留、未写入不存在、退出码 130、汇总含 `cancelled: true`；覆盖提交发起期间取消的 settle 语义。
+- 超时：构造挂起工具断言有界终止与逐项硬失败，覆盖忽略终止信号与后代持有管道场景。
+- 冲突与安全：既有 `WCP_OUTPUT_EXISTS`/force/dry-run 测试不回归；并发下无重复写入；递归复跑（outputDir ⊆ inputDir）场景输出与串行旧版逐字节一致。
+- 性能证据：以 Q0 M2 compress 域基线为比较对象，输出收益分布（不只成功耗时）；资源观测含编码器子进程树峰值，与同 case 基线同口径，记录可接受边界、撤回条件与实际最大在途任务数。
 - 质量门：`pnpm check:ci` 不退化；干净检出可重复。
 
 ## Out of Scope
@@ -81,6 +82,15 @@ compress 链路当前完全串行：`runCompress()` 的编码+写入是单 `for`
 - 文件结构：`src/core/compress/index.ts`（编排重构）、`src/core/tools/resolver.ts`（缓存）、`src/core/tools/command-runner.ts`（超时/终止）、`src/cli/commands/compress.ts`（聚合结果渲染，仅消费）、`tests/cli-compress.test.ts` 与新增 `tests/compress-*.test.ts`（失败/取消/超时/等价）、`benchmarks/` compress 域消费（M2 既有 runner，不改契约）。
 - 风险与未决：并发上限与超时初值需 M2 基线校准（SPEC 已声明校准义务）；SIGINT 模拟测试的跨平台行为（本仓库仅 macOS 开发环境，测试以进程信号 API 为准）；preview 与 run 共享扫描在 dry-run-only 路径的收益有限，仍属顺带简化。无阻塞拆分的未决项。
 - 里程碑草案：M1 等价输出的编排重构（并发 + 复用 + 失败聚合）；M2 取消、超时与性能证据。
+
+## 结果与退出码合同（冻结）
+
+- **逐项结果**：items 包含全部派发处理项；每项保留既有结果态字段（optimized / unchanged / cleaned 等，语义不变）并新增处理态 `result: 'success' | 'soft-failed' | 'hard-failed'`；处理态与结果态独立共存，不合并语义。**硬失败项字段定义**：仅保留既有标识字段（输入路径等）+ `result: 'hard-failed'` + WCP 分类码与错误消息（与 issues 同源）；产物派生字段（optimized / unchanged / cleaned 状态位、afterBytes 等字节数字段）**不存在、不设默认值**，消费方以 `result` 判定可读字段集。
+- **汇总**：既有顶层字段全部不变（含 `written: boolean`，`core/compress/index.ts:51`）；新增 `summary` 对象承载计数 `{ total, succeeded, softFailed, hardFailed, writtenCount }` 与 `issues[]`（每项含路径 + WCP 分类码）；取消时附 `cancelled: true`。新增只增不改。
+- **退出码**：沿用现状数值语义——成功 `0`；任何错误路径（聚合硬失败、preflight 缺工具、输出冲突等）`1`（`compress.ts:345-365` 现状，不变）；取消 `130`（SIGINT 惯例，新增）。WCP 分类码仅作为 `issues[]` 分类与进程内错误分类，**不映射退出码数值**。
+- **取消终态**：停止派发、运行中任务等待提交点 settle；已写入文件保留、未写入不存在；JSON 汇总照常输出并携带 `cancelled: true`。
+- **提交边界**：提交点 = 最终路径 `fs.copyFile` 发起；取消检查点位于提交发起前，提交发起后 await settle 不中断；不主张文件系统原子性，主张提交顺序性；copyFile 失败记该项 hard-failed 并如实报告（force 覆盖中断后的目标状态由该顺序语义唯一决定）。
+- **源/目标重叠**：批次检测到任一输出路径 ∈ 输入集时强制串行回退（按扫描顺序），与旧版逐字节一致；检测逻辑有测试锁定。
 
 ## Implement Plan
 
@@ -110,7 +120,7 @@ worktree `p2-compress-performance` 已建（基点 b245c71），SPEC 与施工�
 
 工具发现与扫描复用、失败聚合（来源：User Story 3；Implementation Decisions 2–4）
 
-- 验收标准：单次进程内工具发现仅探测一次（测试断言 spawn 次数）；preview+run 共享扫描；单个工具硬失败时其余项完成、逐项状态与聚合退出码正确；`WCP_TOOL_MISSING` 语义不变。
+- 验收标准：先实测重复探测的真实路径与计数基线并记录；仅当实证存在收益时引入进程内 resolver 缓存（key 按 capability + mode + preferred 隔离，不缓存完整 resolution），否则记录撤回依据；preview+run 共享扫描；单个工具硬失败时其余项完成、逐项状态与聚合退出码正确；preflight 缺工具语义不变（整批零写入）并新增混合缺工具回归。
 - 可动文件范围：`src/core/tools/resolver.ts`、`src/core/compress/index.ts`、`src/cli/commands/compress.ts`（渲染消费）、失败聚合测试。
 - 依赖：Task-1。
 - 固有风险：失败聚合的退出码语义需与既有 CLI 约定一致；聚合报告不得破坏 JSON 输出结构（既有测试覆盖）。
@@ -133,10 +143,10 @@ worktree `p2-compress-performance` 已建（基点 b245c71），SPEC 与施工�
 
 取消与子进程超时（来源：User Story 2；Implementation Decisions 5–6）
 
-- 验收标准：SIGINT 停止派发并终止子进程，已写入保留、未写入不存在、退出码正确；子进程超时 kill 记为逐项失败；两路径均有测试。
+- 验收标准：SIGINT 停止派发并**有界终止**子进程（等待进程树与 stdout/stderr 关闭），已写入保留、未写入不存在、退出码 130、汇总含 `cancelled: true`；子进程超时记为逐项硬失败；取消与超时**仅 compress 链路启用**（Motion / install 消费者行为不变，含针对性回归）；忽略终止信号与后代持有管道样本下终止完成有测试；提交发起期间取消的 settle 语义有固定测试。
 - 可动文件范围：`src/core/compress/index.ts`、`src/core/tools/command-runner.ts`、取消与超时测试。
 - 依赖：M1 闸门。
-- 固有风险：kill 信号传递的子进程树清理；取消瞬间的写入中断不得产生部分文件（拷贝为原子操作的前提需测试确认）。
+- 固有风险：有界终止的主要风险源是信号忽略与后代进程持管道；提交发起后的中断语义由合同顺序性唯一决定（不主张文件系统原子性）。
 
 - [ ] AbortSignal 贯穿与 SIGINT 处理。
 - [ ] command-runner 超时与测试。
@@ -145,8 +155,8 @@ worktree `p2-compress-performance` 已建（基点 b245c71），SPEC 与施工�
 
 性能证据与校准（来源：User Story 4；Implementation Decision 7）
 
-- 验收标准：以 Q0 M2 compress 域基线为比较对象输出收益分布与资源峰值观测；并发上限与超时终值校准并记录依据；无收益机制按合同撤回。
-- 可动文件范围：`benchmarks/` compress 域消费脚本（不改 M2 契约）、校准记录。
+- 验收标准：以 Q0 M2 compress 域基线为比较对象输出收益分布与资源峰值观测（口径含编码器子进程树，与同 case 基线同口径）；并发上限与超时终值校准并记录依据；实际最大在途任务数有核验证据；无收益机制按撤回合同撤回并记录。
+- 可动文件范围：`benchmarks/` compress 域消费脚本（不改 M2 契约）、校准记录，以及为落实校准 / 撤回裁决而调整 Task-1 / Task-3 引入的常量与机制（仅限该两类改动，gate 逐项核对最终源码与记录一致）。
 - 依赖：Task-3。
 - 固有风险：基线可比性要求同域同入口同 case（M4 契约字段）；素材 fixture 必须 hermetic。
 
