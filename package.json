@@ -15,7 +15,7 @@
 		"manual:build": "bun run scripts/build-manual.ts",
 		"build:cli": "bun run scripts/build-cli.ts",
 		"build": "pnpm manual:build && pnpm build:cli",
-		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.app.json",
+		"typecheck": "status=0; tsc --noEmit || status=$?; tsc --noEmit -p tsconfig.app.json || status=$?; tsc --noEmit -p experiments/color-night/tsconfig.json || status=$?; tsc --noEmit -p experiments/night-derive/tsconfig.json || status=$?; exit $status",
 		"test": "bun test",
 		"format": "biome format --write .",
 		"format:check": "biome format .",

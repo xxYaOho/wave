@@ -26,5 +26,5 @@
 		"noUnusedParameters": false,
 		"noPropertyAccessFromIndexSignature": false
 	},
-	"exclude": ["src/manual-app", "tests/manual-app.test.ts"]
+	"exclude": ["src/manual-app", "tests/manual-app.test.ts", "experiments/**"]
 }
