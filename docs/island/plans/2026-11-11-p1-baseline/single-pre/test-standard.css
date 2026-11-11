@@ -1,0 +1,6 @@
+:root {
+  --theme-color-primary: #4f39f6; /* 主品牌色 */
+  --theme-color-secondary: #2b7fff;
+  --theme-color-text-default: #101828;
+  --theme-color-text-muted: #4a556599;
+}

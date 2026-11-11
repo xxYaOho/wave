@@ -1,0 +1,27 @@
+{
+  "theme-color-primary": "#4f39f6",
+  "theme-color-secondary": "#2b7fff",
+  "theme-color-text-default": "#101828",
+  "theme-color-text-muted": "#4a556599",
+  "theme-style-shadow-sm": [
+    {
+      "color": "#0000001a",
+      "offsetX": "0px",
+      "offsetY": "1px",
+      "blur": "2px",
+      "spread": "0px"
+    }
+  ],
+  "theme-style-shadow-md": [
+    {
+      "color": "#10182826",
+      "offsetX": "0px",
+      "offsetY": "4px",
+      "blur": "6px",
+      "spread": "0px"
+    }
+  ],
+  "theme-dimension-alpha-sm": 0.16,
+  "theme-dimension-alpha-md": 0.36,
+  "theme-dimension-alpha-lg": 0.6
+}

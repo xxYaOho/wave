@@ -1,0 +1,194 @@
+{
+ "head": "519c8e2f473d212402cb69b1b450173739d925b9",
+ "gitDirty": false,
+ "capturedAt": "2026-11-11T23:58:27Z",
+ "commands": [
+  "pnpm build",
+  "dist/wave token build -f tests/fixtures/themes/standard/main.yaml --output docs/island/plans/2026-11-11-p1-baseline/single-pre",
+  "dist/wave token build -f /Users/teatao/Projects/my-color/orca/main.yaml --profiles all --output docs/island/plans/2026-11-11-p1-baseline/multi-pre",
+  "dist/wave token build -f /Users/teatao/Projects/my-color/orca/main.yaml --profiles all --night --output docs/island/plans/2026-11-11-p1-baseline/night-pre"
+ ],
+ "env": {
+  "runtime": "bun",
+  "bun": "1.4.0",
+  "platform": "Darwin",
+  "arch": "arm64",
+  "cpuCount": 14,
+  "lockfileHash": "3d05941e5e2a19da95406be10026a7c1ad6ea3ee23cceaf435d83ecf48af3b0a",
+  "orcaInputHash": "24b125403d8fab1696d7b2b4f004f2136550f14be7eace54b7b2cea20f3ee97f",
+  "fixtureInputHash": "5629260dbb76c607297b5fe645e4903ae376874cbdefb3171969be6e9197f2cb"
+ },
+ "files": [
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/single-pre/test-standard.css",
+   "sha256": "3adbb8da1fff65ab65c8f701cf843297533487ce90800388f72611c5f9a1818a",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/single-pre/test-standard.json",
+   "sha256": "e33a65953ce6dc221dc15558b7a39fd08920e498460229e423b1a6c806c164a2",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-crbps-deep-style-a.css",
+   "sha256": "11ff0d7a30f5c8930c2c17a6c8d0c9b8d3371a512030c9193e83d3d937a666dd",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-crbps-deep-style-a2sketch.json",
+   "sha256": "dd42176764a38e645a16ea6a152ed3ecf21b5f2bc4c03c52080ddbb381e2fbd0",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-crbps-deep-style-b.css",
+   "sha256": "3d2e769bff2cd2510e5e25b485863382d6dd2970af24d801731093190fdce0a1",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-crbps-deep-style-b2sketch.json",
+   "sha256": "8eb7af22b1dfc03a833ef6d717669396dfe513ca3b906bf261d498341ce2a44f",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-crbps-deep-v1.css",
+   "sha256": "0dbeb7d7a66fad85718bd62209eb0bd809af50b256b67d7ade1b4aea5acba01f",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-crbps-deep-v12sketch.json",
+   "sha256": "c9790b353c418079622130d0daf6ec93dc7ca3907da95d2fdd3e0ade8576630d",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-crbps.css",
+   "sha256": "ee3626b97efea0c23dd65f216a38cefbcb5da9248a210790af5d78f651d8aee7",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-crbps2sketch.json",
+   "sha256": "3fe41aefabbb9c4742b431bf3ac276ac88c778c02ccd0c6816daa1750f979cb2",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-v-jzy.css",
+   "sha256": "3df61435873c67466090d1f933a1aeabfc76c5a2087888b7278ce7452b1db7e8",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-v-jzy2sketch.json",
+   "sha256": "bbc4053206dd57f2839ca41a77233d788c4ef680ae995cda169b96ddaa7ea1ff",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-v-sdjy.css",
+   "sha256": "6af26ecda783577fb30fcebc9813e340bb28bbb830e1be551d93edf1cfd087d5",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-v-sdjy2sketch.json",
+   "sha256": "333fc664b5060677632a3354fe2ee23755ab1a83a17c87a858256f0fd6e76792",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca.css",
+   "sha256": "d38459b7bb42cf3e43a233ed7cecb6a6745e58d036a5aba09b65b22184674e59",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca2sketch.json",
+   "sha256": "34823e07a6db9e14dee4fadf454e79e24671a10006256d2a7a498214ffe055de",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-crbps-deep-style-a.css",
+   "sha256": "11ff0d7a30f5c8930c2c17a6c8d0c9b8d3371a512030c9193e83d3d937a666dd",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-crbps-deep-style-a2sketch.json",
+   "sha256": "dd42176764a38e645a16ea6a152ed3ecf21b5f2bc4c03c52080ddbb381e2fbd0",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-crbps-deep-style-b.css",
+   "sha256": "3d2e769bff2cd2510e5e25b485863382d6dd2970af24d801731093190fdce0a1",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-crbps-deep-style-b2sketch.json",
+   "sha256": "8eb7af22b1dfc03a833ef6d717669396dfe513ca3b906bf261d498341ce2a44f",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-crbps-deep-v1.css",
+   "sha256": "0dbeb7d7a66fad85718bd62209eb0bd809af50b256b67d7ade1b4aea5acba01f",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-crbps-deep-v12sketch.json",
+   "sha256": "c9790b353c418079622130d0daf6ec93dc7ca3907da95d2fdd3e0ade8576630d",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-crbps.css",
+   "sha256": "ee3626b97efea0c23dd65f216a38cefbcb5da9248a210790af5d78f651d8aee7",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-crbps2sketch.json",
+   "sha256": "3fe41aefabbb9c4742b431bf3ac276ac88c778c02ccd0c6816daa1750f979cb2",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-night.css",
+   "sha256": "8bd35d0613a6239ffae817781dda1006f4c60ad0d9b6b2e7fb54a2731511eaf3",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-night2sketch.json",
+   "sha256": "f950a6cbe69cda486ec00f0082fa5a6555d773e7885627d5f3b9a2c19ebde0b7",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-v-jzy.css",
+   "sha256": "3df61435873c67466090d1f933a1aeabfc76c5a2087888b7278ce7452b1db7e8",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-v-jzy2sketch.json",
+   "sha256": "bbc4053206dd57f2839ca41a77233d788c4ef680ae995cda169b96ddaa7ea1ff",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-v-sdjy.css",
+   "sha256": "6af26ecda783577fb30fcebc9813e340bb28bbb830e1be551d93edf1cfd087d5",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca-v-sdjy2sketch.json",
+   "sha256": "333fc664b5060677632a3354fe2ee23755ab1a83a17c87a858256f0fd6e76792",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca.css",
+   "sha256": "d38459b7bb42cf3e43a233ed7cecb6a6745e58d036a5aba09b65b22184674e59",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca2sketch.json",
+   "sha256": "34823e07a6db9e14dee4fadf454e79e24671a10006256d2a7a498214ffe055de",
+   "role": "output"
+  },
+  {
+   "path": "tests/fixtures/themes/standard/main.yaml",
+   "sha256": "4e276a428f030db47f21a2df66dcf8ea9f8d039b34739bf0356c1324edbf8ada",
+   "role": "input"
+  },
+  {
+   "path": "/Users/teatao/Projects/my-color/orca/main.yaml",
+   "sha256": "0334d940f5ad82e9d65ff5431c245b44cf80f8e67b86e147dfb674671676196d",
+   "role": "input"
+  }
+ ],
+ "gitDirtyScope": "tracked-files-only (untracked baseline evidence artifacts excluded by definition)"
+}

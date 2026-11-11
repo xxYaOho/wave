@@ -1,0 +1,190 @@
+:root {
+  font-size: 14px;
+  /* light mode */
+  --color-transparent: #00000000; /* 透明, 对应开发中的 `transparent` 值 */
+  /* 主色, 品牌色. */
+  --color-primary-main: #1960dd;
+  --color-primary-on-main: #eff8ff;
+  --color-primary-container: #1a458d3d;
+  --color-primary-on-container: #5cb6fe;
+  /* 辅助色, 与主色 (品牌色)配合 */
+  --color-secondary-main: #2cd9ff;
+  --color-secondary-on-main: #04384d;
+  --color-secondary-container: #effbff;
+  --color-secondary-on-container: #007fab;
+  /* 中性自然色, 适应大多数色彩 */
+  --color-neutral-main: #e2e8f0;
+  --color-neutral-on-main: #1d293d;
+  --color-neutral-container: #0f172b3d;
+  --color-neutral-on-container: #cad5e2;
+  /* 错误, 严重提示. 多数情况下 hue='0-5' */
+  --color-error-main: #fb2c36;
+  --color-error-on-main: #ffffff;
+  --color-error-container: #ff64673d;
+  --color-error-on-container: #e7000b;
+  /* 警告, 重度提示. 多数情况下 hue='10-20' */
+  --color-warning-main: #ff6900;
+  --color-warning-on-main: #ffffff;
+  --color-warning-container: #ff69003d;
+  --color-warning-on-container: #f54900;
+  /* 注意, 轻度提示. 多数情况下 hue='35-45' */
+  --color-attention-main: #fdc700;
+  --color-attention-on-main: #432004;
+  --color-attention-container: #d087003d;
+  --color-attention-on-container: #d08700;
+  /* 安全. 多数情况下 hue='150-160' */
+  --color-success-main: #00c950;
+  --color-success-on-main: #ffffff;
+  --color-success-container: #00a63e3d;
+  --color-success-on-container: #008236;
+  /* 安全. 多数情况下 hue='150-160' */
+  --color-info-main: #2b7fff;
+  --color-info-on-main: #ffffff;
+  --color-info-container: #2b7fff3d;
+  --color-info-on-container: #155dfc;
+  /* 文本 */
+  --color-text-emphasis: #ffffff;
+  --color-text-default: #f5f9ff;
+  --color-text-subtle: #f5f9ffd9;
+  --color-text-subtlest: #f5f9ff99;
+  --color-text-disabled: #f5f9ff5c;
+  /* 边框 */
+  --color-border-emphasis: #e2e8f03d; /* 强 */
+  --color-border-default: #e2e8f029; /* 默认 */
+  --color-border-subtle: #e2e8f014; /* 弱 */
+  --color-outline-default: #1960dd5c; /* 带品牌色调取向的焦点环 */
+  --color-outline-entry-box: #e2e8f029; /* 带品牌色调取向的焦点环 */
+  --color-outline-ring: #1960dd; /* 带品牌色调取向的焦点环 */
+  /* 背景层 */
+  --color-surface-bright: #05162e; /* 提升层, 用于需要提高亮度的区域 */
+  --color-surface-default: #030d1c; /* 主背景, 基于 deepGray.light.100 的微调 */
+  --color-surface-dim: #010409; /* 下降层, 用于需要降低亮度的区域 */
+  /* 容器, 框架层 */
+  --color-container-highest: #0b3165; /* 最高层级, 比如 modal, dialog */
+  --color-container-high: #092853; /* 抬升层级, 比如 popover, dropdown */
+  --color-container-default: #071f40; /* 标准层级, 用于大多数组件的默认容器 */
+  --color-container-low: #05162e; /* 次级层级, 比如 card, list, table */
+  --color-container-lowest: #030d1c; /* 最低层级(视觉下沉), 比如 input-field */
+  --color-scrim: #000000bf; /* 半透明遮罩,用于 modal/drawer 背景 */
+  --color-shadow: #0f172b; /* 主题色倾向 */
+  --color-inverse-surface: #0f172bd9; /* 反色背景(通常是深色), 比如 Snackbar, Toast */
+  --color-inverse-on-surface: #ffffff;
+  --color-inverse-primary: #daeeff; /* 反色主色, 比如 media-play-progress-bar */
+  --color-inverse-g-hover: #0000000a;
+  /* 覆写 AntD 主题样式 */
+  --color-overwrite-antd-light-primary: #1872f0;
+  --color-overwrite-antd-dark-primary: #1872f0;
+  --color-overwrite-antd-dark-bg-base: #030d1c;
+  --color-overwrite-antd-dark-text-base: #f5f9ff;
+  /* 状态交互 */
+  --state-hover: 0.08; /* 悬浮 */
+  --state-press: 0.16; /* 按下 */
+  --state-focus: 0.08; /* 聚焦 */
+  --state-drag: 0.48; /* 拖拽 */
+  /* 层级投影 */
+  --shadow-elevation-low: 0 0 2px 1px rgb(15 23 43 / 0.02), 0 0 3px 1px rgb(15 23 43 / 0.02), 0 2px 5px 0 rgb(15 23 43 / 0.04), 0 4px 8px -2px rgb(15 23 43 / 0.06); /* 微微升起, card, list */
+  --shadow-elevation-high: 0 2px 4px -1px rgb(15 23 43 / 0.02), 0 3px 6px -2px rgb(15 23 43 / 0.02), 0 5px 13px -3px rgb(15 23 43 / 0.04), 0 8px 24px -6px rgb(15 23 43 / 0.06); /* 漂浮; popover, dropdwon */
+  --shadow-elevation-highest: 0 2px 6px -1px rgb(15 23 43 / 0.02), 0 4px 9px -2px rgb(15 23 43 / 0.02), 0 8px 18px -4px rgb(15 23 43 / 0.04), 0 16px 32px -8px rgb(15 23 43 / 0.06); /* 悬浮; modal, dialog */
+  --shadow-elevation-sky: 0 6px 6px -2px rgb(15 23 43 / 0.02), 0 9px 11px -3px rgb(15 23 43 / 0.02), 0 18px 25px -6px rgb(15 23 43 / 0.03), 0 32px 48px -12px rgb(15 23 43 / 0.04); /* 空中; 一般是 hero 页面的特殊漂浮 */
+  /* 渐变色 */
+  --gradient-mask-soft: linear-gradient(to right, rgb(15 23 43 / 0) 0%, rgb(15 23 43 / 0.01) 13%, rgb(15 23 43 / 0.06) 25%, rgb(15 23 43 / 0.14) 38%, rgb(0 0 0 / 0.25) 50%, rgb(0 0 0 / 0.39) 63%, rgb(0 0 0 / 0.56) 75%, rgb(0 0 0 / 0.77) 88%, rgb(0 0 0 / 1) 100%); /* 平滑渐变遮罩层 */
+  --gradient-mask-strong: linear-gradient(to right, rgb(15 23 43 / 0) 0%, rgb(15 23 43 / 0.23) 13%, rgb(15 23 43 / 0.44) 25%, rgb(15 23 43 / 0.61) 38%, rgb(0 0 0 / 0.75) 50%, rgb(0 0 0 / 0.86) 63%, rgb(0 0 0 / 0.94) 75%, rgb(0 0 0 / 0.99) 88%, rgb(0 0 0 / 1) 100%); /* 平滑渐变遮罩层, 播放器使用 */
+  /* 圆角 */
+  --radius-max: 9999px;
+  --radius-xxl: 24px;
+  --radius-xl: 16px;
+  --radius-lg: 10px;
+  --radius-md: 8px;
+  --radius-sm: 6px;
+  --radius-xs: 4px;
+  --radius-xxs: 2px;
+  --radius-zero: 0;
+  /* 边框 */
+  --border-width-sm: 1px;
+  --border-width-md: 2px;
+  --border-antline: 1px dashed #e2e8f029;
+  --border-antline-dash-array: 4px 8px;
+  --border-antline-line-cap: butt;
+  --border-sm: 1px solid #e2e8f029;
+  --border-md: 1px solid #e2e8f03d;
+  --border-outline-ring: 2px solid #1960dd;
+  --border-outline-ring-offset: 2px;
+  /* 文本 */
+  --font-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-font-size: 14;
+  /* 顶部标题文本 */
+  --font-heading-h1-size: 2.5rem;
+  --font-heading-h1-weight: 700;
+  --font-heading-h1-line-height: 1.2;
+  --font-heading-h1-letter-spacing: 0px;
+  --font-heading-h1-color: var(--color-text-emphasis);
+  --font-heading-h2-size: 2rem;
+  --font-heading-h2-weight: 700;
+  --font-heading-h2-line-height: 1.2;
+  --font-heading-h2-letter-spacing: 0px;
+  --font-heading-h2-color: var(--color-text-emphasis);
+  --font-heading-h3-size: 1.5rem;
+  --font-heading-h3-weight: 500;
+  --font-heading-h3-line-height: 1.4;
+  --font-heading-h3-letter-spacing: 0px;
+  --font-heading-h3-color: var(--color-text-emphasis);
+  --font-heading-h4-size: 1.25rem;
+  --font-heading-h4-weight: 500;
+  --font-heading-h4-line-height: 1.35;
+  --font-heading-h4-letter-spacing: 0px;
+  --font-heading-h4-color: var(--color-text-emphasis);
+  --font-heading-h5-size: 1rem;
+  --font-heading-h5-weight: 500;
+  --font-heading-h5-line-height: 1.4;
+  --font-heading-h5-letter-spacing: 0px;
+  --font-heading-h5-color: var(--color-text-emphasis);
+  /* 正文 */
+  --font-text-hinting-size: 0.75rem;
+  --font-text-hinting-weight: 400;
+  --font-text-hinting-line-height: 1.5;
+  --font-text-hinting-letter-spacing: 0px;
+  --font-text-hinting-color: var(--color-text-default);
+  --font-text-body-size: 0.875rem;
+  --font-text-body-weight: 400;
+  --font-text-body-line-height: 1.45;
+  --font-text-body-letter-spacing: 0px;
+  --font-text-body-color: var(--color-text-default);
+  --font-text-body-simebold-size: 0.875rem;
+  --font-text-body-simebold-weight: 500;
+  --font-text-body-simebold-line-height: 1.55;
+  --font-text-body-simebold-letter-spacing: 0px;
+  --font-text-body-simebold-color: var(--color-text-default);
+  --font-text-body-special-size: 1rem;
+  --font-text-body-special-weight: 400;
+  --font-text-body-special-line-height: 1.55;
+  --font-text-body-special-letter-spacing: 0px;
+  --font-text-body-special-color: var(--color-text-default);
+  --font-text-body-special-simebold-size: 1rem;
+  --font-text-body-special-simebold-weight: 500;
+  --font-text-body-special-simebold-line-height: 1.5;
+  --font-text-body-special-simebold-letter-spacing: 0px;
+  --font-text-body-special-simebold-color: var(--color-text-default);
+  --font-text-body-truncate-e-size: 0.875rem;
+  --font-text-body-truncate-e-weight: 400;
+  --font-text-body-truncate-e-line-height: 1.45;
+  --font-text-body-truncate-e-letter-spacing: 0px;
+  --font-text-body-truncate-e-color: var(--color-text-default);
+  --font-text-fix-14-size: 14px;
+  --font-text-fix-14-weight: 400;
+  --font-text-fix-14-line-height: 1.55;
+  --font-text-fix-14-letter-spacing: 0px;
+  --font-text-fix-14-color: #f8fafc;
+  /* 等宽字体 */
+  --font-mono-hinting-family: "Departure Mono";
+  --font-mono-hinting-size: 12px;
+  --font-mono-hinting-weight: 400;
+  --font-mono-hinting-line-height: 1.45;
+  --font-mono-hinting-letter-spacing: 0px;
+  --font-mono-hinting-color: var(--color-text-default);
+  --font-mono-body-family: "Departure Mono";
+  --font-mono-body-size: 14px;
+  --font-mono-body-weight: 400;
+  --font-mono-body-line-height: 1.55;
+  --font-mono-body-letter-spacing: 0px;
+  --font-mono-body-color: var(--color-text-default);
+}
