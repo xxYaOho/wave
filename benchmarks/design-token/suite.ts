@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { collectEnvironmentMetadata } from '../shared/environment.ts';
 import {
 	type BenchmarkSuiteReport,
 	writeSuiteReport,
@@ -92,13 +93,14 @@ export async function runDesignTokenSuite(
 	}
 
 	const report: BenchmarkSuiteReport = {
-		schemaVersion: 1,
+		schemaVersion: 2,
 		name: 'design-token',
 		runId: options.runId,
 		mode: options.mode,
 		createdAt: new Date().toISOString(),
 		node: process.version,
 		bun: Bun.version,
+		environment: collectEnvironmentMetadata(repoRoot),
 		cases: results,
 	};
 	const reportPath = await writeSuiteReport(report, resultsDir);

@@ -34,6 +34,7 @@ import {
 import { withEnv } from '../shared/env.ts';
 import type {
 	BenchmarkCaseResult,
+	BenchmarkOperationContract,
 	PhaseDurations,
 	QualityHarnessMode,
 } from '../shared/types.ts';
@@ -89,6 +90,36 @@ function createInitialPhases(): PhaseDurations {
 	};
 }
 
+function designTokenOperation(
+	testCase: DesignTokenCase,
+): BenchmarkOperationContract {
+	return {
+		name: `token.build.${testCase.id}`,
+		domain: 'design-token',
+		action: 'generate-design-token-outputs',
+		parameters: {
+			caseId: testCase.id,
+			platforms: testCase.platforms.join(','),
+			includeNight: testCase.includeNight,
+			includeProfiles: testCase.includeProfiles,
+			filterLayer: testCase.filterLayer,
+		},
+		timing: {
+			start: 'operation-start',
+			end: 'operation-complete',
+			metric: 'durationMs',
+			completion: 'result-returned',
+		},
+		comparison: {
+			key: testCase.id,
+			metric: 'meanMs',
+			unit: 'ms',
+			direction: 'lower-is-better',
+		},
+		successCondition: 'all planned output files are generated successfully',
+	};
+}
+
 function parseYamlObject(content: string): Record<string, unknown> | undefined {
 	const parsed = yaml.load(content);
 	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -115,6 +146,8 @@ function failureResult(
 		caseVersion: testCase.caseVersion,
 		mode: options.mode,
 		entryKind: testCase.entryKind,
+		domain: 'design-token',
+		operation: designTokenOperation(testCase),
 		status: 'failure',
 		error,
 		iterations: 1,
@@ -369,6 +402,8 @@ export async function runDesignTokenBenchmarkCase(
 					caseVersion: testCase.caseVersion,
 					mode: options.mode,
 					entryKind: testCase.entryKind,
+					domain: 'design-token',
+					operation: designTokenOperation(testCase),
 					status: 'success',
 					iterations: 1,
 					warmup: 0,

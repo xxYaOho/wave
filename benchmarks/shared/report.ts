@@ -1,15 +1,16 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import type { BenchmarkCaseResult } from './types.ts';
+import type { BenchmarkCaseResult, EnvironmentMetadata } from './types.ts';
 
 export interface BenchmarkSuiteReport {
-	schemaVersion: 1;
+	schemaVersion: 1 | 2;
 	name: string;
 	runId: string;
 	mode: string;
 	createdAt: string;
 	node: string;
 	bun: string;
+	environment?: EnvironmentMetadata;
 	cases: BenchmarkCaseResult[];
 }
 
@@ -27,5 +28,24 @@ export async function readSuiteReport(
 	filePath: string,
 ): Promise<BenchmarkSuiteReport> {
 	const content = await fs.readFile(filePath, 'utf-8');
-	return JSON.parse(content) as BenchmarkSuiteReport;
+	const parsed: unknown = JSON.parse(content);
+	if (!isRecord(parsed)) {
+		throw new Error(`Invalid benchmark report: ${filePath}`);
+	}
+	const schemaVersion = parsed.schemaVersion;
+	if (schemaVersion !== 1 && schemaVersion !== 2) {
+		throw new Error(
+			`Unsupported benchmark report schemaVersion ${String(schemaVersion)}: ${filePath}`,
+		);
+	}
+	if (!Array.isArray(parsed.cases)) {
+		throw new Error(`Invalid benchmark report cases: ${filePath}`);
+	}
+	return parsed as unknown as BenchmarkSuiteReport;
+}
+
+export const readBenchmarkReport = readSuiteReport;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

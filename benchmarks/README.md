@@ -71,6 +71,18 @@ design-token suite 不使用用户本机 resource cache。runner 会：
 
 如果只是单次本机波动，不应立刻重构。先复跑，确认趋势，再定位阶段。
 
+## 统一六域观测
+
+`bun benchmarks/run.ts` 一次运行六个固定观测域：`cold-start`（开发入口与
+构建产物的独立进程）、`token-single-profile`、`token-multi-profile`、`night`、
+`compress` 和 `manual`。可用 `--iterations`、`--warmup`、`--run-id`、
+`--domain`、`--tmp-root` 和 `--results-dir` 控制采样与落盘位置。
+
+统一报告使用 schemaVersion 2。每个域声明操作参数、计时起止、成功条件和比较
+条件，并记录原始样本、分布统计和环境元数据；`readSuiteReport` 继续读取
+schemaVersion 1 的历史报告。`compare.ts` 使用操作声明的比较 key 对齐结果，兼容
+旧报告按 `case.id` 对齐。
+
 ## 接入新模块的规则
 
 新模块接入前先确认它确实需要 Quality Harness。接入时至少提供：

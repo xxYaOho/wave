@@ -14,5 +14,6 @@ export function calculateStats(values: number[]): BenchmarkStats | undefined {
 		minMs: sorted[0] ?? 0,
 		maxMs: sorted.at(-1) ?? 0,
 		p95Ms: sorted[p95Index] ?? null,
+		samplesMs: [...values],
 	};
 }

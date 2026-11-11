@@ -3,6 +3,8 @@ import type { BenchmarkCaseResult } from './types.ts';
 
 export interface BenchmarkComparisonCase {
 	id: string;
+	comparisonKey?: string;
+	domain?: string;
 	status: 'ok' | 'missing' | 'new' | 'regressed' | 'improved' | 'changed';
 	baseMeanMs?: number;
 	currentMeanMs?: number;
@@ -62,16 +64,20 @@ function compareArtifacts(
 	return notes;
 }
 
+function comparisonKey(testCase: BenchmarkCaseResult): string {
+	return testCase.operation?.comparison.key ?? testCase.id;
+}
+
 export function compareSuiteReports(
 	base: BenchmarkSuiteReport,
 	current: BenchmarkSuiteReport,
 	thresholdPercent: number = 15,
 ): BenchmarkComparisonReport {
 	const baseCases = new Map(
-		base.cases.map((testCase) => [testCase.id, testCase]),
+		base.cases.map((testCase) => [comparisonKey(testCase), testCase]),
 	);
 	const currentCases = new Map(
-		current.cases.map((testCase) => [testCase.id, testCase]),
+		current.cases.map((testCase) => [comparisonKey(testCase), testCase]),
 	);
 	const ids = [
 		...new Set([...baseCases.keys(), ...currentCases.keys()]),
@@ -83,7 +89,9 @@ export function compareSuiteReports(
 		const currentCase = currentCases.get(id);
 		if (!baseCase) {
 			cases.push({
-				id,
+				id: currentCase?.id ?? id,
+				comparisonKey: id,
+				domain: currentCase?.domain,
 				status: 'new',
 				notes: ['current report added this case'],
 			});
@@ -91,7 +99,9 @@ export function compareSuiteReports(
 		}
 		if (!currentCase) {
 			cases.push({
-				id,
+				id: baseCase.id,
+				comparisonKey: id,
+				domain: baseCase.domain,
 				status: 'missing',
 				notes: ['current report is missing this case'],
 			});
@@ -99,6 +109,40 @@ export function compareSuiteReports(
 		}
 
 		const notes: string[] = [];
+		if (
+			baseCase.domain !== undefined &&
+			currentCase.domain !== undefined &&
+			baseCase.domain !== currentCase.domain
+		) {
+			notes.push(
+				`domain changed: ${baseCase.domain ?? 'legacy'} -> ${currentCase.domain ?? 'legacy'}`,
+			);
+		}
+		if (
+			baseCase.operation !== undefined &&
+			currentCase.operation !== undefined &&
+			baseCase.operation.name !== currentCase.operation.name
+		) {
+			notes.push(
+				`operation changed: ${baseCase.operation?.name ?? 'legacy'} -> ${currentCase.operation?.name ?? 'legacy'}`,
+			);
+		}
+		if (
+			baseCase.operation !== undefined &&
+			currentCase.operation !== undefined &&
+			JSON.stringify(baseCase.operation.timing) !==
+				JSON.stringify(currentCase.operation.timing)
+		) {
+			notes.push('timing contract changed');
+		}
+		if (
+			baseCase.operation !== undefined &&
+			currentCase.operation !== undefined &&
+			JSON.stringify(baseCase.operation.comparison) !==
+				JSON.stringify(currentCase.operation.comparison)
+		) {
+			notes.push('comparison contract changed');
+		}
 		if (baseCase.status !== currentCase.status) {
 			notes.push(`status changed: ${baseCase.status} -> ${currentCase.status}`);
 		}
@@ -118,7 +162,9 @@ export function compareSuiteReports(
 		const currentMeanMs = currentCase.stats?.meanMs;
 		if (baseMeanMs === undefined || currentMeanMs === undefined) {
 			cases.push({
-				id,
+				id: currentCase.id,
+				comparisonKey: id,
+				domain: currentCase.domain,
 				status: notes.length > 0 ? 'changed' : 'ok',
 				notes,
 			});
@@ -143,7 +189,9 @@ export function compareSuiteReports(
 		}
 
 		cases.push({
-			id,
+			id: currentCase.id,
+			comparisonKey: id,
+			domain: currentCase.domain,
 			status,
 			baseMeanMs,
 			currentMeanMs,
