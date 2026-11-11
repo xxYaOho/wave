@@ -113,8 +113,8 @@ worktree `p2-compress-performance` 已建（基点 b245c71），SPEC 与施工�
 - 依赖：Q0 已集成 main。
 - 固有风险：并发引入的写入顺序差异不得影响输出内容；校验-写入窗口在并发下不得扩大（校验仍在派发前完成）。
 
-- [ ] 编排五阶段重构与有界信号量实现。
-- [ ] 并发/串行输出等价测试与既有 CLI 测试回归。
+- [x] 编排五阶段重构与有界信号量实现。（5f316f5；并发常量 2，permit 覆盖编码/分类/写入 settle，结果按扫描顺序）
+- [x] 并发/串行输出等价测试与既有 CLI 测试回归。（六场景 SHA256 等价含 unchanged/quality/SVG/dry-run/递归复跑/冲突；16 项编排回归 + 3 项 CLI 聚合回归）
 
 ### Task-2
 
@@ -125,11 +125,13 @@ worktree `p2-compress-performance` 已建（基点 b245c71），SPEC 与施工�
 - 依赖：Task-1。
 - 固有风险：失败聚合的退出码语义需与既有 CLI 约定一致；聚合报告不得破坏 JSON 输出结构（既有测试覆盖）。
 
-- [ ] resolver 进程内缓存与扫描复用。
-- [ ] 逐项失败聚合与退出码、渲染、测试。
+- [x] resolver 进程内缓存与扫描复用。（实证裁决：基线 preview=0 probes / run=4 resolutions 全去重，缓存按撤回合同撤回；扫描复用以 WeakMap 快照 + 匹配校验 + 执行前整批重校验实现）
+- [x] 逐项失败聚合与退出码、渲染、测试。（结果冻结合同字面落地：summary.issues 增量、written:boolean 保留、硬失败项仅标识+result+code+message、WCP_COMPRESS_FAILED/WCP_WRITE_FAILED）
 
 > [!IMPORTANT]
 > Milestone-1 闸门：主代理核对等价性证据与全量回归，任一未过不得进入 M2。
+>
+> 闸门结果（2026-11-12，通过）：交付 HEAD `5f316f5`（单笔提交，4 个授权文件，工作区冻结）。六场景等价（含递归复跑串行回退）、preflight 缺工具整批零写入回归、结果冻结合同字面落地；resolver 缓存实证撤回（M3 关闭）；1206 pass / 0 fail、typecheck/build/style 全 0。已接受偏差（主代理裁决）：`bun test --timeout 15000` 替代默认 5s 作为本宿主验证命令——既有 help 遍历测试在原始未修改基线上同样超 5s（独立归档证据），属宿主并发负载环境事实，非代码或断言变更；是否制度化调整默认时限待 Human 检查点裁决。
 
 ## Milestone-2
 
