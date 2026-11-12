@@ -2,7 +2,7 @@
 # P1b capture protocol (spike: 3 iterations via --iterations; frozen protocol: 30)
 # Usage:
 #   scripts/capture-p1b-statistics.sh --anchor <commit|HEAD> --run-id <id> \
-#     --evidence-dir <dir> [--iterations N] [--warmup N] [--repo-root <dir>]
+#     --evidence-dir <dir> [--iterations N] [--warmup N]
 set -euo pipefail
 
 ANCHOR=""
