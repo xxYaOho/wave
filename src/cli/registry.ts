@@ -259,7 +259,7 @@ const MANUAL_HREFS: Record<string, string> = {
 	version: '/quickstart',
 };
 
-export const versionCommand = new Command('version')
+const versionCommand = new Command('version')
 	.description('Show version number')
 	.action(() => {
 		console.log(VERSION);

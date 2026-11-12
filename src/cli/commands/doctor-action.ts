@@ -218,7 +218,7 @@ function renderThemeIdentityReport(
 	}
 }
 
-export async function runDesignTokenContrastCheck(options: {
+async function runDesignTokenContrastCheck(options: {
 	file?: string;
 	night?: boolean;
 }): Promise<void> {
