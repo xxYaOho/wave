@@ -12,7 +12,7 @@ dispatch: FULL-1 FAIL（3F/6M/1m）→ v2 → FULL-2 FAIL（1F/8M/1m，FATAL 强
 
 ## Solution
 
-构建期双轨产物 + 三个消费改造：① `buildManualData` 产物只增——**legacy `manual-data.json` 形状零修改**（SPA 回退保证），新增逐路由内容块（`pages/<locale>/<route>.json`）与构建期搜索索引（`search-index.json`，记录形状冻结）；② SPA 路由 dynamic import 逐路由块 + 搜索消费构建期索引（legacy JSON 作回退通道）；③ `wave manual -m [query]` 扩展为手册页面级文本直读（三模式可判定合同）——经既有 `-m` 链（index.ts/manual-markdown.ts）实现，**语义变化范围仅限 manual 命令自身的 -m**（其他命令的 -m 行为零变化）。server 交互路径回归保护实体化为测试。
+构建期双轨产物 + 三个消费改造：① `buildManualData` 产物只增——**legacy `manual-data.json` 形状零修改**（SPA 回退保证），新增逐路由内容块（`pages/<locale>/<route>.json`）与构建期搜索索引（`search-index.json`，记录形状冻结）；② SPA 路由 runtime fetch 逐路由块 + 搜索消费构建期索引（legacy JSON 仅降级回退）；③ `wave manual -m [query]` 扩展为手册页面级文本直读（三模式可判定合同）——经既有 `-m` 链（index.ts/manual-markdown.ts）实现，**语义变化范围仅限 manual 命令自身的 -m**（其他命令的 -m 行为零变化）。server 交互路径回归保护实体化为测试。
 
 ## Rex 对话协议
 
@@ -99,7 +99,7 @@ worktree `m1-manual-performance`（已 FF 到 main @ f83196c）。顺序：Task-
 
 SPA 分包、-m 直读与回归三件套（来源：User Story 1；Decisions 2/3/4/5/6/7；Testing Decisions 全部）
 
-- 验收标准：SPA 路由 dynamic import + 回退合同生效；搜索消费构建期索引；text-reader 三模式 + index.ts/manual-markdown.ts 最小接线（其他命令 -m 零变化断言通过）；server 回归测试实体化全绿；manual:dev 冒烟通过；分包门禁复验；视觉负向门禁（diff 不含 styles.css/BrandMark）；既有 cli-manual/build-cli 测试零断言变更；全量质量门绿。Task-1 勘测清单逐项消费（改接/显式不变 + 理由）。
+- 验收标准：SPA 路由 runtime fetch 按需加载 + 回退合同生效；搜索消费构建期索引；text-reader 三模式 + index.ts/manual-markdown.ts 最小接线（其他命令 -m 零变化断言通过）；server 回归测试实体化全绿；manual:dev 冒烟通过；分包门禁复验；视觉负向门禁（diff 不含 styles.css/BrandMark）；既有 cli-manual/build-cli 测试零断言变更；全量质量门绿。Task-1 勘测清单逐项消费（改接/显式不变 + 理由）。
 - 可动文件范围：`src/manual-app/src/{manual-data.ts, App.tsx, 路由相关模块}`、`src/core/manual/text-reader.ts`、`src/cli/index.ts`（manual 分支）、`src/cli/manual-markdown.ts`、`src/cli/commands/manual.ts`、`manual-action.ts`、`tests/m1-text-reader.test.ts`、`tests/m1-manual-server.test.ts`、`tests/manual-app.test.ts`（fetch mock 协议升级）、dev 冒烟脚本。
 - 依赖：Task-1（勘测清单）。
 - 固有风险：manual 预解析分支触碰面（闸门查其他命令零变化断言）；路由块回退通道的加载时序。
