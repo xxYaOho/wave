@@ -3,6 +3,7 @@ import * as readline from 'node:readline/promises';
 import pc from 'picocolors';
 import {
 	type CompressFileType,
+	type CompressInputPreview,
 	type CompressResult,
 	previewCompressInput,
 	runCompress,
@@ -78,6 +79,10 @@ function renderCompressResult(
 		lines.push(line('  No supported files found.', width));
 	} else {
 		for (const item of result.items) {
+			if (item.result === 'hard-failed') {
+				lines.push(fileLine(item.relativePath, 'failed', '', item.code, width));
+				continue;
+			}
 			const saved =
 				item.status === 'unchanged'
 					? 'unchanged'
@@ -113,8 +118,12 @@ function renderCompressResult(
 	if (options.prompt) {
 		lines.push(centerLine('Write compressed output? [y/N]', width));
 	} else {
-		const summary = hasError
-			? 'Compression blocked'
+		const summary = result.cancelled
+			? `Compression cancelled; ${result.summary.writtenCount} ${result.summary.writtenCount === 1 ? 'file' : 'files'} written`
+			: hasError
+				? result.summary.total > 0
+					? `Compression completed with ${result.summary.hardFailed} failed`
+					: 'Compression blocked'
 			: result.written
 				? renderCompressSavedSummary(result)
 				: 'Preview only, no files written';
@@ -140,11 +149,11 @@ function formatReceiptPercent(value: number): string {
 
 function renderCompressSavedSummary(result: CompressResult): string {
 	const beforeBytes = result.items.reduce(
-		(sum, item) => sum + item.beforeBytes,
+		(sum, item) => sum + (item.result === 'hard-failed' ? 0 : item.beforeBytes),
 		0,
 	);
 	const afterBytes = result.items.reduce(
-		(sum, item) => sum + item.afterBytes,
+		(sum, item) => sum + (item.result === 'hard-failed' ? 0 : item.afterBytes),
 		0,
 	);
 	const savedPercent =
@@ -254,8 +263,9 @@ export function createCompressActionCommandAction() {
 			const types = parseTypes(options.type);
 			const quality = parseQuality(options.quality);
 			const shouldPrompt = !options.dryRun && !options.yes && !options.json;
+			let preview: CompressInputPreview | undefined;
 			if (shouldPrompt) {
-				const preview = await previewCompressInput({
+				preview = await previewCompressInput({
 					input: resolvedInput,
 					outDir: options.output,
 					recursive: options.recursive,
@@ -271,19 +281,27 @@ export function createCompressActionCommandAction() {
 					? startLoading('Compressing')
 					: undefined;
 			let result: CompressResult;
+			const cancellation = new AbortController();
+			const cancel = () => cancellation.abort();
+			process.on('SIGINT', cancel);
 			try {
-				result = await runCompress({
-					input: resolvedInput,
-					outDir: options.output,
-					recursive: options.recursive,
-					types,
-					quality,
-					dryRun: options.dryRun || (options.json && !options.yes),
-					yes: options.yes || shouldPrompt,
-					force: options.force,
-					icon: options.icon,
-				});
+				result = await runCompress(
+					{
+						input: resolvedInput,
+						outDir: options.output,
+						recursive: options.recursive,
+						types,
+						quality,
+						dryRun: options.dryRun || (options.json && !options.yes),
+						yes: options.yes || shouldPrompt,
+						force: options.force,
+						icon: options.icon,
+						signal: cancellation.signal,
+					},
+					preview,
+				);
 			} finally {
+				process.removeListener('SIGINT', cancel);
 				loading?.stop();
 			}
 			if (options.json) {
@@ -291,11 +309,11 @@ export function createCompressActionCommandAction() {
 			} else {
 				console.log(renderCompressResult(result));
 			}
-			process.exitCode = result.issues.some(
-				(issue) => issue.severity === 'error',
-			)
-				? ExitCode.GENERAL_ERROR
-				: ExitCode.SUCCESS;
+			process.exitCode = result.cancelled
+				? 130
+				: result.issues.some((issue) => issue.severity === 'error')
+					? ExitCode.GENERAL_ERROR
+					: ExitCode.SUCCESS;
 		} catch (err) {
 			if (options.json) {
 				console.log(
