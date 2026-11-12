@@ -126,7 +126,7 @@ C1、P1、P2 若出现共享文件，以实际依赖为准暂停冲突分支。�
 | --- | --- | --- | --- | --- | --- |
 | Q0 | 质量基线与性能观测 | 当前 CLI 计划 | 已交付（2026-11-12 集成 main，台账全清） | main @ 0d7d36c | SPEC: docs/island/plans/2026-11-11-q0-quality-baseline.md |
 | C1 | CLI 控制面 | 当前 CLI 计划、Q0 | 已交付（2026-11-12 集成 main，台账全清；元数据统一 + 懒加载 + 共享测试基座） | main @ 57fd14f | SPEC: docs/island/plans/2026-11-11-c1-cli-control-plane.md |
-| P1 | Token 性能 | Q0 | 拆分为 P1a/P1b（Human 裁决 2026-11-12）；P1a（缓存 memo）FULL-4 FAIL 1F/1M/3m → v6 DELTA（Doctor 承接文件映射 doctor-action、基线哈希方法钉死 915364b、口径澄清）待同 reviewer 复核；P1b（统计与测量）待 P1a 交付后撰写 | p1 worktree @ 915364b | SPEC: docs/island/plans/2026-11-12-p1a-cache-memo.md（P1b 另立） |
+| P1 | Token 性能 | Q0 | 拆分为 P1a/P1b（Human 裁决 2026-11-12）；P1a（缓存 memo）SPEC v6 冻结（FULL-4→DELTA PASS 2026-11-12，台账全清），Milestone-1 施工中；P1b（统计与测量）待 P1a 交付后撰写 | p1 worktree @ d948ac0 | SPEC: docs/island/plans/2026-11-12-p1a-cache-memo.md（P1b 另立） |
 | P2 | Compress 性能 | Q0 | 已交付（2026-11-12 集成 main，台账全清；真实收益 oxipng/SVGO 中位加速 1.90x） | main @ 0a0b458 | SPEC: docs/island/plans/2026-11-11-p2-compress-performance.md |
 | C2 | Token 应用服务 | C1、P1 | 未撰写 | 未创建 | 避免与 P1 双写 pipeline |
 | M1 | Manual 性能 | 当前手册施工、C1 | 未撰写 | 未创建 | 可与 C2 并行 |
