@@ -125,7 +125,7 @@ C1、P1、P2 若出现共享文件，以实际依赖为准暂停冲突分支。�
 | ID | 计划 | 依赖 | 状态 | Worktree / HEAD | 备注 |
 | --- | --- | --- | --- | --- | --- |
 | Q0 | 质量基线与性能观测 | 当前 CLI 计划 | 已交付（2026-11-12 集成 main，台账全清） | main @ 0d7d36c | SPEC: docs/island/plans/2026-11-11-q0-quality-baseline.md |
-| C1 | CLI 控制面 | 当前 CLI 计划、Q0 | 已批准待施工（R1→DELTA PASS；M-01–M-03 台账 carry） | c1 worktree @ 0fbb6cc | SPEC: docs/island/plans/2026-11-11-c1-cli-control-plane.md |
+| C1 | CLI 控制面 | 当前 CLI 计划、Q0 | 已交付（2026-11-12 集成 main，台账全清；元数据统一 + 懒加载 + 共享测试基座） | main @ 57fd14f | SPEC: docs/island/plans/2026-11-11-c1-cli-control-plane.md |
 | P1 | Token 性能 | Q0 | R1 FAIL 修正延后（Q0 M2 已集成，可开始修正 + fresh FULL） | p1 worktree @ a4c62c8 | SPEC: docs/island/plans/2026-11-11-p1-token-performance.md |
 | P2 | Compress 性能 | Q0 | 已交付（2026-11-12 集成 main，台账全清；真实收益 oxipng/SVGO 中位加速 1.90x） | main @ 0a0b458 | SPEC: docs/island/plans/2026-11-11-p2-compress-performance.md |
 | C2 | Token 应用服务 | C1、P1 | 未撰写 | 未创建 | 避免与 P1 双写 pipeline |
