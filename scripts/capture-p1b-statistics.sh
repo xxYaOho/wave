@@ -134,6 +134,8 @@ cp "$REPORT_PATH" "$EVIDENCE_DIR/"
 
 HEAD_COMMIT="$(git rev-parse HEAD)"
 ANCHOR_COMMIT="$(git rev-parse "$ANCHOR" 2>/dev/null || echo "$ANCHOR")"
+NODE_VERSION="$(node --version)"
+LOAD_START="$(cut -d' ' -f1 /proc/loadavg 2>/dev/null || sysctl -n vm.loadavg 2>/dev/null | cut -d' ' -f2)"
 cat > "$EVIDENCE_DIR/$RUN_ID.capture-manifest.json" <<MANIFEST
 {
   "runId": "$RUN_ID",
@@ -144,7 +146,8 @@ cat > "$EVIDENCE_DIR/$RUN_ID.capture-manifest.json" <<MANIFEST
   "warmup": $WARMUP,
   "lockfileHash": "$ACTUAL_LOCK_HASH",
   "sourceDir": "$SOURCE_DIR",
-  "bun": "1.3.6",
+  "runtime": { "bun": "1.3.6", "node": "$NODE_VERSION", "platform": "$(uname -s)", "arch": "$(uname -m)" },
+  "hostLoad": { "load1mAtStart": "$LOAD_START", "note": "no parallel agents during capture (orchestrator serial execution)" },
   "report": "$RUN_ID.json"
 }
 MANIFEST
