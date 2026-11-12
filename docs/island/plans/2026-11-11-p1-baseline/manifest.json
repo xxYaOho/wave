@@ -18,7 +18,8 @@
  },
  "provenance": {
   "v1CrossCheck": "all 32 output files byte-identical to v1 manifest (e9bd325, captured under bun 1.4.0); outputs are bun-version invariant; v2 re-captured under gate runtime bun 1.3.6 to unify evidence baseline",
-  "supersedes": "e9bd325 manifest (schemaVersion absent, bun 1.4.0); v1 pre perf sample (3 iterations) removed from baseline — performance sampling deferred to P1b frozen protocol"
+  "supersedes": "e9bd325 manifest (schemaVersion absent, bun 1.4.0); v1 pre perf sample (3 iterations) removed from baseline — performance sampling deferred to P1b frozen protocol",
+  "orcaHashDiscrepancy": "FULL-4 reviewer recomputed f02fea16... vs recorded a58d0d5e...; orchestrator re-run 2026-11-12 post-review from orca root reproduces a58d0d5e... exactly (incl. per-file list above); .DS_Store-inclusive variant yields c71b6539... — discrepancy attributed to non-root invocation; method now cwd-pinned with per-file evidence"
  },
  "env": {
   "runtime": "bun",
@@ -30,7 +31,118 @@
   "lockfileHash": "3d05941e5e2a19da95406be10026a7c1ad6ea3ee23cceaf435d83ecf48af3b0a",
   "orcaInputHash": "a58d0d5ef2f9b12f8588ed220fc687ccd091894a0bd805304d39dd048c8949ee",
   "fixtureInputHash": "5629260dbb76c607297b5fe645e4903ae376874cbdefb3171969be6e9197f2cb",
-  "orcaInputHashMethod": "sha256 of (find . -type f ! -name .DS_Store | sort | xargs shasum -a 256) relative to orca root; v2-documented method"
+  "orcaInputHashMethod": "literal: cd /Users/teatao/Projects/my-color/orca && find . -type f ! -name \".DS_Store\" | sort | xargs shasum -a 256 | shasum -a 256 (cwd-pinned to orca root; file set = orcaFiles below)",
+  "orcaFileCount": 27,
+  "orcaFiles": [
+   {
+    "path": "./custom/corerain.yaml",
+    "sha256": "7678d974befecd59a4ac32f072b0a1b5e3601d736d29d7f3c4a3d730ecedc312"
+   },
+   {
+    "path": "./custom/mobile-assistant.yaml",
+    "sha256": "7374b16e8e8447b28229ea0ecb2a21016e958cb7016491f588722d7045ad8b1c"
+   },
+   {
+    "path": "./main.yaml",
+    "sha256": "0334d940f5ad82e9d65ff5431c245b44cf80f8e67b86e147dfb674671676196d"
+   },
+   {
+    "path": "./main@night.yaml",
+    "sha256": "c5f10a8907a703b1a90c1b45fb21f464cea10a55e8ec9f0a5547681f342657a9"
+   },
+   {
+    "path": "./profiles/crbps-deep_backup-10101742",
+    "sha256": "943127e6bc3fdbe979a0201dd2867c5d3c52414b3c70143797e8e4241e589df9"
+   },
+   {
+    "path": "./profiles/crbps-deep-style-a.yaml",
+    "sha256": "ab49b275046fc61a9a7982dd8df3ae34f008a2ba09f3b55c498a0eaea4bb7426"
+   },
+   {
+    "path": "./profiles/crbps-deep-style-b.yaml",
+    "sha256": "7c12d474e4aae2b0d12273d79bfccf3b3eeb302898433ba3ff895299a43e23e3"
+   },
+   {
+    "path": "./profiles/crbps-deep-v1.yaml",
+    "sha256": "96a89d37c00fc2273bdcc5367877dfe40080b1224b2b23a929ca0c68ef086bd5"
+   },
+   {
+    "path": "./profiles/crbps.yaml",
+    "sha256": "1425885ac87d26ef4f60e1bda6bc569ab3c1ca94d6dbc095a808bcb4f9d684d0"
+   },
+   {
+    "path": "./profiles/v-jzy.yaml",
+    "sha256": "0604571abbc4fb993feb7cf8adf0f5b16751562eb19ddce59ae250b426a996ec"
+   },
+   {
+    "path": "./profiles/v-sdjy.yaml",
+    "sha256": "b76694f5c892cf1c2d3d13a622b14897309b333446c71914444d710c3373ecde"
+   },
+   {
+    "path": "./theme/colmun-2-row-1.png",
+    "sha256": "eb6c62fb4f2dcfd6532ca98796af8843beb5e26504f50dbd931e5be72a555507"
+   },
+   {
+    "path": "./theme/colmun-2-row-2.png",
+    "sha256": "eb6c62fb4f2dcfd6532ca98796af8843beb5e26504f50dbd931e5be72a555507"
+   },
+   {
+    "path": "./theme/orca-crbps-deep-style-a.css",
+    "sha256": "222f284aad381f7dcfc2952dc7d263fbe68721feb3fa3997ba59b92efeb09d73"
+   },
+   {
+    "path": "./theme/orca-crbps-deep-style-a2sketch.json",
+    "sha256": "fcd19903aed6058a7366c2b1265b42bfa16377dcf86178a951d7aec0b37d6e1e"
+   },
+   {
+    "path": "./theme/orca-crbps-deep-style-b.css",
+    "sha256": "e0662577d62f6ac77970d5dfe446ada4fabac147ec276092fe4be624e4d53461"
+   },
+   {
+    "path": "./theme/orca-crbps-deep-style-b2sketch.json",
+    "sha256": "ce7809cf891b7492196ffec1a4a280dc79d9ff6b19e70dffa475eab743676e98"
+   },
+   {
+    "path": "./theme/orca-crbps.css",
+    "sha256": "ee3626b97efea0c23dd65f216a38cefbcb5da9248a210790af5d78f651d8aee7"
+   },
+   {
+    "path": "./theme/orca-crbps2sketch.json",
+    "sha256": "3fe41aefabbb9c4742b431bf3ac276ac88c778c02ccd0c6816daa1750f979cb2"
+   },
+   {
+    "path": "./theme/orca-night.css",
+    "sha256": "e6a98916061228376b21b33e3472d5c65d133ddff467104f3fc97c410a34935d"
+   },
+   {
+    "path": "./theme/orca-night2sketch.json",
+    "sha256": "fda9b67da47c7a38c19a7839a836d5b9ea45308ddb0fc734b57742edc6b44cd2"
+   },
+   {
+    "path": "./theme/orca-v-jzy.css",
+    "sha256": "3df61435873c67466090d1f933a1aeabfc76c5a2087888b7278ce7452b1db7e8"
+   },
+   {
+    "path": "./theme/orca-v-jzy2sketch.json",
+    "sha256": "bbc4053206dd57f2839ca41a77233d788c4ef680ae995cda169b96ddaa7ea1ff"
+   },
+   {
+    "path": "./theme/orca-v-sdjy.css",
+    "sha256": "d13bc7fd5629af0f23b60569012f631f143456882b1088cd597d65940961e911"
+   },
+   {
+    "path": "./theme/orca-v-sdjy2sketch.json",
+    "sha256": "f95ccfc2bd11775134042adf00d56ca114117e1568e0a3944ff5bf7e6a160e0d"
+   },
+   {
+    "path": "./theme/orca.css",
+    "sha256": "1611b3da5020b49da2100c0b6c46e86f1c6531ee1a2aa8fd672ff84e751b2b83"
+   },
+   {
+    "path": "./theme/orca2sketch.json",
+    "sha256": "078c3516cc344c26b9478ba133d3d528b653adbb50b64d5d9e8e0ca2706ea2ed"
+   }
+  ]
  },
  "files": [
   {
