@@ -1,7 +1,7 @@
 ---
 date: 2026-11-12
-state: 待 fresh FULL-3（v3 修订，spike 先行）
-dispatch: 路线图计划 C2；FULL-1 FAIL（6F/7M）→ v2 → FULL-2 FAIL（5F/7M/4m + ESCALATE E1/E2）→ Human 裁决 spike 先行（P1b 同款）→ mini-spike 实捕 show 七分支退出码矩阵（成功 0 / 非法 format 5 / 未命中 10 / 非法类别 5）、wcag 成功与 night-skip 形状、create dry-run/缺 $id 错误链（exit 12）→ v3 按实测事实冻结契约；主代理裁决：E1 create 等价 = stdout+stderr+退出码+文件四项；E2 服务参数 = entry(绝对)+cwd(绝对) 显式组合
+state: 待 fresh FULL-4（v4 修订，spike 深挖）
+dispatch: 路线图计划 C2；三轮 FAIL（6→5→7）触发飞轮硬停 → Human 裁决 **spike 深挖**（2026-11-12）→ deep-spike 实测全分支（事实表 `.tmp/c2/spike-facts.md`）：show 七分支 + 单参类别 format 忽略不对称、create 名字归一化非报错/stem 5/已存在 5/父目录 dry-run 0/真实写入产物形状/缺 $id 12/入口缺失 10、wcag 成功与 night-skip 与祖先定位失败 5 与无 -f 10；初版等价基线因捕获包装 argv 污染报废（FULL-3 F1 实证）→ v4 重捕。主代理裁决：E1 等价四项含 create stdout/stderr；E2 entry+cwd 显式（inspect 仅 cwd——其查找以 cwd 为锚，与 CLI process.cwd 语义对齐）
 ---
 
 # Wave C2 Token 应用服务 Plan
@@ -26,7 +26,7 @@ token 业务的编排逻辑仍散落在 CLI action 层，无法脱离 CLI 调用
 ## Constraints
 
 - 公共 CLI 命令、输入输出合同不变：所有既有 CLI 测试断言逐条不变（纯机械下沉，断言修改属越界）。
-- 输出等价方法（冻结，E1 裁决）：每条用例比较 **stdout + stderr + 退出码 + 产物文件**四项。show 全参数组合逐字节；create 产物在 `$id` 字段规范化后逐字节——**规范化定义（M1）：仅产物 YAML 的顶层 `$id` 键，值替换为占位符 `<profile-id>`（randomBytes(16) hex 32 字符 → 占位符），diff 前以固定 sed 规则预处理**；stdout/stderr/退出码不经规范化原样比较。基线 = 开工 HEAD 预捕获（主代理持有，evidence 目录 `docs/island/plans/2026-11-12-c2-equivalence/` + manifest），比较脚本逐用例四项断言。
+- 输出等价方法（冻结，E1 裁决）：每条用例比较 **stdout + stderr + 退出码 + 产物文件**四项。show 全参数组合逐字节；create 产物在 `$id` 字段规范化后逐字节——**规范化定义（M1 + FULL-3 F-6 机器化）：比较脚本对产物执行固定规则 `sed -E 's/^\$id: [0-9a-f]{32}$/\$id: <profile-id>/'`——顶层锚定（无缩进 `$id:` 行首）、恰好 32 hex、整行替换；token 级嵌套 `$id`（缩进行）不匹配；比较命令 = `diff <(sed … base) <(sed … current)`**；stdout/stderr/退出码不经规范化原样比较。基线 = 开工 HEAD 预捕获（主代理持有，evidence 目录 `docs/island/plans/2026-11-12-c2-equivalence/` + manifest），比较脚本逐用例四项断言。
 - P1a 缓存机制与冻结政策零语义变更；C1 registry/lazy-action 架构零触碰。
 - 服务参数合同（E2 裁决）：三服务 input 一律 `entry`（绝对路径）+ `cwd`（绝对目录）显式组合，服务内部**零 `process.cwd()` 依赖**（相对路径解析由 CLI 层完成后传入）。
 - 写边界：`src/core/inspect/*`（新）、`src/core/pipeline/profile-create.ts`（新）、`src/core/doctor/wcag-service.ts`（新）、`src/cli/commands/show-action.ts`、`dt-new-profile-action.ts`、`doctor-action.ts`（仅 wcag 编排段外移与调用替换）、`tests/c2-*.test.ts`、比较脚本。禁动：其他 action 文件、`registry.ts`/`index.ts`/`lazy-action.ts`、`theme-service.ts`/`token-cache.ts` 语义、输出格式。
@@ -35,15 +35,15 @@ token 业务的编排逻辑仍散落在 CLI action 层，无法脱离 CLI 调用
 
 ## Implementation Decisions
 
-1. **inspect 服务**（`src/core/inspect/query.ts`，spike 实测事实冻结）：`resolveResourceQuery(input: { entry: string, cwd: string, arg1?: string, arg2?: string, format: 'flat-json' | 'json' | 'yaml', cache?: TokenCache }) → InspectQueryResult`。分派语义（实测）：`arg1` 为合法类别 → catalog 过滤分支；否则 `arg1` 作为**资源名回退**（FULL-2 F-5：`token show tailwindcss` 走 showResource，单参名与双参同链路）；双参 = 类别 + 名。结果 union：
+1. **inspect 服务**（`src/core/inspect/query.ts`，spike 实测事实冻结）：`resolveResourceQuery(input: { entry: string, cwd: string, arg1?: string, arg2?: string, format: string /* 原样透传——非法 format 的校验发生在 resource 模式内部（FULL-3 F-2：单参类别模式实测忽略 format exit 0，union 无法表达该不对称；校验语义由模式承载） */, cache?: TokenCache }) → InspectQueryResult`。分派语义（实测）：`arg1` 为合法类别 → catalog 过滤分支；否则 `arg1` 作为**资源名回退**（FULL-2 F-5：`token show tailwindcss` 走 showResource，单参名与双参同链路）；双参 = 类别 + 名。结果 union：
    - `{ ok: true, payload: { mode: 'catalog', filter?: 'palette' | 'dimension', palettes: string[], dimensions: string[] } }`（无参 = 全量目录；单参类别 = 过滤目录——实测输出同构）
    - `{ ok: true, payload: { mode: 'resource', category: 'palette' | 'dimension', name: string, format, match: { source: 'builtin' | 'cache' | 'user', path: string, parsed?: unknown, rawFileContent?: string } } }`（**单 match 对象**——实测多类别即错误、成功路径恒单 match，FULL-2 m-2；format='yaml' → `rawFileContent` 原始字节，其余 → `parsed` 由 CLI 格式化）
    - `{ ok: false, exitCode: ExitCodeType, message: string }`（消息与退出码按实测映射原文：未知类别/`✗ Unknown category: … Supported: palette, dimension` → 5；未命中/`✗ Resource not found: …` → 10；非法 format/`✗ Unknown format: … Supported: flat-json, json, yaml` → 5；加载失败按现状）
    **退出码类型 = `ExitCodeType`**（types/index.ts:16，FULL-2 M-7）。缺省 `cache` 自建临时实例（生命周期 = 单次调用内，调用后不可观察——FULL-2 m-3）；传入则复用（可断言 hits）。
-2. **create 服务**（`src/core/pipeline/profile-create.ts`，spike 实测冻结）：`createProfile(input: { entry: string, cwd: string, name: string, options: { file?: string, dryRun?: boolean, force?: boolean, output?: string, snapshotOverrides?…现状 opts 全字段 }, randomSource?: () => string }) → CreateProfileResult`。**成功/计划分支（按实测输出可重建 CLI 全部 stdout，FULL-2 F-2）**：`{ ok: true, dryRun: boolean, outputPath: string, id: string, nextSteps: string[] /* 实测 3 条 */, warnings: string[] /* 外部输出路径提示等 */ }`——dry-run 实测输出 = `✓ Dry run: would create: <path>` + `ℹ Next steps:` 3 条；写模式另含产物写出行。**错误分支（实测）**：`{ ok: false, exitCode: ExitCodeType, message: string, hints?: string[] }`——缺 `$id` 注册实测 `✗ Profile creation failed: … Run wave token ids --write …` → exit 12；冲突/force/dry-run 外分支逐一原样提取（消息原文 + 退出码映射表，施工方按源码枚举全分支并在报告列全）。`$id` 默认 `randomBytes(16).toString('hex')`，`randomSource` 注入仅服务层（生产不变）。
-3. **wcag 服务**（`src/core/doctor/wcag-service.ts`，spike 实测冻结）：`runContrastCheck(input: { entry: string, cwd: string, night: boolean, cache?: TokenCache }) → WcagResult`。**成功分支全形状（FULL-2 F-3，按实测输出反推）**：`{ ok: true, themeName: string /* 实测页眉主题名 */, pairs: Array<{ name: string, ratio: string /* 如 '21.00:1' */, grades: { normal: string, large: string, ui: string } }>, score: { normal, large, ui } /* 实测 Score 三行 */, nightSkipped: boolean /* 实测 night 模式 unavailable/invalid → 'Night Mode unavailable/invalid and skipped' 提示且 exit 0 */, reports?: …, blockingErrors?: … /* 按源码现状字段 */ }`；`{ ok: false, exitCode: ExitCodeType, message: string }`（加载失败等）。提取自 `doctor-action.ts:225` `runDesignTokenContrastCheck` 全链；doctor-action 保留解析与渲染。
+2. **create 服务**（`src/core/pipeline/profile-create.ts`，deep-spike 实测冻结）：`createProfile(input: { entry: string, cwd: string, name: string, options: { file?: string, dryRun?: boolean, force?: boolean, output?: string, snapshotOverrides?: …现状其余 opts 全字段枚举（施工方按 optsWithGlobals 源码列全并列入报告） }, randomSource?: () => string }) → CreateProfileResult`。**名字语义（实测）**：归一化（小写/空格转下划线）非报错。**成功/计划分支（可重建 CLI 全部 stdout，FULL-3 F-4）**：`{ ok: true, dryRun, outputPath, id, overwrites: string[], nextSteps: string[]（有序 = 打印顺序，实测 3 条）, warnings: string[]（有序） }`——dry-run stdout = `✓ Dry run: would create: <path>` + `ℹ Next steps:`×3；写模式 = `✓ Created: <path>` + 同序 next steps；产物形状实测 `$id: <32hex>` + `$config.base` + `$override`。**错误分支表（实测 + 源码枚举）**：`{ ok: false, exitCode: ExitCodeType, message: string, hints?: string[] }`——入口缺失 exit 10；缺 `$id` exit 12（含 ids --write 引导）；stem 不匹配 exit 5 `✗ Profile output must be named <stem>.yaml`；已存在无 force exit 5 `✗ Profile "<name>" already exists`；父目录缺失 dry-run exit 0（计划不建目录，写模式写失败分支 = 源码枚举 + 合成测试）；其余源码分支由施工方全量枚举入报告（消息原文 + 退出码表）。`$id` 默认 `randomBytes(16).toString('hex')`，`randomSource` 仅服务层（生产不变）。
+3. **wcag 服务**（`src/core/doctor/wcag-service.ts`，spike 实测冻结）：`runContrastCheck(input: { entry: string, cwd: string, night: boolean, cache?: TokenCache }) → WcagResult`。**成功分支全形状（FULL-3 F-5 按 report 建模）**：`{ ok: true, reports: Array<{ themeName: string, pairs: Array<{ name: string, ratio: string, grades: { normal, large, ui } }>, score: { normal, large, ui } }>, blockingErrors: Array<{ message: string, …源码字段 }> /* 与 reports 可并存 */, nightSkipped: boolean /* 'Night Mode unavailable/invalid and skipped' exit 0 实测 */ }`——逐 report 渲染映射（多主题多 report 可表达）；**错误分支保留部分结果**：`{ ok: false, exitCode: ExitCodeType, message: string, reports?: 同上部分收集 }`。实测分支：成功 / night 跳过 / 祖先定位失败（exit 5，stdout）/ 无 -f（10）/ 文件缺失（10）。提取自 `doctor-action.ts:225` `runDesignTokenContrastCheck` 全链；doctor-action 保留解析与渲染。
 4. **CLI 瘦身**：三个 action 保留参数解析、格式化渲染、logger/exitCode 映射；编排调用改为服务调用。
-5. **build 核验项（机器可判定，FULL-2 M-5）**：核验脚本（等价脚本同目录）——`grep -c` import 行输出与期望值精确比较（不匹配 exit 1）；`wc -l` 数值比较 ≤ 100；两条断言脚本化，闸门独立复跑。
+5. **build 核验项（机器可判定，FULL-3 M-5 具体化）**：目标文件 `src/cli/commands/build-action.ts`；固定断言脚本——① `grep -c "from '../../core" build-action.ts` 输出与期望值精确比较（期望值由施工方在 Task-2 报告中按现状列出并冻结，闸门按表复跑）；② `wc -l` ≤ 100 数值比较；任一不匹配 exit 1；闸门独立复跑。
 6. **双层测试**（绑定清单，FULL-2 M-4 补全）：show 分支 = 无参/单参类别/单参名回退/双参×3 format×2 类别/命中/未命中/未知类别/非法 format（双参 → exit 5；**单参类别 + 非法 format → 实测 format 被忽略 exit 0**——校验只在 showResource，矩阵含此不对称分支）/builtin-cache-user 三来源/自定义资源；create = dry-run/缺 $id（exit 12）/冲突/force/snapshotOverrides/写出成功（四项等价含 stdout/stderr）；wcag = 成功/night-skip/night 合并/context 加载失败/reports 与 blockingErrors 并存/失败分支。**服务纯净度检查（FULL-2 m-4）**：grep 服务文件禁 `process\.`/`console\.` 引用（import 之外含全局引用）＋ 零依赖断言。
 
 ## Testing Decisions
@@ -69,7 +69,7 @@ token 业务的编排逻辑仍散落在 CLI action 层，无法脱离 CLI 调用
 
 ## Implement Plan
 
-worktree `c2-token-service`（已 FF 到 main @ f83196c；开工基线由主代理预捕获）。顺序：Task-1 inspect → Task-2 create + wcag → 闸门（等价复核 + build 核验）→ pruner → 集成。SPEC 通过 fresh FULL-2 后冻结；strict 不进施工期；gate = 主代理；单 Milestone 单派遣薄壳。
+worktree `c2-token-service`（已 FF 到 main @ f83196c；开工基线由主代理预捕获）。顺序：Task-1 inspect → Task-2 create + wcag → 闸门（等价复核 + build 核验）→ pruner → 集成。SPEC 通过 fresh FULL-4 后冻结；strict 不进施工期；gate = 主代理；单 Milestone 单派遣薄壳。
 
 ## Milestone-1
 
@@ -83,9 +83,10 @@ worktree `c2-token-service`（已 FF 到 main @ f83196c；开工基线由主代�
 
 inspect 服务提取与 CLI 瘦身（来源：User Story 1；Decisions 1/4）
 
-- 验收标准：`src/core/inspect/query.ts` 就位（union 三模式 + 错误分支，消息原文）；show-action 瘦身；yaml 格式 `rawFileContent` 原始字节合同；缓存尾参 + 静态零进程依赖断言；服务测试绑定清单全绿。
+- 验收标准：`src/core/inspect/query.ts` 就位（union 三模式 + 错误分支，消息原文）；show-action 瘦身；yaml 格式 `rawFileContent` 原始字节合同；缓存尾参 + 静态零进程依赖断言；服务测试绑定清单全绿。**message raw 合同（FULL-3 M-7）**：服务 message 为 raw 文本（无 `✗`/`ℹ` 图标前缀——实测输出中的图标 = CLI logger 渲染产物）；CLI 渲染时 logger 自加前缀。
 - 可动文件范围：`src/core/inspect/*`、`src/cli/commands/show-action.ts`、`tests/c2-inspect-service.test.ts`。
 - 依赖：无。
+- **中间检查点（FULL-3 M-4）**：Task-1 完成通知后主代理先行核验（inspect 服务契约/瘦身/测试）再放行 Task-2 派遣。
 - 固有风险：业务/渲染切分逐行判定（闸门重点）；格式化泄漏服务 = 契约破坏。
 
 - [ ] 查询业务提取 + union 契约。
