@@ -12,7 +12,8 @@
     "token",
     "show"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-cat-palette": {
    "argv": [
@@ -20,7 +21,8 @@
     "show",
     "palette"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-cat-dimension": {
    "argv": [
@@ -28,7 +30,8 @@
     "show",
     "dimension"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-name-fallback": {
    "argv": [
@@ -36,7 +39,8 @@
     "show",
     "tailwindcss"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-two-flat": {
    "argv": [
@@ -45,7 +49,8 @@
     "palette",
     "tailwindcss"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-two-json": {
    "argv": [
@@ -56,7 +61,8 @@
     "--format",
     "json"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-two-yaml": {
    "argv": [
@@ -67,7 +73,8 @@
     "--format",
     "yaml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-miss": {
    "argv": [
@@ -76,7 +83,8 @@
     "palette",
     "nonexistent"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-badformat": {
    "argv": [
@@ -87,7 +95,8 @@
     "--format",
     "xml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-cat-badformat": {
    "argv": [
@@ -97,7 +106,8 @@
     "--format",
     "xml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-badcat": {
    "argv": [
@@ -106,7 +116,8 @@
     "colors",
     "x"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "wcag-pass": {
    "argv": [
@@ -115,7 +126,8 @@
     "-f",
     "tests/fixtures/themes/doctor-contrast-pass/main.yaml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "wcag-pass-night": {
    "argv": [
@@ -125,7 +137,8 @@
     "tests/fixtures/themes/doctor-contrast-pass/main.yaml",
     "--night"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "wcag-ancestor-fail": {
    "argv": [
@@ -134,14 +147,16 @@
     "-f",
     "/tmp/c2-nopairs.yaml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "wcag-no-f": {
    "argv": [
     "token",
     "wcag"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "wcag-missing": {
    "argv": [
@@ -150,17 +165,20 @@
     "-f",
     "/tmp/c2-nonexistent.yaml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "create-ids-write": {
    "argv": [
     "token",
     "ids",
     "--write",
+    "--allow-dirty",
     "-f",
     "/tmp/c2-eq-create-b2/std/main.yaml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "create-dry": {
    "argv": [
@@ -169,10 +187,11 @@
     "profile",
     "spikeprofile",
     "-f",
-    "<replay-copy>/main.yaml",
+    "/tmp/c2-replay-v4/std/main.yaml",
     "--dry-run"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "create-write": {
    "argv": [
@@ -181,7 +200,7 @@
     "profile",
     "writeprofile",
     "-f",
-    "<replay-copy>/main.yaml"
+    "/tmp/c2-replay-v4/std/main.yaml"
    ],
    "cwd": "worktree root",
    "files": "create-write.file.yaml (normalized)"
@@ -193,11 +212,12 @@
     "profile",
     "writeprofile",
     "-f",
-    "<replay-copy>/main.yaml",
+    "/tmp/c2-replay-v4/std/main.yaml",
     "--dry-run"
    ],
    "cwd": "worktree root",
-   "order": "AFTER create-write on same copy"
+   "order": "AFTER create-write on same copy",
+   "files": []
   },
   "create-stem": {
    "argv": [
@@ -211,7 +231,8 @@
     "-o",
     "/tmp/c2-eq-create-b2/other.yaml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "create-parent-dry": {
    "argv": [
@@ -225,7 +246,8 @@
     "-o",
     "/tmp/c2-nodir-b2/deepprofile.yaml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "create-missing-id": {
    "argv": [
@@ -237,7 +259,8 @@
     "/tmp/c2-eq-create-b2/noid/main.yaml",
     "--dry-run"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "create-missing-base": {
    "argv": [
@@ -249,7 +272,8 @@
     "/tmp/nonexistent/main.yaml",
     "--dry-run"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-two-dim-flat": {
    "argv": [
@@ -258,7 +282,8 @@
     "dimension",
     "wave"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-two-dim-json": {
    "argv": [
@@ -269,7 +294,8 @@
     "--format",
     "json"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-two-dim-yaml": {
    "argv": [
@@ -280,7 +306,8 @@
     "--format",
     "yaml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-dim-miss": {
    "argv": [
@@ -289,7 +316,8 @@
     "dimension",
     "nonexistent"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-miss-json": {
    "argv": [
@@ -300,19 +328,8 @@
     "--format",
     "json"
    ],
-   "cwd": "worktree root"
-  },
-  "create-missing-id2": {
-   "argv": [
-    "token",
-    "new",
-    "profile",
-    "freshprofile",
-    "-f",
-    "<evidence>/fixtures/nopairs.yaml",
-    "--dry-run"
-   ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-name-badformat": {
    "argv": [
@@ -322,7 +339,8 @@
     "--format",
     "xml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-name-miss": {
    "argv": [
@@ -330,7 +348,8 @@
     "show",
     "nonexistentname"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-two-dim-miss-yaml": {
    "argv": [
@@ -341,7 +360,8 @@
     "--format",
     "yaml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-palette-miss-yaml": {
    "argv": [
@@ -352,7 +372,8 @@
     "--format",
     "yaml"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   },
   "show-dim-miss-json": {
    "argv": [
@@ -363,7 +384,8 @@
     "--format",
     "json"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "files": []
   }
  },
  "fixtures": {
@@ -375,18 +397,23 @@
  "replayProtocol": {
   "principle": "literal argv replay — every case runs EXACTLY as recorded (no path substitution); canonical /tmp paths are recreated from in-repo fixtures before the run so stdout matches capture byte-for-byte",
   "preSteps": [
-   "clean and mkdir /tmp/c2-replay-v4; cp fixtures/std-with-ids → /tmp/c2-replay-v4/std (byte-verify)",
-   "mkdir -p /tmp/c2-eq-create-b2/noid; cp fixtures/std-no-ids/main.yaml → /tmp/c2-eq-create-b2/noid/main.yaml (drives create-missing-id exit 12)",
-   "cp fixtures/nopairs.yaml → /tmp/c2-nopairs.yaml (drives wcag-ancestor-fail exit 5, path baked in stdout)",
-   "guard: /tmp/nonexistent must not exist (drives create-missing-base exit 10)"
+   "clean + recreate canonical roots (stdout bakes these exact paths):",
+   "A. /tmp/c2-replay-v4: clean; mkdir; cp -r fixtures/std-with-ids → /tmp/c2-replay-v4/std (byte-verify)",
+   "B. /tmp/c2-eq-create-b2: clean; mkdir -p std noid; cp -r fixtures/std-with-ids → std/; cp fixtures/std-no-ids/main.yaml → noid/main.yaml",
+   "C. cp fixtures/nopairs.yaml → /tmp/c2-nopairs.yaml",
+   "D. guards: /tmp/nonexistent must NOT exist; /tmp/c2-nonexistent.yaml must NOT exist; /tmp/c2-nodir-b2 must NOT exist",
+   "E. ordered replay: create-write FIRST on /tmp/c2-replay-v4/std (exit 0) → create-exists SECOND same copy (exit 5) → all remaining cases in manifest order against literal argvs above"
   ],
   "orderedCases": "create-write FIRST (exit 0, fresh copy) → create-exists SECOND (exit 5, same copy) → all remaining cases in manifest order; ids --write is SETUP (excluded from replay)",
-  "verification": "each case stdout/stderr/exit compared byte-for-byte to baseline files; any mismatch → FAIL"
+  "verification": "per case: stdout + stderr + exit + files (manifest files field; [] = temp dir must contain no extra files after the case — dry-run side-effect guard, FULL-8 M-1)",
+  "noPlaceholders": "all case argv are literal; zero <> placeholders (FULL-9 F-1)"
  },
- "note_matrix": "show miss grid complete: palette/dimension × flat/json/yaml all captured (FULL-7 F-3 resolved)",
+ "note_matrix": "miss grid: palette/dimension × flat/json/yaml + name-fallback variants (FULL-7 F-3/FULL-6 M4 complete)",
  "fixturesSha256": {
   "std-with-ids": "b82250537ee9b22628702a69bb9c668d447dc24f440c9a4a13b536324957f508",
   "std-no-ids": "e1f3728d1b53088962f1e4c8eb3a974788fb3d6263af1cf277e5cc5a10ea520e",
   "nopairs.yaml": "40f2f908e1dcc00e40e8319b48abc31c3bcc8142ca89b8407adfd5108d281a1b"
- }
+ },
+ "counting": "34 cases captured = 33 replayed + 1 SETUP (exit-only)",
+ "fixturesSha256Algorithm": "per directory: sha256 over concat of (relative_path_utf8 + b\"\\n\" + file_bytes) for all files sorted by relative_path; per file: sha256 of file bytes"
 }

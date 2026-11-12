@@ -12,7 +12,7 @@ token 业务的编排逻辑散落在 CLI action 层，无法脱离 CLI 调用：
 
 ## Solution
 
-**基线即合同范式**：三服务（inspect/create/wcag）以**纯机械提取**方式下沉（编排序列原样移动、无逻辑变更、无新机制），行为正确性不由纸面契约预冻结，而由**等价基线 v4（35 案 × stdout/stderr/退出码/产物文件四项）+ 既有测试套件零断言变更**在交付闸门实证验收。等价 harness（`scripts/c2-equivalence.sh`）先于提取交付并自校验（pre-extraction 树重放必须逐字节复现基线，证明 oracle 自身可靠），随后提取完成再对照同基线。
+**基线即合同范式**：三服务（inspect/create/wcag）以**纯机械提取**方式下沉（编排序列原样移动、无逻辑变更、无新机制），行为正确性不由纸面契约预冻结，而由**等价基线 v4（35 案捕获 = 34 重放 + 1 SETUP，× stdout/stderr/退出码/产物文件四项）+ 既有测试套件零断言变更**在交付闸门实证验收。等价 harness（`scripts/c2-equivalence.sh`）先于提取交付并自校验（pre-extraction 树重放必须逐字节复现基线，证明 oracle 自身可靠），随后提取完成再对照同基线。
 
 ## Rex 对话协议
 
@@ -25,11 +25,11 @@ token 业务的编排逻辑散落在 CLI action 层，无法脱离 CLI 调用：
 
 ## Constraints
 
-- **等价 oracle（唯一行为合同，Human 裁决「基线即合同」）**：基线 v4（`docs/island/plans/2026-11-12-c2-equivalence/`，manifest schemaVersion 4，35 案 argv/快照重放协议入库）——交付闸门对每案执行 **stdout + stderr + 退出码 + 产物文件**四项对照（E1 裁决）；create 产物顶层 `$id` 规范化（sed -E 顶层锚定 32-hex 整行替换）后比对；`ids --write` 为 SETUP 用例（仅退出码——stdout 含随机 id）。基线目录与 manifest **施工期只读**。
+- **等价 oracle（唯一行为合同，Human 裁决「基线即合同」）**：基线 v4（`docs/island/plans/2026-11-12-c2-equivalence/`，manifest schemaVersion 4，**35 案捕获 = 34 案重放 + 1 SETUP**（argv/快照重放协议/fixture SHA256 算法定义入库——FULL-9 m-2/m-3））——交付闸门对每案执行 **stdout + stderr + 退出码 + 产物文件**四项对照（E1 裁决）；create 产物顶层 `$id` 规范化（sed -E 顶层锚定 32-hex 整行替换）后比对；`ids --write` 为 SETUP 用例（仅退出码——stdout 含随机 id）。基线目录与 manifest **施工期只读**。
 - **既有测试套件 = 行为合同第二面**：全部既有 CLI 测试零断言变更、全绿（当前基线 1304 pass——冻结数字，冻结后只增不减）。
 - 提取纪律：编排序列原样移动（含错误分支消息/退出码映射原样）、无逻辑变更、无新机制；渲染与进程依赖留 CLI（格式化函数、logger 输出、`process.exitCode` 赋值、optsWithGlobals 解析）。
 - P1a 缓存机制与冻结政策零语义变更；C1 registry/lazy-action 架构零触碰。
-- 写边界：`src/core/inspect/*`（新）、`src/core/pipeline/profile-create.ts`（新）、`src/core/doctor/wcag-service.ts`（新）、`src/cli/commands/{show-action,dt-new-profile-action,doctor-action}.ts`（编排段外移与调用替换）、`scripts/{c2-equivalence.sh,c2-build-gate.sh}`、`tests/c2-*.test.ts`。禁动：其他 action 文件、`registry.ts`/`index.ts`/`lazy-action.ts`、`theme-service.ts`/`token-cache.ts` 语义、`source-output.ts`、输出格式。
+- 写边界：`src/core/inspect/*`（新）、`src/core/pipeline/profile-create.ts`（新）、`src/core/doctor/wcag-service.ts`（新）、`src/cli/commands/{show-action,dt-new-profile-action,doctor-action}.ts`（编排段外移与调用替换）、`scripts/{c2-equivalence.sh,c2-build-gate.sh,c2-structure-gate.sh}`、`tests/c2-*.test.ts`（含 c2-services-smoke.test.ts）。禁动：其他 action 文件、`registry.ts`/`index.ts`/`lazy-action.ts`、`theme-service.ts`/`token-cache.ts` 语义、`source-output.ts`、输出格式。
 - build 核验（期望值现时预写，FULL-6 M5 SPEC-as-oracle）：`src/cli/commands/build-action.ts` 现况 90 行、core 侧恰一条 import = theme-service；`scripts/c2-build-gate.sh` 输出观测值（CORE_IMPORTS/THEME_ONLY/LINES），主线闸门对本 SPEC 冻结数字（=1 / 仅 theme-service / ≤100）比对——脚本自身可写不作 oracle。
 
 ## Implementation Decisions
@@ -41,7 +41,7 @@ token 业务的编排逻辑散落在 CLI action 层，无法脱离 CLI 调用：
 
 ## Testing Decisions
 
-- 等价（唯一行为验收）：harness `compare` 模式 35 案四项全绿 = 通过；任一案差异 = 停机归因，不得调整断言或基线。
+- 等价（唯一行为验收）：harness `compare` 模式 34 案重放四项 + SETUP 退出码全绿 = 通过；任一案差异 = 停机归因，不得调整断言或基线。
 - harness 自校验：pre-extraction replay 与基线逐字节一致。
 - 既有套件：`pnpm check:ci` 不退化（mise bun 1.3.6；check:ci 内部为裸 test 命令，`--timeout 15000` 适用于本计划直接调用的 bun test 行——FULL-8 M-2 口径区分）、零断言变更。
 - 纯净度（FULL-8 M-4 精确化）：三服务**源文件**无 `process.`/`console.`/logger 直接引用（传递依赖的 core 模块允许——边界在服务级而非依赖级；独立性由服务 API smoke 证明）；build 行为回归由既有 token-build 测试套件承载（零断言变更）。
@@ -68,7 +68,7 @@ worktree `c2-token-service`（基线 v4 已入库）。顺序：Task-1 harness +
 三服务机械提取与基线等价验收
 
 - 验证主题：harness 自校验证明 oracle 可靠；三服务提取后 35 案四项对照全绿；既有套件零断言变更。
-- 核验基线（固定命令，FULL-8 F-3 完整性绑闸门）：**①`sh scripts/c2-equivalence.sh replay` exit 0（自校验前置——不通过不得进入 compare）**；②`sh scripts/c2-equivalence.sh compare` exit 0（35 案四项）；③`pnpm check:ci` exit 0；④基线目录与 manifest 相对 Task-1 自校验时点零变更（fixturesSha256 已冻结于 manifest，构建断言复验）；⑤既有测试断言零变更由 `git diff tests/ -- ':!tests/c2-*'` 为空核验；⑥`sh scripts/c2-build-gate.sh` exit 0（观测值 vs SPEC 冻结数字）。
+- 核验基线（固定命令，FULL-8 F-3 完整性绑闸门）：**①`sh scripts/c2-equivalence.sh replay` exit 0（自校验前置——不通过不得进入 compare）**；②`sh scripts/c2-equivalence.sh compare` exit 0（35 案四项）；③`pnpm check:ci` exit 0；④基线目录与 manifest 相对 Task-1 自校验时点零变更（fixturesSha256 已冻结于 manifest，算法见 manifest.fixturesSha256Algorithm——FULL-9 m-3 可复算口径，构建断言复验）；⑤既有测试断言零变更核验（FULL-9 F-3 修正为可执行三步）：Task-1 自校验通过时记录 `FREEZE_SHA=$(git rev-parse HEAD)` 入台账；闸门执行 `git diff --name-only $FREEZE_SHA HEAD -- tests/` 输出经 `grep -v '^tests/c2-'` 后必须为空（对比冻结点至 HEAD 全历史，含 staged/committed，无逃逸）；⑥`sh scripts/c2-build-gate.sh` exit 0（观测值 vs SPEC 冻结数字）；⑦`sh scripts/c2-structure-gate.sh` exit 0（委托证明门——FULL-9 F-4 入闸门，不执行不得通过）。
 - 来源：User Stories 1–2；Implementation Decisions 全部；Testing Decisions 全部。
 
 ### Task-1
