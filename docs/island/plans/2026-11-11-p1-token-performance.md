@@ -71,16 +71,16 @@ dispatch: R1 FAIL 5F/4M/3m → FULL FAIL 6F/4M/3m；台账 .tmp/p1/strict-major-
 
 1. **缓存上下文轴（key 必含）**：规范化绝对路径；资源 kind 与 source 角色（custom / palette / builtin × cache / user，防止同文件不同派生串用——FULL F-5）；readOnly 标志；资源状态/缓存环境指纹；声明顺序与重复语义版本；解析上下文指纹。**错误结果一律不进缓存。**
 2. **颜色 memo 特例**：仅缓存成功转换，key = 输入值 + 目标空间；错误不缓存，tokenPath 逐次归属。
-3. **作用域与生命周期**：缓存**实例**按顶层操作创建——每 CLI 命令调用、每 doctor 执行、每 runner case 各自独立实例，跨顶层操作不复用；同实例内同路径文件内容视为不变（实例内前提）。5 个调用点共享的是缓存**实现**，不是跨操作的缓存状态（消解 FULL F-4 的表述矛盾）。实例容量上限：每层 1024 条，超限后该层降级为直读（degrade to no-cache）并计数记录（FULL M-4）。
-4. **不可变基线证据（主代理创建并持有——Human 裁决）**：M1 派遣前由主代理执行固定命令并落盘 `docs/island/plans/2026-11-11-p1-baseline/`：
+3. **作用域与生命周期（可执行机制）**：新增 `src/core/pipeline/token-cache.ts` 导出 `createTokenCache()` 与类型 `TokenCache`；`loadResource`、`collectDependencyDictionary`、`parseThemeYaml` 增加可选尾参 `cache?: TokenCache`（缺省时函数内部自建临时实例，既有调用点零改动），四个顶层入口各创建一个实例并向下穿线：`theme-service.ts` generateTheme 入口（覆盖 per-profile 循环）、`night/emit.ts` 入口、doctor 执行入口（`doctor/resource-validator.ts`）、`benchmarks/design-token/runner.ts` case 入口。跨顶层操作不复用实例；同实例内同路径文件内容视为不变。5 个调用点共享缓存**实现**，实例归属由入口决定（消解 FULL F-4）。实例容量上限每层 1024 条，超限该层降级直读并计数（FULL M-4）。
+4. **不可变基线证据（主代理创建并持有——已执行，提交 e9bd325）**：三场景输出副本 `single-pre/`、`multi-pre/`、`night-pre/` 与 `manifest.json` 已落盘入库；manifest 含全输入/输出 SHA256（34 项）、实参命令、环境元数据（bun 版本/platform/arch/cpu/lockfileHash/orcaInputHash/fixtureInputHash）、`gitDirty:false`（口径 = tracked-files-only，已注明）。**pre 性能样本已固化**：`reports/p1-baseline-pre.json`（未优化代码全量套件运行）。构建前置与完整性：每次等价对照前重跑 manifest 全量 SHA256 校验，任一不符即拒绝等价结论并停机归因；`dist/wave` 由 `pnpm build` 现场构建（bundle hash 记入对照报告），不依赖历史产物（FULL F-3）。报告命名沿用 writer 现实 `<runId>.json`，场景映射记录于 manifest（FULL M-5）。
    - `single-pre/`：`dist/wave token build -f tests/fixtures/themes/standard/main.yaml --output docs/island/plans/2026-11-11-p1-baseline/single-pre`
    - `multi-pre/`：`dist/wave token build -f /Users/teatao/Projects/my-color/orca/main.yaml --profiles all --output docs/island/plans/2026-11-11-p1-baseline/multi-pre`
    - `night-pre/`：`dist/wave token build -f /Users/teatao/Projects/my-color/orca/main.yaml --profiles all --night --output docs/island/plans/2026-11-11-p1-baseline/night-pre`
    - `manifest.json`：`{ head, gitDirty: false 断言, commands[]（上述三条实参命令）, env: { runtime, bun, node, platform, arch, cpuCount, memoryBytes, lockfileHash, orcaInputHash }, files: [{ path, sha256, role: 'input' | 'output' }] }`——input 含 fixture 与 orca 输入树全量哈希；副本与 manifest 随本计划分支提交，存续期内禁止重生成（R1 FULL F-3）。
    - 报告文件名模式：`reports/p1-<场景>-<runId>.json`（FULL m-2）。
 5. **归因计数器合同**：每 memo 层输出 `{ layer: 'resource' | 'dict' | 'parse' | 'color', hits, misses }`；随 case 结果经 M2 契约新增字段输出，与 case id 关联；各层可经构造参数独立停用，逐层回滚验收 = 停用单层后等价复验 + 分布复测（R1 FULL F-6）。
-6. **统计合同（三段判定，无死区）**：基于增量扩展后的契约（p50Ms、配对样本数组、归因字段——只增）；配对采样（同 case 基线副本运行 vs post 运行成对）≥30 样本；指标 p50 与 p95 双报。判定：**保留** = p50 改善 ≥5% 且 p95 回退 ≤2%；**观察保留** = 2% ≤ p50 改善 <5% 且 p95 回退 ≤2%（保留并在 M2 闸门记录分布，不撤回不升级）；**撤回** = p95 回退 >2%，或 p50 改善 <2%。每一结果组合恰好落入一段，无未定义区域（FULL F-1）。
-7. **契约扩展边界**：`benchmarks/shared/types.ts` 允许新增类型/字段（p50Ms、配对样本、归因、环境扩展：bun/node 版本、lockfileHash、orcaInputHash——FULL M-3），既有字段与案例语义零变更；Task-4 固定命令为默认全量套件 `bun benchmarks/run.ts --run-id p1-eval --results-dir docs/island/plans/2026-11-11-p1-baseline/reports`，`p1-*` case 经 `cases.ts` 追加并纳入默认套件 include（FULL F-2）。
+6. **统计合同（三段判定，无死区，可执行）**：pre 样本 = 不可变 `reports/p1-baseline-pre.json`；post 样本 = Task-4 以 `bun benchmarks/run.ts --run-id p1-eval --iterations 30 --results-dir docs/island/plans/2026-11-11-p1-baseline/reports` 运行（≥30 样本/ case）。聚合：每侧 p50/p95 由该侧样本数组计算（线性插值百分位）；`improvement% = (preAgg − postAgg) / preAgg × 100`（按指标各自计）；pre 聚合为零/未定义的 case 剔除并记录；对齐规则 = 同 case id、样本数取 min(nPre, nPost) 截断对齐。判定：**保留** = p50 改善 ≥5% 且 p95 回退 ≤2%；**观察保留** = 2% ≤ p50 改善 <5% 且 p95 回退 ≤2%；**撤回** = p95 回退 >2% 或 p50 改善 <2%。每个组合恰好落入一段（FULL F-1/F-2/M-4）。
+7. **契约扩展与 case 接线**：`benchmarks/shared/types.ts` 只增扩展（p50Ms、配对样本、归因计数、环境扩展字段——FULL M-3）；`p1-*` case 经 `cases.ts` 追加，并在 `benchmarks/domains/token.ts:137,145` 的选择臂**增量接入**（新增 domain 臂 `p1-*` 或 includeProfiles 扩展，既有 case 选择行为零变更）与 `benchmarks/domains/suite.ts` 注册；Task-4 可动范围相应纳入两文件的接线增量。固定命令 = 默认全量套件 `bun benchmarks/run.ts --run-id p1-eval --iterations 30 --results-dir docs/island/plans/2026-11-11-p1-baseline/reports`（FULL F-2）。
 
 ## Draft Plan
 
@@ -108,7 +108,7 @@ memo 实现（来源：User Story 1；冻结节第 1–3、5 条；Implementatio
 
 - 验收标准：`loadResource` 与 `collectDependencyDictionary` memo 按冻结 key 轴实现（含 kind/source 角色轴）；5 个调用点消费同一实现、实例按顶层操作创建；仅完全成功结果入缓存且返回冻结快照；容量上限 1024/层 + 降级计数；归因计数器 `{layer, hits, misses}` 就位；缓存上下文轴逐轴测试锁定；**基线由主代理提供，施工方只读消费并核对 manifest 完整性**。
 - 可动文件范围：`src/core/resolver/resource-loader.ts`、`src/core/pipeline/theme-pipeline.ts`、`tests/p1-cache-policy.test.ts`。
-- 依赖：主代理已完成不可变基线（Task-1 开工前置事实）。
+- 依赖：主代理已交付不可变基线（提交 e9bd325：三场景副本 + pre 性能样本 + manifest；施工方开工前核对 manifest 全量 SHA256）。
 - 固有风险：上下文轴遗漏即污染通道（逐轴测试是主防线）；readOnly 叠加顺序破坏既有 cachePath 行为。
 
 - [ ] memo 层实现（含容量降级与计数器）。
@@ -154,7 +154,7 @@ memo 实现（来源：User Story 1；冻结节第 1–3、5 条；Implementatio
 契约扩展与统计结论（来源：User Story 2；冻结节第 5–7 条；Testing Decision 5）
 
 - 验收标准：`benchmarks/shared/types.ts` 只增扩展（p50Ms、配对样本、归因、环境扩展字段）且有类型回归；`p1-*` case 追加并纳入默认套件；配对采样 ≥30；按统计合同输出三段判定结论与逐层归因证据；不满足保留条件的机制给出撤回建议清单（含逐层回滚验收结果）。
-- 可动文件范围：`benchmarks/shared/types.ts`（只增）、`benchmarks/design-token/cases.ts`、`tests/p1-statistics.test.ts`、统计结论记录。
+- 可动文件范围：`benchmarks/shared/types.ts`（只增）、`benchmarks/design-token/cases.ts`、`benchmarks/domains/token.ts` 与 `benchmarks/domains/suite.ts`（仅 p1-* 接线增量）、`tests/p1-statistics.test.ts`、统计结论记录 `docs/island/plans/2026-11-11-p1-baseline/reports/statistics.json`（本 Milestone 提交归属）。
 - 依赖：Task-3。
 - 固有风险：契约扩展不得破坏 Q0 既有 runner/report 兼容（只增有类型回归主防线）；归因与收益分层度量。
 
