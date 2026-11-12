@@ -1,6 +1,6 @@
 ---
 date: 2026-11-11
-state: 已交付（2026-11-12 三里程碑闸门全过，台账全清）
+state: 施工中（M1/M2 闸门已过 2026-11-12，M3 测试基座待施工）
 dispatch: R1 FAIL 1F/3M/1m → F-01 DELTA PASS；MAJOR M-01–M-03 处方已入 SPEC，台账 carry（交付证据关闭），见 .tmp/c1/strict-major-ledger.md
 ---
 
@@ -137,7 +137,7 @@ action 薄包装与动态加载（来源：User Stories 2–3；Implementation D
 > [!IMPORTANT]
 > Milestone-2 闸门：主代理复核加载证据与行为一致性，通过后进入 M3。
 >
-> 闸门结果（2026-11-12，通过）：交付 HEAD `3d9c10e`（41 文件全在 src/cli/** + tests，越界检查零命中，工作区冻结）。主代理独立复跑（mise bun 1.3.6）：全量 1249 pass / 0 fail；12 条 -h/-m 路径对 baseline 构建逐字节零差异；失败注入矩阵与加载证据观测协议（同一 CLI 进程缓存观测 + 故意导入阳性对照）落地——**台账 M-01/M-03 于本闸门 RESOLVED，C1 台账全清，计划交付完成**。运行时披露：加载可观测性限 Bun 1.3.6（1.4.0 失效，测试会如实失败），验证须用 mise 固定版本。
+> 闸门结果（2026-11-12，通过）：交付 HEAD `3d9c10e`（41 文件全在 src/cli/** + tests，越界检查零命中，工作区冻结）。主代理独立复跑（mise bun 1.3.6）：全量 1249 pass / 0 fail；12 条 -h/-m 路径对 baseline 构建逐字节零差异；失败注入矩阵与加载证据观测协议（同一 CLI 进程缓存观测 + 故意导入阳性对照）落地——**台账 M-01/M-03 于本闸门 RESOLVED**；M-02 已于 M1 闸门 RESOLVED。M3（测试基座迁移）待施工。运行时披露：加载可观测性限 Bun 1.3.6（1.4.0 失效，测试会如实失败），验证须用 mise 固定版本。
 
 ## Milestone-3
 
