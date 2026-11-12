@@ -1,18 +1,18 @@
 $id: <profile-id>
 $config:
-  base: 6b3c303a7096619efe3f596a12aa5d65
+  base: 7f7df8033767828ffa83943f8aabc386
 $override:
-  8aa7e69f05bf77c1e8d6a93a48276d6e:
+  55a315c79d24ea7bb3bebd4f5d3d64b7:
     $value: '{tailwindcss.color.indigo.600}'
-  09320cd402dbaecefd894206628bc1ae:
+  e7c6042e52878461818a075ab10d69c5:
     $value: '{tailwindcss.color.blue.500}'
-  a811340abacb0d422962d620d93b2e77:
+  b5c0ca5652022af19b685c54afaeb543:
     $value: '{tailwindcss.color.gray.900}'
-  94a33a0aba4659dbe8b27711204599af:
+  8274edaca9454437e45dc790f1324c4e:
     $value:
       color: '{tailwindcss.color.gray.600}'
       alpha: 0.6
-  1368477d65f57cc19fd304f693685ad8:
+  6e58bce7274dded3b1b7ceda3ba17e3c:
     $value:
       - color:
           color: '#000000'
@@ -21,7 +21,7 @@ $override:
         offsetY: 1
         blur: 2
         spread: 0
-  da5f281c9da7ad114f2ae9e7f3ad6f3f:
+  c6bfb850f854ebd20d171a3baf3a32dc:
     $value:
       - color:
           $ref: '#/tailwindcss/color/gray/900/$value'
@@ -30,9 +30,9 @@ $override:
         offsetY: 4
         blur: 6
         spread: 0
-  9d61e7d5088869821ba1ffbfc487ecd6:
+  4faa49710ed40b16c3145f5a899973ab:
     $value: '{wave.dimension.alpha.200}'
-  9d398df59de5401ff7aa27494d5ba1d7:
+  3a752f75efa49ee244b9d4f91ee5475e:
     $value: '{wave.dimension.alpha.400}'
-  182613adc551d76e1a4e81a15f70248f:
+  0da7aa379ea09e2a2b3bd1904f022939:
     $value: '{wave.dimension.alpha.600}'

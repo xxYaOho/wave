@@ -1,8 +1,8 @@
 {
- "schemaVersion": 3,
- "head": "60c83988aaa7261bc338e47315108755144ce38f",
+ "schemaVersion": 4,
+ "head": "be65c197e70cdfc712619a06f710419073582d8b",
  "capturedBy": "orchestrator (Hyata)",
- "supersedes": "v2 (FULL-4 F1: replay depended on /tmp external state + per-run random ids; fixture now snapshotted in-repo)",
+ "supersedes": "v3 (FULL-5 F2: snapshot leaked prior writeprofile → create-write collided at exit 5; F3: default-output contract restructured — service derives outputPath)",
  "runtime": "bun 1.3.6 via mise; bun run src/index.ts; replay procedure: cp fixtures/std-with-ids to a temp dir, run cases against the copy — outputs deterministic given snapshot (only create-write profile $id varies, normalized)",
  "perCase": "<case>.out/.err/.exit (stdout/stderr/exit); argv recorded below; create-write additionally captures the written profile as create-write.file.yaml with $id normalized (sed -E s/^\\$id: [0-9a-f]{32}$/\\$id: <profile-id>/)",
  "compareContract": "post-refactor: stdout+stderr+exit+files four-way per case (Human ruling E1); create file compared post-normalization",
@@ -196,7 +196,8 @@
     "<replay-copy>/main.yaml",
     "--dry-run"
    ],
-   "cwd": "worktree root"
+   "cwd": "worktree root",
+   "order": "AFTER create-write on same copy"
   },
   "create-stem": {
    "argv": [
@@ -312,11 +313,41 @@
     "--dry-run"
    ],
    "cwd": "worktree root"
+  },
+  "show-name-badformat": {
+   "argv": [
+    "token",
+    "show",
+    "tailwindcss",
+    "--format",
+    "xml"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-name-miss": {
+   "argv": [
+    "token",
+    "show",
+    "nonexistentname"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-two-dim-miss-yaml": {
+   "argv": [
+    "token",
+    "show",
+    "dimension",
+    "nonexistent",
+    "--format",
+    "yaml"
+   ],
+   "cwd": "worktree root"
   }
  },
  "fixtures": {
-  "std-with-ids": "fixtures/std-with-ids (ids registered once, snapshot — replay uses this exact copy)",
+  "std-with-ids": "fixtures/std-with-ids — PRISTINE: tests fixture + ids --write --allow-dirty ONCE; never touched by create writes (replay copies it fresh)",
   "nopairs": "fixtures/nopairs.yaml"
  },
- "normalization": "create-write.file.yaml: top-level $id masked via sed -E s/^\\$id: [0-9a-f]{32}$/\\$id: <profile-id>/"
+ "normalization": "create-write.file.yaml: top-level $id masked (sed -E s/^\\$id: [0-9a-f]{32}$/\\$id: <profile-id>/)",
+ "replayProtocol": "cp fixtures/std-with-ids <temp>/std; create-write runs FIRST (exit 0, profile written); create-exists runs SECOND on same copy (exit 5 already-exists); create-dry on separate clean copy (exit 0)"
 }
