@@ -12,6 +12,7 @@
 			"!**/node_modules",
 			"!**/dist",
 			"!**/graphify-out",
+			"!docs/island/plans/2026-11-11-p1-baseline",
 			"!**/experiments/*/out",
 			"!**/experiments/*/public/preview-tokens.json",
 			"!**/.sisyphus",
