@@ -71,9 +71,6 @@ export function canonicalSerialize(value: unknown): string {
 	return JSON.stringify(encode(value, new WeakSet<object>()));
 }
 
-/** Alias kept explicit for callers that describe keys as canonical JSON. */
-export const canonicalJson = canonicalSerialize;
-
 export function sha256(value: string): string {
 	return createHash('sha256').update(value, 'utf8').digest('hex');
 }
@@ -120,12 +117,6 @@ export interface TokenCache {
 	readonly policyVersion: string;
 	get<T>(layer: TokenCacheLayer, key: string): T | undefined;
 	set<T>(layer: TokenCacheLayer, key: string, value: T): T;
-	memoize<T>(layer: TokenCacheLayer, key: string, producer: () => T): T;
-	memoizeAsync<T>(
-		layer: TokenCacheLayer,
-		key: string,
-		producer: () => Promise<T>,
-	): Promise<T>;
 	stats(layer: TokenCacheLayer): TokenCacheStats;
 	stats(): TokenCacheStatsMap;
 }
@@ -162,24 +153,6 @@ class TokenCacheImpl implements TokenCache {
 			return frozen;
 		}
 		return value;
-	}
-
-	memoize<T>(layer: TokenCacheLayer, key: string, producer: () => T): T {
-		const cached = this.get<T>(layer, key);
-		if (cached !== undefined) return cached;
-		const value = producer();
-		return this.set(layer, key, value);
-	}
-
-	async memoizeAsync<T>(
-		layer: TokenCacheLayer,
-		key: string,
-		producer: () => Promise<T>,
-	): Promise<T> {
-		const cached = this.get<T>(layer, key);
-		if (cached !== undefined) return cached;
-		const value = await producer();
-		return this.set(layer, key, value);
 	}
 
 	stats(layer: TokenCacheLayer): TokenCacheStats;
