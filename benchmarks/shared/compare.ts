@@ -61,9 +61,10 @@ export function buildPairedComparisonContract(
 		lossCount: 0,
 		tieCount: 0,
 		excludedNonPositiveBaseline: 0,
+		positiveBaselineCount: 0,
 		method: 'aggregate-fallback',
 		...counts,
-	} as PairedComparisonContract;
+	};
 	if (
 		baseSamples.length === 0 ||
 		currentSamples.length === 0 ||
@@ -89,7 +90,7 @@ export function buildPairedComparisonContract(
 	const medianRelativeImprovement =
 		positive.length === 0
 			? null
-			: median(positive.map(({ b, d }) => (b - d) / b));
+			: median(positive.map(({ b, d }) => -d / b));
 	const baseP95 = base.stats?.p95Ms ?? null;
 	const currentP95 = current.stats?.p95Ms ?? null;
 	const p95RelativeRegression =
