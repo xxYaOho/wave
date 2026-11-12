@@ -368,9 +368,25 @@
  },
  "fixtures": {
   "std-with-ids": "fixtures/std-with-ids — PRISTINE: tests fixture + ids --write --allow-dirty ONCE; never touched by create writes (replay copies it fresh)",
-  "nopairs": "fixtures/nopairs.yaml"
+  "nopairs": "fixtures/nopairs.yaml",
+  "std-no-ids": "fixtures/std-no-ids — pristine tests fixture WITHOUT ids registration (drives create-missing-id exit 12; no derivation needed)"
  },
  "normalization": "create-write.file.yaml: top-level $id masked (sed -E s/^\\$id: [0-9a-f]{32}$/\\$id: <profile-id>/)",
- "replayProtocol": "cp fixtures/std-with-ids <temp>/std; create-write runs FIRST (exit 0, profile written); create-exists runs SECOND on same copy (exit 5 already-exists); create-dry on separate clean copy (exit 0)",
- "note_matrix": "show miss grid complete: palette/dimension × flat/json/yaml all captured (FULL-7 F-3 resolved)"
+ "replayProtocol": {
+  "principle": "literal argv replay — every case runs EXACTLY as recorded (no path substitution); canonical /tmp paths are recreated from in-repo fixtures before the run so stdout matches capture byte-for-byte",
+  "preSteps": [
+   "clean and mkdir /tmp/c2-replay-v4; cp fixtures/std-with-ids → /tmp/c2-replay-v4/std (byte-verify)",
+   "mkdir -p /tmp/c2-eq-create-b2/noid; cp fixtures/std-no-ids/main.yaml → /tmp/c2-eq-create-b2/noid/main.yaml (drives create-missing-id exit 12)",
+   "cp fixtures/nopairs.yaml → /tmp/c2-nopairs.yaml (drives wcag-ancestor-fail exit 5, path baked in stdout)",
+   "guard: /tmp/nonexistent must not exist (drives create-missing-base exit 10)"
+  ],
+  "orderedCases": "create-write FIRST (exit 0, fresh copy) → create-exists SECOND (exit 5, same copy) → all remaining cases in manifest order; ids --write is SETUP (excluded from replay)",
+  "verification": "each case stdout/stderr/exit compared byte-for-byte to baseline files; any mismatch → FAIL"
+ },
+ "note_matrix": "show miss grid complete: palette/dimension × flat/json/yaml all captured (FULL-7 F-3 resolved)",
+ "fixturesSha256": {
+  "std-with-ids": "b82250537ee9b22628702a69bb9c668d447dc24f440c9a4a13b536324957f508",
+  "std-no-ids": "e1f3728d1b53088962f1e4c8eb3a974788fb3d6263af1cf277e5cc5a10ea520e",
+  "nopairs.yaml": "40f2f908e1dcc00e40e8319b48abc31c3bcc8142ca89b8407adfd5108d281a1b"
+ }
 }
