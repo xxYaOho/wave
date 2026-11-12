@@ -1,7 +1,7 @@
 ---
 date: 2026-11-12
 state: 待 fresh FULL-4（v5 修订）
-dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/P1b（2026-11-12）；P1a FULL-3 FAIL（3F/6M/3m）→ Human 三项裁决：①写边界扩至穿线面 ②benchmark 接线归 P1b ③基线 mise bun 1.3.6 重捕（v2 已落地，提交 7979d1d）；本 SPEC 为 v5
+dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/P1b（2026-11-12）；P1a FULL-3 FAIL（3F/6M/3m）→ Human 三项裁决：①写边界扩至穿线面 ②benchmark 接线归 P1b ③基线 mise bun 1.3.6 重捕（v2 已落地，提交 d804841）；本 SPEC 为 v5
 ---
 
 # Wave P1a 缓存 Memo Plan
@@ -25,7 +25,7 @@ dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/
 
 ## Constraints
 
-- 输出不变：单 profile、`--profiles all`、Night 三场景产物与基线 v2 副本（提交 7979d1d）字节一致。
+- 输出不变：单 profile、`--profiles all`、Night 三场景产物与基线 v2 副本（提交 d804841）字节一致。
 - 无持久/跨进程缓存；缓存实例作用域 = 顶层操作。
 - key 含「缓存与 key 政策（冻结）」全部轴；错误不缓存。
 - 解析语义与错误行为不变（路径、时机、消息、tokenPath 归属）。
@@ -45,7 +45,7 @@ dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/
 
 ## Testing Decisions
 
-- 等价性：三场景 post 产物 vs 基线 v2 副本（`docs/island/plans/2026-11-11-p1-baseline/`，提交 7979d1d，mise bun 1.3.6 捕获）字节对照。
+- 等价性：三场景 post 产物 vs 基线 v2 副本（`docs/island/plans/2026-11-11-p1-baseline/`，提交 d804841，mise bun 1.3.6 捕获）字节对照。
 - 污染矩阵：两 profile 同路径不同上下文；readOnly 缺失↔可写恢复；非法色双 tokenPath；同文件 custom→palette 派生不串；profile 追加自定义资源引用完整。
 - 错误路径：资源缺失/校验失败原时机与消息。
 - 真实 Orca：`pnpm build && dist/wave token build -f /Users/teatao/Projects/my-color/orca/main.yaml --profiles all --night --output <实参绝对目录>` 退出 0 且与基线 night-pre 一致；fixture canary 通过。
@@ -73,7 +73,7 @@ dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/
 
 ## Implement Plan
 
-worktree `p1-token-performance`（基线 v2 已由主代理提交 7979d1d，施工方只读消费并核对 manifest；manifest v2 含逐命令 tracked-clean 断言、输出束缚守卫与 cachePolicyVersion 序列化定义）。顺序：Task-1 memo 实现 + 逐轴锁定 → Task-2 等价/污染/canary → 闸门 → pruner → 集成。本 SPEC 通过 fresh FULL-4 后冻结；strict 不进施工期；gate = 主代理；单 Milestone 单派遣薄壳。
+worktree `p1-token-performance`（基线 v2 已由主代理提交 d804841，施工方只读消费并核对 manifest；manifest v2 含逐命令 tracked-clean 断言、输出束缚守卫与 cachePolicyVersion 序列化定义）。顺序：Task-1 memo 实现 + 逐轴锁定 → Task-2 等价/污染/canary → 闸门 → pruner → 集成。本 SPEC 通过 fresh FULL-4 后冻结；strict 不进施工期；gate = 主代理；单 Milestone 单派遣薄壳。
 
 ## Milestone-1
 
@@ -89,7 +89,7 @@ memo 实现（来源：User Story 1；冻结节 1–4；Decisions 1–7）
 
 - 验收标准：`token-cache.ts` 就位；`loadResource`/`collectDependencyDictionary`/parse 站点/`convertColorSpace` 各层 memo 按冻结 key 轴实现（含 kind/source 轴与内容 SHA256 状态指纹、canonical 序列化）；三入口穿线 + doctor CLI 单行传参；颜色链五层显式传参；冻结快照语义；容量降级 + `stats(layer?)` 访问器；逐轴测试锁定；manifest v2 完整性核对（施工前）。
 - 可动文件范围：Draft Plan 文件清单（除 `tests/p1a-equivalence.test.ts`）。
-- 依赖：基线已交付（7979d1d）。
+- 依赖：基线已交付（d804841）。
 - 固有风险：穿线遗漏某调用链分支 = 该分支无收益（不属错误但需报告）；冻结对调用方变更抛错需与现有消费模式核对。
 
 - [ ] token-cache 实现与三入口穿线（含颜色五层链路与解析站点接线）。
