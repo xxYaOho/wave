@@ -1,0 +1,70 @@
+$id: 6b3c303a7096619efe3f596a12aa5d65
+$config:
+  theme: test-standard
+  resource:
+    palette:
+      - tailwindcss
+    dimension:
+      - wave
+  parameter:
+    outputDir: ./dist
+    platform:
+      - json
+      - css
+    colorSpace: hex
+
+theme:
+  color:
+    $type: color
+    primary:
+      $id: 8aa7e69f05bf77c1e8d6a93a48276d6e
+      $value: "{tailwindcss.color.indigo.600}"
+      $description: "主品牌色"
+    secondary:
+      $id: 09320cd402dbaecefd894206628bc1ae
+      $value: "{tailwindcss.color.blue.500}"
+    text:
+      default:
+        $id: a811340abacb0d422962d620d93b2e77
+        $value: "{tailwindcss.color.gray.900}"
+      muted:
+        $id: 94a33a0aba4659dbe8b27711204599af
+        $value:
+          color: "{tailwindcss.color.gray.600}"
+          alpha: 0.6
+  style:
+    shadow:
+      $type: shadow
+      sm:
+        $id: 1368477d65f57cc19fd304f693685ad8
+        $value:
+          - color:
+              color: "#000000"
+              alpha: 0.1
+            offsetX: 0
+            offsetY: 1
+            blur: 2
+            spread: 0
+      md:
+        $id: da5f281c9da7ad114f2ae9e7f3ad6f3f
+        $value:
+          - color:
+              $ref: "#/tailwindcss/color/gray/900/$value"
+              alpha: 0.15
+            offsetX: 0
+            offsetY: 4
+            blur: 6
+            spread: 0
+  dimension:
+    $type: dimension
+    alpha:
+      $type: number
+      sm:
+        $id: 9d61e7d5088869821ba1ffbfc487ecd6
+        $value: "{wave.dimension.alpha.200}"
+      md:
+        $id: 9d398df59de5401ff7aa27494d5ba1d7
+        $value: "{wave.dimension.alpha.400}"
+      lg:
+        $id: 182613adc551d76e1a4e81a15f70248f
+        $value: "{wave.dimension.alpha.600}"

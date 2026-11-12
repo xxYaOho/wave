@@ -1,0 +1,4 @@
+theme:
+  color:
+    x:
+      $value: "#000000"
