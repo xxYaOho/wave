@@ -8,6 +8,7 @@ import {
 	type DependencyDictionary,
 	type LoadedDependency,
 } from '../pipeline/theme-pipeline.ts';
+import type { TokenCache } from '../pipeline/token-cache.ts';
 import { validateCustomResourceExtension } from '../schema/resource.ts';
 
 export type DeclaredResourceValidationResult =
@@ -45,13 +46,19 @@ async function validateLoadedResource(
 export async function validateDeclaredResources(
 	config: Pick<DesignTokenBuildConfig, 'resources'>,
 	workspaceDir: string,
+	cache?: TokenCache,
 ): Promise<DeclaredResourceValidationResult> {
 	for (const declaration of config.resources) {
 		const declarationError = validateDeclaration(declaration);
 		if (declarationError) return { ok: false, message: declarationError };
 	}
 
-	const dictionary = await collectDependencyDictionary(config, workspaceDir);
+	const dictionary = await collectDependencyDictionary(
+		config,
+		workspaceDir,
+		{},
+		cache,
+	);
 	const loadIssue = dictionary.issues[0];
 	if (loadIssue) return { ok: false, message: loadIssue.message };
 

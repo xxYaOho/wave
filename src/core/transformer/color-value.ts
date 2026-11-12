@@ -5,6 +5,7 @@ import {
 	type DtcgColorSpaceValue,
 	isDtcgColorSpaceValue,
 } from '../../types/index.ts';
+import type { TokenCache } from '../pipeline/token-cache.ts';
 import {
 	convertColorSpace,
 	hexToRgbComponents,
@@ -181,6 +182,7 @@ function normalizeFromHex(
 	tokenPath: string | undefined,
 	source: NormalizedColorSource,
 	alphaOverride?: number,
+	cache?: TokenCache,
 ): NormalizedColor {
 	const normalized = normalizeHexString(color);
 	if (!normalized) {
@@ -214,6 +216,7 @@ function normalizeFromHex(
 		},
 		targetFormat,
 		tokenPath,
+		cache,
 	);
 	if (!result.success || result.value === undefined) {
 		throw new ColorValueError(
@@ -228,6 +231,7 @@ function normalizeDtcgColor(
 	value: DtcgColorObjectShape,
 	targetFormat: ColorSpaceFormat,
 	tokenPath?: string,
+	cache?: TokenCache,
 ): NormalizedColor {
 	const alpha = parseAlpha(value.alpha, tokenPath);
 	if (value.hex !== undefined) {
@@ -243,6 +247,7 @@ function normalizeDtcgColor(
 			{ ...value, alpha },
 			targetFormat,
 			tokenPath,
+			cache,
 		);
 		if (result.success && result.value !== undefined) {
 			const fallbackHex6 =
@@ -268,6 +273,7 @@ function normalizeDtcgColor(
 			tokenPath,
 			'dtcg-hex-fallback',
 			alpha,
+			cache,
 		);
 	}
 	if (isDtcgColorSpaceValue(value)) {
@@ -283,10 +289,24 @@ function normalizeDtcgColor(
 export function normalizeColorValue(
 	value: unknown,
 	targetFormat: ColorSpaceFormat = 'hex',
-	tokenPath?: string,
+	tokenPathOrCache?: string | TokenCache,
+	cache?: TokenCache,
 ): NormalizedColor {
+	const tokenPath =
+		typeof tokenPathOrCache === 'string' ? tokenPathOrCache : undefined;
+	const activeCache =
+		typeof tokenPathOrCache === 'object' && tokenPathOrCache !== null
+			? tokenPathOrCache
+			: cache;
 	if (typeof value === 'string') {
-		return normalizeFromHex(value, targetFormat, tokenPath, 'legacy-string');
+		return normalizeFromHex(
+			value,
+			targetFormat,
+			tokenPath,
+			'legacy-string',
+			undefined,
+			activeCache,
+		);
 	}
 	if (isObject(value) && '$value' in value) {
 		if (value.alpha !== undefined) {
@@ -294,12 +314,18 @@ export function normalizeColorValue(
 				{ color: value.$value, alpha: value.alpha },
 				targetFormat,
 				tokenPath,
+				activeCache,
 			);
 		}
-		return normalizeColorValue(value.$value, targetFormat, tokenPath);
+		return normalizeColorValue(
+			value.$value,
+			targetFormat,
+			tokenPath,
+			activeCache,
+		);
 	}
 	if (isDtcgColorObjectShape(value)) {
-		return normalizeDtcgColor(value, targetFormat, tokenPath);
+		return normalizeDtcgColor(value, targetFormat, tokenPath, activeCache);
 	}
 	const wrappedColor = unwrapLegacyColorSpaceObject(value);
 	if (wrappedColor) {
@@ -310,6 +336,7 @@ export function normalizeColorValue(
 				: { ...wrappedColor.color, alpha },
 			targetFormat,
 			tokenPath,
+			activeCache,
 		);
 	}
 	if (isObject(value) && 'color' in value) {
@@ -322,10 +349,16 @@ export function normalizeColorValue(
 				tokenPath,
 				'legacy-color',
 				alpha,
+				activeCache,
 			);
 		}
 		if (isDtcgColorObjectShape(color)) {
-			return normalizeDtcgColor({ ...color, alpha }, targetFormat, tokenPath);
+			return normalizeDtcgColor(
+				{ ...color, alpha },
+				targetFormat,
+				tokenPath,
+				activeCache,
+			);
 		}
 		const wrappedColor = unwrapLegacyColorSpaceObject(color);
 		if (wrappedColor) {
@@ -333,6 +366,7 @@ export function normalizeColorValue(
 				{ ...wrappedColor.color, alpha },
 				targetFormat,
 				tokenPath,
+				activeCache,
 			);
 		}
 	}

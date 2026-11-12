@@ -14,6 +14,11 @@ import {
 	collectDependencyDictionary,
 	processThemeDocument,
 } from '../pipeline/theme-pipeline.ts';
+import {
+	createTokenCache,
+	memoizeParsed,
+	type TokenCache,
+} from '../pipeline/token-cache.ts';
 import { loadDesignTokenSource } from '../pipeline/workspace-loader.ts';
 import { deriveNightOverlay } from './derive-overlay.ts';
 import {
@@ -66,11 +71,20 @@ function nightOverlayPath(themePath: string): string {
 
 async function readRawConfigNight(
 	themePath: string,
+	cache?: TokenCache,
 ): Promise<ReturnType<typeof parseNightConfigSection>> {
 	try {
 		// Workspace loader strips `$config` from tokenContent; re-read the file.
 		const raw = await fs.readFile(themePath, 'utf8');
-		const doc = yaml.load(raw);
+		const doc = memoizeParsed(
+			cache,
+			themePath,
+			raw,
+			'night-config-v1',
+			() => yaml.load(raw),
+			(value) =>
+				typeof value === 'object' && value !== null && !Array.isArray(value),
+		);
 		if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return undefined;
 		const config = (doc as Record<string, unknown>).$config;
 		if (!config || typeof config !== 'object' || Array.isArray(config))
@@ -85,7 +99,8 @@ export async function emitNightOverlay(
 	input: EmitNightInput,
 ): Promise<EmitNightResult> {
 	const cwd = input.cwd ?? process.cwd();
-	const loaded = await loadDesignTokenSource(input.themePath, cwd);
+	const cache = createTokenCache();
+	const loaded = await loadDesignTokenSource(input.themePath, cwd, cache);
 	if (!loaded.ok) {
 		return {
 			ok: false,
@@ -119,7 +134,7 @@ export async function emitNightOverlay(
 			input.cli,
 			// Profile config has no night section; Night settings are inherited
 			// from its actual base main, while resources come from the merged Day.
-			await readRawConfigNight(workspace.path),
+			await readRawConfigNight(workspace.path, cache),
 		);
 	} catch (error) {
 		return {
@@ -134,6 +149,7 @@ export async function emitNightOverlay(
 		document.buildDir,
 		// Creation planning and validation must never restore caches on disk.
 		{ readOnly: true },
+		cache,
 	);
 	if (deps.issues.length > 0) {
 		const first = deps.issues[0]!;
@@ -149,6 +165,7 @@ export async function emitNightOverlay(
 		deps.dict,
 		undefined,
 		document.tokenContent,
+		cache,
 	);
 	if (!processed.ok) {
 		return {

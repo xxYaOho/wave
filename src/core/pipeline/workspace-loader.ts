@@ -14,6 +14,7 @@ import {
 	ProfileFormatError,
 	parseProfileDocument,
 } from './profile-resolver.ts';
+import { memoizeParsed, type TokenCache } from './token-cache.ts';
 
 const ENTRY_HINT =
 	'Use main.yaml as the workspace entry or run wave token new.';
@@ -129,6 +130,7 @@ async function mainProfileEntry(
 export async function loadDesignTokenSource(
 	input?: string,
 	cwd = process.cwd(),
+	cache?: TokenCache,
 ): Promise<SourceLoadResult> {
 	const expandedInput = expandHomePath(input ?? DEFAULT_MAIN_YAML);
 	const suppliedPath = path.isAbsolute(expandedInput)
@@ -173,7 +175,7 @@ export async function loadDesignTokenSource(
 	}
 
 	if (path.basename(sourcePath) === DEFAULT_MAIN_YAML) {
-		const loaded = await loadDesignTokenWorkspace(sourcePath);
+		const loaded = await loadDesignTokenWorkspace(sourcePath, cwd, cache);
 		if (!loaded.ok) return loaded;
 		const entry = await mainProfileEntry(loaded.workspace);
 		return {
@@ -213,7 +215,7 @@ export async function loadDesignTokenSource(
 			'Unable to locate an ancestor main.yaml for profile source',
 		);
 	}
-	const loaded = await loadDesignTokenWorkspace(mainPath);
+	const loaded = await loadDesignTokenWorkspace(mainPath, cwd, cache);
 	if (!loaded.ok) return loaded;
 
 	let name: string;
@@ -244,15 +246,27 @@ export async function loadDesignTokenSource(
 		nightPath,
 	};
 	try {
-		const document = await parseProfileDocument(entry, {
-			baseConfig: loaded.workspace.config,
-			baseTree: yaml.load(loaded.workspace.tokenContent) as Record<
-				string,
-				unknown
-			>,
-			baseId: loaded.workspace.themeId,
-			baseDir: loaded.workspace.workspaceDir,
-		});
+		const document = await parseProfileDocument(
+			entry,
+			{
+				baseConfig: loaded.workspace.config,
+				baseTree: memoizeParsed(
+					cache,
+					mainPath,
+					loaded.workspace.tokenContent,
+					'workspace-token-v1',
+					() =>
+						yaml.load(loaded.workspace.tokenContent) as Record<string, unknown>,
+					(value) =>
+						typeof value === 'object' &&
+						value !== null &&
+						!Array.isArray(value),
+				),
+				baseId: loaded.workspace.themeId,
+				baseDir: loaded.workspace.workspaceDir,
+			},
+			cache,
+		);
 		return {
 			ok: true,
 			source: {
@@ -283,6 +297,7 @@ export async function loadDesignTokenSource(
 export async function loadDesignTokenWorkspace(
 	input?: string,
 	cwd = process.cwd(),
+	cache?: TokenCache,
 ): Promise<WorkspaceLoadResult> {
 	const expandedInput = expandHomePath(input ?? 'main.yaml');
 	const workspacePath = path.isAbsolute(expandedInput)
@@ -336,7 +351,15 @@ export async function loadDesignTokenWorkspace(
 
 	let loaded: unknown;
 	try {
-		loaded = yaml.load(content);
+		loaded = memoizeParsed(
+			cache,
+			workspacePath,
+			content,
+			'workspace-root-v1',
+			() => yaml.load(content),
+			(value) =>
+				typeof value === 'object' && value !== null && !Array.isArray(value),
+		);
 	} catch (error) {
 		const reason =
 			error instanceof yaml.YAMLException

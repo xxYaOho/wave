@@ -5,6 +5,7 @@ import {
 	type DtcgColorSpaceValue,
 	isDtcgColorSpaceValue,
 } from '../../types/index.ts';
+import { makeTokenCacheKey, type TokenCache } from '../pipeline/token-cache.ts';
 
 export interface ColorConversionResult {
 	success: boolean;
@@ -23,6 +24,36 @@ export function isComputableColorSpace(
 export function convertColorSpace(
 	colorValue: DtcgColorSpaceValue,
 	targetFormat: ColorSpaceFormat = 'hex',
+	tokenPathOrCache?: string | TokenCache,
+	cache?: TokenCache,
+): ColorConversionResult {
+	const tokenPath =
+		typeof tokenPathOrCache === 'string' ? tokenPathOrCache : undefined;
+	const activeCache =
+		typeof tokenPathOrCache === 'object' && tokenPathOrCache !== null
+			? tokenPathOrCache
+			: cache;
+	const cacheKey = activeCache
+		? makeTokenCacheKey('color', {
+				input: colorValue,
+				targetFormat,
+				conversionVersion: 'color-space-v1',
+			})
+		: undefined;
+	if (activeCache && cacheKey) {
+		const cached = activeCache.get<ColorConversionResult>('color', cacheKey);
+		if (cached) return cached;
+	}
+	const result = convertColorSpaceUncached(colorValue, targetFormat, tokenPath);
+	if (activeCache && cacheKey && result.success) {
+		return activeCache.set('color', cacheKey, result);
+	}
+	return result;
+}
+
+function convertColorSpaceUncached(
+	colorValue: DtcgColorSpaceValue,
+	targetFormat: ColorSpaceFormat,
 	tokenPath?: string,
 ): ColorConversionResult {
 	const { colorSpace, components, alpha } = colorValue;

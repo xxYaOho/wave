@@ -6,6 +6,7 @@ import type {
 } from '../../types/index.ts';
 import type { DependencyDict } from './theme-pipeline.ts';
 import { processThemeDocument } from './theme-pipeline.ts';
+import type { TokenCache } from './token-cache.ts';
 
 export interface PrepareBuildPassInput {
 	id: string;
@@ -20,6 +21,7 @@ export interface PrepareBuildPassInput {
 	yamlContent: string;
 	dict: DependencyDict;
 	pass: ResolvedGroupParameters;
+	cache?: TokenCache;
 }
 
 export interface PreparedBuildPass {
@@ -47,6 +49,7 @@ export async function prepareBuildPass(
 		input.dict,
 		input.pass.colorSpace,
 		input.yamlContent,
+		input.cache,
 	);
 	if (!document.ok) {
 		return { ...document, message: `${input.yamlPath}: ${document.message}` };

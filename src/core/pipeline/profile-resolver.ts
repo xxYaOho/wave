@@ -10,6 +10,7 @@ import type {
 
 import { ExitCode } from '../../types/index.ts';
 import { validateProfileConfig } from '../validator/design-token-profile-config.ts';
+import { memoizeParsed, type TokenCache } from './token-cache.ts';
 
 export class ProfileFormatError extends Error {
 	readonly exitCode = ExitCode.FORMAT_ERROR;
@@ -523,9 +524,10 @@ export function resolveProfilesToBuild(
 export async function parseProfileDocument(
 	entry: ProfileEntry,
 	options: ProfileParseOptions,
+	cache?: TokenCache,
 ): Promise<ProfileDocument> {
 	try {
-		return await parseProfileContent(entry, options);
+		return await parseProfileContent(entry, options, cache);
 	} catch (error) {
 		if (error instanceof ProfileFormatError) throw error;
 		throw new ProfileFormatError(
@@ -538,9 +540,18 @@ export async function parseProfileDocument(
 async function parseProfileContent(
 	entry: ProfileEntry,
 	options: ProfileParseOptions,
+	cache?: TokenCache,
 ): Promise<ProfileDocument> {
 	const content = await Bun.file(entry.path).text();
-	const loaded = yaml.load(content);
+	const loaded = memoizeParsed(
+		cache,
+		entry.path,
+		content,
+		'profile-root-v1',
+		() => yaml.load(content),
+		(value) =>
+			typeof value === 'object' && value !== null && !Array.isArray(value),
+	);
 	if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded)) {
 		throw new Error(`${entry.path} root must be an object`);
 	}

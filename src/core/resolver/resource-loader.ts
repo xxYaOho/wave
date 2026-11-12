@@ -1,6 +1,14 @@
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import type { ParseError } from '../../types/index.ts';
+import {
+	deepFreeze,
+	isTokenCache,
+	makeTokenCacheKey,
+	normalizeCachePath,
+	resourceContentHash,
+	type TokenCache,
+} from '../pipeline/token-cache.ts';
 import { restoreResourceCache } from '../resources/manager.ts';
 import { resourceCachePath } from '../resources/paths.ts';
 import { readResourceState } from '../resources/state.ts';
@@ -77,8 +85,11 @@ export async function loadResource(
 	kind: string,
 	ref: string,
 	themeDir: string,
-	options: { readOnly?: boolean } = {},
+	optionsOrCache: { readOnly?: boolean } | TokenCache = {},
+	cache?: TokenCache,
 ): Promise<LoadedResource | ParseError> {
+	const options = isTokenCache(optionsOrCache) ? {} : optionsOrCache;
+	const activeCache = isTokenCache(optionsOrCache) ? optionsOrCache : cache;
 	const resolved = await resolveResourcePath(
 		kind,
 		ref,
@@ -103,6 +114,23 @@ export async function loadResource(
 			line: 1,
 			message: `Failed to read resource: ${err instanceof Error ? err.message : String(err)}`,
 		};
+	}
+
+	const normalizedFilePath = normalizeCachePath(filePath);
+	const contentSha256 = resourceContentHash(content);
+	const cacheKey = activeCache
+		? makeTokenCacheKey('loadResource', {
+				kind,
+				path: normalizedFilePath,
+				source,
+				readOnly: options.readOnly === true,
+				contentSha256,
+				resourceKeyVersion: 'load-resource-v1',
+			})
+		: undefined;
+	if (activeCache && cacheKey) {
+		const cached = activeCache.get<LoadedResource>('loadResource', cacheKey);
+		if (cached) return cached;
 	}
 
 	let parsed: unknown;
@@ -147,7 +175,7 @@ export async function loadResource(
 		};
 	}
 
-	return {
+	const loaded: LoadedResource = {
 		namespace: generic.namespace,
 		data: generic.data,
 		content,
@@ -155,6 +183,10 @@ export async function loadResource(
 		kind,
 		source,
 	};
+	if (activeCache && cacheKey) {
+		return activeCache.set('loadResource', cacheKey, deepFreeze(loaded));
+	}
+	return loaded;
 }
 
 const REF_PATTERN = /\{([a-zA-Z][a-zA-Z0-9-]*)\./g;

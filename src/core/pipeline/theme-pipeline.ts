@@ -27,6 +27,14 @@ import {
 import { validateThemeSchema } from '../schema/theme.ts';
 import { ColorValueError } from '../transformer/color-value.ts';
 import { transformToWaveTokens } from '../transformer/index.ts';
+import {
+	deepFreeze,
+	isTokenCache,
+	makeTokenCacheKey,
+	normalizeCachePath,
+	resourceContentHash,
+	type TokenCache,
+} from './token-cache.ts';
 
 export interface DependencyDict {
 	[namespace: string]: {
@@ -72,24 +80,44 @@ function isParseError(result: unknown): result is ParseError {
 export async function collectDependencyDictionary(
 	config: Pick<DesignTokenBuildConfig, 'resources'>,
 	themeDir: string,
-	options: { readOnly?: boolean } = {},
+	optionsOrCache: { readOnly?: boolean } | TokenCache = {},
+	cache?: TokenCache,
 ): Promise<DependencyDictionary> {
+	const options = isTokenCache(optionsOrCache) ? {} : optionsOrCache;
+	const activeCache = isTokenCache(optionsOrCache) ? optionsOrCache : cache;
 	const dict = Object.create(null) as DependencyDict;
 	let loaded: LoadedDependency[] = [];
 	const issues: DependencyLoadIssue[] = [];
 	const ambiguous = new Set<string>();
+	const signatures: Array<Record<string, unknown>> = [];
 
-	for (const declaration of config.resources) {
+	for (const [declarationIndex, declaration] of config.resources.entries()) {
 		const resource = await loadResource(
 			declaration.kind,
 			declaration.ref,
 			themeDir,
 			options,
+			activeCache,
 		);
 		if ('line' in resource) {
+			signatures.push({
+				index: declarationIndex,
+				declaration,
+				status: 'error',
+				message: resource.message,
+			});
 			issues.push({ ...declaration, message: resource.message });
 			continue;
 		}
+		signatures.push({
+			index: declarationIndex,
+			declaration,
+			status: 'loaded',
+			path: normalizeCachePath(resource.path),
+			source: resource.source,
+			kind: resource.kind,
+			contentSha256: resourceContentHash(resource.content),
+		});
 
 		if (ambiguous.has(resource.namespace)) {
 			issues.push({
@@ -121,15 +149,36 @@ export async function collectDependencyDictionary(
 		loaded.push(entry);
 	}
 
-	return { dict, loaded, issues };
+	const result: DependencyDictionary = { dict, loaded, issues };
+	if (!activeCache) return result;
+	const cacheKey = makeTokenCacheKey('dictionary', {
+		themeDir: normalizeCachePath(themeDir),
+		readOnly: options.readOnly === true,
+		duplicateSemanticsVersion: 'namespace-duplicate-v1',
+		declarationOrder: signatures,
+		contextFingerprint: makeTokenCacheKey('dictionary', {
+			resources: config.resources,
+		}),
+	});
+	const cached = activeCache.get<DependencyDictionary>('dictionary', cacheKey);
+	if (cached) return cached;
+	if (issues.length > 0) return result;
+	return activeCache.set('dictionary', cacheKey, deepFreeze(result));
 }
 
 export async function processThemeDocument(
 	yamlPath: string,
 	dict: DependencyDict,
 	colorSpace?: ColorSpaceFormat,
-	contentOverride?: string,
+	contentOverrideOrCache?: string | TokenCache,
+	cache?: TokenCache,
 ): Promise<ThemeDocumentResult> {
+	const contentOverride = isTokenCache(contentOverrideOrCache)
+		? undefined
+		: contentOverrideOrCache;
+	const activeCache = isTokenCache(contentOverrideOrCache)
+		? contentOverrideOrCache
+		: cache;
 	let content = contentOverride;
 	if (content === undefined) {
 		const file = Bun.file(yamlPath);
@@ -143,7 +192,7 @@ export async function processThemeDocument(
 		}
 		content = await file.text();
 	}
-	const parsed = parseThemeYaml(content);
+	const parsed = parseThemeYaml(content, activeCache, yamlPath);
 
 	if (isParseError(parsed)) {
 		return {
@@ -212,6 +261,7 @@ export async function processThemeDocument(
 				provenance: resolution.provenance,
 				rootKeys: resolution.rootKeys,
 			},
+			activeCache,
 		);
 		return {
 			ok: true,

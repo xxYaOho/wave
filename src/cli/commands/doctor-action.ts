@@ -19,6 +19,10 @@ import {
 	NIGHT_SKIP_MESSAGE,
 } from '../../core/pipeline/profile-resolver.ts';
 import { collectDependencyDictionary } from '../../core/pipeline/theme-pipeline.ts';
+import {
+	createTokenCache,
+	type TokenCache,
+} from '../../core/pipeline/token-cache.ts';
 import { loadDesignTokenSource } from '../../core/pipeline/workspace-loader.ts';
 import type { DoctorFinding, DoctorThemeReport } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
@@ -218,10 +222,13 @@ function renderThemeIdentityReport(
 	}
 }
 
-async function runDesignTokenContrastCheck(options: {
-	file?: string;
-	night?: boolean;
-}): Promise<void> {
+async function runDesignTokenContrastCheck(
+	options: {
+		file?: string;
+		night?: boolean;
+	},
+	cache = createTokenCache(),
+): Promise<void> {
 	const fileInput = resolveExclusiveFileInput(undefined, options.file, {
 		label: 'WCAG source input',
 		hint: 'Use one Day source YAML or workspace directory.',
@@ -232,7 +239,11 @@ async function runDesignTokenContrastCheck(options: {
 		return;
 	}
 	const sourcePath = await expandMainYamlEntry(fileInput.path);
-	const loadResult = await loadDesignTokenSource(sourcePath);
+	const loadResult = await loadDesignTokenSource(
+		sourcePath,
+		process.cwd(),
+		cache,
+	);
 	if (!loadResult.ok) {
 		renderWorkspaceLoadFailure(loadResult);
 		return;
@@ -244,6 +255,8 @@ async function runDesignTokenContrastCheck(options: {
 	const profileDictResult = await collectDependencyDictionary(
 		document.config,
 		document.buildDir,
+		{},
+		cache,
 	);
 
 	let contextPath = entry.path;
@@ -350,6 +363,7 @@ export function createDoctorCommandAction(
 	commandOptions: CreateDoctorCommandOptions,
 ) {
 	return async (options: DoctorCommandOptions, command: Command) => {
+		const cache: TokenCache = createTokenCache();
 		const parentOptions = command.parent?.opts() as
 			| {
 					file?: string;
@@ -412,7 +426,11 @@ export function createDoctorCommandAction(
 				commandOptions.defaultMainYaml === true ||
 				options.file !== undefined
 			) {
-				const loadResult = await loadDesignTokenSource(options.file);
+				const loadResult = await loadDesignTokenSource(
+					options.file,
+					process.cwd(),
+					cache,
+				);
 				if (!loadResult.ok) {
 					renderWorkspaceLoadFailure(loadResult);
 					return;
@@ -433,6 +451,7 @@ export function createDoctorCommandAction(
 					const resourceResult = await validateDeclaredResources(
 						selected.config,
 						selected.buildDir,
+						cache,
 					);
 					if (!resourceResult.ok) {
 						resourcesOk = false;

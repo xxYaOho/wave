@@ -9,6 +9,7 @@ import {
 	type WaveToken,
 } from '../../types/index.ts';
 import { logger } from '../../utils/logger.ts';
+import type { TokenCache } from '../pipeline/token-cache.ts';
 import { parseDimension } from '../token-values/dimension.ts';
 import { parseDuration } from '../token-values/duration.ts';
 import { normalizeFontWeight } from '../token-values/font-weight.ts';
@@ -198,6 +199,7 @@ function normalizeNestedColor(
 	value: unknown,
 	targetFormat: ColorSpaceFormat,
 	path?: string,
+	cache?: TokenCache,
 ): unknown {
 	return typeof value === 'string' ||
 		isDtcgColorSpaceValue(value) ||
@@ -206,7 +208,7 @@ function normalizeNestedColor(
 		isDtcgTokenValueObject(value) ||
 		isLegacyColorObject(value) ||
 		isStandaloneHexObject(value)
-		? normalizeColorValue(value, targetFormat, path).value
+		? normalizeColorValue(value, targetFormat, path, cache).value
 		: value;
 }
 
@@ -214,6 +216,7 @@ function normalizeBorderValue(
 	value: unknown,
 	targetFormat: ColorSpaceFormat,
 	tokenPath?: string,
+	cache?: TokenCache,
 ): DtcgValue {
 	if (!isRecord(value)) return value as DtcgValue;
 	return {
@@ -222,6 +225,7 @@ function normalizeBorderValue(
 			value.color,
 			targetFormat,
 			valuePath(tokenPath, 'color'),
+			cache,
 		) as DtcgValue,
 		width: normalizeDimensionOutput(value.width, valuePath(tokenPath, 'width')),
 		style: normalizeStrokeStyleOutput(
@@ -250,6 +254,7 @@ function normalizeTypographyValue(
 	value: unknown,
 	targetFormat: ColorSpaceFormat,
 	tokenPath?: string,
+	cache?: TokenCache,
 ): DtcgValue {
 	if (!isRecord(value)) return value as DtcgValue;
 	const fontSize = parseTypographyDimension(value.fontSize);
@@ -277,6 +282,7 @@ function normalizeTypographyValue(
 				value.color,
 				targetFormat,
 				valuePath(tokenPath, 'color'),
+				cache,
 			) as DtcgValue,
 		}),
 		fontSize: normalizeDimensionOutput(
@@ -302,9 +308,10 @@ function processValue(
 	targetFormat: ColorSpaceFormat = 'hex',
 	tokenPath?: string,
 	typeValue?: string,
+	cache?: TokenCache,
 ): DtcgValue {
 	if (shouldNormalizeScalarColor(value, typeValue)) {
-		return normalizeColorValue(value, targetFormat, tokenPath)
+		return normalizeColorValue(value, targetFormat, tokenPath, cache)
 			.value as DtcgValue;
 	}
 
@@ -321,13 +328,13 @@ function processValue(
 		return normalizeStrokeStyleOutput(value, tokenPath);
 	}
 	if (typeValue === 'border') {
-		return normalizeBorderValue(value, targetFormat, tokenPath);
+		return normalizeBorderValue(value, targetFormat, tokenPath, cache);
 	}
 	if (typeValue === 'transition') {
 		return normalizeTransitionValue(value, tokenPath);
 	}
 	if (typeValue === 'typography') {
-		return normalizeTypographyValue(value, targetFormat, tokenPath);
+		return normalizeTypographyValue(value, targetFormat, tokenPath, cache);
 	}
 
 	if (
@@ -340,6 +347,7 @@ function processValue(
 				targetFormat,
 				tokenPath ? `${tokenPath}[${index}]` : `[${index}]`,
 				typeValue,
+				cache,
 			),
 		) as unknown as DtcgValue;
 	}
@@ -349,6 +357,7 @@ function processValue(
 			targetFormat,
 			tokenPath,
 			typeValue,
+			cache,
 		) as DtcgValue;
 	}
 	return value;
@@ -360,6 +369,7 @@ function processArrayItem(
 	targetFormat: ColorSpaceFormat,
 	itemPath?: string,
 	parentType?: string,
+	cache?: TokenCache,
 ): unknown {
 	if (typeof item !== 'object' || item === null) {
 		return item;
@@ -384,6 +394,7 @@ function processArrayItem(
 				val,
 				targetFormat,
 				itemPath ? `${itemPath}.color` : undefined,
+				cache,
 			);
 		} else if (
 			parentType === 'shadow' &&
@@ -773,6 +784,7 @@ function transformToken(
 	targetColorSpace: ColorSpaceFormat = 'hex',
 	tokenPath?: string,
 	inheritedExtensions: InheritedExtensions = {},
+	cache?: TokenCache,
 ): {
 	partial: Omit<WaveToken, 'name' | 'path'>;
 	preserveReferenceLineage: boolean;
@@ -800,6 +812,7 @@ function transformToken(
 		targetColorSpace,
 		tokenPath,
 		typeValue,
+		cache,
 	);
 	const typographyColor =
 		typeValue === 'typography' &&
@@ -919,6 +932,7 @@ function transformToken(
 					targetColorSpace,
 					tokenPath,
 					'shadow',
+					cache,
 				) as Record<string, unknown>;
 				const layerColor = processedLayer.color;
 				if (typeof layerColor === 'string') {
@@ -1034,6 +1048,7 @@ export function transformToWaveTokens(
 	parentType?: string,
 	targetColorSpace: ColorSpaceFormat = 'hex',
 	referenceContext?: TransformReferenceContext,
+	cache?: TokenCache,
 ): WaveTokenResult {
 	const tokens: WaveToken[] = [];
 	const groupComments: Record<string, string> = {};
@@ -1138,6 +1153,7 @@ export function transformToWaveTokens(
 					targetColorSpace,
 					childPathStr,
 					childInheritedExtensions,
+					cache,
 				);
 				const waveToken = buildWaveToken(childPath, transformed.partial);
 				bindReferenceLineage(
@@ -1211,6 +1227,7 @@ export function transformToWaveTokens(
 						targetColorSpace,
 						`${childPathStr}.${propKey}`,
 						compositeInheritedExtensions,
+						cache,
 					);
 					transformed.partial._composite = childPathStr;
 					const propPath = [...childPath, propKey];
