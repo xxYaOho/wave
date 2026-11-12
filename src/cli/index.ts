@@ -4,8 +4,10 @@ import { ExitCode } from '../types/index.ts';
 import { CommandLoadError } from './commands/lazy-action.ts';
 import {
 	isValidManualPath,
+	readManualText,
 	renderManual,
 	resolveManualPath,
+	resolveManualTextRequest,
 } from './manual-markdown.ts';
 import { ROOT_HELP, registerCommands } from './registry.ts';
 
@@ -46,26 +48,39 @@ program
 registerCommands(program);
 
 const argv = process.argv.slice(2);
-const requestedManualPath = resolveManualPath(argv);
-if (requestedManualPath) {
-	if (!isValidManualPath(requestedManualPath)) {
-		console.error(
-			`Unknown command path for --manual: ${requestedManualPath.join(' ')}`,
-		);
-		process.exitCode = ExitCode.INVALID_COMMAND;
-	} else {
-		renderManual(requestedManualPath);
-		process.exitCode = ExitCode.SUCCESS;
+const manualTextRequest = resolveManualTextRequest(argv);
+if (manualTextRequest) {
+	try {
+		const result = await readManualText(manualTextRequest.query);
+		process.stdout.write(result.stdout);
+		process.stderr.write(result.stderr ?? '');
+		process.exitCode = result.exitCode;
+	} catch (error) {
+		console.error(error instanceof Error ? error.message : String(error));
+		process.exitCode = ExitCode.GENERAL_ERROR;
 	}
 } else {
-	try {
-		await program.parseAsync(process.argv);
-	} catch (error) {
-		console.error(
-			error instanceof CommandLoadError
-				? error.message
-				: `Command failed: ${error instanceof Error ? error.message : String(error)}`,
-		);
-		process.exitCode = ExitCode.GENERAL_ERROR;
+	const requestedManualPath = resolveManualPath(argv);
+	if (requestedManualPath) {
+		if (!isValidManualPath(requestedManualPath)) {
+			console.error(
+				`Unknown command path for --manual: ${requestedManualPath.join(' ')}`,
+			);
+			process.exitCode = ExitCode.INVALID_COMMAND;
+		} else {
+			renderManual(requestedManualPath);
+			process.exitCode = ExitCode.SUCCESS;
+		}
+	} else {
+		try {
+			await program.parseAsync(process.argv);
+		} catch (error) {
+			console.error(
+				error instanceof CommandLoadError
+					? error.message
+					: `Command failed: ${error instanceof Error ? error.message : String(error)}`,
+			);
+			process.exitCode = ExitCode.GENERAL_ERROR;
+		}
 	}
 }

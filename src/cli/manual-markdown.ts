@@ -32,6 +32,52 @@ interface ManualNode {
 
 const MANUAL_FLAG = /^--?m(?:anual)?(?:=.*)?$/;
 
+const MANUAL_TEXT_FLAG = /^--?m(?:anual)?(?:=(.*))?$/u;
+
+export interface ManualTextRequest {
+	query: string;
+}
+
+export interface ManualTextResult {
+	stdout: string;
+	stderr?: string;
+	exitCode: 0 | 1;
+}
+
+export class ManualTextReaderError extends Error {
+	constructor(message = 'Run pnpm manual:build first.') {
+		super(message);
+		this.name = 'ManualTextReaderError';
+	}
+}
+
+/** Detect only `wave manual -m [query]`; all other command -m paths are unchanged. */
+export function resolveManualTextRequest(
+	argv: readonly string[],
+): ManualTextRequest | undefined {
+	const manualIndex = argv.indexOf('manual');
+	if (manualIndex !== 0) return undefined;
+
+	let flagIndex = -1;
+	let inlineQuery = '';
+	for (let index = manualIndex + 1; index < argv.length; index += 1) {
+		const match = MANUAL_TEXT_FLAG.exec(argv[index]!);
+		if (!match) continue;
+		flagIndex = index;
+		inlineQuery = match[1] ?? '';
+		break;
+	}
+	if (flagIndex < 0) return undefined;
+
+	const queryTokens = argv.slice(manualIndex + 1).filter((token, index) => {
+		const absoluteIndex = manualIndex + 1 + index;
+		if (absoluteIndex === flagIndex) return false;
+		return !token.startsWith('-');
+	});
+	const query = [inlineQuery, ...queryTokens].filter(Boolean).join(' ').trim();
+	return { query };
+}
+
 // Values for options that are common to the public command tree. They are only
 // used while locating a command path; Commander still owns option validation.
 const OPTION_VALUES = new Set([
@@ -442,4 +488,200 @@ export function listManualPaths(): string[][] {
 	return Array.from(nodeByPath.keys()).map((key) =>
 		key ? key.split(' ') : [],
 	);
+}
+
+type ManualTextLocale = 'zh' | 'en';
+
+interface ManualTextMetadata {
+	locales: ManualTextLocale[];
+	routes: Array<{ route: string; title: string; locale: ManualTextLocale }>;
+}
+
+interface ManualTextSearchEntry {
+	route: string;
+	locale: ManualTextLocale;
+	title: string;
+	description: string;
+	category: string;
+	commands: string[];
+	appliesTo: string[];
+	searchText: string;
+}
+
+interface ManualTextRouteChunk {
+	route: string;
+	locale: ManualTextLocale;
+	rawMarkdown: string;
+}
+
+export function normalizeManualText(value: string): string {
+	return value.normalize('NFKC').toLowerCase().replace(/\s+/gu, ' ').trim();
+}
+
+function manualTextRouteSegments(route: string): string[] {
+	return route.split('/').filter(Boolean);
+}
+
+function manualTextChunkPath(
+	appDir: string,
+	locale: ManualTextLocale,
+	route: string,
+): string {
+	return `${path.join(appDir, 'pages', locale, ...manualTextRouteSegments(route))}.json`;
+}
+
+async function readManualTextJson<T>(filePath: string): Promise<T> {
+	try {
+		return JSON.parse(await fs.promises.readFile(filePath, 'utf-8')) as T;
+	} catch {
+		throw new ManualTextReaderError();
+	}
+}
+
+async function manualTextDirectoryExists(directory: string): Promise<boolean> {
+	try {
+		return (await fs.promises.stat(directory)).isDirectory();
+	} catch {
+		return false;
+	}
+}
+
+/** Find the packaged manual first, then the repository development output. */
+export async function resolveManualTextAppDir(): Promise<string> {
+	const executableDir = path.dirname(process.execPath);
+	const candidates = [
+		path.join(executableDir, 'manual-app'),
+		path.resolve(process.cwd(), 'dist/manual-app'),
+		path.resolve(import.meta.dir, '../../dist/manual-app'),
+	];
+	for (const candidate of candidates) {
+		if (await manualTextDirectoryExists(candidate)) return candidate;
+	}
+	throw new ManualTextReaderError();
+}
+
+function ensureSingleTrailingNewline(value: string): string {
+	return `${value.replace(/(?:\r\n|\r|\n)+$/gu, '')}\n`;
+}
+
+async function readManualTextArtifacts(appDir: string): Promise<{
+	metadata: ManualTextMetadata;
+	index: ManualTextSearchEntry[];
+}> {
+	const [metadata, index] = await Promise.all([
+		readManualTextJson<ManualTextMetadata>(
+			path.join(appDir, 'manual-metadata.json'),
+		),
+		readManualTextJson<ManualTextSearchEntry[]>(
+			path.join(appDir, 'search-index.json'),
+		),
+	]);
+	if (
+		!Array.isArray(metadata.routes) ||
+		!metadata.routes.every(
+			(entry) =>
+				entry &&
+				typeof entry.route === 'string' &&
+				typeof entry.title === 'string' &&
+				(entry.locale === 'en' || entry.locale === 'zh'),
+		) ||
+		!Array.isArray(index) ||
+		!index.every(
+			(entry) =>
+				entry &&
+				typeof entry.route === 'string' &&
+				typeof entry.title === 'string' &&
+				typeof entry.searchText === 'string' &&
+				(entry.locale === 'en' || entry.locale === 'zh'),
+		)
+	) {
+		throw new ManualTextReaderError();
+	}
+	return { metadata, index };
+}
+
+function englishManualTextRoutes(
+	metadata: ManualTextMetadata,
+): Array<{ route: string; title: string }> {
+	return metadata.routes
+		.filter((entry) => entry.locale === 'en')
+		.map(({ route, title }) => ({ route, title }));
+}
+
+function exactManualTextMatches(
+	entries: ManualTextSearchEntry[],
+	query: string,
+): ManualTextSearchEntry[] {
+	const normalized = normalizeManualText(query).replace(/^\/+|\/+$/gu, '');
+	return entries.filter((entry) => {
+		if (entry.locale !== 'en') return false;
+		const route = normalizeManualText(entry.route).replace(/^\/+|\/+$/gu, '');
+		return (
+			route === normalized || normalizeManualText(entry.title) === normalized
+		);
+	});
+}
+
+function manualTextSnippet(searchText: string, query: string): string {
+	const start = searchText.indexOf(query);
+	if (start < 0) return searchText.slice(0, 60);
+	const end = Math.min(searchText.length, start + 60);
+	return `${searchText.slice(start, end)}${end < searchText.length ? '…' : ''}`;
+}
+
+export async function readManualText(
+	query = '',
+	appDir?: string,
+): Promise<ManualTextResult> {
+	const resolvedAppDir = appDir ?? (await resolveManualTextAppDir());
+	const { metadata, index } = await readManualTextArtifacts(resolvedAppDir);
+	const englishIndex = index.filter((entry) => entry.locale === 'en');
+	const normalizedQuery = normalizeManualText(query);
+
+	if (!normalizedQuery) {
+		const lines = englishManualTextRoutes(metadata).map(
+			({ route, title }) => `${route}\t${title}`,
+		);
+		return {
+			stdout: `${lines.join('\n')}\n`,
+			exitCode: 0,
+		};
+	}
+
+	const matches = exactManualTextMatches(englishIndex, normalizedQuery);
+	if (matches.length === 1) {
+		const match = matches[0]!;
+		const chunk = await readManualTextJson<ManualTextRouteChunk>(
+			manualTextChunkPath(resolvedAppDir, 'en', match.route),
+		);
+		if (
+			!chunk ||
+			chunk.route !== match.route ||
+			chunk.locale !== 'en' ||
+			typeof chunk.rawMarkdown !== 'string'
+		) {
+			throw new ManualTextReaderError();
+		}
+		return {
+			stdout: ensureSingleTrailingNewline(chunk.rawMarkdown),
+			exitCode: 0,
+		};
+	}
+	if (matches.length > 1) {
+		return {
+			stdout: '',
+			stderr: `${matches.map((entry) => entry.route).join('\n')}\n`,
+			exitCode: 1,
+		};
+	}
+
+	const hits = englishIndex
+		.filter((entry) => entry.searchText.includes(normalizedQuery))
+		.slice(0, 8)
+		.map(
+			(entry) =>
+				`${entry.route}\t${entry.title}\t${manualTextSnippet(entry.searchText, normalizedQuery)}`,
+		);
+	if (hits.length === 0) return { stdout: 'No matches.\n', exitCode: 1 };
+	return { stdout: `${hits.join('\n')}\n`, exitCode: 0 };
 }

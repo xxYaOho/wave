@@ -1,35 +1,22 @@
 {
-  "path": "dist/manual-app/manual-data.json",
-  "sha256": "f0d9c5945ec1e033385525288e1c19d80b2c0a30b9188c2f5f9d6b1e202c4de2",
-  "bytes": 2124450,
-  "topLevelKeys": [
-    "site",
-    "home",
-    "pages",
-    "sections",
-    "nav",
-    "locales"
-  ],
-  "viewKeys": [
-    "site",
-    "home",
-    "pages",
-    "sections",
-    "nav"
-  ],
-  "pageKeys": [
-    "title",
-    "description",
-    "category",
-    "commands",
-    "appliesTo",
-    "href",
-    "source",
-    "body",
-    "html",
-    "searchText"
-  ],
-  "sectionKeys": ["title", "pages"],
-  "localeKeys": ["zh", "en"],
-  "pageCount": 20
+	"path": "dist/manual-app/manual-data.json",
+	"sha256": "f0d9c5945ec1e033385525288e1c19d80b2c0a30b9188c2f5f9d6b1e202c4de2",
+	"bytes": 2124450,
+	"topLevelKeys": ["site", "home", "pages", "sections", "nav", "locales"],
+	"viewKeys": ["site", "home", "pages", "sections", "nav"],
+	"pageKeys": [
+		"title",
+		"description",
+		"category",
+		"commands",
+		"appliesTo",
+		"href",
+		"source",
+		"body",
+		"html",
+		"searchText"
+	],
+	"sectionKeys": ["title", "pages"],
+	"localeKeys": ["zh", "en"],
+	"pageCount": 20
 }

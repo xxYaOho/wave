@@ -15,6 +15,7 @@
 			"!docs/island/plans/2026-11-11-p1-baseline",
 			"!**/experiments/*/out",
 			"!**/experiments/*/public/preview-tokens.json",
+			"!src/manual-app/public/**/*.json",
 			"!**/.sisyphus",
 			"!**/.claude",
 			"!**/.mcp.json",

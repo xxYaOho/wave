@@ -9,6 +9,10 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import type {
+	ManualMetadata,
+	ManualSearchIndexEntry,
+} from '../../core/manual/build.ts';
 import { localeFromPrimaryLanguage } from '../../core/manual/locale.ts';
 import type {
 	Locale,
@@ -18,7 +22,16 @@ import type {
 	ManualHomeCardConfig,
 } from '../../core/manual/types.ts';
 import { BrandMark } from './BrandMark.tsx';
-import { loadManualData, selectManualView } from './manual-data.ts';
+import {
+	hrefFromRoute,
+	loadManualPage,
+	loadManualSearchIndex,
+	loadManualShell,
+	normalizeManualQuery,
+	routeFromHref,
+	selectManualView,
+	selectMetadataView,
+} from './manual-data.ts';
 
 type ManualRenderableData = Pick<
 	ManualDataView,
@@ -622,20 +635,39 @@ function Search({
 	query,
 	setQuery,
 	copy,
+	locale,
+	searchIndex,
+	searchLoading,
 }: {
 	data: ManualRenderableData;
 	query: string;
 	setQuery: (value: string) => void;
 	copy: ManualUiText;
+	locale: Locale;
+	searchIndex?: ManualSearchIndexEntry[];
+	searchLoading?: boolean;
 }) {
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const results = useMemo(() => {
-		const normalized = query.trim().toLowerCase();
+		const normalized = normalizeManualQuery(query);
 		if (!normalized) return [];
+		if (searchIndex) {
+			return searchIndex
+				.filter((entry) => entry.locale === locale)
+				.filter((entry) => entry.searchText.includes(normalized))
+				.slice(0, 8)
+				.map((entry) => ({
+					...entry,
+					href: hrefFromRoute(entry.route),
+					body: '',
+					html: '',
+					source: '',
+				}));
+		}
 		return data.pages
 			.filter((page) => page.searchText.toLowerCase().includes(normalized))
 			.slice(0, 8);
-	}, [data.pages, query]);
+	}, [data.pages, locale, query, searchIndex]);
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -713,7 +745,7 @@ function Search({
 							</button>
 						))
 					) : (
-						<p>{copy.noResults}</p>
+						<p>{searchLoading ? copy.loading : copy.noResults}</p>
 					)}
 				</div>
 			) : null}
@@ -722,7 +754,8 @@ function Search({
 }
 
 export function App() {
-	const [data, setData] = useState<ManualData | null>(null);
+	const [legacyData, setLegacyData] = useState<ManualData | null>(null);
+	const [metadata, setMetadata] = useState<ManualMetadata | null>(null);
 	const [locale] = useState<Locale>(() =>
 		localeFromPrimaryLanguage(
 			typeof navigator === 'undefined' ? undefined : navigator.language,
@@ -731,10 +764,23 @@ export function App() {
 	const [path, setPath] = useState(currentPath);
 	const [query, setQuery] = useState('');
 	const [error, setError] = useState<string | null>(null);
+	const [pageData, setPageData] = useState<ManualDataPage | null>(null);
+	const [pageLoading, setPageLoading] = useState(false);
+	const [pageError, setPageError] = useState<string | null>(null);
+	const [searchIndex, setSearchIndex] = useState<
+		ManualSearchIndexEntry[] | undefined
+	>();
+	const [searchLoading, setSearchLoading] = useState(false);
 
 	useEffect(() => {
-		loadManualData()
-			.then(setData)
+		loadManualShell()
+			.then((shell) => {
+				if ('pages' in shell) {
+					setLegacyData(shell);
+					return;
+				}
+				setMetadata(shell);
+			})
 			.catch((loadError) => {
 				setError(
 					loadError instanceof Error ? loadError.message : String(loadError),
@@ -748,6 +794,66 @@ export function App() {
 		return () => window.removeEventListener('popstate', listener);
 	}, []);
 
+	useEffect(() => {
+		if (!metadata || path === '/') {
+			setPageData(null);
+			setPageLoading(false);
+			setPageError(null);
+			return;
+		}
+
+		const route = routeFromHref(path);
+		const view = selectMetadataView(metadata, locale);
+		if (!view.pages.some((page) => page.href === path)) {
+			setPageData(null);
+			setPageLoading(false);
+			setPageError(null);
+			return;
+		}
+
+		let cancelled = false;
+		setPageData(null);
+		setPageLoading(true);
+		setPageError(null);
+		loadManualPage(metadata, locale, route)
+			.then((page) => {
+				if (!cancelled) setPageData(page);
+			})
+			.catch((loadError) => {
+				if (!cancelled) {
+					setPageError(
+						loadError instanceof Error ? loadError.message : String(loadError),
+					);
+				}
+			})
+			.finally(() => {
+				if (!cancelled) setPageLoading(false);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [locale, metadata, path]);
+
+	useEffect(() => {
+		if (!metadata || !query.trim()) return;
+		let cancelled = false;
+		setSearchLoading(true);
+		loadManualSearchIndex()
+			.then((index) => {
+				if (!cancelled) setSearchIndex(index);
+			})
+			.catch(() => {
+				if (!cancelled) setSearchIndex([]);
+			})
+			.finally(() => {
+				if (!cancelled) setSearchLoading(false);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [metadata, query]);
+
 	if (error) {
 		return (
 			<main className="content standalone">
@@ -758,7 +864,7 @@ export function App() {
 		);
 	}
 
-	if (!data) {
+	if (!legacyData && !metadata) {
 		return (
 			<main className="content standalone">
 				<p className="eyebrow">{UI_TEXT[locale].loading}</p>
@@ -768,8 +874,11 @@ export function App() {
 	}
 
 	const copy = UI_TEXT[locale];
-	const view = selectManualView(data, locale);
+	const view = legacyData
+		? (selectManualView(legacyData, locale) as ManualDataView)
+		: selectMetadataView(metadata!, locale);
 	const page = view.pages.find((item) => item.href === path);
+	const loadedPage = legacyData ? page : pageData;
 
 	return (
 		<div className="appShell">
@@ -778,7 +887,15 @@ export function App() {
 				path={path}
 				copy={copy}
 				search={
-					<Search data={view} query={query} setQuery={setQuery} copy={copy} />
+					<Search
+						data={view}
+						query={query}
+						setQuery={setQuery}
+						copy={copy}
+						locale={locale}
+						searchIndex={legacyData ? undefined : searchIndex}
+						searchLoading={searchLoading}
+					/>
 				}
 			/>
 			<div className="mainShell">
@@ -790,8 +907,19 @@ export function App() {
 				</div>
 				{path === '/' ? (
 					<Home data={view} copy={copy} />
-				) : page ? (
-					<PageView pages={view.pages} page={page} copy={copy} />
+				) : page && loadedPage ? (
+					<PageView pages={view.pages} page={loadedPage} copy={copy} />
+				) : pageLoading ? (
+					<main className="content standalone">
+						<p className="eyebrow">{copy.loading}</p>
+						<h1>{copy.manual}</h1>
+					</main>
+				) : pageError ? (
+					<main className="content standalone">
+						<p className="eyebrow">{copy.error}</p>
+						<h1>{copy.loadError}</h1>
+						<p className="lede">{pageError}</p>
+					</main>
 				) : (
 					<NotFound data={view} copy={copy} />
 				)}

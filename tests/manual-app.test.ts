@@ -9,6 +9,11 @@ import {
 import userEvent from '@testing-library/user-event';
 import { Window } from 'happy-dom';
 import React from 'react';
+import type {
+	ManualMetadata,
+	ManualRouteData,
+	ManualSearchIndexEntry,
+} from '../src/core/manual/build.ts';
 import { buildManualData } from '../src/core/manual/build.ts';
 import type { ManualData, ManualDataView } from '../src/core/manual/types.ts';
 import { App } from '../src/manual-app/src/App.tsx';
@@ -159,6 +164,140 @@ function mockFetch({
 		} as Response)) as unknown as typeof fetch;
 }
 
+const splitMetadata: ManualMetadata = {
+	locales: ['zh', 'en'],
+	routes: [
+		{ route: 'design-token', title: 'Design Token', locale: 'en' },
+		{ route: 'design-token', title: '设计令牌', locale: 'zh' },
+	],
+	sections: [
+		{
+			title: '能力',
+			titleEn: 'Capabilities',
+			pages: [
+				{
+					title: '设计令牌',
+					titleEn: 'Design Token',
+					href: '/design-token',
+					source: 'pages/design-token.md',
+					sourceEn: 'pages-en/design-token.md',
+				},
+			],
+		},
+	],
+	nav: [],
+	config: {
+		site: {
+			title: 'Wave 手册',
+			titleEn: 'Wave Manual',
+			description: '中文手册。',
+			descriptionEn: 'English manual.',
+			basePath: '/',
+		},
+		home: {
+			cards: [
+				{
+					title: '设计令牌',
+					titleEn: 'Design Token',
+					description: '构建令牌。',
+					descriptionEn: 'Build tokens.',
+					href: '/design-token',
+					command: 'wave token',
+				},
+			],
+		},
+	},
+};
+splitMetadata.nav = splitMetadata.sections;
+
+const splitChunk: ManualRouteData = {
+	route: 'design-token',
+	locale: 'en',
+	title: 'Design Token',
+	description: 'Build tokens.',
+	category: 'Capabilities',
+	commands: ['wave token doctor'],
+	appliesTo: ['Local CLI'],
+	html: '<h2>Usage</h2><p>Split token output.</p>',
+	searchText: 'Design Token Build tokens wave token doctor Split token output.',
+	rawMarkdown: '## Usage\n\nSplit token output.\n',
+};
+
+const splitIndex: ManualSearchIndexEntry[] = [
+	{
+		route: 'design-token',
+		locale: 'en',
+		title: 'Design Token',
+		description: 'Build tokens.',
+		category: 'Capabilities',
+		commands: ['wave token doctor'],
+		appliesTo: ['Local CLI'],
+		searchText:
+			'design token build tokens wave token doctor split token output.',
+	},
+	{
+		route: 'design-token',
+		locale: 'zh',
+		title: '设计令牌',
+		description: '构建令牌。',
+		category: '能力',
+		commands: ['wave token doctor'],
+		appliesTo: ['本地 CLI'],
+		searchText: '设计令牌 构建令牌',
+	},
+];
+
+function mockSplitFetch({
+	chunkOk = true,
+	legacy = manualData,
+}: {
+	chunkOk?: boolean;
+	legacy?: ManualData;
+} = {}) {
+	const calls: string[] = [];
+	globalThis.fetch = ((input: RequestInfo | URL) => {
+		const url = String(input);
+		calls.push(url);
+		if (url === '/manual-metadata.json') {
+			return Promise.resolve({
+				ok: true,
+				status: 200,
+				json: () => Promise.resolve(splitMetadata),
+			} as Response);
+		}
+		if (url === '/search-index.json') {
+			return Promise.resolve({
+				ok: true,
+				status: 200,
+				json: () => Promise.resolve(splitIndex),
+			} as Response);
+		}
+		if (url === '/pages/en/design-token.json' && chunkOk) {
+			return Promise.resolve({
+				ok: true,
+				status: 200,
+				json: () => Promise.resolve(splitChunk),
+			} as Response);
+		}
+		if (url === '/pages/en/design-token.json') {
+			return Promise.resolve({
+				ok: false,
+				status: 503,
+				json: () => Promise.resolve({}),
+			} as Response);
+		}
+		if (url === '/manual-data.json') {
+			return Promise.resolve({
+				ok: true,
+				status: 200,
+				json: () => Promise.resolve(legacy),
+			} as Response);
+		}
+		return Promise.reject(new Error(`Unexpected fetch ${url}`));
+	}) as typeof fetch;
+	return calls;
+}
+
 async function renderManualApp({
 	path = '/',
 	ok = true,
@@ -185,6 +324,55 @@ afterEach(() => {
 });
 
 describe('manual app', () => {
+	test('metadata protocol keeps the initial request shell-only', async () => {
+		installWindow('/', 'en-US');
+		const calls = mockSplitFetch();
+		const view = render(React.createElement(App));
+		await view.findByText('Wave Manual');
+		expect(calls).toEqual(['/manual-metadata.json']);
+		expect(view.getByTestId('manual-directory')).toBeTruthy();
+	});
+
+	test('metadata protocol fetches exactly one route chunk on navigation', async () => {
+		installWindow('/design-token', 'en-US');
+		const calls = mockSplitFetch();
+		const view = render(React.createElement(App));
+		expect((await view.findByTestId('manual-page-title')).textContent).toBe(
+			'Design Token',
+		);
+		expect(calls).toEqual([
+			'/manual-metadata.json',
+			'/pages/en/design-token.json',
+		]);
+	});
+
+	test('route chunk failure falls back to legacy data and renders the page', async () => {
+		installWindow('/design-token', 'en-US');
+		const calls = mockSplitFetch({ chunkOk: false });
+		const view = render(React.createElement(App));
+		expect((await view.findByTestId('manual-page-title')).textContent).toBe(
+			'Design Token',
+		);
+		expect(calls).toEqual([
+			'/manual-metadata.json',
+			'/pages/en/design-token.json',
+			'/manual-data.json',
+		]);
+	});
+
+	test('metadata search loads the bilingual index on demand', async () => {
+		installWindow('/', 'en-US');
+		const calls = mockSplitFetch();
+		const view = render(React.createElement(App));
+		await view.findByText('Wave Manual');
+		const user = userEvent.setup({ document: window.document });
+		await user.type(view.getByRole('textbox', { name: 'Search' }), 'Design');
+		expect(
+			(await view.findByTestId('manual-search-result')).textContent,
+		).toContain('Design Token');
+		expect(calls).toEqual(['/manual-metadata.json', '/search-index.json']);
+	});
+
 	test('selects the browser primary language for home, deep links, and search', async () => {
 		const zhViewResult = await renderManualApp({
 			data: bilingualManualData,

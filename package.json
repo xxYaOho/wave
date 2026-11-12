@@ -12,6 +12,7 @@
 	"scripts": {
 		"dev": "bun run src/index.ts",
 		"manual:dev": "vite --host 127.0.0.1 src/manual-app",
+		"manual:dev:smoke": "bun run scripts/manual-dev-smoke.ts",
 		"manual:build": "bun run scripts/build-manual.ts",
 		"build:cli": "bun run scripts/build-cli.ts",
 		"build": "pnpm manual:build && pnpm build:cli",
