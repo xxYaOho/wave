@@ -1,1 +1,1 @@
-error: unknown command 'show-badformat'
+✗ Unknown format: xml. Supported: flat-json, json, yaml

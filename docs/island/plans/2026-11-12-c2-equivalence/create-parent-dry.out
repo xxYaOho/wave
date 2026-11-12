@@ -1,0 +1,6 @@
+✓ Dry run: would create: /tmp/c2-nodir-b2/deepprofile.yaml
+ℹ Next steps:
+ℹ   1. Edit $override values to define the profile
+ℹ   2. Delete redundant overrides to follow base changes
+⚠ Move deepprofile.yaml into /tmp/c2-eq-create-b2/std or one of its subdirectories before consuming it with -f.
+ℹ   3. Then run wave token build -f <moved-deepprofile.yaml-path> to verify

@@ -1,0 +1,1 @@
+✗ Profile creation failed: /tmp/c2-eq-create-b2/noid/main.yaml: Base root requires a registered $id. Run wave token ids --write -f "/tmp/c2-eq-create-b2/noid/main.yaml" before creating a profile.

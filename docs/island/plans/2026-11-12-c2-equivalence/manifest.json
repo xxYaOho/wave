@@ -1,27 +1,253 @@
 {
- "schemaVersion": 1,
- "head": "f6095baf83e4f3794876df924c7f1731c88df03e",
+ "schemaVersion": 2,
+ "head": "60c83988aaa7261bc338e47315108755144ce38f",
  "capturedBy": "orchestrator (Hyata)",
- "runtime": "bun 1.3.6 via mise; bun run src/index.ts (source-level dev runner)",
- "cases": [
-  "show-noargs",
-  "show-cat-palette",
-  "show-cat-dimension",
-  "show-name-fallback",
-  "show-two-flat",
-  "show-two-json",
-  "show-two-yaml",
-  "show-miss",
-  "show-badformat",
-  "show-badcat",
-  "wcag-pass",
-  "wcag-pass-night",
-  "create-ids-write",
-  "create-dry",
-  "create-missing-base"
- ],
- "perCase": "files <case>.out/.err/.exit (stdout/stderr/exit code)",
- "normalization": "create outputs: top-level $id value replaced with <profile-id> before diff (only randomized field, randomBytes(16).toString(\"hex\"))",
- "compareContract": "post-refactor: stdout+stderr+exit+files four-way per case (Human ruling E1)",
- "note": "create-dry uses temp fixture (/tmp/c2-eq-create-b1) with ids registered via token ids --write to reach success path; create-missing-base covers missing-entry error path (exit 10)"
+ "supersedes": "v1 capture (FULL-3 F1: wrapper leaked case-id into argv, all outputs invalid — files replaced)",
+ "runtime": "bun 1.3.6 via mise; bun run src/index.ts (source-level); cwd = worktree root (f83196c base + SPEC v4 docs)",
+ "perCase": "<case>.out/.err/.exit (stdout/stderr/exit); argv recorded below; create-write additionally captures the written profile as create-write.file.yaml with $id normalized (sed -E s/^\\$id: [0-9a-f]{32}$/\\$id: <profile-id>/)",
+ "compareContract": "post-refactor: stdout+stderr+exit+files four-way per case (Human ruling E1); create file compared post-normalization",
+ "cases": {
+  "show-noargs": {
+   "argv": [
+    "token",
+    "show"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-cat-palette": {
+   "argv": [
+    "token",
+    "show",
+    "palette"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-cat-dimension": {
+   "argv": [
+    "token",
+    "show",
+    "dimension"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-name-fallback": {
+   "argv": [
+    "token",
+    "show",
+    "tailwindcss"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-two-flat": {
+   "argv": [
+    "token",
+    "show",
+    "palette",
+    "tailwindcss"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-two-json": {
+   "argv": [
+    "token",
+    "show",
+    "palette",
+    "tailwindcss",
+    "--format",
+    "json"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-two-yaml": {
+   "argv": [
+    "token",
+    "show",
+    "palette",
+    "tailwindcss",
+    "--format",
+    "yaml"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-miss": {
+   "argv": [
+    "token",
+    "show",
+    "palette",
+    "nonexistent"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-badformat": {
+   "argv": [
+    "token",
+    "show",
+    "palette",
+    "tailwindcss",
+    "--format",
+    "xml"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-cat-badformat": {
+   "argv": [
+    "token",
+    "show",
+    "palette",
+    "--format",
+    "xml"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-badcat": {
+   "argv": [
+    "token",
+    "show",
+    "colors",
+    "x"
+   ],
+   "cwd": "worktree root"
+  },
+  "wcag-pass": {
+   "argv": [
+    "token",
+    "wcag",
+    "-f",
+    "tests/fixtures/themes/doctor-contrast-pass/main.yaml"
+   ],
+   "cwd": "worktree root"
+  },
+  "wcag-pass-night": {
+   "argv": [
+    "token",
+    "wcag",
+    "-f",
+    "tests/fixtures/themes/doctor-contrast-pass/main.yaml",
+    "--night"
+   ],
+   "cwd": "worktree root"
+  },
+  "wcag-ancestor-fail": {
+   "argv": [
+    "token",
+    "wcag",
+    "-f",
+    "/tmp/c2-nopairs.yaml"
+   ],
+   "cwd": "worktree root"
+  },
+  "wcag-no-f": {
+   "argv": [
+    "token",
+    "wcag"
+   ],
+   "cwd": "worktree root"
+  },
+  "wcag-missing": {
+   "argv": [
+    "token",
+    "wcag",
+    "-f",
+    "/tmp/c2-nonexistent.yaml"
+   ],
+   "cwd": "worktree root"
+  },
+  "create-ids-write": {
+   "argv": [
+    "token",
+    "ids",
+    "--write",
+    "-f",
+    "/tmp/c2-eq-create-b2/std/main.yaml"
+   ],
+   "cwd": "worktree root"
+  },
+  "create-dry": {
+   "argv": [
+    "token",
+    "new",
+    "profile",
+    "spikeprofile",
+    "-f",
+    "/tmp/c2-eq-create-b2/std/main.yaml",
+    "--dry-run"
+   ],
+   "cwd": "worktree root"
+  },
+  "create-write": {
+   "argv": [
+    "token",
+    "new",
+    "profile",
+    "writeprofile",
+    "-f",
+    "/tmp/c2-eq-create-b2/std/main.yaml"
+   ],
+   "cwd": "worktree root"
+  },
+  "create-exists": {
+   "argv": [
+    "token",
+    "new",
+    "profile",
+    "writeprofile",
+    "-f",
+    "/tmp/c2-eq-create-b2/std/main.yaml",
+    "--dry-run"
+   ],
+   "cwd": "worktree root"
+  },
+  "create-stem": {
+   "argv": [
+    "token",
+    "new",
+    "profile",
+    "otherstem",
+    "-f",
+    "/tmp/c2-eq-create-b2/std/main.yaml",
+    "--dry-run",
+    "-o",
+    "/tmp/c2-eq-create-b2/other.yaml"
+   ],
+   "cwd": "worktree root"
+  },
+  "create-parent-dry": {
+   "argv": [
+    "token",
+    "new",
+    "profile",
+    "deepprofile",
+    "-f",
+    "/tmp/c2-eq-create-b2/std/main.yaml",
+    "--dry-run",
+    "-o",
+    "/tmp/c2-nodir-b2/deepprofile.yaml"
+   ],
+   "cwd": "worktree root"
+  },
+  "create-missing-id": {
+   "argv": [
+    "token",
+    "new",
+    "profile",
+    "freshprofile",
+    "-f",
+    "/tmp/c2-eq-create-b2/noid/main.yaml",
+    "--dry-run"
+   ],
+   "cwd": "worktree root"
+  },
+  "create-missing-base": {
+   "argv": [
+    "token",
+    "new",
+    "profile",
+    "xprofile",
+    "-f",
+    "/tmp/nonexistent/main.yaml",
+    "--dry-run"
+   ],
+   "cwd": "worktree root"
+  }
+ }
 }

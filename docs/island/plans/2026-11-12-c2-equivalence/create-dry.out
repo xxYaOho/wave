@@ -1,5 +1,5 @@
-✓ Dry run: would create: /tmp/c2-eq-create-b1/std/profiles/spikeprofile.yaml
+✓ Dry run: would create: /tmp/c2-eq-create-b2/std/profiles/spikeprofile.yaml
 ℹ Next steps:
 ℹ   1. Edit $override values to define the profile
 ℹ   2. Delete redundant overrides to follow base changes
-ℹ   3. Run wave token build -f "/tmp/c2-eq-create-b1/std/profiles/spikeprofile.yaml" to verify
+ℹ   3. Run wave token build -f "/tmp/c2-eq-create-b2/std/profiles/spikeprofile.yaml" to verify
