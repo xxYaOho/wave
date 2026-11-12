@@ -1,6 +1,23 @@
 import type { BenchmarkSuiteReport } from './report.ts';
 import type { BenchmarkCaseResult } from './types.ts';
 
+export interface PairedComparisonContract {
+	key: string;
+	metric: 'p50Ms';
+	unit: 'ms';
+	pairedDeltasMs: number[];
+	medianRelativeImprovement: number | null;
+	p95RelativeRegression: number | null;
+	baselineSampleCount: number;
+	currentSampleCount: number;
+	positiveBaselineCount: number;
+	winCount: number;
+	lossCount: number;
+	tieCount: number;
+	excludedNonPositiveBaseline: number;
+	method: 'paired-index' | 'aggregate-fallback';
+}
+
 export interface BenchmarkComparisonCase {
 	id: string;
 	comparisonKey?: string;
@@ -10,7 +27,90 @@ export interface BenchmarkComparisonCase {
 	currentMeanMs?: number;
 	deltaMs?: number;
 	deltaPercent?: number;
+	paired?: PairedComparisonContract;
 	notes: string[];
+}
+
+function median(values: number[]): number {
+	const sorted = [...values].sort((a, b) => a - b);
+	const mid = Math.floor(sorted.length / 2);
+	return sorted.length % 2 === 1
+		? (sorted[mid] ?? 0)
+		: ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
+}
+
+export function buildPairedComparisonContract(
+	key: string,
+	base: BenchmarkCaseResult,
+	current: BenchmarkCaseResult,
+): PairedComparisonContract {
+	const baseSamples = base.stats?.samplesMs ?? base.measurements?.map((m) => m.samplesMs ?? []).flat() ?? [];
+	const currentSamples = current.stats?.samplesMs ?? current.measurements?.map((m) => m.samplesMs ?? []).flat() ?? [];
+	const counts = {
+		baselineSampleCount: baseSamples.length,
+		currentSampleCount: currentSamples.length,
+	};
+	const fallback: PairedComparisonContract = {
+		key,
+		metric: 'p50Ms',
+		unit: 'ms',
+		pairedDeltasMs: [],
+		medianRelativeImprovement: null,
+		p95RelativeRegression: null,
+		winCount: 0,
+		lossCount: 0,
+		tieCount: 0,
+		excludedNonPositiveBaseline: 0,
+		method: 'aggregate-fallback',
+		...counts,
+	} as PairedComparisonContract;
+	if (
+		baseSamples.length === 0 ||
+		currentSamples.length === 0 ||
+		baseSamples.length !== currentSamples.length ||
+		baseSamples.some((v) => !Number.isFinite(v)) ||
+		currentSamples.some((v) => !Number.isFinite(v))
+	) {
+		return fallback;
+	}
+	const pairedDeltasMs = baseSamples.map((b, i) => (currentSamples[i] ?? 0) - b);
+	let winCount = 0;
+	let lossCount = 0;
+	let tieCount = 0;
+	for (const d of pairedDeltasMs) {
+		if (d < 0) winCount += 1;
+		else if (d > 0) lossCount += 1;
+		else tieCount += 1;
+	}
+	const positive = pairedDeltasMs
+		.map((_, i) => ({ b: baseSamples[i] ?? 0, d: pairedDeltasMs[i] ?? 0 }))
+		.filter(({ b }) => b > 0);
+	const excludedNonPositiveBaseline = baseSamples.length - positive.length;
+	const medianRelativeImprovement =
+		positive.length === 0
+			? null
+			: median(positive.map(({ b, d }) => (b - d) / b));
+	const baseP95 = base.stats?.p95Ms ?? null;
+	const currentP95 = current.stats?.p95Ms ?? null;
+	const p95RelativeRegression =
+		baseP95 !== null && baseP95 > 0 && currentP95 !== null
+			? (currentP95 - baseP95) / baseP95
+			: null;
+	return {
+		key,
+		metric: 'p50Ms',
+		unit: 'ms',
+		pairedDeltasMs,
+		medianRelativeImprovement,
+		p95RelativeRegression,
+		winCount,
+		lossCount,
+		tieCount,
+		excludedNonPositiveBaseline,
+		positiveBaselineCount: positive.length,
+		method: 'paired-index',
+		...counts,
+	};
 }
 
 export interface BenchmarkComparisonReport {
@@ -157,6 +257,7 @@ export function compareSuiteReports(
 			);
 		}
 		notes.push(...compareArtifacts(baseCase, currentCase));
+		const paired = buildPairedComparisonContract(id, baseCase, currentCase);
 
 		const baseMeanMs = baseCase.stats?.meanMs;
 		const currentMeanMs = currentCase.stats?.meanMs;
@@ -166,6 +267,7 @@ export function compareSuiteReports(
 				comparisonKey: id,
 				domain: currentCase.domain,
 				status: notes.length > 0 ? 'changed' : 'ok',
+				paired,
 				notes,
 			});
 			continue;
@@ -197,6 +299,7 @@ export function compareSuiteReports(
 			currentMeanMs,
 			deltaMs,
 			deltaPercent,
+			paired,
 			notes,
 		});
 	}

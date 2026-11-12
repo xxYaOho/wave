@@ -89,6 +89,13 @@ export interface EnvironmentMetadata {
 	cwd: string;
 }
 
+export interface CacheAttributionTrace {
+	layer: 'loadResource' | 'dictionary' | 'parse' | 'color';
+	hits: number;
+	misses: number;
+	degraded: number;
+}
+
 export interface BenchmarkCaseResult {
 	id: string;
 	caseVersion: number;
@@ -110,4 +117,5 @@ export interface BenchmarkCaseResult {
 	phases: PhaseDurations;
 	stats?: BenchmarkStats;
 	measurements?: BenchmarkMeasurement[];
+	cacheAttribution?: CacheAttributionTrace[];
 }

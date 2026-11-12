@@ -25,6 +25,8 @@ import {
 	type DependencyDict,
 } from '../../src/core/pipeline/theme-pipeline.ts';
 import { loadDesignTokenWorkspace } from '../../src/core/pipeline/workspace-loader.ts';
+import { createTokenCache, TOKEN_CACHE_LAYERS } from '../../src/core/pipeline/token-cache.ts';
+import type { CacheAttributionTrace } from '../shared/types.ts';
 import { ExitCode } from '../../src/types/index.ts';
 import {
 	collectFileArtifacts,
@@ -202,8 +204,9 @@ export async function runDesignTokenBenchmarkCase(
 				phases.prepareMs = prepare.ms;
 
 				pipelineStart = now();
+				const iterationCache = createTokenCache();
 				const load = await timed(() =>
-					loadDesignTokenWorkspace(prepare.value.mainYamlPath),
+					loadDesignTokenWorkspace(prepare.value.mainYamlPath, undefined, iterationCache),
 				);
 				phases.loadMs = load.ms;
 				if (!load.value.ok) {
@@ -225,7 +228,7 @@ export async function runDesignTokenBenchmarkCase(
 				const baseDocument = await parseProfileDocument(baseProfile, {
 					defaultConfig: workspace.config,
 					baseDir: workspace.workspaceDir,
-				});
+				}, iterationCache);
 				const baseTree = parseYamlObject(baseDocument.tokenContent);
 				if (!baseTree) return fail('Invalid main token document');
 
@@ -237,9 +240,9 @@ export async function runDesignTokenBenchmarkCase(
 								baseDir: workspace.workspaceDir,
 								baseTree,
 								baseId: baseDocument.themeId,
-							});
+							}, iterationCache);
 					const resource = await timed(() =>
-						collectDependencyDictionary(document.config, document.buildDir),
+						collectDependencyDictionary(document.config, document.buildDir, iterationCache),
 					);
 					phases.resourceMs += resource.ms;
 					const groupPass = await timed(async () =>
@@ -311,6 +314,7 @@ export async function runDesignTokenBenchmarkCase(
 					for (const [passIndex, pass] of scope.passes.entries()) {
 						const process = await timed(() =>
 							prepareBuildPass({
+								cache: iterationCache,
 								id: `${scope.name}:${pass.groupName ?? `pass-${passIndex + 1}`}`,
 								themeName: scope.themeName,
 								themeId: scope.themeId,
@@ -397,6 +401,10 @@ export async function runDesignTokenBenchmarkCase(
 				const files = await collectFileArtifacts(outputDir);
 				phases.totalWallMs = now() - totalStart;
 
+				const statsMap = iterationCache.stats();
+				const cacheAttribution: CacheAttributionTrace[] = TOKEN_CACHE_LAYERS.map(
+					(layer) => ({ layer, ...statsMap[layer] }),
+				);
 				return {
 					id: testCase.id,
 					caseVersion: testCase.caseVersion,
@@ -405,6 +413,7 @@ export async function runDesignTokenBenchmarkCase(
 					domain: 'design-token',
 					operation: designTokenOperation(testCase),
 					status: 'success',
+					cacheAttribution,
 					iterations: 1,
 					warmup: 0,
 					tokensCount,

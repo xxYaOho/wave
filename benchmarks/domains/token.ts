@@ -33,6 +33,7 @@ export async function runTokenDomain(
 	let sequence = 0;
 	let primary: BenchmarkCaseResult | undefined;
 	const samples: number[] = [];
+	const traceSums = new Map<string, { hits: number; misses: number; degraded: number }>();
 
 	const runOnce = async (): Promise<void> => {
 		const started = performance.now();
@@ -49,6 +50,15 @@ export async function runTokenDomain(
 		}
 		primary = result;
 		samples.push(performance.now() - started);
+		if (result.cacheAttribution) {
+			for (const trace of result.cacheAttribution) {
+				const sum = traceSums.get(trace.layer) ?? { hits: 0, misses: 0, degraded: 0 };
+				sum.hits += trace.hits;
+				sum.misses += trace.misses;
+				sum.degraded += trace.degraded;
+				traceSums.set(trace.layer, sum);
+			}
+		}
 	};
 
 	try {
@@ -129,6 +139,10 @@ export async function runTokenDomain(
 	result.warmup = options.warmup;
 	result.stats = calculateStats(samples);
 	result.phases.totalWallMs = result.stats?.meanMs ?? 0;
+	result.cacheAttribution = [...traceSums.entries()].map(([layer, sums]) => ({
+		layer: layer as 'loadResource' | 'dictionary' | 'parse' | 'color',
+		...sums,
+	}));
 	return result;
 }
 
