@@ -1,0 +1,27 @@
+{
+ "schemaVersion": 1,
+ "head": "f6095baf83e4f3794876df924c7f1731c88df03e",
+ "capturedBy": "orchestrator (Hyata)",
+ "runtime": "bun 1.3.6 via mise; bun run src/index.ts (source-level dev runner)",
+ "cases": [
+  "show-noargs",
+  "show-cat-palette",
+  "show-cat-dimension",
+  "show-name-fallback",
+  "show-two-flat",
+  "show-two-json",
+  "show-two-yaml",
+  "show-miss",
+  "show-badformat",
+  "show-badcat",
+  "wcag-pass",
+  "wcag-pass-night",
+  "create-ids-write",
+  "create-dry",
+  "create-missing-base"
+ ],
+ "perCase": "files <case>.out/.err/.exit (stdout/stderr/exit code)",
+ "normalization": "create outputs: top-level $id value replaced with <profile-id> before diff (only randomized field, randomBytes(16).toString(\"hex\"))",
+ "compareContract": "post-refactor: stdout+stderr+exit+files four-way per case (Human ruling E1)",
+ "note": "create-dry uses temp fixture (/tmp/c2-eq-create-b1) with ids registered via token ids --write to reach success path; create-missing-base covers missing-entry error path (exit 10)"
+}
