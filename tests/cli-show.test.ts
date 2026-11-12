@@ -2,26 +2,17 @@ import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(__dirname, '..');
 
-async function runWave(
-	args: string[],
-	env: Record<string, string> = {},
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(['bun', 'run', 'src/index.ts', ...args], {
+const runWave = createCliRunner(
+	(args: string[], env: Record<string, string> = {}) => ({
+		command: ['bun', 'run', 'src/index.ts', ...args],
 		cwd: rootDir,
 		env: { ...process.env, ...env },
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
-
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-
-	return { exitCode, stdout, stderr };
-}
+	}),
+);
 
 describe('wave token show', () => {
 	test('lists built-in palettes and dimensions without args', async () => {

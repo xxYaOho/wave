@@ -11,31 +11,26 @@ import {
 	validateWorkspaceConfig,
 	WorkspaceError,
 } from '../src/core/workspace/index.ts';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 const cliEntry = path.join(rootDir, 'src/index.ts');
 
-async function runWave(
-	args: string[],
-	options: { cwd?: string; env?: Record<string, string>; input?: string } = {},
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
+const runWave = createCliRunner(
+	(
+		args: string[],
+		options: {
+			cwd?: string;
+			env?: Record<string, string>;
+			input?: string;
+		} = {},
+	) => ({
+		command: ['bun', 'run', cliEntry, ...args],
 		cwd: options.cwd ?? rootDir,
 		env: { ...process.env, ...options.env },
-		stdin: 'pipe',
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
-
-	proc.stdin.write(options.input ?? '');
-	proc.stdin.end();
-
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-
-	return { exitCode, stdout, stderr };
-}
+		input: options.input ?? '',
+	}),
+);
 
 describe('wave workspace', () => {
 	test('top-level help includes workspace command', async () => {

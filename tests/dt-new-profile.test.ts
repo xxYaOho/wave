@@ -4,6 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
 import { ExitCode } from '../src/types/index.ts';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 const cliEntry = path.join(rootDir, 'src/index.ts');
@@ -60,22 +61,16 @@ function baseDocument(): Record<string, unknown> {
 	};
 }
 
-async function runWave(args: string[], cwd: string) {
-	const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
-		cwd,
-		env: {
-			...process.env,
-			WAVE_RESOURCE_CACHE_DIR: path.join(cwd, '.wave-cache'),
-			WAVE_RESOURCE_STATE_PATH: path.join(cwd, '.wave-state.json'),
-			WAVE_RESOURCE_CONFIG_DIR: path.join(cwd, '.wave-config'),
-		},
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	return { exitCode: await proc.exited, stdout, stderr };
-}
+const runWave = createCliRunner((args: string[], cwd: string) => ({
+	command: ['bun', 'run', cliEntry, ...args],
+	cwd,
+	env: {
+		...process.env,
+		WAVE_RESOURCE_CACHE_DIR: path.join(cwd, '.wave-cache'),
+		WAVE_RESOURCE_STATE_PATH: path.join(cwd, '.wave-state.json'),
+		WAVE_RESOURCE_CONFIG_DIR: path.join(cwd, '.wave-config'),
+	},
+}));
 
 async function withWorkspace(
 	document: Record<string, unknown>,

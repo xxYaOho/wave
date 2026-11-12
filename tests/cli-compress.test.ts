@@ -2,33 +2,30 @@ import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 
-async function runWave(
-	args: string[],
-	options: { cwd?: string; env?: Record<string, string>; input?: string } = {},
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(
-		[process.execPath, 'run', path.join(rootDir, 'src/index.ts'), ...args],
-		{
-			cwd: options.cwd ?? rootDir,
-			env: { ...process.env, ...options.env },
-			stdin: 'pipe',
-			stdout: 'pipe',
-			stderr: 'pipe',
-		},
-	);
-
-	proc.stdin.write(options.input ?? '');
-	proc.stdin.end();
-
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-
-	return { exitCode, stdout, stderr };
-}
+const runWave = createCliRunner(
+	(
+		args: string[],
+		options: {
+			cwd?: string;
+			env?: Record<string, string>;
+			input?: string;
+		} = {},
+	) => ({
+		command: [
+			process.execPath,
+			'run',
+			path.join(rootDir, 'src/index.ts'),
+			...args,
+		],
+		cwd: options.cwd ?? rootDir,
+		env: { ...process.env, ...options.env },
+		input: options.input ?? '',
+	}),
+);
 
 async function createFakeToolDir(): Promise<string> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-compress-tools-'));

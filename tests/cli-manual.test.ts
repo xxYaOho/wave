@@ -5,26 +5,18 @@ import * as path from 'node:path';
 import { resolveManualAppDir } from '../src/core/manual/assets.ts';
 import { startManualServer } from '../src/core/manual/server.ts';
 import type { ManualDataView } from '../src/core/manual/types.ts';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 const cliEntry = path.join(rootDir, 'src/index.ts');
 
-async function runWave(
-	args: string[],
-	cwd = rootDir,
-	lang = 'C',
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
+const runWave = createCliRunner(
+	(args: string[], cwd: string = rootDir, lang: string = 'C') => ({
+		command: ['bun', 'run', cliEntry, ...args],
 		cwd,
 		env: { ...process.env, LANG: lang },
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-	return { exitCode, stdout, stderr };
-}
+	}),
+);
 
 async function directoryExists(dir: string): Promise<boolean> {
 	try {

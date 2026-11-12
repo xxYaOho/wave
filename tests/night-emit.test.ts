@@ -7,23 +7,15 @@ import { deriveNightOverlay } from '../src/core/night/derive-overlay.ts';
 import { emitNightOverlay } from '../src/core/night/emit.ts';
 import { resolveNightParams } from '../src/core/night/params.ts';
 import { sketchNightPassIds } from '../src/core/pipeline/sketch-identity.ts';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 
-async function runWave(args: string[], cwd: string) {
-	const proc = Bun.spawn(
-		['bun', 'run', path.join(rootDir, 'src/index.ts'), ...args],
-		{
-			cwd,
-			env: { ...process.env, ...isolatedResourceEnv(cwd) },
-			stdout: 'pipe',
-			stderr: 'pipe',
-		},
-	);
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	return { exitCode: await proc.exited, stdout, stderr };
-}
+const runWave = createCliRunner((args: string[], cwd: string) => ({
+	command: ['bun', 'run', path.join(rootDir, 'src/index.ts'), ...args],
+	cwd,
+	env: { ...process.env, ...isolatedResourceEnv(cwd) },
+}));
 
 async function snapshot(dir: string) {
 	const result: Record<string, string> = {};

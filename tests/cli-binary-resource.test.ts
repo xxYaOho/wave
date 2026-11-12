@@ -3,6 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { $ } from 'bun';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 const distWave = path.join(rootDir, 'dist', 'wave');
@@ -13,30 +14,18 @@ let tempCacheDir = '';
 let tempStatePath = '';
 let tempConfigDir = '';
 
-async function runDist(
-	args: string[],
-	cwd = rootDir,
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn([distWave, ...args], {
-		cwd,
-		env: {
-			...process.env,
-			HOME: tempHome,
-			WAVE_HOME: path.join(tempHome, '.wave-home'),
-			WAVE_RESOURCE_CACHE_DIR: tempCacheDir,
-			WAVE_RESOURCE_STATE_PATH: tempStatePath,
-			WAVE_RESOURCE_CONFIG_DIR: tempConfigDir,
-		},
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
-
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-
-	return { stdout, stderr, exitCode };
-}
+const runDist = createCliRunner((args: string[], cwd: string = rootDir) => ({
+	command: [distWave, ...args],
+	cwd,
+	env: {
+		...process.env,
+		HOME: tempHome,
+		WAVE_HOME: path.join(tempHome, '.wave-home'),
+		WAVE_RESOURCE_CACHE_DIR: tempCacheDir,
+		WAVE_RESOURCE_STATE_PATH: tempStatePath,
+		WAVE_RESOURCE_CONFIG_DIR: tempConfigDir,
+	},
+}));
 
 beforeAll(async () => {
 	tempHome = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-bin-home-'));

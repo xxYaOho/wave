@@ -2,81 +2,20 @@ import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { createCliRunner, runWavePty } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 
-async function runWave(
-	args: string[],
-	options: { cwd?: string; env?: Record<string, string> } = {},
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(
-		['bun', 'run', path.join(rootDir, 'src/index.ts'), ...args],
-		{
-			cwd: options.cwd ?? rootDir,
-			env: { ...process.env, ...options.env },
-			stdout: 'pipe',
-			stderr: 'pipe',
-		},
-	);
-
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-
-	return { exitCode, stdout, stderr };
-}
-
-async function runWavePty(
-	args: string[],
-	options: {
-		cwd: string;
-		env?: Record<string, string>;
-		input?: string;
-		delayMs?: number;
-	},
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const envAssignments = {
-		...(process.env as Record<string, string | undefined>),
-		...options.env,
-		TERM: 'xterm-256color',
-	};
-	const envArgs = Object.entries(envAssignments)
-		.filter(
-			(entry): entry is [string, string] =>
-				typeof entry[1] === 'string' && entry[1].length > 0,
-		)
-		.map(([key, value]) => `set env(${key}) ${tclQuote(value)}`);
-	const proc = Bun.spawn(
-		[
-			'expect',
-			'-c',
-			[
-				'set timeout 10',
-				`cd ${tclQuote(options.cwd)}`,
-				...envArgs,
-				'log_user 1',
-				`spawn bun run ${tclQuote(path.join(rootDir, 'src/index.ts'))} ${args.map(tclQuote).join(' ')}`,
-				...(options.delayMs ? [`after ${options.delayMs}`] : []),
-				`send ${tclQuote(options.input ?? '\\r')}`,
-				'expect eof',
-				'catch wait result',
-				'exit [lindex $result 3]',
-			].join('\n'),
-		],
-		{
-			cwd: rootDir,
-			env: { ...process.env, TERM: 'xterm-256color' },
-			stdout: 'pipe',
-			stderr: 'pipe',
-		},
-	);
-
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-
-	return { exitCode, stdout, stderr };
-}
+const runWave = createCliRunner(
+	(
+		args: string[],
+		options: { cwd?: string; env?: Record<string, string> } = {},
+	) => ({
+		command: ['bun', 'run', path.join(rootDir, 'src/index.ts'), ...args],
+		cwd: options.cwd ?? rootDir,
+		env: { ...process.env, ...options.env },
+	}),
+);
 
 describe('wave motion', () => {
 	test('mg gif dry-run shows frame plan and does not write output', async () => {
@@ -616,10 +555,6 @@ describe('wave motion', () => {
 		expect(legacy.stderr).toContain('unknown option');
 	});
 });
-
-function tclQuote(value: string): string {
-	return `{${value.replaceAll('\\', '\\\\').replaceAll('}', '\\}')}}`;
-}
 
 async function createFakeToolDir(tempDir: string): Promise<string> {
 	const binDir = path.join(tempDir, 'bin');

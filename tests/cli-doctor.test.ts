@@ -2,26 +2,15 @@ import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 const cliEntry = path.join(rootDir, 'src/index.ts');
 
-async function runWave(
-	args: string[],
-	cwd = rootDir,
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
-		cwd,
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
-
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-
-	return { exitCode, stdout, stderr };
-}
+const runWave = createCliRunner((args: string[], cwd: string = rootDir) => ({
+	command: ['bun', 'run', cliEntry, ...args],
+	cwd,
+}));
 
 describe('wave doctor', () => {
 	test('token doctor and wcag consume an explicitly selected profile source', async () => {

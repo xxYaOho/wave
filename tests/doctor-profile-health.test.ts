@@ -3,6 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const cli = path.resolve(import.meta.dir, '../src/index.ts');
 const baseId = '00000000000000000000000000000001';
@@ -44,19 +45,10 @@ function profile(overrides: Record<string, unknown> = {}) {
 	};
 }
 
-async function run(dir: string, args: string[] = []) {
-	const proc = Bun.spawn(['bun', 'run', cli, 'token', 'doctor', ...args], {
-		cwd: dir,
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
-	const [stdout, stderr, exitCode] = await Promise.all([
-		new Response(proc.stdout).text(),
-		new Response(proc.stderr).text(),
-		proc.exited,
-	]);
-	return { stdout, stderr, exitCode };
-}
+const run = createCliRunner((dir: string, args: string[] = []) => ({
+	command: ['bun', 'run', cli, 'token', 'doctor', ...args],
+	cwd: dir,
+}));
 
 afterEach(async () => {
 	for (const dir of tempDirs.splice(0))

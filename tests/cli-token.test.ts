@@ -2,25 +2,14 @@ import { describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 
-async function runWave(
-	args: string[],
-	cwd = rootDir,
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(
-		['bun', 'run', path.join(rootDir, 'src/index.ts'), ...args],
-		{
-			cwd,
-			stdout: 'pipe',
-			stderr: 'pipe',
-		},
-	);
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	return { exitCode: await proc.exited, stdout, stderr };
-}
+const runWave = createCliRunner((args: string[], cwd: string = rootDir) => ({
+	command: ['bun', 'run', path.join(rootDir, 'src/index.ts'), ...args],
+	cwd,
+}));
 
 describe('wave token', () => {
 	test('build consumes a Day profile from an arbitrary directory via -f', async () => {

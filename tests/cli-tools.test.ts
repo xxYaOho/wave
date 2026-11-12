@@ -1,26 +1,17 @@
 import { describe, expect, test } from 'bun:test';
 import * as path from 'node:path';
 import { createInstallPlan } from '../src/cli/commands/install.ts';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 
-async function runWave(
-	args: string[],
-	options: { env?: Record<string, string> } = {},
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn([process.execPath, 'run', 'src/index.ts', ...args], {
+const runWave = createCliRunner(
+	(args: string[], options: { env?: Record<string, string> } = {}) => ({
+		command: [process.execPath, 'run', 'src/index.ts', ...args],
 		cwd: rootDir,
 		env: options.env ? { ...process.env, ...options.env } : process.env,
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
-
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-
-	return { exitCode, stdout, stderr };
-}
+	}),
+);
 
 describe('toolchain CLI', () => {
 	test('compress doctor --json returns structured toolchain diagnostics', async () => {

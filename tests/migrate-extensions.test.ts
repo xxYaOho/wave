@@ -9,6 +9,7 @@ import {
 	migrateExtensionsSource,
 	migrateExtensionsWorkspace,
 } from '../src/core/migrate/extensions.ts';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 async function makeTempWorkspace(
 	files: Record<string, string>,
@@ -400,19 +401,10 @@ describe('wave token migrate extensions CLI', () => {
 	const rootDir = path.resolve(import.meta.dir, '..');
 	const cliEntry = path.join(rootDir, 'src/index.ts');
 
-	async function runWave(
-		args: string[],
-	): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-		const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
-			cwd: rootDir,
-			stdout: 'pipe',
-			stderr: 'pipe',
-		});
-		const stdout = await new Response(proc.stdout).text();
-		const stderr = await new Response(proc.stderr).text();
-		const exitCode = await proc.exited;
-		return { exitCode, stdout, stderr };
-	}
+	const runWave = createCliRunner((args: string[]) => ({
+		command: ['bun', 'run', cliEntry, ...args],
+		cwd: rootDir,
+	}));
 
 	test('dry-run then write round trip through the CLI', async () => {
 		const dir = await makeTempWorkspace({ 'main.yaml': MAIN });

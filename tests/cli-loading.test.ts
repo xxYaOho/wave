@@ -6,6 +6,7 @@ import {
 	lazyAction,
 } from '../src/cli/commands/lazy-action.ts';
 import { commandRegistry } from '../src/cli/registry.ts';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const root = path.resolve(import.meta.dir, '..');
 const entry = path.join(root, 'src/index.ts');
@@ -64,27 +65,17 @@ function commandPaths(): string[][] {
 	return paths;
 }
 
-async function run(
-	args: string[],
-	preload = probe,
-	env: Record<string, string> = {},
-) {
-	const child = Bun.spawn(
-		[process.execPath, '--preload', preload, entry, ...args],
-		{
-			cwd: root,
-			env: { ...process.env, LANG: 'C', ...env },
-			stdout: 'pipe',
-			stderr: 'pipe',
-		},
-	);
-	const [stdout, stderr, exitCode] = await Promise.all([
-		new Response(child.stdout).text(),
-		new Response(child.stderr).text(),
-		child.exited,
-	]);
-	return { stdout, stderr, exitCode };
-}
+const run = createCliRunner(
+	(
+		args: string[],
+		preload: string = probe,
+		env: Record<string, string> = {},
+	) => ({
+		command: [process.execPath, '--preload', preload, entry, ...args],
+		cwd: root,
+		env: { ...process.env, LANG: 'C', ...env },
+	}),
+);
 
 async function observe(args: string[], positive = false) {
 	const result = await run(args, probe, {

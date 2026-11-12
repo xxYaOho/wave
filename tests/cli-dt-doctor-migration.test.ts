@@ -2,28 +2,22 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { createCliRunner } from './utils/cli-runner.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 const cliEntry = path.join(rootDir, 'src', 'index.ts');
 const tempDirs: string[] = [];
 
-async function runWave(
-	args: string[],
-	options: { cwd?: string; env?: Record<string, string> } = {},
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-	const proc = Bun.spawn(['bun', 'run', cliEntry, ...args], {
+const runWave = createCliRunner(
+	(
+		args: string[],
+		options: { cwd?: string; env?: Record<string, string> } = {},
+	) => ({
+		command: ['bun', 'run', cliEntry, ...args],
 		cwd: options.cwd ?? rootDir,
 		env: { ...process.env, ...options.env },
-		stdout: 'pipe',
-		stderr: 'pipe',
-	});
-
-	const stdout = await new Response(proc.stdout).text();
-	const stderr = await new Response(proc.stderr).text();
-	const exitCode = await proc.exited;
-
-	return { stdout, stderr, exitCode };
-}
+	}),
+);
 
 async function makeTheme(source: string): Promise<string> {
 	const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wave-doctor-theme-'));
