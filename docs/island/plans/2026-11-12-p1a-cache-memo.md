@@ -1,6 +1,6 @@
 ---
 date: 2026-11-12
-state: 待 DELTA 复核（v6 局部修正）
+state: 施工中（v6 DELTA PASS 2026-11-12，Milestone-1 派遣；carry M-1/m-1 已关闭 a3aee88）
 dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/P1b（2026-11-12）；P1a FULL-3 FAIL（3F/6M/3m）→ Human 三项裁决：①写边界扩至穿线面 ②benchmark 接线归 P1b ③基线 mise bun 1.3.6 重捕（v2 已落地，提交 d804841）→ v5；FULL-4 FAIL（1F/1M/3m）→ DELTA v6（F-1 Doctor 承接文件映射、M-1 基线哈希方法钉死 915364b、m-1/m-2/m-3 口径与边界澄清）
 ---
 
@@ -67,7 +67,7 @@ dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/
 
 ## Draft Plan
 
-- 文件：`src/core/pipeline/token-cache.ts`（新）、`src/core/resolver/resource-loader.ts`、`src/core/pipeline/workspace-loader.ts`、`theme-pipeline.ts`、`theme-service.ts`、`pass-preparer.ts`（如涉及）、`src/core/parser/theme-yaml.ts`、`src/core/night/emit.ts`、`src/core/doctor/resource-validator.ts`、`src/cli/commands/doctor-action.ts`、`src/core/transformer/theme-transformer.ts`、`color-value.ts`、`color-space.ts`、`tests/p1a-cache-policy.test.ts`、`tests/p1a-equivalence.test.ts`。
+- 文件：`src/core/pipeline/token-cache.ts`（新）、`src/core/resolver/resource-loader.ts`、`src/core/pipeline/workspace-loader.ts`、`theme-pipeline.ts`、`theme-service.ts`、`pass-preparer.ts`（如涉及）、`profile-resolver.ts`（解析站点 :543）、`src/core/parser/theme-yaml.ts`、`src/core/night/emit.ts`、`src/core/doctor/resource-validator.ts`、`src/cli/commands/doctor-action.ts`、`src/core/transformer/theme-transformer.ts`、`color-value.ts`、`color-space.ts`、`tests/p1a-cache-policy.test.ts`、`tests/p1a-equivalence.test.ts`。
 - 风险与未决：五层颜色穿线与解析站点接线需逐层核对签名兼容（穿线遗漏 = 该分支无收益，不属错误但需报告）；冻结快照对大资源的复制成本实测观察（不设阈值，异常时升级）。无阻塞未决项。
 - 里程碑：单一 Milestone（memo 实现 + 等价/污染/canary 验证）。
 
