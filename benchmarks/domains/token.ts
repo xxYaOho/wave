@@ -64,6 +64,7 @@ export async function runTokenDomain(
 	try {
 		for (let i = 0; i < options.warmup; i++) await runOnce();
 		samples.length = 0;
+		traceSums.clear();
 		primary = undefined;
 		for (let i = 0; i < options.iterations; i++) await runOnce();
 	} catch (error) {

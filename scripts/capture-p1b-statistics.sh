@@ -116,11 +116,9 @@ REPORT_PATH="$RESULTS_DIR/$RUN_ID.json"
 	exit 1
 }
 
-# equivalence-on smoke (source repo only; anchor worktrees skip — proven at HEAD)
-if [ "$ANCHOR" = "HEAD" ]; then
-	mise exec bun@1.3.6 -- bun benchmarks/design-token/run.ts --mode default --iterations 1 --warmup 0 >/dev/null
-	echo "OK: equivalence-on smoke"
-fi
+# equivalence-on smoke at EVERY anchor (spec contract; design-token harness exists at all anchors)
+mise exec bun@1.3.6 -- bun benchmarks/design-token/run.ts --mode default --iterations 1 --warmup 0 >/dev/null
+echo "OK: equivalence-on smoke at anchor $ANCHOR"
 
 if ! git diff --quiet || ! git diff --cached --quiet; then
 	echo "FAIL: tracked files dirty after capture" >&2
@@ -128,6 +126,27 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
 fi
 
 mkdir -p "$EVIDENCE_DIR"
+[ -f "$EVIDENCE_DIR/$RUN_ID.json" ] && {
+	echo "FAIL: evidence file already exists: $EVIDENCE_DIR/$RUN_ID.json (stale guard)" >&2
+	exit 1
+}
 cp "$REPORT_PATH" "$EVIDENCE_DIR/"
-echo "OK: evidence copied to $EVIDENCE_DIR/$RUN_ID.json"
+
+HEAD_COMMIT="$(git rev-parse HEAD)"
+ANCHOR_COMMIT="$(git rev-parse "$ANCHOR" 2>/dev/null || echo "$ANCHOR")"
+cat > "$EVIDENCE_DIR/$RUN_ID.capture-manifest.json" <<MANIFEST
+{
+  "runId": "$RUN_ID",
+  "anchorArg": "$ANCHOR",
+  "anchorCommit": "$ANCHOR_COMMIT",
+  "headCommit": "$HEAD_COMMIT",
+  "iterations": $ITERATIONS,
+  "warmup": $WARMUP,
+  "lockfileHash": "$ACTUAL_LOCK_HASH",
+  "sourceDir": "$SOURCE_DIR",
+  "bun": "1.3.6",
+  "report": "$RUN_ID.json"
+}
+MANIFEST
+echo "OK: evidence + capture manifest written to $EVIDENCE_DIR/"
 echo "DONE anchor=$ANCHOR run-id=$RUN_ID"

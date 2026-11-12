@@ -1,7 +1,7 @@
 ---
 date: 2026-11-12
-state: 待 fresh FULL-4（v4 修订，spike 先行）
-dispatch: P1 拆分裁决（2026-11-12）→ FULL-1/2/3 三轮 FAIL（5→5→6 FATAL）触发飞轮硬停 → Human 裁决 spike 先行（2026-11-12）→ spike 落地（提交 29a5d2e/863c73d）：capture 脚本双锚端到端演示、归因四层穿线实测（multi-profile 全非零；FULL-3 F-5 color 结构零被证伪）、配对合同类型化挂载 + RI 公式修正（-d/b）、per-sample carrier 解法。事实清单：.tmp/p1/spike-facts.md。v4 = 以已演示实现为冻结依据的收敛稿
+state: 待 fresh FULL-5（v5 修订，FULL-4 台账消解）
+dispatch: P1 拆分裁决（2026-11-12）→ FULL-1/2/3 三轮 FAIL（5→5→6 FATAL）触发飞轮硬停 → Human 裁决 spike 先行（2026-11-12）→ spike 落地（提交 29a5d2e/863c73d）：capture 脚本双锚端到端演示、归因四层穿线实测（multi-profile 全非零；FULL-3 F-5 color 结构零被证伪）、配对合同类型化挂载 + RI 公式修正（-d/b）、per-sample carrier 解法。事实清单：.tmp/p1/spike-facts.md。v4 → FULL-4 FAIL（3F/3M/3m：warmup 归因污染——spike 真实 bug、pre 锚 smoke 缺失漂移、有效性缺 status 断言、provenance 未绑定）→ v5：代码三修复（traceSums 清污/每锚 smoke/覆盖守卫）+ capture manifest 结构化 + 重测
 ---
 
 # Wave P1b Token 统计与测量 Plan
@@ -35,12 +35,12 @@ P1a 交付的进程内 memo 仅有等价证明，无性能测量。路线图原�
 ## Implementation Decisions
 
 1. **契约（已实现，29a5d2e）**：`CacheAttributionTrace`（layer/hits/misses/degraded 全 typed）＋ `BenchmarkCaseResult.cacheAttribution?`；`PairedComparisonContract`（key: string, metric: 'p50Ms', unit: 'ms', pairedDeltasMs: number[], medianRelativeImprovement: number | null, p95RelativeRegression: number | null, baselineSampleCount/currentSampleCount/positiveBaselineCount/winCount/lossCount/tieCount/excludedNonPositiveBaseline: number, method: 'paired-index' | 'aggregate-fallback'）＋ **`BenchmarkComparisonCase.paired?` 类型化挂载**。`benchmarks/shared/stats.ts` 增补 `p50Ms?: number | null`（nearest-rank，与 p95 同口径；Task-1 增量）。
-2. **归因接线（已实现，29a5d2e，双锚实测）**：runner 每-调用创建 `createTokenCache()` 穿线至全部 cache 接受调用点（loadDesignTokenWorkspace / parseProfileDocument×2 / collectDependencyDictionary / prepareBuildPass(input.cache)）；成功返回前 `stats()` 快照 → 四层 trace。domains 层 SUM 聚合（Map 跨迭代累加，warmup 样本经 samples.length=0 重置自然排除）。实测：multi-profile 四层全非零；night = parse/color 命中（dictionary/loadResource 恒零——编排事实）；single 全零。
+2. **归因接线（已实现，29a5d2e，双锚实测）**：runner 每-调用创建 `createTokenCache()` 穿线至全部 cache 接受调用点（loadDesignTokenWorkspace / parseProfileDocument×2 / collectDependencyDictionary / prepareBuildPass(input.cache)）；成功返回前 `stats()` 快照 → 四层 trace。domains 层 SUM 聚合（Map 跨迭代累加；**warmup 后与 samples 同点 `traceSums.clear()`——FULL-4 F-1 修复，聚合口径 = 纯测量迭代**）。实测：multi-profile 四层全非零；night = parse/color 命中（dictionary/loadResource 恒零——编排事实）；single 全零。
 3. **配对比较（已实现，29a5d2e/863c73d）**：`buildPairedComparisonContract(key, base, current)`——样本取 `stats.samplesMs`；等长且全部有限值 → paired-index（`pairedDeltasMs[i] = post_i - pre_i`；win = d<0 / loss = d>0 / tie = d=0；`RI = median{-d/b : pre_i>0}`（**修正后公式**），pre_i ≤ 0 计入 excludedNonPositiveBaseline；偶数基数中位数 = 中间两值算术平均；`PR = (postP95 - preP95)/preP95`，仅 preP95>0 且 postP95≠null 时非 null）；不等长/空/非有限值 → aggregate-fallback（空数组、零计数、null 量值、positiveBaselineCount=0）。compare 输出每 case 附 paired（只增，实测 legacy 行为不破坏）。
-4. **协议脚本（已实现并双锚演示，29a5d2e）**：`scripts/capture-p1b-statistics.sh`（set -euo pipefail）——参数 `--anchor <commit|HEAD> --run-id <id> --evidence-dir <dir> [--iterations N] [--warmup N]`；pre 锚 worktree 化（已存在即 FAIL——stale 防护实测）；install --frozen-lockfile；lockfile 哈希**显式比较**（实际 vs `git show <anchor>:pnpm-lock.yaml`，不匹配 exit 1）；build；三域 run（--results-dir /private/tmp/p1b-capture-<run-id>/reports）；HEAD 锚加 equivalence-on smoke；报告落盘 evidence 目录。**冻结协议调用**：pre = `--anchor 432453f --run-id p1b-pre-432453f`；post = `--anchor HEAD --run-id p1b-post-<head8>`；`--iterations 30 --warmup 3`。Task-2 增量：evidence 目标文件已存在时 FAIL（覆盖守卫）。
+4. **协议脚本（已实现并双锚演示，29a5d2e）**：`scripts/capture-p1b-statistics.sh`（set -euo pipefail）——参数 `--anchor <commit|HEAD> --run-id <id> --evidence-dir <dir> [--iterations N] [--warmup N]`；pre 锚 worktree 化（已存在即 FAIL——stale 防护实测）；install --frozen-lockfile；lockfile 哈希**显式比较**（实际 vs `git show <anchor>:pnpm-lock.yaml`，不匹配 exit 1）；build；三域 run（--results-dir /private/tmp/p1b-capture-<run-id>/reports）；**每锚 equivalence-on smoke**（FULL-4 F-2 修复：pre 锚同样执行——432453f 已有 Q0 交付的 design-token harness）；报告落盘 evidence 目录；**evidence 覆盖守卫**（目标已存在即 FAIL）；**写 capture manifest**（结构化：runId/anchorCommit/headCommit/iterations/warmup/lockfileHash/sourceDir/bun——FULL-4 M-1，compose 的 lockfileHashes 与 provenance 绑定源）。**冻结协议调用**：pre = `--anchor 432453f --run-id p1b-pre-432453f`；post = `--anchor HEAD --run-id p1b-post-<head8>`；`--iterations 30 --warmup 3`。Task-2 增量：evidence 目标文件已存在时 FAIL（覆盖守卫）。
 5. **lockfileHash 来源（F-6 闭环）**：`statistics.json` 的 `protocol.lockfileHashes` 以**脚本输出/断言值**为源（非报告 environment 块——pre 锚报告无该字段）；脚本已在断言中持有双锚哈希。
 6. **判定规则（冻结，可满足性经实测确认）**：记 `RI = medianRelativeImprovement`、`PR = p95RelativeRegression`。`token-multi-profile`：`RI ≥ 0.05` 且 `PR ≠ null 且 PR ≤ 0.05` 且聚合 `dictionary.hits > 0` 且聚合 `loadResource.hits > 0`；`night`：`RI ≥ 0.05`；`token-single-profile`：`RI ≥ −0.03`。三域条件全部满足且全部 `RI ≠ null` → retained；任一不满足 → escalate（提交 Human 逐层撤回裁决）。
-7. **statistics.json 组装（Task-2 增量，`scripts/compose-p1b-statistics.ts`）**：输入 = 双锚报告 + comparison 输出 + 脚本 lockfile 哈希。schema（全 typed）：`{ schemaVersion: 1, anchors: { pre: string(40-hex), post: string(40-hex) }, protocol: { iterations: 30, warmup: 3, bun: string, lockfileHashes: { pre: string(64-hex), post: string(64-hex) } }, cases: Array<{ key: string, domain: 'token-single-profile' | 'token-multi-profile' | 'night', baselineStatsRef: { report: string /* 相对 evidence 目录路径 */, caseId: string }, currentStatsRef: { report: string, caseId: string }, paired: PairedComparisonContract, ruleChecks: Array<{ rule: string, threshold: string, measured: number | null, pass: boolean }> }>, validity: { domainsComplete: boolean, sampleCountsExact: boolean, lockfileHashesPresent: boolean, reportsExist: boolean }, verdict: 'retained' | 'escalate' | 'invalid' }`。**ruleChecks 固定谓词集（M-2）**：multi 域 4 行（RI≥0.05 / PR≤0.05 / dictionary.hits>0 / loadResource.hits>0）；night 与 single 各 1 行（RI 阈值）；另加全局行 `RI-non-null`。**有效性断言（M-3）**：恰三域、每域 `samplesMs.length === 30` 且全部有限值、双锚 lockfileHash 非空、双报告文件存在且 caseId 与 domain 一致——任一不满足 → `validity` 对应 false 且 `verdict: 'invalid'`（重捕，不产生裁决）。**引用校验（m-2）**：组装时校验引用文件存在 + caseId 命中。
+7. **statistics.json 组装（Task-2 增量，`scripts/compose-p1b-statistics.ts`）**：输入 = 双锚报告 + comparison 输出 + 脚本 lockfile 哈希。schema（全 typed）：`{ schemaVersion: 1, anchors: { pre: string(40-hex), post: string(40-hex) }, protocol: { iterations: 30, warmup: 3, bun: string, lockfileHashes: { pre: string(64-hex), post: string(64-hex) } }, cases: Array<{ key: string, domain: 'token-single-profile' | 'token-multi-profile' | 'night', baselineStatsRef: { report: string /* 相对 evidence 目录路径 */, caseId: string }, currentStatsRef: { report: string, caseId: string }, paired: PairedComparisonContract, ruleChecks: Array<{ rule: string, threshold: string, measured: number | null, pass: boolean }> }>, validity: { domainsComplete: boolean, sampleCountsExact: boolean, lockfileHashesPresent: boolean, reportsExist: boolean }, verdict: 'retained' | 'escalate' | 'invalid' }`。**ruleChecks 固定谓词集（M-2）**：multi 域 4 行（RI≥0.05 / PR≤0.05 / dictionary.hits>0 / loadResource.hits>0）；night 与 single 各 1 行（RI 阈值）；另加全局行 `RI-non-null`。**有效性断言（M-3 + FULL-4 F-3）**：恰三域、每域 `samplesMs.length === 30` 且全部有限值、**每 case `status === 'success'`**、双锚 lockfileHash 非空、双报告文件存在且 caseId 与 domain 一致——任一不满足 → `validity` 对应 false 且 `verdict: 'invalid'`（重捕，不产生裁决）。**引用校验（m-2）**：组装时校验引用文件存在 + caseId 命中。
 8. **legacy 比较零修改（F-2 消解）**：token 域 `comparison.metric` **保持 meanMs 不迁移**；决策走 paired 合同（其 metric 字段独立标 'p50Ms'）；五 metric 分发承诺撤销（legacy compare 行为不动，p50 经 `stats.p50Ms` 与 paired 承载）。
 
 ## Testing Decisions
@@ -49,7 +49,8 @@ P1a 交付的进程内 memo 仅有等价证明，无性能测量。路线图原�
 - 归因单元：multi-profile 场景四层非零断言（实测基准）；night 的 parse/color 命中与 dictionary/loadResource 零断言（编排事实锁定）；SUM 聚合跨迭代正确性。
 - stats 单元：p50 nearest-rank 向量（奇偶/重复/空样本语义不变）。
 - 组装单元：statistics schema 形状、ruleChecks 固定行数与谓词、有效性断言（缺域/样本数≠30/lockfileHash 空 → invalid）、引用存在性校验。
-- 脚本行为：干跑参数解析；stale worktree 拒绝；脏树拒绝；lockfile 不匹配拒绝（已有实测）；evidence 覆盖守卫（Task-2 增量后）。
+- 脚本行为：干跑参数解析；stale worktree 拒绝；脏树拒绝；lockfile 不匹配拒绝（已有实测）；evidence 覆盖守卫；每锚 smoke 执行；capture manifest 落盘断言。
+- 有效性补充（FULL-4 F-3）：失败报告（任一 case status ≠ success）即使样本数合规也必须 invalid——测试含该反例。
 - 质量门：`pnpm check:ci` 不退化（mise bun 1.3.6，`--timeout 15000`）。
 
 ## Out of Scope
@@ -101,8 +102,8 @@ statistics 组装与协议守卫（来源：User Story 2；Decisions 4/5/7；Tes
 - 依赖：Task-1。
 - 固有风险：组装器对 spike 报告形状的容错（缺 paired 字段的旧报告 → 显式 invalid，不静默）。
 
-- [ ] 组装脚本 + 有效性/谓词/引用测试。
-- [ ] 脚本覆盖守卫 + 干跑复验。
+- [ ] 组装脚本 + 有效性（含 status 反例）/谓词/provenance 绑定/引用测试。
+- [ ] 脚本覆盖守卫 + manifest 断言 + 干跑复验。
 
 > [!IMPORTANT]
 > Milestone-1 闸门（唯一闸门）：主代理在冻结协议下捕获 pre（`432453f`）与 post（交付 HEAD），生成 statistics.json，按判定规则逐条复核裁决；通过后 pruner 收尾、按路线图集成。规则触发 ESCALATE 时整体升级 Human，不自动撤回。
