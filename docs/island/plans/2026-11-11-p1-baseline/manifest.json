@@ -19,7 +19,7 @@
  "provenance": {
   "v1CrossCheck": "all 32 output files byte-identical to v1 manifest (e9bd325, captured under bun 1.4.0); outputs are bun-version invariant; v2 re-captured under gate runtime bun 1.3.6 to unify evidence baseline",
   "supersedes": "e9bd325 manifest (schemaVersion absent, bun 1.4.0); v1 pre perf sample (3 iterations) removed from baseline — performance sampling deferred to P1b frozen protocol",
-  "orcaHashDiscrepancy": "FULL-4 reviewer recomputed f02fea16... vs recorded a58d0d5e...; orchestrator re-run 2026-11-12 post-review from orca root reproduces a58d0d5e... exactly (incl. per-file list above); .DS_Store-inclusive variant yields c71b6539... — discrepancy attributed to non-root invocation; method now cwd-pinned with per-file evidence"
+  "orcaHashDiscrepancy": "FULL-4 reviewer recomputed f02fea16... vs recorded a58d0d5e...; DELTA review experimentally isolated the root cause to sort locale collation — same cwd, same 27-file set: LC_ALL=C yields f02fea16..., LC_ALL=en_US.UTF-8 yields the recorded a58d0d5e...; 27/27 per-file hashes identical in both runs and array-order aggregation of orcaFiles reproduces a58d0d5e. The earlier non-root-invocation attribution in this manifest is RETRACTED (reviewer had pinned cwd correctly). Method now pins LC_ALL=en_US.UTF-8; recorded value unchanged; no output re-capture required"
  },
  "env": {
   "runtime": "bun",
@@ -31,7 +31,7 @@
   "lockfileHash": "3d05941e5e2a19da95406be10026a7c1ad6ea3ee23cceaf435d83ecf48af3b0a",
   "orcaInputHash": "a58d0d5ef2f9b12f8588ed220fc687ccd091894a0bd805304d39dd048c8949ee",
   "fixtureInputHash": "5629260dbb76c607297b5fe645e4903ae376874cbdefb3171969be6e9197f2cb",
-  "orcaInputHashMethod": "literal: cd /Users/teatao/Projects/my-color/orca && find . -type f ! -name \".DS_Store\" | sort | xargs shasum -a 256 | shasum -a 256 (cwd-pinned to orca root; file set = orcaFiles below)",
+  "orcaInputHashMethod": "literal: cd /Users/teatao/Projects/my-color/orca && find . -type f ! -name \".DS_Store\" | LC_ALL=en_US.UTF-8 sort | xargs shasum -a 256 | shasum -a 256 (cwd- and locale-pinned; file set = orcaFiles below; recorded aggregate a58d0d5e... reproduces under this exact pipeline)",
   "orcaFileCount": 27,
   "orcaFiles": [
    {
