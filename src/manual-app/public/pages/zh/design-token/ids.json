@@ -1,0 +1,16 @@
+{
+  "route": "design-token/ids",
+  "locale": "zh",
+  "title": "维护 Token 身份",
+  "description": "使用 token ids 报告或写回 main、Day profile 和 token 的 $id。",
+  "category": "Design Token",
+  "commands": [
+    "wave token ids"
+  ],
+  "appliesTo": [
+    "本地 CLI"
+  ],
+  "html": "<h2>默认只报告</h2>\n<pre><code class=\"language-bash\">wave token ids -f ./main.yaml\n</code></pre>\n<p>报告文档身份、已登记与未登记 token、空槽位、非规范形式和跨文件冲突，不修改文件。</p>\n<h2>写回身份</h2>\n<p>确认报告后运行：</p>\n<pre><code class=\"language-bash\">wave token ids --write -f ./main.yaml\n</code></pre>\n<p>写回范围包括 main 与既有发现规则下的 Day profiles。缺少或为空的身份槽位会被补齐，已有文档根 ID 不会重发。<code>$override</code> 和 Night 文件不参与写入。</p>\n<p>写入默认要求 Git 工作区干净。确认保留当前未提交修改时，才使用：</p>\n<pre><code class=\"language-bash\">wave token ids --write --allow-dirty -f ./main.yaml\n</code></pre>\n<h2>身份规则</h2>\n<ul>\n<li>main 和每个 Day profile 可以在根部声明自己的文档 <code>$id</code>。</li>\n<li>token <code>$id</code> 写在 token 上；group 不声明 <code>$id</code>。</li>\n<li>不写表示未登记；<code>null</code> 或空白字符串表示预留槽位。</li>\n<li>同一主题内的 token 身份必须唯一。</li>\n<li>Night 禁止根 <code>$id</code>，沿用 Day 身份。</li>\n</ul>\n<p>Profile 的 <code>$config.base</code> 必须等于 main 已登记的根 <code>$id</code>。存在 profile 而 main 未登记、base 不匹配或 token ID 冲突时，ids 拒绝写入任何文件。不要通过重发 main 身份绕过冲突。</p>\n<h2>创建后续内容</h2>\n<p>登记 base 后创建 profile：</p>\n<pre><code class=\"language-bash\">wave token new profile mobile -f ./main.yaml\n</code></pre>\n<p>Profile 创建前提与输出规则见 <a href=\"/design-token/create\">创建 Workspace 与 Profile</a>。</p>\n",
+  "searchText": "维护 Token 身份\n使用 token ids 报告或写回 main、Day profile 和 token 的 $id。\nDesign Token\nwave token ids\n本地 CLI\n## 默认只报告\n\n```bash\nwave token ids -f ./main.yaml\n```\n\n报告文档身份、已登记与未登记 token、空槽位、非规范形式和跨文件冲突，不修改文件。\n\n## 写回身份\n\n确认报告后运行：\n\n```bash\nwave token ids --write -f ./main.yaml\n```\n\n写回范围包括 main 与既有发现规则下的 Day profiles。缺少或为空的身份槽位会被补齐，已有文档根 ID 不会重发。`$override` 和 Night 文件不参与写入。\n\n写入默认要求 Git 工作区干净。确认保留当前未提交修改时，才使用：\n\n```bash\nwave token ids --write --allow-dirty -f ./main.yaml\n```\n\n## 身份规则\n\n- main 和每个 Day profile 可以在根部声明自己的文档 `$id`。\n- token `$id` 写在 token 上；group 不声明 `$id`。\n- 不写表示未登记；`null` 或空白字符串表示预留槽位。\n- 同一主题内的 token 身份必须唯一。\n- Night 禁止根 `$id`，沿用 Day 身份。\n\nProfile 的 `$config.base` 必须等于 main 已登记的根 `$id`。存在 profile 而 main 未登记、base 不匹配或 token ID 冲突时，ids 拒绝写入任何文件。不要通过重发 main 身份绕过冲突。\n\n## 创建后续内容\n\n登记 base 后创建 profile：\n\n```bash\nwave token new profile mobile -f ./main.yaml\n```\n\nProfile 创建前提与输出规则见 [创建 Workspace 与 Profile](/design-token/create)。",
+  "rawMarkdown": "\n## 默认只报告\n\n```bash\nwave token ids -f ./main.yaml\n```\n\n报告文档身份、已登记与未登记 token、空槽位、非规范形式和跨文件冲突，不修改文件。\n\n## 写回身份\n\n确认报告后运行：\n\n```bash\nwave token ids --write -f ./main.yaml\n```\n\n写回范围包括 main 与既有发现规则下的 Day profiles。缺少或为空的身份槽位会被补齐，已有文档根 ID 不会重发。`$override` 和 Night 文件不参与写入。\n\n写入默认要求 Git 工作区干净。确认保留当前未提交修改时，才使用：\n\n```bash\nwave token ids --write --allow-dirty -f ./main.yaml\n```\n\n## 身份规则\n\n- main 和每个 Day profile 可以在根部声明自己的文档 `$id`。\n- token `$id` 写在 token 上；group 不声明 `$id`。\n- 不写表示未登记；`null` 或空白字符串表示预留槽位。\n- 同一主题内的 token 身份必须唯一。\n- Night 禁止根 `$id`，沿用 Day 身份。\n\nProfile 的 `$config.base` 必须等于 main 已登记的根 `$id`。存在 profile 而 main 未登记、base 不匹配或 token ID 冲突时，ids 拒绝写入任何文件。不要通过重发 main 身份绕过冲突。\n\n## 创建后续内容\n\n登记 base 后创建 profile：\n\n```bash\nwave token new profile mobile -f ./main.yaml\n```\n\nProfile 创建前提与输出规则见 [创建 Workspace 与 Profile](/design-token/create)。\n"
+}

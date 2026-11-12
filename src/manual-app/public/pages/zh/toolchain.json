@@ -1,0 +1,18 @@
+{
+  "route": "toolchain",
+  "locale": "zh",
+  "title": "安装与工具链",
+  "description": "安装开发依赖，检查和安装 Wave 需要的本地工具。",
+  "category": "开始",
+  "commands": [
+    "wave doctor",
+    "wave install --check",
+    "wave install --help"
+  ],
+  "appliesTo": [
+    "本地 CLI"
+  ],
+  "html": "<h2>用途</h2>\n<p>Wave 自身由 Bun 运行，项目依赖由 pnpm 管理，本地工具链由 mise 和系统工具提供。Wave 不把图片压缩和动效编码工具打包进 CLI。</p>\n<h2>开发环境</h2>\n<pre><code class=\"language-bash\">mise install\npnpm install\npnpm dev -- --version\n</code></pre>\n<h2>检查环境</h2>\n<pre><code class=\"language-bash\">wave doctor\nwave doctor --status\nwave doctor --json\n</code></pre>\n<p><code>doctor</code> 会检查 Wave 运行环境和推荐工具。模块命令也提供独立检查：</p>\n<pre><code class=\"language-bash\">wave compress doctor\nwave motion doctor\n</code></pre>\n<h2>查看安装计划</h2>\n<pre><code class=\"language-bash\">wave install --check\nwave compress install --check\nwave motion install --check\n</code></pre>\n<h2>执行安装</h2>\n<p>确认安装计划后，再给对应 install 命令添加 <code>--yes</code> 执行安装。安装命令会调用项目中的 mise task。缺少 mise 时，Wave 会提示先安装 mise。</p>\n<h2>工具分组</h2>\n<table>\n<thead>\n<tr>\n<th>模块</th>\n<th>本地工具</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>compress</td>\n<td><code>oxipng</code>, <code>pngquant</code>, <code>svgo</code>, <code>gifsicle</code>, <code>jpegtran</code> 或 <code>mozjpeg</code></td>\n</tr>\n<tr>\n<td>motion</td>\n<td><code>gifski</code>, <code>apngasm</code></td>\n</tr>\n</tbody></table>\n",
+  "searchText": "安装与工具链\n安装开发依赖，检查和安装 Wave 需要的本地工具。\n开始\nwave doctor\nwave install --check\nwave install --help\n本地 CLI\n## 用途\n\nWave 自身由 Bun 运行，项目依赖由 pnpm 管理，本地工具链由 mise 和系统工具提供。Wave 不把图片压缩和动效编码工具打包进 CLI。\n\n## 开发环境\n\n```bash\nmise install\npnpm install\npnpm dev -- --version\n```\n\n## 检查环境\n\n```bash\nwave doctor\nwave doctor --status\nwave doctor --json\n```\n\n`doctor` 会检查 Wave 运行环境和推荐工具。模块命令也提供独立检查：\n\n```bash\nwave compress doctor\nwave motion doctor\n```\n\n## 查看安装计划\n\n```bash\nwave install --check\nwave compress install --check\nwave motion install --check\n```\n\n## 执行安装\n\n确认安装计划后，再给对应 install 命令添加 `--yes` 执行安装。安装命令会调用项目中的 mise task。缺少 mise 时，Wave 会提示先安装 mise。\n\n## 工具分组\n\n| 模块 | 本地工具 |\n| --- | --- |\n| compress | `oxipng`, `pngquant`, `svgo`, `gifsicle`, `jpegtran` 或 `mozjpeg` |\n| motion | `gifski`, `apngasm` |",
+  "rawMarkdown": "\n## 用途\n\nWave 自身由 Bun 运行，项目依赖由 pnpm 管理，本地工具链由 mise 和系统工具提供。Wave 不把图片压缩和动效编码工具打包进 CLI。\n\n## 开发环境\n\n```bash\nmise install\npnpm install\npnpm dev -- --version\n```\n\n## 检查环境\n\n```bash\nwave doctor\nwave doctor --status\nwave doctor --json\n```\n\n`doctor` 会检查 Wave 运行环境和推荐工具。模块命令也提供独立检查：\n\n```bash\nwave compress doctor\nwave motion doctor\n```\n\n## 查看安装计划\n\n```bash\nwave install --check\nwave compress install --check\nwave motion install --check\n```\n\n## 执行安装\n\n确认安装计划后，再给对应 install 命令添加 `--yes` 执行安装。安装命令会调用项目中的 mise task。缺少 mise 时，Wave 会提示先安装 mise。\n\n## 工具分组\n\n| 模块 | 本地工具 |\n| --- | --- |\n| compress | `oxipng`, `pngquant`, `svgo`, `gifsicle`, `jpegtran` 或 `mozjpeg` |\n| motion | `gifski`, `apngasm` |\n"
+}

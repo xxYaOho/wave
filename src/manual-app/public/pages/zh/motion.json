@@ -1,0 +1,18 @@
+{
+  "route": "motion",
+  "locale": "zh",
+  "title": "动效生成",
+  "description": "从 PNG 帧目录生成 GIF 或 APNG，并控制格式、输出和覆盖。",
+  "category": "素材",
+  "commands": [
+    "wave motion",
+    "wave motion doctor",
+    "wave motion install"
+  ],
+  "appliesTo": [
+    "本地 CLI"
+  ],
+  "html": "<h2>生成动效</h2>\n<pre><code class=\"language-bash\">wave motion -f ./frames --format gif\nwave motion -f ./frames --format apng\n</code></pre>\n<p>输入目录至少需要两张 PNG 帧。非交互环境必须显式提供 <code>--format gif|apng</code>；TTY 中省略格式时可以交互选择。</p>\n<h2>输出</h2>\n<pre><code class=\"language-bash\">wave motion -f ./frames --format gif --output ./loading.gif\nwave motion -f ./frames --format apng --output ./loading.png\n</code></pre>\n<p>默认输出到帧目录下的 <code>wave-mg/</code>，文件名包含帧目录名和 FPS。已有输出默认拒绝覆盖，确认后使用 <code>--force</code>。</p>\n<p>只查看计划：</p>\n<pre><code class=\"language-bash\">wave motion -f ./frames --format gif --dry-run\n</code></pre>\n<h2>编码参数</h2>\n<pre><code class=\"language-bash\">wave motion -f ./frames --format gif --fps 24 --quality 80 --loop forever\n</code></pre>\n<table>\n<thead>\n<tr>\n<th>参数</th>\n<th>默认值</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>--fps &lt;n&gt;</code></td>\n<td>24</td>\n</tr>\n<tr>\n<td><code>-q, --quality &lt;n&gt;</code></td>\n<td>80</td>\n</tr>\n<tr>\n<td><code>--loop &lt;mode&gt;</code></td>\n<td><code>forever</code>，也可选 <code>once</code></td>\n</tr>\n</tbody></table>\n<p>命令不会修改源帧。</p>\n<h2>工具链与帧检查</h2>\n<pre><code class=\"language-bash\">wave motion doctor\nwave motion doctor -f ./frames\nwave motion install --check\nwave motion install --yes\n</code></pre>\n<p><code>motion doctor</code> 的 <code>-f</code> 是可选 PNG 帧目录，用于同时检查帧输入。</p>\n",
+  "searchText": "动效生成\n从 PNG 帧目录生成 GIF 或 APNG，并控制格式、输出和覆盖。\n素材\nwave motion\nwave motion doctor\nwave motion install\n本地 CLI\n## 生成动效\n\n```bash\nwave motion -f ./frames --format gif\nwave motion -f ./frames --format apng\n```\n\n输入目录至少需要两张 PNG 帧。非交互环境必须显式提供 `--format gif|apng`；TTY 中省略格式时可以交互选择。\n\n## 输出\n\n```bash\nwave motion -f ./frames --format gif --output ./loading.gif\nwave motion -f ./frames --format apng --output ./loading.png\n```\n\n默认输出到帧目录下的 `wave-mg/`，文件名包含帧目录名和 FPS。已有输出默认拒绝覆盖，确认后使用 `--force`。\n\n只查看计划：\n\n```bash\nwave motion -f ./frames --format gif --dry-run\n```\n\n## 编码参数\n\n```bash\nwave motion -f ./frames --format gif --fps 24 --quality 80 --loop forever\n```\n\n| 参数 | 默认值 |\n| --- | --- |\n| `--fps  ` | 24 |\n| `-q, --quality  ` | 80 |\n| `--loop  ` | `forever`，也可选 `once` |\n\n命令不会修改源帧。\n\n## 工具链与帧检查\n\n```bash\nwave motion doctor\nwave motion doctor -f ./frames\nwave motion install --check\nwave motion install --yes\n```\n\n`motion doctor` 的 `-f` 是可选 PNG 帧目录，用于同时检查帧输入。",
+  "rawMarkdown": "\n## 生成动效\n\n```bash\nwave motion -f ./frames --format gif\nwave motion -f ./frames --format apng\n```\n\n输入目录至少需要两张 PNG 帧。非交互环境必须显式提供 `--format gif|apng`；TTY 中省略格式时可以交互选择。\n\n## 输出\n\n```bash\nwave motion -f ./frames --format gif --output ./loading.gif\nwave motion -f ./frames --format apng --output ./loading.png\n```\n\n默认输出到帧目录下的 `wave-mg/`，文件名包含帧目录名和 FPS。已有输出默认拒绝覆盖，确认后使用 `--force`。\n\n只查看计划：\n\n```bash\nwave motion -f ./frames --format gif --dry-run\n```\n\n## 编码参数\n\n```bash\nwave motion -f ./frames --format gif --fps 24 --quality 80 --loop forever\n```\n\n| 参数 | 默认值 |\n| --- | --- |\n| `--fps <n>` | 24 |\n| `-q, --quality <n>` | 80 |\n| `--loop <mode>` | `forever`，也可选 `once` |\n\n命令不会修改源帧。\n\n## 工具链与帧检查\n\n```bash\nwave motion doctor\nwave motion doctor -f ./frames\nwave motion install --check\nwave motion install --yes\n```\n\n`motion doctor` 的 `-f` 是可选 PNG 帧目录，用于同时检查帧输入。\n"
+}

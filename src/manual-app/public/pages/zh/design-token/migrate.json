@@ -1,0 +1,17 @@
+{
+  "route": "design-token/migrate",
+  "locale": "zh",
+  "title": "迁移 Token 源文档",
+  "description": "使用 token migrate 命令组迁移旧扩展字段，并控制源文件写回。",
+  "category": "Design Token",
+  "commands": [
+    "wave token migrate",
+    "wave token migrate extensions"
+  ],
+  "appliesTo": [
+    "本地 CLI"
+  ],
+  "html": "<h2>命令组</h2>\n<p><code>wave token migrate</code> 不包含默认迁移对象。当前支持：</p>\n<pre><code class=\"language-bash\">wave token migrate extensions -f ./main.yaml\n</code></pre>\n<p><code>extensions</code> 将旧 <code>$extensions</code> 的 Sketch 家族写法迁移为 <code>platform.sketch</code>。它不迁移旧独立 profile，也不改变 token 值或输出平台。</p>\n<h2>报告与写回</h2>\n<p>默认只输出变更报告：</p>\n<pre><code class=\"language-bash\">wave token migrate extensions -f ./main.yaml\n</code></pre>\n<p>确认报告后写回 main 和 workspace 中的 Day profiles：</p>\n<pre><code class=\"language-bash\">wave token migrate extensions -f ./main.yaml --write\n</code></pre>\n<p><code>-f</code> 接受 base <code>main.yaml</code> 或包含它的目录。不要把 resource、Night overlay 或单个 profile 当作该 workspace 迁移命令的入口。</p>\n<p>写回只修改确认范围内的源 YAML。执行前检查报告，确保没有无关改动。</p>\n<h2>获取当前范围手册</h2>\n<pre><code class=\"language-bash\">wave token migrate -m\nwave token migrate extensions -m\n</code></pre>\n<p>前者说明命令组和迁移对象，后者给出 extensions 的具体用法。</p>\n",
+  "searchText": "迁移 Token 源文档\n使用 token migrate 命令组迁移旧扩展字段，并控制源文件写回。\nDesign Token\nwave token migrate\nwave token migrate extensions\n本地 CLI\n## 命令组\n\n`wave token migrate` 不包含默认迁移对象。当前支持：\n\n```bash\nwave token migrate extensions -f ./main.yaml\n```\n\n`extensions` 将旧 `$extensions` 的 Sketch 家族写法迁移为 `platform.sketch`。它不迁移旧独立 profile，也不改变 token 值或输出平台。\n\n## 报告与写回\n\n默认只输出变更报告：\n\n```bash\nwave token migrate extensions -f ./main.yaml\n```\n\n确认报告后写回 main 和 workspace 中的 Day profiles：\n\n```bash\nwave token migrate extensions -f ./main.yaml --write\n```\n\n`-f` 接受 base `main.yaml` 或包含它的目录。不要把 resource、Night overlay 或单个 profile 当作该 workspace 迁移命令的入口。\n\n写回只修改确认范围内的源 YAML。执行前检查报告，确保没有无关改动。\n\n## 获取当前范围手册\n\n```bash\nwave token migrate -m\nwave token migrate extensions -m\n```\n\n前者说明命令组和迁移对象，后者给出 extensions 的具体用法。",
+  "rawMarkdown": "\n## 命令组\n\n`wave token migrate` 不包含默认迁移对象。当前支持：\n\n```bash\nwave token migrate extensions -f ./main.yaml\n```\n\n`extensions` 将旧 `$extensions` 的 Sketch 家族写法迁移为 `platform.sketch`。它不迁移旧独立 profile，也不改变 token 值或输出平台。\n\n## 报告与写回\n\n默认只输出变更报告：\n\n```bash\nwave token migrate extensions -f ./main.yaml\n```\n\n确认报告后写回 main 和 workspace 中的 Day profiles：\n\n```bash\nwave token migrate extensions -f ./main.yaml --write\n```\n\n`-f` 接受 base `main.yaml` 或包含它的目录。不要把 resource、Night overlay 或单个 profile 当作该 workspace 迁移命令的入口。\n\n写回只修改确认范围内的源 YAML。执行前检查报告，确保没有无关改动。\n\n## 获取当前范围手册\n\n```bash\nwave token migrate -m\nwave token migrate extensions -m\n```\n\n前者说明命令组和迁移对象，后者给出 extensions 的具体用法。\n"
+}

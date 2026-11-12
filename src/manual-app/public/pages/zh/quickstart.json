@@ -1,0 +1,17 @@
+{
+  "route": "quickstart",
+  "locale": "zh",
+  "title": "快速开始",
+  "description": "从本地环境检查进入第一个 Wave 设计交付任务。",
+  "category": "开始",
+  "commands": [
+    "wave --help",
+    "wave token --help"
+  ],
+  "appliesTo": [
+    "本地 CLI"
+  ],
+  "html": "<h2>准备环境</h2>\n<p>仓库开发环境使用 mise 和 pnpm：</p>\n<pre><code class=\"language-bash\">mise install\npnpm install\npnpm dev -- --help\n</code></pre>\n<p>开发时用 <code>pnpm dev --</code> 代替已安装的 <code>wave</code>。</p>\n<h2>选择任务</h2>\n<h3>构建 Design Token</h3>\n<pre><code class=\"language-bash\">wave token new\nwave token\n</code></pre>\n<p>已有项目可以直接指定源文档：</p>\n<pre><code class=\"language-bash\">wave token build -f ./main.yaml\n</code></pre>\n<h3>压缩素材</h3>\n<pre><code class=\"language-bash\">wave compress -f ./assets --dry-run\n</code></pre>\n<h3>生成动效</h3>\n<pre><code class=\"language-bash\">wave motion -f ./frames --format gif --dry-run\nwave motion -f ./frames --format apng --dry-run\n</code></pre>\n<h3>创建工作区</h3>\n<pre><code class=\"language-bash\">wave workspace --dry-run\n</code></pre>\n<h2>检查环境</h2>\n<pre><code class=\"language-bash\">wave doctor --status\n</code></pre>\n<p>模块工具链分别使用 <code>wave compress doctor</code> 和 <code>wave motion doctor</code>。</p>\n<h2>获取使用手册</h2>\n<pre><code class=\"language-bash\">wave --help\nwave token --help\nwave token new night -m\nwave manual\n</code></pre>\n<p><code>--help</code> 显示简洁帮助；<code>-m</code> 打印当前范围的 Markdown 手册；<code>wave manual</code> 启动可视化网页。</p>\n",
+  "searchText": "快速开始\n从本地环境检查进入第一个 Wave 设计交付任务。\n开始\nwave --help\nwave token --help\n本地 CLI\n## 准备环境\n\n仓库开发环境使用 mise 和 pnpm：\n\n```bash\nmise install\npnpm install\npnpm dev -- --help\n```\n\n开发时用 `pnpm dev --` 代替已安装的 `wave`。\n\n## 选择任务\n\n### 构建 Design Token\n\n```bash\nwave token new\nwave token\n```\n\n已有项目可以直接指定源文档：\n\n```bash\nwave token build -f ./main.yaml\n```\n\n### 压缩素材\n\n```bash\nwave compress -f ./assets --dry-run\n```\n\n### 生成动效\n\n```bash\nwave motion -f ./frames --format gif --dry-run\nwave motion -f ./frames --format apng --dry-run\n```\n\n### 创建工作区\n\n```bash\nwave workspace --dry-run\n```\n\n## 检查环境\n\n```bash\nwave doctor --status\n```\n\n模块工具链分别使用 `wave compress doctor` 和 `wave motion doctor`。\n\n## 获取使用手册\n\n```bash\nwave --help\nwave token --help\nwave token new night -m\nwave manual\n```\n\n`--help` 显示简洁帮助；`-m` 打印当前范围的 Markdown 手册；`wave manual` 启动可视化网页。",
+  "rawMarkdown": "\n## 准备环境\n\n仓库开发环境使用 mise 和 pnpm：\n\n```bash\nmise install\npnpm install\npnpm dev -- --help\n```\n\n开发时用 `pnpm dev --` 代替已安装的 `wave`。\n\n## 选择任务\n\n### 构建 Design Token\n\n```bash\nwave token new\nwave token\n```\n\n已有项目可以直接指定源文档：\n\n```bash\nwave token build -f ./main.yaml\n```\n\n### 压缩素材\n\n```bash\nwave compress -f ./assets --dry-run\n```\n\n### 生成动效\n\n```bash\nwave motion -f ./frames --format gif --dry-run\nwave motion -f ./frames --format apng --dry-run\n```\n\n### 创建工作区\n\n```bash\nwave workspace --dry-run\n```\n\n## 检查环境\n\n```bash\nwave doctor --status\n```\n\n模块工具链分别使用 `wave compress doctor` 和 `wave motion doctor`。\n\n## 获取使用手册\n\n```bash\nwave --help\nwave token --help\nwave token new night -m\nwave manual\n```\n\n`--help` 显示简洁帮助；`-m` 打印当前范围的 Markdown 手册；`wave manual` 启动可视化网页。\n"
+}

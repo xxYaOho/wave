@@ -1,0 +1,18 @@
+{
+  "route": "resources",
+  "locale": "zh",
+  "title": "内置资源",
+  "description": "浏览、更新和检查 Wave 的 design-token 引用资源。",
+  "category": "Design Token",
+  "commands": [
+    "wave token show",
+    "wave token update",
+    "wave token status"
+  ],
+  "appliesTo": [
+    "本地 CLI"
+  ],
+  "html": "<h2>浏览资源</h2>\n<pre><code class=\"language-bash\">wave token show\nwave token show palette\nwave token show dimension\nwave token show tailwindcss\nwave token show leonardo --format yaml\nwave token show wave --format json\n</code></pre>\n<table>\n<thead>\n<tr>\n<th><code>--format</code></th>\n<th>输出</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>flat-json</code></td>\n<td>扁平 key-value，默认</td>\n</tr>\n<tr>\n<td><code>json</code></td>\n<td>嵌套 JSON</td>\n</tr>\n<tr>\n<td><code>yaml</code></td>\n<td>原始 YAML</td>\n</tr>\n</tbody></table>\n<p>Resource 只参与引用解析，不直接决定输出内容。</p>\n<h2>更新缓存</h2>\n<pre><code class=\"language-bash\">wave token update\nwave token update tailwindcss\nwave token update tailwindcss --version 4\nwave token update leonardo\n</code></pre>\n<p>未指定名称时更新全部支持的资源。</p>\n<h2>查看状态</h2>\n<pre><code class=\"language-bash\">wave token status\n</code></pre>\n<p>状态包含 cache、state、config 路径，以及 Tailwind CSS 和 Leonardo 的缓存情况。</p>\n<h2>常用资源</h2>\n<table>\n<thead>\n<tr>\n<th>资源</th>\n<th>用途</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>tailwindcss</code></td>\n<td>Tailwind 色板</td>\n</tr>\n<tr>\n<td><code>leonardo</code></td>\n<td>Leonardo light/dark 色板</td>\n</tr>\n<tr>\n<td><code>wave</code></td>\n<td>Wave 内置尺寸系统</td>\n</tr>\n</tbody></table>\n",
+  "searchText": "内置资源\n浏览、更新和检查 Wave 的 design-token 引用资源。\nDesign Token\nwave token show\nwave token update\nwave token status\n本地 CLI\n## 浏览资源\n\n```bash\nwave token show\nwave token show palette\nwave token show dimension\nwave token show tailwindcss\nwave token show leonardo --format yaml\nwave token show wave --format json\n```\n\n| `--format` | 输出 |\n| --- | --- |\n| `flat-json` | 扁平 key-value，默认 |\n| `json` | 嵌套 JSON |\n| `yaml` | 原始 YAML |\n\nResource 只参与引用解析，不直接决定输出内容。\n\n## 更新缓存\n\n```bash\nwave token update\nwave token update tailwindcss\nwave token update tailwindcss --version 4\nwave token update leonardo\n```\n\n未指定名称时更新全部支持的资源。\n\n## 查看状态\n\n```bash\nwave token status\n```\n\n状态包含 cache、state、config 路径，以及 Tailwind CSS 和 Leonardo 的缓存情况。\n\n## 常用资源\n\n| 资源 | 用途 |\n| --- | --- |\n| `tailwindcss` | Tailwind 色板 |\n| `leonardo` | Leonardo light/dark 色板 |\n| `wave` | Wave 内置尺寸系统 |",
+  "rawMarkdown": "\n## 浏览资源\n\n```bash\nwave token show\nwave token show palette\nwave token show dimension\nwave token show tailwindcss\nwave token show leonardo --format yaml\nwave token show wave --format json\n```\n\n| `--format` | 输出 |\n| --- | --- |\n| `flat-json` | 扁平 key-value，默认 |\n| `json` | 嵌套 JSON |\n| `yaml` | 原始 YAML |\n\nResource 只参与引用解析，不直接决定输出内容。\n\n## 更新缓存\n\n```bash\nwave token update\nwave token update tailwindcss\nwave token update tailwindcss --version 4\nwave token update leonardo\n```\n\n未指定名称时更新全部支持的资源。\n\n## 查看状态\n\n```bash\nwave token status\n```\n\n状态包含 cache、state、config 路径，以及 Tailwind CSS 和 Leonardo 的缓存情况。\n\n## 常用资源\n\n| 资源 | 用途 |\n| --- | --- |\n| `tailwindcss` | Tailwind 色板 |\n| `leonardo` | Leonardo light/dark 色板 |\n| `wave` | Wave 内置尺寸系统 |\n"
+}

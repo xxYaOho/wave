@@ -1,0 +1,16 @@
+{
+  "route": "workspace",
+  "locale": "zh",
+  "title": "工作区创建",
+  "description": "按本地配置创建设计项目目录，并控制目标位置和已有内容。",
+  "category": "工作区",
+  "commands": [
+    "wave workspace"
+  ],
+  "appliesTo": [
+    "本地 CLI"
+  ],
+  "html": "<h2>创建工作区</h2>\n<pre><code class=\"language-bash\">wave workspace\n</code></pre>\n<p>命令按配置询问项目名称、类型、版本和标签，然后创建目录结构与 README。不再需要 <code>create</code> 子命令。</p>\n<p>只查看计划：</p>\n<pre><code class=\"language-bash\">wave workspace --dry-run\n</code></pre>\n<p>跳过写入确认：</p>\n<pre><code class=\"language-bash\">wave workspace --yes\n</code></pre>\n<h2>指定目标</h2>\n<pre><code class=\"language-bash\">wave workspace --output ./my-project --yes\n</code></pre>\n<p><code>--output</code> 直接指定最终工作区目录，不是父目录。逻辑项目名称仍来自交互答案。</p>\n<p>目标已存在时默认拒绝。使用 <code>--force</code> 后，Wave 只覆盖本次计划生成的 README 和占位文件，保留目录中的其他文件，不递归删除内容。目标是普通文件或 symlink 时仍拒绝。</p>\n<h2>配置文件</h2>\n<p>默认路径：</p>\n<pre><code class=\"language-text\">~/.config/wave/workspace.yaml\n</code></pre>\n<p>使用其他配置：</p>\n<pre><code class=\"language-bash\">WAVE_WORKSPACE_CONFIG=/path/to/workspace.yaml wave workspace\n</code></pre>\n<p>文件不存在时使用内置默认配置。<code>WAVE_WORKSPACE_CONFIG</code> 只影响 workspace，不影响 token resource cache。</p>\n",
+  "searchText": "工作区创建\n按本地配置创建设计项目目录，并控制目标位置和已有内容。\n工作区\nwave workspace\n本地 CLI\n## 创建工作区\n\n```bash\nwave workspace\n```\n\n命令按配置询问项目名称、类型、版本和标签，然后创建目录结构与 README。不再需要 `create` 子命令。\n\n只查看计划：\n\n```bash\nwave workspace --dry-run\n```\n\n跳过写入确认：\n\n```bash\nwave workspace --yes\n```\n\n## 指定目标\n\n```bash\nwave workspace --output ./my-project --yes\n```\n\n`--output` 直接指定最终工作区目录，不是父目录。逻辑项目名称仍来自交互答案。\n\n目标已存在时默认拒绝。使用 `--force` 后，Wave 只覆盖本次计划生成的 README 和占位文件，保留目录中的其他文件，不递归删除内容。目标是普通文件或 symlink 时仍拒绝。\n\n## 配置文件\n\n默认路径：\n\n```text\n~/.config/wave/workspace.yaml\n```\n\n使用其他配置：\n\n```bash\nWAVE_WORKSPACE_CONFIG=/path/to/workspace.yaml wave workspace\n```\n\n文件不存在时使用内置默认配置。`WAVE_WORKSPACE_CONFIG` 只影响 workspace，不影响 token resource cache。",
+  "rawMarkdown": "\n## 创建工作区\n\n```bash\nwave workspace\n```\n\n命令按配置询问项目名称、类型、版本和标签，然后创建目录结构与 README。不再需要 `create` 子命令。\n\n只查看计划：\n\n```bash\nwave workspace --dry-run\n```\n\n跳过写入确认：\n\n```bash\nwave workspace --yes\n```\n\n## 指定目标\n\n```bash\nwave workspace --output ./my-project --yes\n```\n\n`--output` 直接指定最终工作区目录，不是父目录。逻辑项目名称仍来自交互答案。\n\n目标已存在时默认拒绝。使用 `--force` 后，Wave 只覆盖本次计划生成的 README 和占位文件，保留目录中的其他文件，不递归删除内容。目标是普通文件或 symlink 时仍拒绝。\n\n## 配置文件\n\n默认路径：\n\n```text\n~/.config/wave/workspace.yaml\n```\n\n使用其他配置：\n\n```bash\nWAVE_WORKSPACE_CONFIG=/path/to/workspace.yaml wave workspace\n```\n\n文件不存在时使用内置默认配置。`WAVE_WORKSPACE_CONFIG` 只影响 workspace，不影响 token resource cache。\n"
+}

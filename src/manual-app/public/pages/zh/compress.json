@@ -1,0 +1,18 @@
+{
+  "route": "compress",
+  "locale": "zh",
+  "title": "素材压缩",
+  "description": "压缩 PNG、JPG、SVG 和 GIF，并控制预览、输出与写入。",
+  "category": "素材",
+  "commands": [
+    "wave compress",
+    "wave compress doctor",
+    "wave compress install"
+  ],
+  "appliesTo": [
+    "本地 CLI"
+  ],
+  "html": "<h2>预览压缩</h2>\n<pre><code class=\"language-bash\">wave compress -f ./assets --dry-run\n</code></pre>\n<p>输入可以是文件或目录，默认是当前目录。<code>--dry-run</code> 展示真实压缩结果，不写文件。</p>\n<h2>写入输出</h2>\n<pre><code class=\"language-bash\">wave compress -f ./assets --yes\nwave compress -f ./assets --output ./optimized --yes\n</code></pre>\n<p>默认输出到输入目录下的 <code>wave-compress/</code>，不覆盖源文件。<code>--yes</code> 只跳过确认；已有输出仍需 <code>--force</code> 才允许覆盖。</p>\n<h2>选择范围与质量</h2>\n<pre><code class=\"language-bash\">wave compress -f ./assets --type png --type jpg --recursive\nwave compress -f ./assets --type png --quality 80\n</code></pre>\n<p><code>--type</code> 只接受重复参数，不使用逗号拼接。支持 <code>png</code>、<code>jpg</code>、<code>svg</code>、<code>gif</code>。</p>\n<p>不传 <code>--quality</code> 时使用默认安全策略；传入 1–100 后启用有损质量模式。</p>\n<h2>SVG 图标清洗</h2>\n<pre><code class=\"language-bash\">wave compress -f ./assets --type svg --icon --yes\n</code></pre>\n<p><code>--icon</code> 清理 SVG 图标颜色，便于通过 CSS 重新着色。</p>\n<h2>工具链</h2>\n<pre><code class=\"language-bash\">wave compress doctor\nwave compress install --check\nwave compress install --yes\n</code></pre>\n<p>先检查工具，再查看安装计划，最后确认安装。</p>\n",
+  "searchText": "素材压缩\n压缩 PNG、JPG、SVG 和 GIF，并控制预览、输出与写入。\n素材\nwave compress\nwave compress doctor\nwave compress install\n本地 CLI\n## 预览压缩\n\n```bash\nwave compress -f ./assets --dry-run\n```\n\n输入可以是文件或目录，默认是当前目录。`--dry-run` 展示真实压缩结果，不写文件。\n\n## 写入输出\n\n```bash\nwave compress -f ./assets --yes\nwave compress -f ./assets --output ./optimized --yes\n```\n\n默认输出到输入目录下的 `wave-compress/`，不覆盖源文件。`--yes` 只跳过确认；已有输出仍需 `--force` 才允许覆盖。\n\n## 选择范围与质量\n\n```bash\nwave compress -f ./assets --type png --type jpg --recursive\nwave compress -f ./assets --type png --quality 80\n```\n\n`--type` 只接受重复参数，不使用逗号拼接。支持 `png`、`jpg`、`svg`、`gif`。\n\n不传 `--quality` 时使用默认安全策略；传入 1–100 后启用有损质量模式。\n\n## SVG 图标清洗\n\n```bash\nwave compress -f ./assets --type svg --icon --yes\n```\n\n`--icon` 清理 SVG 图标颜色，便于通过 CSS 重新着色。\n\n## 工具链\n\n```bash\nwave compress doctor\nwave compress install --check\nwave compress install --yes\n```\n\n先检查工具，再查看安装计划，最后确认安装。",
+  "rawMarkdown": "\n## 预览压缩\n\n```bash\nwave compress -f ./assets --dry-run\n```\n\n输入可以是文件或目录，默认是当前目录。`--dry-run` 展示真实压缩结果，不写文件。\n\n## 写入输出\n\n```bash\nwave compress -f ./assets --yes\nwave compress -f ./assets --output ./optimized --yes\n```\n\n默认输出到输入目录下的 `wave-compress/`，不覆盖源文件。`--yes` 只跳过确认；已有输出仍需 `--force` 才允许覆盖。\n\n## 选择范围与质量\n\n```bash\nwave compress -f ./assets --type png --type jpg --recursive\nwave compress -f ./assets --type png --quality 80\n```\n\n`--type` 只接受重复参数，不使用逗号拼接。支持 `png`、`jpg`、`svg`、`gif`。\n\n不传 `--quality` 时使用默认安全策略；传入 1–100 后启用有损质量模式。\n\n## SVG 图标清洗\n\n```bash\nwave compress -f ./assets --type svg --icon --yes\n```\n\n`--icon` 清理 SVG 图标颜色，便于通过 CSS 重新着色。\n\n## 工具链\n\n```bash\nwave compress doctor\nwave compress install --check\nwave compress install --yes\n```\n\n先检查工具，再查看安装计划，最后确认安装。\n"
+}
