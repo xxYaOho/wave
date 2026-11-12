@@ -26,7 +26,7 @@ dispatch: FULL-1 FAIL（3F/6M/1m）→ v2 → FULL-2 FAIL（1F/8M/1m，FATAL 强
 ## Constraints
 
 - 手册内容与信息架构不变：`manual/pages`、`pages-en`、`manual.config.yaml` 内容零修改。
-- **产物架构（v3 修正，FULL-2 F-01）**：`buildManualData` 产出四件——① `manual-metadata.json`（新，首屏 shell。**schema 冻结（FULL-4 M-02）**：`{ locales: Array<'zh'|'en'>, routes: Array<{ route, title, locale }>, sections: Array<{ …config sections 原样透传（双语 title/页面归属，FULL-5 M-01——首页目录与 Sidebar 分组消费） }>, nav: Array<{ …config nav 原样透传 }>, config: { site, home } }`——**负向断言：不得含 html/searchText/rawMarkdown/body 键**（构建断言逐键检查）；体积 ≤ 50KB 硬阈值，口径 = 未压缩字节）② 逐路由正文块 `pages/<locale>/<route>.json`（**路由目录映射冻结（FULL-4 MINOR-03）**：route 含 `/` → 嵌套目录，`a/b` → `pages/zh/a/b.json`。形状冻结，**页头字段全量且必需——FULL-4 M-03**：`{ route, locale, title, description, category, commands, appliesTo, html, searchText, rawMarkdown }` 全部必填（loader markdown.ts:64-68 与页头 App.tsx:535-540 均直接消费，可选即崩溃），单块 ≤ 100KB 硬阈值，口径 = 未压缩字节）③ `search-index.json`（**双语全量 zh+en**——SPA 按 locale 过滤消费，`-m` 仅消费其中 en 记录（消费侧筛选，FULL-4 F-01 全文统一此唯一合同，Task-1/Testing 不再有 en-only 口径））④ legacy `manual-data.json` **保持生成且形状零修改**（外部兼容产物），但 SPA 首屏**不再拉取**（仅作路由块加载失败的降级回退）。SPA 消费合同：首屏只 fetch metadata shell（可用性立即可达）→ 路由导航时 fetch 对应正文块（runtime fetch，非 vite import——生成时序 vite build 先于 buildManualData，M-03）。
+- **产物架构（v3 修正，FULL-2 F-01）**：`buildManualData` 产出四件——① `manual-metadata.json`（新，首屏 shell。**schema 冻结（FULL-4 M-02）**：`{ locales: Array<'zh'|'en'>, routes: Array<{ route, title, locale }>, sections: Array<{ …config.nav 的无正文投影（loader.ts:268-286 现状派生语义——config 无 sections 键，分组与页面归属由 nav 携带，FULL-6 m-01 修正：非 config.sections 直通、非完整页面对象） }>, nav: …（config.nav 原样透传）, config: { site, home } }`——**负向断言：不得含 html/searchText/rawMarkdown/body 键**（构建断言逐键检查）；体积 ≤ 50KB 硬阈值，口径 = 未压缩字节）② 逐路由正文块 `pages/<locale>/<route>.json`（**路由目录映射冻结（FULL-4 MINOR-03）**：route 含 `/` → 嵌套目录，`a/b` → `pages/zh/a/b.json`。形状冻结，**页头字段全量且必需——FULL-4 M-03**：`{ route, locale, title, description, category, commands, appliesTo, html, searchText, rawMarkdown }` 全部必填（loader markdown.ts:64-68 与页头 App.tsx:535-540 均直接消费，可选即崩溃），单块 ≤ 100KB 硬阈值，口径 = 未压缩字节）③ `search-index.json`（**双语全量 zh+en**——SPA 按 locale 过滤消费，`-m` 仅消费其中 en 记录（消费侧筛选，FULL-4 F-01 全文统一此唯一合同，Task-1/Testing 不再有 en-only 口径））④ legacy `manual-data.json` **保持生成且形状零修改**（外部兼容产物），但 SPA 首屏**不再拉取**（仅作路由块加载失败的降级回退）。SPA 消费合同：首屏只 fetch metadata shell（可用性立即可达）→ 路由导航时 fetch 对应正文块（runtime fetch，非 vite import——生成时序 vite build 先于 buildManualData，M-03）。
 - **locale 合同（Human 裁决 2026-11-12）**：终端全英文——`-m` 三模式（目录/搜索/正文）一律消费 en locale 记录与 en 正文（既有 docs/SPEC 冻结合同零变化，zh 不经终端）；SPA locale = 浏览器/系统语言优先（中文环境 → zh，其余 → en），SPA locale 初始化 = navigator.language（现状行为保持——无切换 UI，不新增；FULL-4 MINOR-02 措辞降级）。**其他所有命令的 `-m` 行为零变化**。C1 冻结面最小触碰授权：`src/cli/index.ts`（manual 预解析分支）、`src/cli/manual-markdown.ts`（页面读取扩展）；`registry.ts` 仅在 -m 递归注入干扰 manual 自身 -m 时最小调整。
 - server 交互路径行为不回归，并以测试实体化（M-01）：进程启动、URL 输出、端口默认/自动、`--no-open`、SIGINT 退出。
 - 视觉零改动（V5-VIS 负向门禁）：`styles.css`、`BrandMark.tsx` 等视觉文件不在可动范围，验收含 `git diff --name-only` 负向断言。
@@ -73,7 +73,7 @@ dispatch: FULL-1 FAIL（3F/6M/1m）→ v2 → FULL-2 FAIL（1F/8M/1m，FATAL 强
 
 ## Implement Plan
 
-worktree `m1-manual-performance`（已 FF 到 main @ f83196c）。顺序：Task-1 构建期双轨产物 + 勘测报告 → Task-2 SPA 分包 + -m 直读 + 回归三件套 → 闸门 → pruner → 集成。SPEC 通过 fresh FULL-2 后冻结；strict 不进施工期；gate = 主代理；单 Milestone 单派遣薄壳。
+worktree `m1-manual-performance`（已 FF 到 main @ f83196c）。顺序：Task-1 构建期双轨产物 + 勘测报告 → Task-2 SPA 分包 + -m 直读 + 回归三件套 → 闸门 → pruner → 集成。SPEC 于 FULL-6 PASS（v6，72e58ae）冻结；strict 不进施工期；gate = 主代理；单 Milestone 单派遣薄壳。
 
 ## Milestone-1
 
