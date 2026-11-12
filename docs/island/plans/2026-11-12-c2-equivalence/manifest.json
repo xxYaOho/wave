@@ -342,6 +342,28 @@
     "yaml"
    ],
    "cwd": "worktree root"
+  },
+  "show-palette-miss-yaml": {
+   "argv": [
+    "token",
+    "show",
+    "palette",
+    "nonexistent",
+    "--format",
+    "yaml"
+   ],
+   "cwd": "worktree root"
+  },
+  "show-dim-miss-json": {
+   "argv": [
+    "token",
+    "show",
+    "dimension",
+    "nonexistent",
+    "--format",
+    "json"
+   ],
+   "cwd": "worktree root"
   }
  },
  "fixtures": {
@@ -349,5 +371,6 @@
   "nopairs": "fixtures/nopairs.yaml"
  },
  "normalization": "create-write.file.yaml: top-level $id masked (sed -E s/^\\$id: [0-9a-f]{32}$/\\$id: <profile-id>/)",
- "replayProtocol": "cp fixtures/std-with-ids <temp>/std; create-write runs FIRST (exit 0, profile written); create-exists runs SECOND on same copy (exit 5 already-exists); create-dry on separate clean copy (exit 0)"
+ "replayProtocol": "cp fixtures/std-with-ids <temp>/std; create-write runs FIRST (exit 0, profile written); create-exists runs SECOND on same copy (exit 5 already-exists); create-dry on separate clean copy (exit 0)",
+ "note_matrix": "show miss grid complete: palette/dimension × flat/json/yaml all captured (FULL-7 F-3 resolved)"
 }
