@@ -109,3 +109,7 @@ memo 实现（来源：User Story 1；冻结节 1–4；Decisions 1–7）
 
 > [!IMPORTANT]
 > Milestone-1 闸门（唯一闸门）：主代理复核等价证据与防护测试，通过后 pruner 收尾，按路线图集成 main。性能统计结论由 P1b 在本计划交付后另行建立。
+
+### 闸门记录（2026-11-12，PASS）
+
+开工 `aac8a42` → 交付 `1a54c8e`（4905f6b 主体 + c34508f/81e2e6b 主代理门禁修复 + 1a54c8e 轴锁定修正轮）。边界审计：17 文件全部在授权边界内，禁动文件（doctor.ts 壳 / benchmarks / tests/fixtures）零触碰。直接验证（主代理独立执行）：`pnpm check:ci` exit 0（mise bun 1.3.6，1304 pass / 0 fail）；真实 Orca `--profiles all --night` exit 0，16/16 产物与基线 v2 night-pre 逐字节一致；fixture canary 通过。实现核查：loadResource key 含 kind/source/readOnly/contentSha256 全轴，容量/计数口径与冻结节 4 一致（degraded 不可逆、互斥三分），成功才缓存（theme-yaml `'raw' in result` 回写、错误早退）。闸门修正一轮（轴锁定：SHA256 翻转 / readOnly 恢复 / kind-source 隔离，1a54c8e，仅测试文件）。裁定归档：①交付为单一 commit，冻结「回滚点 = 各层独立提交」以定向 revert 形式等效可执行（模块可分性已核），ACCEPTED；②DELEGATION 报告称派遣叶子实施（owner 复核并提交），过程记录在案，工件经主代理独立验证不受影响；③cli-manual 端口偶发失败为环境性（干净复跑未复现）。历史门禁修复归主代理：基线证据目录出 style 门（c34508f，生成物配置边界）、compress-action 移植缩进残留（81e2e6b，main 同步受益）。
