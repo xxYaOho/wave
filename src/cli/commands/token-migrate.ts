@@ -1,7 +1,7 @@
 import { Command } from 'commander';
-import { ExitCode } from '../../types/index.ts';
 import { addManualOption } from '../options.ts';
 import { createMigrateExtensionsCommand } from './dt-migrate-extensions.ts';
+import { lazyAction } from './lazy-action.ts';
 
 export function createTokenMigrateCommand(name = 'migrate'): Command {
 	const command = new Command(name).description(
@@ -10,11 +10,13 @@ export function createTokenMigrateCommand(name = 'migrate'): Command {
 	addManualOption(command);
 	command
 		.addCommand(createMigrateExtensionsCommand('extensions'))
-		.action((options: { manual?: boolean }) => {
-			if (options.manual) return;
-			console.error('Choose a migration: wave token migrate extensions.');
-			process.exitCode = ExitCode.INVALID_COMMAND;
-		});
+		.action(
+			lazyAction('token migrate', async () =>
+				(
+					await import('./token-migrate-action.ts')
+				).createTokenMigrateCommandAction(),
+			),
+		);
 	return command;
 }
 

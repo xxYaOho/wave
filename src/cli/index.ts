@@ -1,6 +1,7 @@
 import { Command, CommanderError } from 'commander';
 import { VERSION } from '../config/index.ts';
 import { ExitCode } from '../types/index.ts';
+import { CommandLoadError } from './commands/lazy-action.ts';
 import {
 	isValidManualPath,
 	renderManual,
@@ -57,5 +58,14 @@ if (requestedManualPath) {
 		process.exitCode = ExitCode.SUCCESS;
 	}
 } else {
-	program.parse(process.argv);
+	try {
+		await program.parseAsync(process.argv);
+	} catch (error) {
+		console.error(
+			error instanceof CommandLoadError
+				? error.message
+				: `Command failed: ${error instanceof Error ? error.message : String(error)}`,
+		);
+		process.exitCode = ExitCode.GENERAL_ERROR;
+	}
 }

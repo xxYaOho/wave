@@ -3,7 +3,7 @@ import { VERSION } from '../config/index.ts';
 import { compressCommand } from './commands/compress.ts';
 import { doctorCommand } from './commands/doctor.ts';
 import { tokenCommand } from './commands/dt.ts';
-import { installCommand } from './commands/install.ts';
+import { installCommand } from './commands/install-command.ts';
 import { manualCommand } from './commands/manual.ts';
 import { motionCommand } from './commands/motion.ts';
 import { workspaceCommand } from './commands/workspace.ts';
@@ -11,18 +11,28 @@ import { addManualOption } from './options.ts';
 
 export type CommandCategory = 'common' | 'workspace' | 'toolchain' | 'other';
 
+/** inherit=true 时使用最近祖先的映射；内容三级回退由 manual-markdown 保持。 */
 export interface ManualMapping {
 	source: 'manual-data';
 	href: string;
 	inherit?: boolean;
 }
 
-export interface CommandDefinition {
+/** 文案值合同；不是 lookup key。 */
+export type CommandHelp = string;
+
+/** 纯数据消费边界，不包含 Commander 实例、加载器或 action。 */
+export interface CommandMetadata {
 	name: string;
 	category: CommandCategory;
-	command: Command;
-	help: string;
+	help: CommandHelp;
 	manual: ManualMapping;
+	children: CommandMetadata[];
+}
+
+/** M1 消费者的运行时适配层；command 不属于纯数据元数据合同。 */
+export interface CommandDefinition extends CommandMetadata {
+	command: Command;
 	children: CommandDefinition[];
 }
 
