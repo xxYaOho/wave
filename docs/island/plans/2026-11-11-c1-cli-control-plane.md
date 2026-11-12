@@ -1,6 +1,6 @@
 ---
 date: 2026-11-11
-state: 施工中（M1/M2 闸门已过 2026-11-12，M3 测试基座待施工）
+state: 已交付（2026-11-12 三里程碑闸门全过，台账全清）
 dispatch: R1 FAIL 1F/3M/1m → F-01 DELTA PASS；MAJOR M-01–M-03 处方已入 SPEC，台账 carry（交付证据关闭），见 .tmp/c1/strict-major-ledger.md
 ---
 
@@ -161,3 +161,5 @@ action 薄包装与动态加载（来源：User Stories 2–3；Implementation D
 
 > [!IMPORTANT]
 > Milestone-3 闸门：主代理核对迁移零断言变更，通过后 pruner 收尾，按路线图集成 main（C2/M1 的前置）。
+>
+> 闸门结果（2026-11-12，通过）：交付 HEAD `3ea5421`（23 文件全在 tests/**，越界零命中）。主代理独立复跑（mise bun 1.3.6）：全量 1259 pass / 0 fail；单例 inline build/setup spawn 为施工方声明保留例。**台账 m-01 RESOLVED，C1 台账全清，计划交付完成**。
