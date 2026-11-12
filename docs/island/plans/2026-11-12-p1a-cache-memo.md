@@ -1,18 +1,18 @@
 ---
 date: 2026-11-12
-state: 待 fresh FULL-4（v5 修订）
-dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/P1b（2026-11-12）；P1a FULL-3 FAIL（3F/6M/3m）→ Human 三项裁决：①写边界扩至穿线面 ②benchmark 接线归 P1b ③基线 mise bun 1.3.6 重捕（v2 已落地，提交 d804841）；本 SPEC 为 v5
+state: 待 DELTA 复核（v6 局部修正）
+dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/P1b（2026-11-12）；P1a FULL-3 FAIL（3F/6M/3m）→ Human 三项裁决：①写边界扩至穿线面 ②benchmark 接线归 P1b ③基线 mise bun 1.3.6 重捕（v2 已落地，提交 d804841）→ v5；FULL-4 FAIL（1F/1M/3m）→ DELTA v6（F-1 Doctor 承接文件映射、M-1 基线哈希方法钉死 915364b、m-1/m-2/m-3 口径与边界澄清）
 ---
 
 # Wave P1a 缓存 Memo Plan
 
 ## Problem Statement
 
-单次 token build 进程内重复解析与加载：main.yaml/base 内容解析 ≥3 次（`workspace-loader.ts:249,339`、`theme-service.ts:33`）；`parseThemeYaml` 每 pass 重复（`theme-pipeline.ts:146`）；依赖字典 4 个生产调用点无 memo（`theme-service.ts:265` per-profile、`core/night/emit.ts:132`、`doctor/resource-validator.ts:54`、`cli/commands/doctor.ts:291`）；`loadResource`（`resolver/resource-loader.ts:76-158`）每次全量校验加载，profile 继承致同资源 N 次加载（`profile-resolver.ts:598-601`）；颜色转换无缓存，链路经 `theme-transformer.ts` → `color-value.ts` → `color-space.ts` 多层传递。`--profiles all` 仅共享 baseDocument/baseDayTree（`theme-service.ts:243-385`）。
+单次 token build 进程内重复解析与加载：main.yaml/base 内容解析 ≥3 次（`workspace-loader.ts:249,339`、`theme-service.ts:33`）；`parseThemeYaml` 每 pass 重复（`theme-pipeline.ts:146`）；依赖字典 4 个生产调用点无 memo（`theme-service.ts:265` per-profile、`core/night/emit.ts:132`、`doctor/resource-validator.ts:54`、`cli/commands/doctor-action.ts:244`——C1 懒加载重构后 Doctor 实际实现位）；`loadResource`（`resolver/resource-loader.ts:76-158`）每次全量校验加载，profile 继承致同资源 N 次加载（`profile-resolver.ts:598-601`）；颜色转换无缓存，链路经 `theme-transformer.ts` → `color-value.ts` → `color-space.ts` 多层传递。`--profiles all` 仅共享 baseDocument/baseDayTree（`theme-service.ts:243-385`）。
 
 ## Solution
 
-进程内 memo：`src/core/pipeline/token-cache.ts`（`createTokenCache()`）按顶层操作创建实例并沿三个入口穿线（theme-service generateTheme、night emitNightOverlay、doctor validateDeclaredResources 含 CLI 单行传参）；完整上下文轴 key、成功才缓存、冻结快照、容量降级、逐层计数。验收只含输出等价、污染/错误防护与 canary——**性能统计与测量归 P1b（拆分裁决），本计划不作性能声明**。
+进程内 memo：`src/core/pipeline/token-cache.ts`（`createTokenCache()`）按顶层操作创建实例并沿三个入口穿线（theme-service generateTheme、night emitNightOverlay、doctor——穿线承接 C1 后的实现文件 `cli/commands/doctor-action.ts`）；完整上下文轴 key、成功才缓存、冻结快照、容量降级、逐层计数。验收只含输出等价、污染/错误防护与 canary——**性能统计与测量归 P1b（拆分裁决），本计划不作性能声明**。
 
 ## Rex 对话协议
 
@@ -29,19 +29,19 @@ dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/
 - 无持久/跨进程缓存；缓存实例作用域 = 顶层操作。
 - key 含「缓存与 key 政策（冻结）」全部轴；错误不缓存。
 - 解析语义与错误行为不变（路径、时机、消息、tokenPath 归属）。
-- 写边界（穿线面，FULL-3 F-1/F-3 裁决扩展）：`src/core/pipeline/*`（含 workspace-loader、theme-service、theme-pipeline、pass-preparer）、`src/core/parser/theme-yaml.ts`、`src/core/resolver/*` 只读路径、`src/core/night/emit.ts`（仅入口穿线，不改 Night 规则语义）、`src/core/doctor/resource-validator.ts` 与 `src/cli/commands/doctor.ts`（仅缓存传参一行）、`src/core/transformer/theme-transformer.ts`、`color-value.ts`、`color-space.ts`（仅穿线，不改转换语义）、`tests/p1a-*.test.ts`。
+- 写边界（穿线面，FULL-3 F-1/F-3 裁决扩展）：`src/core/pipeline/*`（含 workspace-loader、theme-service、theme-pipeline、pass-preparer）、`src/core/parser/theme-yaml.ts`、`src/core/resolver/*` 只读路径、`src/core/night/emit.ts`（仅入口穿线，不改 Night 规则语义）、`src/core/doctor/resource-validator.ts` 与 `src/cli/commands/doctor-action.ts`（Doctor 穿线承接文件——C1 懒加载重构后 `doctor.ts` 仅剩 action 壳，`collectDependencyDictionary:244` 与 `validateDeclaredResources:433` 实际位于 doctor-action；授权映射：Human 扩边界裁决的穿线面经主代理确认承接至该文件，`doctor.ts` 壳零改动）、`src/core/transformer/theme-transformer.ts`、`color-value.ts`、`color-space.ts`（仅穿线，不改转换语义）、`tests/p1a-*.test.ts`。
 - `benchmarks/**` 全程零触碰（接线归 P1b）；不改输出格式合同、Q0 M2 契约（完全不动）。
 - 机制如引发不可接受的容量/内存问题（见冻结第 4 条）则撤回。
 
 ## Implementation Decisions
 
-1. `src/core/pipeline/token-cache.ts` 导出 `createTokenCache()` 与 `TokenCache`；`loadResource`、`collectDependencyDictionary`、parse、`convertColorSpace` 增加可选尾参 `cache?`（缺省自建临时实例，既有调用点零改动）。三个入口创建并穿线：`theme-service.ts` generateTheme、`night/emit.ts` emitNightOverlay、doctor 执行入口（`doctor/resource-validator.ts` + `cli/commands/doctor.ts` 单行传参）。**benchmarks 调用点零改动**（缺省语义自含；P1b 接线时再显式传缓存——拆分裁决）。
-2. 颜色通道：`cache` 沿 `theme-pipeline → pass-preparer → theme-transformer → color-value → color-space` 调用链显式传参到达 `convertColorSpace`（五层调用链逐一加参，不接受模块级 map——FULL-3 F-3）。
+1. `src/core/pipeline/token-cache.ts` 导出 `createTokenCache()` 与 `TokenCache`；`loadResource`、`collectDependencyDictionary`、parse、`convertColorSpace` 增加可选尾参 `cache?`（缺省自建临时实例，既有调用点零改动）。三个入口创建并穿线：`theme-service.ts` generateTheme、`night/emit.ts` emitNightOverlay、doctor 执行入口（`doctor/resource-validator.ts`，经 `cli/commands/doctor-action.ts:244,433` 穿线承接；`doctor.ts` 壳零改动）。**benchmarks 调用点零改动**（缺省语义自含；P1b 接线时再显式传缓存——拆分裁决）。
+2. 颜色通道：`cache` 沿 `pass-preparer.ts:45 → theme-pipeline.ts:207 → theme-transformer → color-value → color-space` 调用链显式传参到达 `convertColorSpace`（五层调用链逐一加参，不接受模块级 map——FULL-3 F-3）。
 3. 依赖字典 memo：完全成功才缓存；返回冻结快照（`dict`/`data`/`loaded` 冻结，变更抛错）；部分失败 issues 不入缓存（FULL-2 M-2）。
 4. `loadResource` 返回 `LoadedResource` 深冻结（嵌套 data 递归冻结），调用方需复制方可变更（FULL-2 M-2）。
-5. 解析 memo 覆盖全部 yaml 解析站点：`theme-pipeline.ts:146`（经 `parser/theme-yaml.ts` parseThemeYaml）、`theme-service.ts:33`、`workspace-loader.ts:249,339`；key =（规范化来源路径 + 内容 SHA256），仅成功解析入缓存。
+5. 解析 memo 授权子集（显式枚举，FULL-4 m-1）：`theme-pipeline.ts:146`（经 `parser/theme-yaml.ts` parseThemeYaml）、`theme-service.ts:33`、`workspace-loader.ts:249,339`、`profile-resolver.ts:543`、`night/emit.ts:73`。`doctor/theme-context.ts:139` 为生产解析站点但**不在本稿子集**（doctor 侧第二消费链，归 P1b 评估）。key =（规范化来源路径 + 内容 SHA256），仅成功解析入缓存。
 6. 颜色 memo 仅成功结果（输入值 + 目标空间）；错误不缓存，tokenPath 逐次归属。
-7. 容量：每层 1024 条，超限该层降级直读并计数；计数器形状 `stats(layer?)` 访问器返回 `{ [layer]: { hits, misses, degraded } }`（实例内部仪表，仅用于撤回裁决证据，不入 M2 契约——统计消费归 P1b）。
+7. 容量：每层 1024 条，超限该层降级直读并计数；计数器形状 `stats(layer?)` 访问器返回 `{ [layer]: { hits, misses, degraded } }`，计数口径以冻结节 4 为准（实例内部仪表，仅用于撤回裁决证据，不入 M2 契约——统计消费归 P1b）。
 
 ## Testing Decisions
 
@@ -56,24 +56,24 @@ dispatch: P1 四轮未收敛（5→6→4→5 FATAL）→ Human 裁决拆分 P1a/
 
 - `benchmarks/**` 全部：case 接线、统计契约、p50/配对样本、归因、pre/post 性能样本（**全部归 P1b**）。
 - 性能收益声明（P1a 不作性能结论；撤回裁决依据等价与容量证据，若容量代价不可接受即撤回）。
-- CLI 层除 `cli/commands/doctor.ts` 单行传参外禁改；不改 Night 规则语义、输出格式合同、Q0 M2 契约（完全不动）。
+- CLI 层除 `cli/commands/doctor-action.ts` 穿线承接外禁改（`doctor.ts` 壳零改动）；不改 Night 规则语义、输出格式合同、Q0 M2 契约（完全不动）。
 
 ## 缓存与 key 政策（冻结）
 
 1. **key 轴（必含）**：规范化绝对路径；资源 kind ∈ {palette, dimension, custom}；source 角色 ∈ {builtin, cache, user}；readOnly 标志；**资源状态指纹 = 内容 SHA256**（读取时对文件内容计算；不使用 mtime/size——mtime 无法在同进程内可靠区分内容变更，FULL-3 F-2）；声明顺序与重复语义版本；解析上下文指纹（影响校验的配置集）。key 元组以 canonical JSON 序列化（固定字段顺序、无歧义编码），序列化函数为唯一实现点。错误不入缓存（FULL-3 M-1 全域枚举）。
 2. **颜色特例**：仅成功结果；key = 输入值 + 目标空间（同 canonical 序列化）；tokenPath 逐次归属。
 3. **作用域**：实例按顶层操作创建（三入口），跨操作不复用；调用点共享实现；同实例内同路径内容视为不变。
-4. **容量与撤回**：每层 1024 条上限，超限降级直读 + `degraded` 计数（经 `stats(layer?)` 访问器）；若交付验证显示容量代价不可接受（内存峰值异常），主代理 gate 后逐层撤回（回滚点 = 各层独立提交）。
+4. **容量与撤回**：每层 1024 条上限。**layer 合法值 = 四层枚举**：`loadResource` / `dictionary` / `parse` / `color`（`stats` 键即此枚举）。**溢出口径**：条目数达 1024 后该层进入降级态——保留已缓存条目但不再新增、也不再命中（完全直读），降级态在实例生命周期内不可逆。**计数口径（互斥三分）**：每次查找归类为 `hits`（命中）/ `misses`（非降级态直读）/ `degraded`（降级态直读）；`misses` 与 `degraded` 不重叠，二者之和 = 直读次数，三项之和 = 该层总查找次数；该口径由测试锁定（FULL-4 m-2，不同实现不得产出不同计数）。若交付验证显示容量代价不可接受（内存峰值异常），主代理 gate 后逐层撤回（回滚点 = 各层独立提交）。
 
 ## Draft Plan
 
-- 文件：`src/core/pipeline/token-cache.ts`（新）、`src/core/resolver/resource-loader.ts`、`src/core/pipeline/workspace-loader.ts`、`theme-pipeline.ts`、`theme-service.ts`、`pass-preparer.ts`（如涉及）、`src/core/parser/theme-yaml.ts`、`src/core/night/emit.ts`、`src/core/doctor/resource-validator.ts`、`src/cli/commands/doctor.ts`、`src/core/transformer/theme-transformer.ts`、`color-value.ts`、`color-space.ts`、`tests/p1a-cache-policy.test.ts`、`tests/p1a-equivalence.test.ts`。
+- 文件：`src/core/pipeline/token-cache.ts`（新）、`src/core/resolver/resource-loader.ts`、`src/core/pipeline/workspace-loader.ts`、`theme-pipeline.ts`、`theme-service.ts`、`pass-preparer.ts`（如涉及）、`src/core/parser/theme-yaml.ts`、`src/core/night/emit.ts`、`src/core/doctor/resource-validator.ts`、`src/cli/commands/doctor-action.ts`、`src/core/transformer/theme-transformer.ts`、`color-value.ts`、`color-space.ts`、`tests/p1a-cache-policy.test.ts`、`tests/p1a-equivalence.test.ts`。
 - 风险与未决：五层颜色穿线与解析站点接线需逐层核对签名兼容（穿线遗漏 = 该分支无收益，不属错误但需报告）；冻结快照对大资源的复制成本实测观察（不设阈值，异常时升级）。无阻塞未决项。
 - 里程碑：单一 Milestone（memo 实现 + 等价/污染/canary 验证）。
 
 ## Implement Plan
 
-worktree `p1-token-performance`（基线 v2 已由主代理提交 d804841，施工方只读消费并核对 manifest；manifest v2 含逐命令 tracked-clean 断言、输出束缚守卫与 cachePolicyVersion 序列化定义）。顺序：Task-1 memo 实现 + 逐轴锁定 → Task-2 等价/污染/canary → 闸门 → pruner → 集成。本 SPEC 通过 fresh FULL-4 后冻结；strict 不进施工期；gate = 主代理；单 Milestone 单派遣薄壳。
+worktree `p1-token-performance`（基线 v2 已由主代理提交 d804841 并经 915364b 钉死哈希方法，施工方只读消费并核对 manifest——含逐命令 tracked-clean 断言、输出束缚守卫、cachePolicyVersion 序列化定义与 orca 逐文件哈希面）。顺序：Task-1 memo 实现 + 逐轴锁定 → Task-2 等价/污染/canary → 闸门 → pruner → 集成。本 SPEC 通过 DELTA 复核后冻结；strict 不进施工期；gate = 主代理；单 Milestone 单派遣薄壳。
 
 ## Milestone-1
 
@@ -87,7 +87,7 @@ worktree `p1-token-performance`（基线 v2 已由主代理提交 d804841，施�
 
 memo 实现（来源：User Story 1；冻结节 1–4；Decisions 1–7）
 
-- 验收标准：`token-cache.ts` 就位；`loadResource`/`collectDependencyDictionary`/parse 站点/`convertColorSpace` 各层 memo 按冻结 key 轴实现（含 kind/source 轴与内容 SHA256 状态指纹、canonical 序列化）；三入口穿线 + doctor CLI 单行传参；颜色链五层显式传参；冻结快照语义；容量降级 + `stats(layer?)` 访问器；逐轴测试锁定；manifest v2 完整性核对（施工前）。
+- 验收标准：`token-cache.ts` 就位；`loadResource`/`collectDependencyDictionary`/parse 站点/`convertColorSpace` 各层 memo 按冻结 key 轴实现（含 kind/source 轴与内容 SHA256 状态指纹、canonical 序列化）；三入口穿线（doctor 经 `doctor-action.ts:244,433` 承接）；颜色链五层显式传参；冻结快照语义；容量降级 + `stats(layer?)` 访问器（计数口径按冻结节 4）；逐轴测试锁定；manifest v2 完整性核对（施工前，含 orca 逐文件哈希面）。
 - 可动文件范围：Draft Plan 文件清单（除 `tests/p1a-equivalence.test.ts`）。
 - 依赖：基线已交付（d804841）。
 - 固有风险：穿线遗漏某调用链分支 = 该分支无收益（不属错误但需报告）；冻结对调用方变更抛错需与现有消费模式核对。
@@ -100,7 +100,7 @@ memo 实现（来源：User Story 1；冻结节 1–4；Decisions 1–7）
 等价与防护验证（来源：User Story 2；Testing Decisions 全部）
 
 - 验收标准：三场景与基线 v2 副本字节一致；全部污染矩阵通过；错误路径不变；真实 Orca canary 通过；`pnpm check:ci` exit 0。
-- 可动文件范围：`tests/p1a-equivalence.test.ts`、必要 fixture。
+- 可动文件范围：`tests/p1a-equivalence.test.ts` + 测试内嵌 fixture / 运行时临时目录（**不新建 `tests/fixtures/**` 文件**——FULL-4 m-3；若内嵌不可行，`STATUS: BLOCKED` 报主代理裁决，不静默扩边界）。
 - 依赖：Task-1。
 - 固有风险：等价差异必须停机归因，不得调整断言。
 
