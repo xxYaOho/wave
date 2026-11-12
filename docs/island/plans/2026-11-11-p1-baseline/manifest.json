@@ -1,34 +1,38 @@
 {
- "head": "519c8e2f473d212402cb69b1b450173739d925b9",
+ "schemaVersion": 2,
+ "head": "403523b0e6aaae7ce9732e0f19dc640fdb9aafd1",
  "gitDirty": false,
- "capturedAt": "2026-11-11T23:58:27Z",
+ "capturedAt": "2026-11-12T04:32:26Z",
+ "cachePolicyVersion": "none",
+ "cachePolicyVersionNote": "pre-memo baseline; post-capture evidence under P1a records the frozen policy version string serialized in this field",
  "commands": [
-  "pnpm build",
-  "dist/wave token build -f tests/fixtures/themes/standard/main.yaml --output docs/island/plans/2026-11-11-p1-baseline/single-pre",
-  "dist/wave token build -f /Users/teatao/Projects/my-color/orca/main.yaml --profiles all --output docs/island/plans/2026-11-11-p1-baseline/multi-pre",
-  "dist/wave token build -f /Users/teatao/Projects/my-color/orca/main.yaml --profiles all --night --output docs/island/plans/2026-11-11-p1-baseline/night-pre"
+  "mise exec bun@1.3.6 -- pnpm build",
+  "mise exec bun@1.3.6 -- dist/wave token build -f tests/fixtures/themes/standard/main.yaml --output docs/island/plans/2026-11-11-p1-baseline/single-pre",
+  "mise exec bun@1.3.6 -- dist/wave token build -f /Users/teatao/Projects/my-color/orca/main.yaml --profiles all --output docs/island/plans/2026-11-11-p1-baseline/multi-pre",
+  "mise exec bun@1.3.6 -- dist/wave token build -f /Users/teatao/Projects/my-color/orca/main.yaml --profiles all --night --output docs/island/plans/2026-11-11-p1-baseline/night-pre"
  ],
+ "guards": {
+  "perCommandTrackedClean": "git diff --quiet && git diff --cached --quiet asserted PASS immediately before each scenario command (4/4 PASS)",
+  "outputConfinement": "all scenario outputs confined to docs/island/plans/2026-11-11-p1-baseline/{single,multi,night}-pre; no output path overlaps any source input tree",
+  "sourceIntegrity": "fixture main.yaml and lockfile hashes re-computed post-capture, identical to pre-capture values; orca directory aggregate recomputed under the documented v2 method (v1 aggregate method undocumented, superseded by this manifest)"
+ },
+ "provenance": {
+  "v1CrossCheck": "all 32 output files byte-identical to v1 manifest (e9bd325, captured under bun 1.4.0); outputs are bun-version invariant; v2 re-captured under gate runtime bun 1.3.6 to unify evidence baseline",
+  "supersedes": "e9bd325 manifest (schemaVersion absent, bun 1.4.0); v1 pre perf sample (3 iterations) removed from baseline — performance sampling deferred to P1b frozen protocol"
+ },
  "env": {
   "runtime": "bun",
-  "bun": "1.4.0",
+  "bun": "1.3.6",
+  "node": "v26.8.1",
   "platform": "Darwin",
   "arch": "arm64",
   "cpuCount": 14,
   "lockfileHash": "3d05941e5e2a19da95406be10026a7c1ad6ea3ee23cceaf435d83ecf48af3b0a",
-  "orcaInputHash": "24b125403d8fab1696d7b2b4f004f2136550f14be7eace54b7b2cea20f3ee97f",
-  "fixtureInputHash": "5629260dbb76c607297b5fe645e4903ae376874cbdefb3171969be6e9197f2cb"
+  "orcaInputHash": "a58d0d5ef2f9b12f8588ed220fc687ccd091894a0bd805304d39dd048c8949ee",
+  "fixtureInputHash": "5629260dbb76c607297b5fe645e4903ae376874cbdefb3171969be6e9197f2cb",
+  "orcaInputHashMethod": "sha256 of (find . -type f ! -name .DS_Store | sort | xargs shasum -a 256) relative to orca root; v2-documented method"
  },
  "files": [
-  {
-   "path": "docs/island/plans/2026-11-11-p1-baseline/single-pre/test-standard.css",
-   "sha256": "3adbb8da1fff65ab65c8f701cf843297533487ce90800388f72611c5f9a1818a",
-   "role": "output"
-  },
-  {
-   "path": "docs/island/plans/2026-11-11-p1-baseline/single-pre/test-standard.json",
-   "sha256": "e33a65953ce6dc221dc15558b7a39fd08920e498460229e423b1a6c806c164a2",
-   "role": "output"
-  },
   {
    "path": "docs/island/plans/2026-11-11-p1-baseline/multi-pre/orca-crbps-deep-style-a.css",
    "sha256": "11ff0d7a30f5c8930c2c17a6c8d0c9b8d3371a512030c9193e83d3d937a666dd",
@@ -177,6 +181,16 @@
   {
    "path": "docs/island/plans/2026-11-11-p1-baseline/night-pre/orca2sketch.json",
    "sha256": "34823e07a6db9e14dee4fadf454e79e24671a10006256d2a7a498214ffe055de",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/single-pre/test-standard.css",
+   "sha256": "3adbb8da1fff65ab65c8f701cf843297533487ce90800388f72611c5f9a1818a",
+   "role": "output"
+  },
+  {
+   "path": "docs/island/plans/2026-11-11-p1-baseline/single-pre/test-standard.json",
+   "sha256": "e33a65953ce6dc221dc15558b7a39fd08920e498460229e423b1a6c806c164a2",
    "role": "output"
   },
   {
