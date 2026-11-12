@@ -124,9 +124,9 @@ function renderCompressResult(
 				? result.summary.total > 0
 					? `Compression completed with ${result.summary.hardFailed} failed`
 					: 'Compression blocked'
-			: result.written
-				? renderCompressSavedSummary(result)
-				: 'Preview only, no files written';
+				: result.written
+					? renderCompressSavedSummary(result)
+					: 'Preview only, no files written';
 		lines.push(centerLine(summary, width));
 	}
 	lines.push(line('', width));
