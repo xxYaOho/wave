@@ -77,6 +77,11 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
 fi
 echo "OK: tracked-clean at $SOURCE_DIR"
 
+# host load sampled at capture start AND end (Darwin+Linux robust probes)
+load_now() { sysctl -n vm.loadavg 2>/dev/null | tr -d '{}' | awk '{print $1}' | tr -d ' '; }
+LOAD_START="$(load_now)"
+echo "OK: host load1m at start = $LOAD_START"
+
 mise exec bun@1.3.6 -- pnpm install --frozen-lockfile >/dev/null
 echo "OK: install --frozen-lockfile"
 
@@ -134,8 +139,8 @@ cp "$REPORT_PATH" "$EVIDENCE_DIR/"
 
 HEAD_COMMIT="$(git rev-parse HEAD)"
 ANCHOR_COMMIT="$(git rev-parse "$ANCHOR" 2>/dev/null || echo "$ANCHOR")"
-NODE_VERSION="$(node --version)"
-LOAD_START="$(cut -d' ' -f1 /proc/loadavg 2>/dev/null || sysctl -n vm.loadavg 2>/dev/null | cut -d' ' -f2)"
+NODE_VERSION="$(mise exec bun@1.3.6 -- node --version)"
+LOAD_END="$(load_now)"
 cat > "$EVIDENCE_DIR/$RUN_ID.capture-manifest.json" <<MANIFEST
 {
   "runId": "$RUN_ID",
@@ -147,7 +152,7 @@ cat > "$EVIDENCE_DIR/$RUN_ID.capture-manifest.json" <<MANIFEST
   "lockfileHash": "$ACTUAL_LOCK_HASH",
   "sourceDir": "$SOURCE_DIR",
   "runtime": { "bun": "1.3.6", "node": "$NODE_VERSION", "platform": "$(uname -s)", "arch": "$(uname -m)" },
-  "hostLoad": { "load1mAtStart": "$LOAD_START", "note": "no parallel agents during capture (orchestrator serial execution)" },
+  "hostLoad": { "load1mStart": "$LOAD_START", "load1mEnd": "$LOAD_END", "note": "no parallel agents during capture (orchestrator serial execution)" },
   "report": "$RUN_ID.json"
 }
 MANIFEST
