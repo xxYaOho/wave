@@ -21,7 +21,8 @@
 			"!**/.mcp.json",
 			"!**/templates",
 			"!**/tests/fixtures/**/dist",
-			"!docs/island/plans/2026-11-12-c2-equivalence"
+			"!docs/island/plans/2026-11-12-c2-equivalence",
+			"!docs/island/plans/2026-11-12-p1b-statistics"
 		]
 	},
 	"formatter": {
