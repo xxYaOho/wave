@@ -1,6 +1,6 @@
 ---
 date: 2026-11-13
-state: 待 fresh FULL-10（v10 终审修订——FULL-9 台账消解：Human 最终轮授权 2026-11-13，再 FAIL 即闸门兜底）
+state: 施工中（v10 终审后 Human 授权闸门兜底收场 2026-11-13——FULL-10 五项转 harness 实现要求由 gate 实证验收；Milestone-1 派遣）
 dispatch: 路线图计划 C2。七轮审查演进（6→5→7→2→5→3→2 FATAL）证明：纸面分支表/形状冻结无法穷尽源码分支，每轮修正确认旧账又揭开新表述缺口。Human 裁决（2026-11-13）：**基线即合同**——撤除全部纸面形状/分支冻结，等价基线 v4（35 案四项）为唯一行为 oracle；先例：P1b spike 先行、M1 v6 机械扫除。
 ---
 
@@ -45,6 +45,7 @@ token 业务的编排逻辑散落在 CLI action 层，无法脱离 CLI 调用：
 - harness 自校验：pre-extraction replay 与基线逐字节一致。
 - 既有套件：`pnpm check:ci` 不退化（mise bun 1.3.6；check:ci 内部为裸 test 命令，`--timeout 15000` 适用于本计划直接调用的 bun test 行——FULL-8 M-2 口径区分）、零断言变更。
 - 纯净度（FULL-8 M-4 精确化）：三服务**源文件**无 `process.`/`console.`/logger 直接引用（传递依赖的 core 模块允许——边界在服务级而非依赖级；独立性由服务 API smoke 证明）；build 行为回归由既有 token-build 测试套件承载（零断言变更）。
+- **harness 实现要求（FULL-10 闸门验收清单——gate 实证验收，非纸面契约）**：①计数自洽（manifest cases 数与口径闭合，无孤儿基线文件）；②fixturesSha256 按声明算法可复算一致；③断言守卫三态覆盖（worktree diff + staged + FREEZE_SHA 全历史）+ 洁净树前置检查；④files 维度统一 schema（期望路径列表 + 规范化规则）+ 重放后逐案文件维度断言（dry-run 零副作用）；⑤replay→compare prereq 链 + 复制前 remove/type guard。闸门以实跑验证以上各项。
 
 ## Out of Scope
 
