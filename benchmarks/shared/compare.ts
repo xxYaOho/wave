@@ -44,8 +44,14 @@ export function buildPairedComparisonContract(
 	base: BenchmarkCaseResult,
 	current: BenchmarkCaseResult,
 ): PairedComparisonContract {
-	const baseSamples = base.stats?.samplesMs ?? base.measurements?.map((m) => m.samplesMs ?? []).flat() ?? [];
-	const currentSamples = current.stats?.samplesMs ?? current.measurements?.map((m) => m.samplesMs ?? []).flat() ?? [];
+	const baseSamples =
+		base.stats?.samplesMs ??
+		base.measurements?.flatMap((m) => m.samplesMs ?? []) ??
+		[];
+	const currentSamples =
+		current.stats?.samplesMs ??
+		current.measurements?.flatMap((m) => m.samplesMs ?? []) ??
+		[];
 	const counts = {
 		baselineSampleCount: baseSamples.length,
 		currentSampleCount: currentSamples.length,
@@ -74,7 +80,9 @@ export function buildPairedComparisonContract(
 	) {
 		return fallback;
 	}
-	const pairedDeltasMs = baseSamples.map((b, i) => (currentSamples[i] ?? 0) - b);
+	const pairedDeltasMs = baseSamples.map(
+		(b, i) => (currentSamples[i] ?? 0) - b,
+	);
 	let winCount = 0;
 	let lossCount = 0;
 	let tieCount = 0;
@@ -88,9 +96,7 @@ export function buildPairedComparisonContract(
 		.filter(({ b }) => b > 0);
 	const excludedNonPositiveBaseline = baseSamples.length - positive.length;
 	const medianRelativeImprovement =
-		positive.length === 0
-			? null
-			: median(positive.map(({ b, d }) => -d / b));
+		positive.length === 0 ? null : median(positive.map(({ b, d }) => -d / b));
 	const baseP95 = base.stats?.p95Ms ?? null;
 	const currentP95 = current.stats?.p95Ms ?? null;
 	const p95RelativeRegression =

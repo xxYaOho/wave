@@ -24,9 +24,11 @@ import {
 	collectDependencyDictionary,
 	type DependencyDict,
 } from '../../src/core/pipeline/theme-pipeline.ts';
+import {
+	createTokenCache,
+	TOKEN_CACHE_LAYERS,
+} from '../../src/core/pipeline/token-cache.ts';
 import { loadDesignTokenWorkspace } from '../../src/core/pipeline/workspace-loader.ts';
-import { createTokenCache, TOKEN_CACHE_LAYERS } from '../../src/core/pipeline/token-cache.ts';
-import type { CacheAttributionTrace } from '../shared/types.ts';
 import { ExitCode } from '../../src/types/index.ts';
 import {
 	collectFileArtifacts,
@@ -37,6 +39,7 @@ import { withEnv } from '../shared/env.ts';
 import type {
 	BenchmarkCaseResult,
 	BenchmarkOperationContract,
+	CacheAttributionTrace,
 	PhaseDurations,
 	QualityHarnessMode,
 } from '../shared/types.ts';
@@ -206,7 +209,11 @@ export async function runDesignTokenBenchmarkCase(
 				pipelineStart = now();
 				const iterationCache = createTokenCache();
 				const load = await timed(() =>
-					loadDesignTokenWorkspace(prepare.value.mainYamlPath, undefined, iterationCache),
+					loadDesignTokenWorkspace(
+						prepare.value.mainYamlPath,
+						undefined,
+						iterationCache,
+					),
 				);
 				phases.loadMs = load.ms;
 				if (!load.value.ok) {
@@ -225,24 +232,36 @@ export async function runDesignTokenBenchmarkCase(
 				const selectedProfiles = testCase.includeProfiles
 					? profiles
 					: [baseProfile];
-				const baseDocument = await parseProfileDocument(baseProfile, {
-					defaultConfig: workspace.config,
-					baseDir: workspace.workspaceDir,
-				}, iterationCache);
+				const baseDocument = await parseProfileDocument(
+					baseProfile,
+					{
+						defaultConfig: workspace.config,
+						baseDir: workspace.workspaceDir,
+					},
+					iterationCache,
+				);
 				const baseTree = parseYamlObject(baseDocument.tokenContent);
 				if (!baseTree) return fail('Invalid main token document');
 
 				for (const profile of selectedProfiles) {
 					const document = profile.isDefault
 						? baseDocument
-						: await parseProfileDocument(profile, {
-								baseConfig: baseDocument.config,
-								baseDir: workspace.workspaceDir,
-								baseTree,
-								baseId: baseDocument.themeId,
-							}, iterationCache);
+						: await parseProfileDocument(
+								profile,
+								{
+									baseConfig: baseDocument.config,
+									baseDir: workspace.workspaceDir,
+									baseTree,
+									baseId: baseDocument.themeId,
+								},
+								iterationCache,
+							);
 					const resource = await timed(() =>
-						collectDependencyDictionary(document.config, document.buildDir, iterationCache),
+						collectDependencyDictionary(
+							document.config,
+							document.buildDir,
+							iterationCache,
+						),
 					);
 					phases.resourceMs += resource.ms;
 					const groupPass = await timed(async () =>
@@ -402,9 +421,8 @@ export async function runDesignTokenBenchmarkCase(
 				phases.totalWallMs = now() - totalStart;
 
 				const statsMap = iterationCache.stats();
-				const cacheAttribution: CacheAttributionTrace[] = TOKEN_CACHE_LAYERS.map(
-					(layer) => ({ layer, ...statsMap[layer] }),
-				);
+				const cacheAttribution: CacheAttributionTrace[] =
+					TOKEN_CACHE_LAYERS.map((layer) => ({ layer, ...statsMap[layer] }));
 				return {
 					id: testCase.id,
 					caseVersion: testCase.caseVersion,

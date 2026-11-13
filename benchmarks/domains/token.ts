@@ -33,7 +33,10 @@ export async function runTokenDomain(
 	let sequence = 0;
 	let primary: BenchmarkCaseResult | undefined;
 	const samples: number[] = [];
-	const traceSums = new Map<string, { hits: number; misses: number; degraded: number }>();
+	const traceSums = new Map<
+		string,
+		{ hits: number; misses: number; degraded: number }
+	>();
 
 	const runOnce = async (): Promise<void> => {
 		const started = performance.now();
@@ -52,7 +55,11 @@ export async function runTokenDomain(
 		samples.push(performance.now() - started);
 		if (result.cacheAttribution) {
 			for (const trace of result.cacheAttribution) {
-				const sum = traceSums.get(trace.layer) ?? { hits: 0, misses: 0, degraded: 0 };
+				const sum = traceSums.get(trace.layer) ?? {
+					hits: 0,
+					misses: 0,
+					degraded: 0,
+				};
 				sum.hits += trace.hits;
 				sum.misses += trace.misses;
 				sum.degraded += trace.degraded;
