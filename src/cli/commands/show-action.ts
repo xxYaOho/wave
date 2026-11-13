@@ -1,10 +1,10 @@
-import { ExitCode } from '../../types/index.ts';
-import { logger } from '../../utils/logger.ts';
 import {
 	listBuiltinResources,
 	showResource,
 	VALID_CATEGORIES,
 } from '../../core/inspect/resource-service.ts';
+import { ExitCode } from '../../types/index.ts';
+import { logger } from '../../utils/logger.ts';
 
 export type { ResourceMatch } from '../../core/inspect/resource-service.ts';
 

@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as yaml from 'js-yaml';
+import { ExitCode, type ExitCodeType } from '../../types/index.ts';
 import {
 	discoverProfiles,
 	normalizeProfileName,
@@ -9,7 +10,6 @@ import {
 } from './profile-resolver.ts';
 import { planSourceOutput, writeSourceOutput } from './source-output.ts';
 import { loadDesignTokenWorkspace } from './workspace-loader.ts';
-import { ExitCode, type ExitCodeType } from '../../types/index.ts';
 
 export type ProfileCreateLogLevel = 'error' | 'success' | 'info' | 'warn';
 
@@ -58,11 +58,15 @@ function snapshotOverrides(
 					`Duplicate base token $id "${id}" at "${existing.path}" and "${tokenPath}". ${idsHint(basePath)}`,
 				);
 			}
-			entries.set(id, { path: tokenPath, value: structuredClone(token.$value) });
+			entries.set(id, {
+				path: tokenPath,
+				value: structuredClone(token.$value),
+			});
 			return;
 		}
 		for (const [key, child] of Object.entries(token)) {
-			if (key.startsWith('$') || (parts.length === 0 && key === 'doctor')) continue;
+			if (key.startsWith('$') || (parts.length === 0 && key === 'doctor'))
+				continue;
 			walk(child, [...parts, key]);
 		}
 	}
@@ -90,7 +94,11 @@ export async function createProfile(
 		try {
 			profileName = normalizeProfileName(rawName);
 		} catch (error) {
-			log(logs, 'error', error instanceof Error ? error.message : String(error));
+			log(
+				logs,
+				'error',
+				error instanceof Error ? error.message : String(error),
+			);
 			return { exitCode: ExitCode.INVALID_PARAMETER, logs };
 		}
 
@@ -113,7 +121,8 @@ export async function createProfile(
 		);
 		const profiles = await discoverProfiles(workspace.workspaceDir);
 		const profilePath = path.resolve(
-			options.output ?? path.join(workspace.workspaceDir, 'profiles', `${profileName}.yaml`),
+			options.output ??
+				path.join(workspace.workspaceDir, 'profiles', `${profileName}.yaml`),
 		);
 		if (path.basename(profilePath) !== `${profileName}.yaml`) {
 			log(logs, 'error', `Profile output must be named ${profileName}.yaml`);
@@ -124,16 +133,20 @@ export async function createProfile(
 			collision &&
 			options.force &&
 			(await fs.realpath(collision.path)) ===
-				(await fs.realpath(profilePath).catch((error: NodeJS.ErrnoException) => {
-					if (error.code === 'ENOENT') return undefined;
-					throw error;
-				}));
+				(await fs
+					.realpath(profilePath)
+					.catch((error: NodeJS.ErrnoException) => {
+						if (error.code === 'ENOENT') return undefined;
+						throw error;
+					}));
 		if (collision && (collision.isDefault || !sameTarget)) {
 			log(logs, 'error', `Profile "${profileName}" already exists`);
 			return { exitCode: ExitCode.INVALID_PARAMETER, logs };
 		}
 
-		const plan = await planSourceOutput(profilePath, options.force, [workspace.path]);
+		const plan = await planSourceOutput(profilePath, options.force, [
+			workspace.path,
+		]);
 		const content = yaml.dump(
 			{
 				$id: randomBytes(16).toString('hex'),
@@ -142,7 +155,8 @@ export async function createProfile(
 			},
 			{ lineWidth: -1, noRefs: true },
 		);
-		if (!options.dryRun) await writeSourceOutput(profilePath, content, options.force);
+		if (!options.dryRun)
+			await writeSourceOutput(profilePath, content, options.force);
 		log(
 			logs,
 			'success',
@@ -158,9 +172,17 @@ export async function createProfile(
 				'warn',
 				`Move ${profileName}.yaml into ${workspace.workspaceDir} or one of its subdirectories before consuming it with -f.`,
 			);
-			log(logs, 'info', `  3. Then run wave token build -f <moved-${profileName}.yaml-path> to verify`);
+			log(
+				logs,
+				'info',
+				`  3. Then run wave token build -f <moved-${profileName}.yaml-path> to verify`,
+			);
 		} else {
-			log(logs, 'info', `  3. Run wave token build -f ${JSON.stringify(profilePath)} to verify`);
+			log(
+				logs,
+				'info',
+				`  3. Run wave token build -f ${JSON.stringify(profilePath)} to verify`,
+			);
 		}
 		return { exitCode: ExitCode.SUCCESS, logs };
 	} catch (error) {
@@ -170,7 +192,10 @@ export async function createProfile(
 			`Profile creation failed: ${error instanceof Error ? error.message : String(error)}`,
 		);
 		return {
-			exitCode: error instanceof ProfileFormatError ? error.exitCode : ExitCode.GENERAL_ERROR,
+			exitCode:
+				error instanceof ProfileFormatError
+					? error.exitCode
+					: ExitCode.GENERAL_ERROR,
 			logs,
 		};
 	}

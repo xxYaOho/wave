@@ -13,13 +13,12 @@ import {
 import { inspectWorkspaceHealth } from '../../core/doctor/profile-health.ts';
 import { validateDeclaredResources } from '../../core/doctor/resource-validator.ts';
 import { createThemeDoctorContextFromContent } from '../../core/doctor/theme-context.ts';
-import { collectDependencyDictionary } from '../../core/pipeline/theme-pipeline.ts';
+import { runDesignTokenContrastCheck as runDesignTokenContrastCheckService } from '../../core/doctor/wcag-service.ts';
 import {
 	createTokenCache,
 	type TokenCache,
 } from '../../core/pipeline/token-cache.ts';
 import { loadDesignTokenSource } from '../../core/pipeline/workspace-loader.ts';
-import { runDesignTokenContrastCheck as runDesignTokenContrastCheckService } from '../../core/doctor/wcag-service.ts';
 import type { DoctorFinding, DoctorThemeReport } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 import {
@@ -218,9 +217,10 @@ function renderThemeIdentityReport(
 	}
 }
 
-async function runDesignTokenContrastCheck(
-	options: { file?: string; night?: boolean },
-): Promise<void> {
+async function runDesignTokenContrastCheck(options: {
+	file?: string;
+	night?: boolean;
+}): Promise<void> {
 	const fileInput = resolveExclusiveFileInput(undefined, options.file, {
 		label: 'WCAG source input',
 		hint: 'Use one Day source YAML or workspace directory.',

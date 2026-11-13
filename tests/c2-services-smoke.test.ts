@@ -1,18 +1,23 @@
 import { describe, expect, test } from 'bun:test';
 import * as path from 'node:path';
 import { runDesignTokenContrastCheck } from '../src/core/doctor/wcag-service.ts';
-import { createProfile } from '../src/core/pipeline/profile-create.ts';
 import {
 	listBuiltinResources,
 	showResource,
 } from '../src/core/inspect/resource-service.ts';
+import { createProfile } from '../src/core/pipeline/profile-create.ts';
 
 const rootDir = path.resolve(import.meta.dir, '..');
 
 describe('c2 core service API smoke', () => {
 	test('inspect service returns structured resource data', async () => {
 		const names = listBuiltinResources('palette');
-		const result = await showResource('tailwindcss', 'json', 'palette', rootDir);
+		const result = await showResource(
+			'tailwindcss',
+			'json',
+			'palette',
+			rootDir,
+		);
 		expect(names).toContain('tailwindcss');
 		expect(result.ok).toBe(true);
 		if (result.ok) expect(result.output).toContain('tailwindcss');

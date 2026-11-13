@@ -1,17 +1,14 @@
 import * as yaml from 'js-yaml';
+import { type DoctorRunResult, ExitCode } from '../../types/index.ts';
 import {
 	mergeNightOverlay,
 	NIGHT_SKIP_MESSAGE,
 } from '../pipeline/profile-resolver.ts';
 import { collectDependencyDictionary } from '../pipeline/theme-pipeline.ts';
-import {
-	createTokenCache,
-	type TokenCache,
-} from '../pipeline/token-cache.ts';
+import { createTokenCache } from '../pipeline/token-cache.ts';
 import { loadDesignTokenSource } from '../pipeline/workspace-loader.ts';
 import { runThemeContrastCheck } from './registry.ts';
 import { createThemeDoctorContextFromContent } from './theme-context.ts';
-import { ExitCode, type DoctorRunResult } from '../../types/index.ts';
 
 export type WcagServiceResult =
 	| { kind: 'error'; message: string; exitCode: number }
@@ -22,7 +19,11 @@ export async function runDesignTokenContrastCheck(
 	options: { sourcePath?: string; night?: boolean },
 	cache = createTokenCache(),
 ): Promise<WcagServiceResult> {
-	const loadResult = await loadDesignTokenSource(options.sourcePath, undefined, cache);
+	const loadResult = await loadDesignTokenSource(
+		options.sourcePath,
+		undefined,
+		cache,
+	);
 	if (!loadResult.ok)
 		return {
 			kind: 'error',
@@ -59,7 +60,7 @@ export async function runDesignTokenContrastCheck(
 				? mergeNightOverlay(
 						dayRaw as Record<string, unknown>,
 						nightRaw as Record<string, unknown>,
-				  )
+					)
 				: { ok: false as const, message: NIGHT_SKIP_MESSAGE };
 		if (!merged.ok) {
 			if ('error' in merged)

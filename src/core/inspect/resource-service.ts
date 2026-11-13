@@ -1,17 +1,17 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
+	type DtcgColorSpaceValue,
+	ExitCode,
+	isDtcgColorSpaceValue,
+} from '../../types/index.ts';
+import {
 	getBuiltinDimensionPath,
 	getBuiltinPalettePath,
 	loadBuiltinDimension,
 	loadBuiltinPalette,
 } from '../resolver/builtin.ts';
 import { loadResource } from '../resolver/resource-loader.ts';
-import {
-	type DtcgColorSpaceValue,
-	ExitCode,
-} from '../../types/index.ts';
-import { isDtcgColorSpaceValue } from '../../types/index.ts';
 
 const VALID_CATEGORIES = ['palette', 'dimension'];
 
@@ -56,7 +56,8 @@ function isValueUnitPair(
 
 function formatValueForDisplay(value: unknown): unknown {
 	if (isValueUnitPair(value)) return `${value.value}${value.unit}`;
-	if (isDtcgColorSpaceValue(value)) return formatColorSpaceValueForDisplay(value);
+	if (isDtcgColorSpaceValue(value))
+		return formatColorSpaceValueForDisplay(value);
 	return value;
 }
 
@@ -76,7 +77,8 @@ function formatColorSpaceValueForDisplay(value: DtcgColorSpaceValue): string {
 	const firstComponent = formatColorComponentForDisplay(first, {
 		percent: value.colorSpace === 'oklch',
 	});
-	const alpha = value.alpha === undefined ? '' : ` / ${formatNumber(value.alpha)}`;
+	const alpha =
+		value.alpha === undefined ? '' : ` / ${formatNumber(value.alpha)}`;
 	return `${value.colorSpace}(${firstComponent} ${formatColorComponentForDisplay(second)} ${formatColorComponentForDisplay(third)}${alpha})`;
 }
 
@@ -93,7 +95,9 @@ function transformDimensionDisplay(data: unknown): unknown {
 				...Object.fromEntries(
 					Object.entries(obj).map(([k, v]) => [
 						k,
-						k === '$value' ? formatValueForDisplay(v) : transformDimensionDisplay(v),
+						k === '$value'
+							? formatValueForDisplay(v)
+							: transformDimensionDisplay(v),
 					]),
 				),
 			};
@@ -138,7 +142,9 @@ function flattenResource(
 		if (value && typeof value === 'object' && !Array.isArray(value)) {
 			const obj = value as Record<string, unknown>;
 			if ('$value' in obj)
-				result[pathParts.concat(key).join('.')] = formatValueForDisplay(obj.$value);
+				result[pathParts.concat(key).join('.')] = formatValueForDisplay(
+					obj.$value,
+				);
 			else flattenResource(obj, pathParts.concat(key), result);
 		}
 	}
@@ -158,7 +164,11 @@ export async function loadResourceMatch(
 ): Promise<ResourceMatch | null> {
 	const loaded = await loadResource(category, name, cwd);
 	if ('line' in loaded) return null;
-	return { category, data: { [loaded.namespace]: loaded.data }, filePath: loaded.path };
+	return {
+		category,
+		data: { [loaded.namespace]: loaded.data },
+		filePath: loaded.path,
+	};
 }
 
 export async function findResource(
@@ -169,15 +179,24 @@ export async function findResource(
 	if (category) return loadResourceMatch(category, name, cwd);
 
 	const cacheMatch = await loadResourceMatch('palette', name, cwd);
-	if (cacheMatch && !inferCategoryFromPath(cacheMatch.filePath)) return cacheMatch;
+	if (cacheMatch && !inferCategoryFromPath(cacheMatch.filePath))
+		return cacheMatch;
 
 	const palette = await loadBuiltinPalette(name);
 	const dimension = await loadBuiltinDimension(name);
 	const matches: ResourceMatch[] = [];
 	if (palette)
-		matches.push({ category: 'palette', data: palette, filePath: getBuiltinPalettePath(name) });
+		matches.push({
+			category: 'palette',
+			data: palette,
+			filePath: getBuiltinPalettePath(name),
+		});
 	if (dimension)
-		matches.push({ category: 'dimension', data: dimension, filePath: getBuiltinDimensionPath(name) });
+		matches.push({
+			category: 'dimension',
+			data: dimension,
+			filePath: getBuiltinDimensionPath(name),
+		});
 	if (matches.length === 0) return null;
 	const singleMatch = matches[0];
 	if (matches.length === 1 && singleMatch) return singleMatch;
@@ -199,7 +218,11 @@ export async function showResource(
 
 	const result = await findResource(name, category, cwd);
 	if (!result)
-		return { ok: false, message: `Resource not found: ${name}`, exitCode: ExitCode.FILE_NOT_FOUND };
+		return {
+			ok: false,
+			message: `Resource not found: ${name}`,
+			exitCode: ExitCode.FILE_NOT_FOUND,
+		};
 	if ('ambiguous' in result)
 		return {
 			ok: false,
@@ -209,9 +232,13 @@ export async function showResource(
 
 	const { data: resourceData, filePath } = result;
 	try {
-		if (format === 'yaml') return { ok: true, output: await Bun.file(filePath).text() };
+		if (format === 'yaml')
+			return { ok: true, output: await Bun.file(filePath).text() };
 		if (format === 'json')
-			return { ok: true, output: stringifyCompact(transformDimensionDisplay(resourceData)) };
+			return {
+				ok: true,
+				output: stringifyCompact(transformDimensionDisplay(resourceData)),
+			};
 		const namespace = Object.keys(resourceData as Record<string, unknown>)[0];
 		if (!namespace)
 			return {
@@ -220,7 +247,8 @@ export async function showResource(
 				exitCode: ExitCode.GENERAL_ERROR,
 			};
 		const flattened = flattenResource(
-			(resourceData as Record<string, Record<string, unknown>>)[namespace] ?? {},
+			(resourceData as Record<string, Record<string, unknown>>)[namespace] ??
+				{},
 			[namespace],
 		);
 		return { ok: true, output: stringifyCompact(flattened) };
