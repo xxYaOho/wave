@@ -1,0 +1,298 @@
+{
+  "schemaVersion": 1,
+  "anchors": {
+    "pre": "432453f68a857f9c891b1988cab23f4c395e7f61",
+    "post": "ba722130f38f74731d0eb7e90adf7685280e7a97"
+  },
+  "protocol": {
+    "iterations": 30,
+    "warmup": 3,
+    "bun": "1.3.6",
+    "lockfileHashes": {
+      "pre": "3d05941e5e2a19da95406be10026a7c1ad6ea3ee23cceaf435d83ecf48af3b0a",
+      "post": "3d05941e5e2a19da95406be10026a7c1ad6ea3ee23cceaf435d83ecf48af3b0a"
+    },
+    "manifests": {
+      "pre": "p1b-pre-432453f.capture-manifest.json",
+      "post": "p1b-post-ba722130.capture-manifest.json"
+    }
+  },
+  "cases": [
+    {
+      "key": "token-single-profile",
+      "domain": "token-single-profile",
+      "baselineStatsRef": {
+        "report": "p1b-pre-432453f.json",
+        "runId": "p1b-pre-432453f",
+        "caseId": "token-single-profile",
+        "reportSha256": "df4f7a5cb9261638ff5edf8b92ecb144613d78cdb9173acc95bcfafedc872ad2",
+        "manifestRef": "p1b-pre-432453f.capture-manifest.json"
+      },
+      "currentStatsRef": {
+        "report": "p1b-post-ba722130.json",
+        "runId": "p1b-post-ba722130",
+        "caseId": "token-single-profile",
+        "reportSha256": "ab0cd591b870608273daa8960b0609e8187cc8491b770f80165e8be76a26f7ac",
+        "manifestRef": "p1b-post-ba722130.capture-manifest.json"
+      },
+      "comparisonRef": {
+        "path": "comparison.json",
+        "sha256": "fa33a8467725df85bad2ad41b0e813dbfdda93eb8df0412d1738dd7a5fcd41ff",
+        "baseRunId": "p1b-pre-432453f",
+        "currentRunId": "p1b-post-ba722130"
+      },
+      "paired": {
+        "key": "token-single-profile",
+        "metric": "p50Ms",
+        "unit": "ms",
+        "pairedDeltasMs": [
+          0.7485420000000147,
+          2.651834000000008,
+          1.9925829999999962,
+          1.6755420000000072,
+          2.5773750000000035,
+          1.836624999999998,
+          0.9350009999999997,
+          1.7677089999999822,
+          2.6385839999999945,
+          1.3091250000000088,
+          1.6322500000000133,
+          0.628625999999997,
+          2.81929199999999,
+          1.9114159999999885,
+          1.6895840000000248,
+          1.9874160000000245,
+          3.0145410000000084,
+          0.7033739999999966,
+          1.6297090000000054,
+          2.041415999999998,
+          2.581500000000034,
+          1.5100839999999778,
+          1.739750000000015,
+          1.7097079999999778,
+          1.8425409999999829,
+          1.3231670000000122,
+          1.66383399999998,
+          1.518209000000013,
+          2.724375999999978,
+          0.9039569999999912
+        ],
+        "medianRelativeImprovement": -0.6038052079771719,
+        "p95RelativeRegression": 0.4160371542793009,
+        "winCount": 0,
+        "lossCount": 30,
+        "tieCount": 0,
+        "excludedNonPositiveBaseline": 0,
+        "positiveBaselineCount": 30,
+        "method": "paired-index",
+        "baselineSampleCount": 30,
+        "currentSampleCount": 30
+      },
+      "ruleChecks": [
+        {
+          "rule": "RI",
+          "threshold": ">= -0.03",
+          "measured": -0.6038052079771719,
+          "pass": false
+        }
+      ]
+    },
+    {
+      "key": "token-multi-profile",
+      "domain": "token-multi-profile",
+      "baselineStatsRef": {
+        "report": "p1b-pre-432453f.json",
+        "runId": "p1b-pre-432453f",
+        "caseId": "token-multi-profile",
+        "reportSha256": "df4f7a5cb9261638ff5edf8b92ecb144613d78cdb9173acc95bcfafedc872ad2",
+        "manifestRef": "p1b-pre-432453f.capture-manifest.json"
+      },
+      "currentStatsRef": {
+        "report": "p1b-post-ba722130.json",
+        "runId": "p1b-post-ba722130",
+        "caseId": "token-multi-profile",
+        "reportSha256": "ab0cd591b870608273daa8960b0609e8187cc8491b770f80165e8be76a26f7ac",
+        "manifestRef": "p1b-post-ba722130.capture-manifest.json"
+      },
+      "comparisonRef": {
+        "path": "comparison.json",
+        "sha256": "fa33a8467725df85bad2ad41b0e813dbfdda93eb8df0412d1738dd7a5fcd41ff",
+        "baseRunId": "p1b-pre-432453f",
+        "currentRunId": "p1b-post-ba722130"
+      },
+      "paired": {
+        "key": "token-multi-profile",
+        "metric": "p50Ms",
+        "unit": "ms",
+        "pairedDeltasMs": [
+          0.34654099999997356,
+          0.951958999999988,
+          1.379665999999986,
+          0.4060000000000059,
+          -0.2883319999999969,
+          1.3179580000000044,
+          0.7061669999999651,
+          0.6584170000000142,
+          0.6690839999999412,
+          1.6462919999999883,
+          1.5779159999999877,
+          -3.399000000000001,
+          1.3300829999999735,
+          1.6687090000000069,
+          1.3700420000000122,
+          0.7631670000000099,
+          0.6896669999999858,
+          0.577666000000022,
+          1.0574999999999477,
+          2.661708000000033,
+          1.4750419999999167,
+          0.5400839999999789,
+          2.193916999999942,
+          1.2967909999999847,
+          0.8300409999999943,
+          0.22279200000002675,
+          1.9946669999999926,
+          1.02716700000002,
+          1.1800409999999601,
+          0.10962399999993977
+        ],
+        "medianRelativeImprovement": -0.21995770464886943,
+        "p95RelativeRegression": 0.19072383502581602,
+        "winCount": 2,
+        "lossCount": 28,
+        "tieCount": 0,
+        "excludedNonPositiveBaseline": 0,
+        "positiveBaselineCount": 30,
+        "method": "paired-index",
+        "baselineSampleCount": 30,
+        "currentSampleCount": 30
+      },
+      "ruleChecks": [
+        {
+          "rule": "RI",
+          "threshold": ">= 0",
+          "measured": -0.21995770464886943,
+          "pass": false
+        },
+        {
+          "rule": "PR",
+          "threshold": "<= 0.10",
+          "measured": 0.19072383502581602,
+          "pass": false
+        },
+        {
+          "rule": "dictHits",
+          "threshold": "> 0",
+          "measured": 30,
+          "pass": true
+        },
+        {
+          "rule": "loadHits",
+          "threshold": "> 0",
+          "measured": 60,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "key": "night",
+      "domain": "night",
+      "baselineStatsRef": {
+        "report": "p1b-pre-432453f.json",
+        "runId": "p1b-pre-432453f",
+        "caseId": "night",
+        "reportSha256": "df4f7a5cb9261638ff5edf8b92ecb144613d78cdb9173acc95bcfafedc872ad2",
+        "manifestRef": "p1b-pre-432453f.capture-manifest.json"
+      },
+      "currentStatsRef": {
+        "report": "p1b-post-ba722130.json",
+        "runId": "p1b-post-ba722130",
+        "caseId": "night",
+        "reportSha256": "ab0cd591b870608273daa8960b0609e8187cc8491b770f80165e8be76a26f7ac",
+        "manifestRef": "p1b-post-ba722130.capture-manifest.json"
+      },
+      "comparisonRef": {
+        "path": "comparison.json",
+        "sha256": "fa33a8467725df85bad2ad41b0e813dbfdda93eb8df0412d1738dd7a5fcd41ff",
+        "baseRunId": "p1b-pre-432453f",
+        "currentRunId": "p1b-post-ba722130"
+      },
+      "paired": {
+        "key": "night",
+        "metric": "p50Ms",
+        "unit": "ms",
+        "pairedDeltasMs": [
+          2.979916000000003,
+          1.8212909999999738,
+          0.4868759999999952,
+          1.957083999999952,
+          2.735041000000024,
+          1.8201239999999643,
+          2.3728340000000117,
+          1.3122090000000526,
+          2.1821669999999926,
+          1.6732920000000036,
+          1.7803330000000415,
+          2.640790999999979,
+          1.6531659999999988,
+          0.6701660000000516,
+          1.6237090000000194,
+          2.612501000000009,
+          1.5425409999999715,
+          1.7497070000000576,
+          1.553957999999966,
+          1.7048330000000078,
+          1.5833749999999895,
+          1.6040830000000028,
+          1.6863330000000474,
+          2.719167000000027,
+          1.9024999999999181,
+          0.7424580000001129,
+          1.8911659999999983,
+          2.8950000000000955,
+          1.5754590000000235,
+          1.5547920000000204
+        ],
+        "medianRelativeImprovement": -0.55176134079291,
+        "p95RelativeRegression": 0.46975749910576864,
+        "winCount": 0,
+        "lossCount": 30,
+        "tieCount": 0,
+        "excludedNonPositiveBaseline": 0,
+        "positiveBaselineCount": 30,
+        "method": "paired-index",
+        "baselineSampleCount": 30,
+        "currentSampleCount": 30
+      },
+      "ruleChecks": [
+        {
+          "rule": "RI",
+          "threshold": ">= 0",
+          "measured": -0.55176134079291,
+          "pass": false
+        }
+      ]
+    }
+  ],
+  "globalRuleChecks": [
+    {
+      "rule": "RI-non-null",
+      "threshold": "null RI count = 0",
+      "measured": 0,
+      "pass": true
+    },
+    {
+      "rule": "safety-floor",
+      "threshold": "min(RI) >= -0.10",
+      "measured": -0.6038052079771719,
+      "pass": false
+    }
+  ],
+  "validity": {
+    "domainsComplete": true,
+    "sampleCountsExact": true,
+    "lockfileHashesPresent": true,
+    "reportsExist": true
+  },
+  "verdict": "escalate"
+}

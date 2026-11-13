@@ -1,0 +1,13 @@
+{
+  "runId": "p1b-post-ba722130",
+  "anchorArg": "HEAD",
+  "anchorCommit": "ba722130f38f74731d0eb7e90adf7685280e7a97",
+  "headCommit": "ba722130f38f74731d0eb7e90adf7685280e7a97",
+  "iterations": 30,
+  "warmup": 3,
+  "lockfileHash": "3d05941e5e2a19da95406be10026a7c1ad6ea3ee23cceaf435d83ecf48af3b0a",
+  "sourceDir": "/Users/teatao/.worktree/cli_wave/p1-token-performance",
+  "runtime": { "bun": "1.3.6", "node": "v24.3.0", "platform": "Darwin", "arch": "arm64" },
+  "hostLoad": { "load1mStart": "1.63", "load1mEnd": "1.58", "note": "no parallel agents during capture (orchestrator serial execution)" },
+  "report": "p1b-post-ba722130.json"
+}

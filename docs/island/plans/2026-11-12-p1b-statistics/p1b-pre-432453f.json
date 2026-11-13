@@ -1,0 +1,439 @@
+{
+  "schemaVersion": 2,
+  "name": "quality",
+  "runId": "p1b-pre-432453f",
+  "mode": "default",
+  "createdAt": "2026-11-13T02:18:42.754Z",
+  "node": "v24.3.0",
+  "bun": "1.3.6",
+  "environment": {
+    "runtime": "bun",
+    "node": "v24.3.0",
+    "bun": "1.3.6",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpuCount": 14,
+    "memoryBytes": 51539607552,
+    "cwd": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor"
+  },
+  "cases": [
+    {
+      "id": "token-single-profile",
+      "caseVersion": 2,
+      "mode": "default",
+      "entryKind": "main-config",
+      "domain": "token-single-profile",
+      "operation": {
+        "name": "token-single-profile",
+        "domain": "token-single-profile",
+        "action": "token-build",
+        "parameters": {
+          "fixture": "standard",
+          "profiles": "single",
+          "night": false
+        },
+        "timing": {
+          "start": "operation-start",
+          "end": "operation-complete",
+          "metric": "durationMs",
+          "completion": "result-returned"
+        },
+        "comparison": {
+          "key": "token-single-profile",
+          "metric": "meanMs",
+          "unit": "ms",
+          "direction": "lower-is-better"
+        },
+        "successCondition": "token output files are generated from the fixed fixture"
+      },
+      "status": "success",
+      "iterations": 30,
+      "warmup": 3,
+      "tokensCount": 9,
+      "outputFiles": 2,
+      "outputBytes": 771,
+      "outputFileNames": [
+        "test-standard.css",
+        "test-standard.json"
+      ],
+      "files": [
+        {
+          "relativePath": "test-standard.css",
+          "path": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-token-single-profile-32/standard/32/workspace/dist/test-standard.css",
+          "bytes": 176,
+          "sha256": "3adbb8da1fff65ab65c8f701cf843297533487ce90800388f72611c5f9a1818a"
+        },
+        {
+          "relativePath": "test-standard.json",
+          "path": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-token-single-profile-32/standard/32/workspace/dist/test-standard.json",
+          "bytes": 595,
+          "sha256": "e33a65953ce6dc221dc15558b7a39fd08920e498460229e423b1a6c806c164a2"
+        }
+      ],
+      "resources": [
+        {
+          "kind": "palette",
+          "ref": "./resources/tailwindcss.yaml",
+          "repoSourcePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/src/resources/palettes/tailwindcss.yaml",
+          "workspacePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-token-single-profile-32/standard/32/workspace/resources/tailwindcss.yaml",
+          "sha256": "34fa2c071ad549a649c544b20a074e112a39bebf7b391e3beada5fd294a554fd",
+          "bytes": 40315
+        },
+        {
+          "kind": "dimension",
+          "ref": "./resources/wave.yaml",
+          "repoSourcePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/src/resources/dimensions/wave.yaml",
+          "workspacePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-token-single-profile-32/standard/32/workspace/resources/wave.yaml",
+          "sha256": "78fceeef85212be6f8176ecab9ebd74e40e1ea6b2074b1b045c003bda1c706e3",
+          "bytes": 5865
+        }
+      ],
+      "phases": {
+        "prepareMs": 0.7967499999999745,
+        "loadMs": 0.102374999999995,
+        "resourceMs": 1.6074999999999875,
+        "groupPassMs": 0.005458000000004404,
+        "processMs": 0.19624999999999204,
+        "generateMs": 0.1986660000000029,
+        "pipelineDurationMs": 2.258874999999989,
+        "totalWallMs": 3.0776249666666646
+      },
+      "environment": {
+        "runtime": "bun",
+        "node": "v24.3.0",
+        "bun": "1.3.6",
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpuCount": 14,
+        "memoryBytes": 51539607552,
+        "cwd": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor"
+      },
+      "stats": {
+        "meanMs": 3.0776249666666646,
+        "minMs": 2.4585830000000044,
+        "maxMs": 4.79416599999999,
+        "p95Ms": 4.1575830000000025,
+        "samplesMs": [
+          4.79416599999999,
+          4.091915999999998,
+          3.298708000000005,
+          3.094583,
+          3.167749999999998,
+          3.1202499999999986,
+          4.1575830000000025,
+          3.119125000000011,
+          3.2487080000000077,
+          3.180250000000001,
+          2.9393749999999983,
+          3.6625410000000045,
+          2.883125000000007,
+          2.7940420000000046,
+          2.871040999999991,
+          2.8240419999999915,
+          2.7357920000000036,
+          3.5825419999999895,
+          2.9636249999999933,
+          2.6497090000000014,
+          2.5817919999999788,
+          2.501958000000002,
+          2.745874999999984,
+          3.5592919999999992,
+          2.5957089999999994,
+          2.519999999999982,
+          2.515833000000015,
+          2.4851249999999823,
+          2.4585830000000044,
+          3.185709000000003
+        ]
+      }
+    },
+    {
+      "id": "token-multi-profile",
+      "caseVersion": 1,
+      "mode": "default",
+      "entryKind": "main-config",
+      "domain": "token-multi-profile",
+      "operation": {
+        "name": "token-multi-profile",
+        "domain": "token-multi-profile",
+        "action": "token-build",
+        "parameters": {
+          "fixture": "config-group-profiles",
+          "profiles": "all",
+          "night": false
+        },
+        "timing": {
+          "start": "operation-start",
+          "end": "operation-complete",
+          "metric": "durationMs",
+          "completion": "result-returned"
+        },
+        "comparison": {
+          "key": "token-multi-profile",
+          "metric": "meanMs",
+          "unit": "ms",
+          "direction": "lower-is-better"
+        },
+        "successCondition": "token output files are generated from the fixed fixture"
+      },
+      "status": "success",
+      "iterations": 30,
+      "warmup": 3,
+      "tokensCount": 8,
+      "outputFiles": 4,
+      "outputBytes": 668,
+      "outputFileNames": [
+        "css/config-group-profiles-dark.css",
+        "css/config-group-profiles.css",
+        "sketch/config-group-profiles-dark2sketch.json",
+        "sketch/config-group-profiles2sketch.json"
+      ],
+      "files": [
+        {
+          "relativePath": "css/config-group-profiles-dark.css",
+          "path": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-token-multi-profile-32/config-group-profiles/32/workspace/theme/css/config-group-profiles-dark.css",
+          "bytes": 31,
+          "sha256": "7d628aa2ba60787bc7b6b9279d5e827841cb3b630c56b1117899c4a56f1c8ed6"
+        },
+        {
+          "relativePath": "css/config-group-profiles.css",
+          "path": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-token-multi-profile-32/config-group-profiles/32/workspace/theme/css/config-group-profiles.css",
+          "bytes": 31,
+          "sha256": "e1c3e156eeedd7a1fa53df94c88c39d9e5b6895118acae1db5f54ba259ca9819"
+        },
+        {
+          "relativePath": "sketch/config-group-profiles-dark2sketch.json",
+          "path": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-token-multi-profile-32/config-group-profiles/32/workspace/theme/sketch/config-group-profiles-dark2sketch.json",
+          "bytes": 288,
+          "sha256": "2bfcf0fe190aa569feaa6038cc3f95a28c5c4f0e9837cf262f4d947314a5061f"
+        },
+        {
+          "relativePath": "sketch/config-group-profiles2sketch.json",
+          "path": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-token-multi-profile-32/config-group-profiles/32/workspace/theme/sketch/config-group-profiles2sketch.json",
+          "bytes": 318,
+          "sha256": "974a44c7fbf0d3b2c132259ef0b45da6af12102e1d52eeae540882ce5412fe0f"
+        }
+      ],
+      "resources": [
+        {
+          "kind": "palette",
+          "ref": "./resources/tailwindcss.yaml",
+          "repoSourcePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/src/resources/palettes/tailwindcss.yaml",
+          "workspacePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-token-multi-profile-32/config-group-profiles/32/workspace/resources/tailwindcss.yaml",
+          "sha256": "34fa2c071ad549a649c544b20a074e112a39bebf7b391e3beada5fd294a554fd",
+          "bytes": 40315
+        },
+        {
+          "kind": "dimension",
+          "ref": "./resources/wave.yaml",
+          "repoSourcePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/src/resources/dimensions/wave.yaml",
+          "workspacePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-token-multi-profile-32/config-group-profiles/32/workspace/resources/wave.yaml",
+          "sha256": "78fceeef85212be6f8176ecab9ebd74e40e1ea6b2074b1b045c003bda1c706e3",
+          "bytes": 5865
+        }
+      ],
+      "phases": {
+        "prepareMs": 1.0874579999999696,
+        "loadMs": 0.08216700000002675,
+        "resourceMs": 2.7352089999999976,
+        "groupPassMs": 0.00804100000004837,
+        "processMs": 0.1964580000000069,
+        "generateMs": 0.455332999999996,
+        "pipelineDurationMs": 3.690334000000007,
+        "totalWallMs": 4.624597266666669
+      },
+      "environment": {
+        "runtime": "bun",
+        "node": "v24.3.0",
+        "bun": "1.3.6",
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpuCount": 14,
+        "memoryBytes": 51539607552,
+        "cwd": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor"
+      },
+      "stats": {
+        "meanMs": 4.624597266666669,
+        "minMs": 4.003291999999988,
+        "maxMs": 8.641458,
+        "p95Ms": 5.533084000000002,
+        "samplesMs": [
+          5.533084000000002,
+          4.516458,
+          4.834959000000026,
+          4.444500000000005,
+          5.100540999999993,
+          4.235333999999995,
+          4.076083000000011,
+          4.037499999999994,
+          4.232500000000016,
+          4.942082999999997,
+          4.103541999999976,
+          8.641458,
+          5.204167000000012,
+          4.147458,
+          4.509124999999983,
+          4.426333,
+          4.972082999999998,
+          4.336583999999959,
+          4.1800420000000145,
+          4.003291999999988,
+          4.113500000000045,
+          4.858833000000004,
+          4.069583000000023,
+          4.010917000000006,
+          4.132791999999995,
+          4.869082999999989,
+          4.378917000000001,
+          4.4827079999999455,
+          4.304042000000038,
+          5.040417000000048
+        ]
+      }
+    },
+    {
+      "id": "night",
+      "caseVersion": 1,
+      "mode": "default",
+      "entryKind": "main-config",
+      "domain": "night",
+      "operation": {
+        "name": "night",
+        "domain": "night",
+        "action": "token-build",
+        "parameters": {
+          "fixture": "config-group-profiles",
+          "profiles": "single",
+          "night": true
+        },
+        "timing": {
+          "start": "operation-start",
+          "end": "operation-complete",
+          "metric": "durationMs",
+          "completion": "result-returned"
+        },
+        "comparison": {
+          "key": "night",
+          "metric": "meanMs",
+          "unit": "ms",
+          "direction": "lower-is-better"
+        },
+        "successCondition": "token output files are generated from the fixed fixture"
+      },
+      "status": "success",
+      "iterations": 30,
+      "warmup": 3,
+      "tokensCount": 8,
+      "outputFiles": 4,
+      "outputBytes": 700,
+      "outputFileNames": [
+        "css/config-group-profiles-night.css",
+        "css/config-group-profiles.css",
+        "sketch/config-group-profiles-night2sketch.json",
+        "sketch/config-group-profiles2sketch.json"
+      ],
+      "files": [
+        {
+          "relativePath": "css/config-group-profiles-night.css",
+          "path": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-night-32/config-group-profiles/32/workspace/theme/css/config-group-profiles-night.css",
+          "bytes": 31,
+          "sha256": "660325819d2b03a985acd37f50ecbae6a76f88bc8582890117ec8abe512422e8"
+        },
+        {
+          "relativePath": "css/config-group-profiles.css",
+          "path": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-night-32/config-group-profiles/32/workspace/theme/css/config-group-profiles.css",
+          "bytes": 31,
+          "sha256": "e1c3e156eeedd7a1fa53df94c88c39d9e5b6895118acae1db5f54ba259ca9819"
+        },
+        {
+          "relativePath": "sketch/config-group-profiles-night2sketch.json",
+          "path": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-night-32/config-group-profiles/32/workspace/theme/sketch/config-group-profiles-night2sketch.json",
+          "bytes": 320,
+          "sha256": "134a2e0929cfb7d814d65e918e6965fba14cfb918fc9cd6b0c26fd3ee5b9904c"
+        },
+        {
+          "relativePath": "sketch/config-group-profiles2sketch.json",
+          "path": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-night-32/config-group-profiles/32/workspace/theme/sketch/config-group-profiles2sketch.json",
+          "bytes": 318,
+          "sha256": "974a44c7fbf0d3b2c132259ef0b45da6af12102e1d52eeae540882ce5412fe0f"
+        }
+      ],
+      "resources": [
+        {
+          "kind": "palette",
+          "ref": "./resources/tailwindcss.yaml",
+          "repoSourcePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/src/resources/palettes/tailwindcss.yaml",
+          "workspacePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-night-32/config-group-profiles/32/workspace/resources/tailwindcss.yaml",
+          "sha256": "34fa2c071ad549a649c544b20a074e112a39bebf7b391e3beada5fd294a554fd",
+          "bytes": 40315
+        },
+        {
+          "kind": "dimension",
+          "ref": "./resources/wave.yaml",
+          "repoSourcePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/src/resources/dimensions/wave.yaml",
+          "workspacePath": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor/benchmarks/.tmp/p1b-pre-432453f-night-32/config-group-profiles/32/workspace/resources/wave.yaml",
+          "sha256": "78fceeef85212be6f8176ecab9ebd74e40e1ea6b2074b1b045c003bda1c706e3",
+          "bytes": 5865
+        }
+      ],
+      "phases": {
+        "prepareMs": 1.0681660000000193,
+        "loadMs": 0.07949999999999591,
+        "resourceMs": 0.9735829999999623,
+        "groupPassMs": 0.0029590000000325745,
+        "processMs": 0.11954100000002654,
+        "generateMs": 0.4341670000000022,
+        "pipelineDurationMs": 1.8072080000000028,
+        "totalWallMs": 3.244316766666661
+      },
+      "environment": {
+        "runtime": "bun",
+        "node": "v24.3.0",
+        "bun": "1.3.6",
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpuCount": 14,
+        "memoryBytes": 51539607552,
+        "cwd": "/private/tmp/p1b-capture-p1b-pre-432453f/anchor"
+      },
+      "stats": {
+        "meanMs": 3.244316766666661,
+        "minMs": 2.963833999999963,
+        "maxMs": 4.132415999999978,
+        "p95Ms": 3.986541999999986,
+        "samplesMs": [
+          3.116833999999983,
+          3.15379200000001,
+          4.132415999999978,
+          3.031916000000024,
+          3.110666999999978,
+          3.3054590000000417,
+          3.054374999999993,
+          3.8138329999999883,
+          3.2410830000000033,
+          3.079499999999996,
+          2.963833999999963,
+          3.0108749999999986,
+          3.1882920000000468,
+          3.986541999999986,
+          3.288832999999954,
+          3.0015829999999823,
+          3.101709000000028,
+          3.164709000000016,
+          3.238917000000015,
+          3.8804999999999836,
+          3.2541669999999954,
+          3.047708,
+          3.012416999999971,
+          3.032957999999951,
+          3.1784999999999854,
+          3.830458999999962,
+          2.9911670000000186,
+          2.9642499999999927,
+          2.992208000000005,
+          3.159999999999968
+        ]
+      }
+    }
+  ]
+}
