@@ -10,8 +10,8 @@ BUILD_ACTION="$ROOT_DIR/src/cli/commands/build-action.ts"
 	exit 1
 }
 
-core_imports="$(rg -n "from ['\"]\.\./\.\./core/" "$BUILD_ACTION" | wc -l | tr -d ' ')"
-theme_only="$(rg -n "from ['\"].*theme-service\.ts['\"]" "$BUILD_ACTION" | wc -l | tr -d ' ')"
+core_imports="$(grep -cE "from ['\"]\.\./\.\./core/" "$BUILD_ACTION" || true)"
+theme_only="$(grep -cE "from ['\"].*theme-service\.ts['\"]" "$BUILD_ACTION" || true)"
 lines="$(wc -l < "$BUILD_ACTION" | tr -d ' ')"
 
 printf 'CORE_IMPORTS=%s\n' "$core_imports"
