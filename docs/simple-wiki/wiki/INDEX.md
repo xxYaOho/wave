@@ -37,3 +37,22 @@
 ## Wave Manual
 
 - [Wave Manual 应用设计基线](wave-manual-application-baseline.md) | 3k | 本地离线手册的内容真源、构建/运行边界与待审阅蓝图 IA | manual, documentation, offline
+
+## 验收范式与飞轮治理
+
+- [基线即合同](baseline-as-contract.md) | 2k | 行为保持类验收范式：改动前捕获四项基线 + 重放自校验 + 委托证明门，分支语义住代码与基线 | 验收范式, baseline, equivalence, gate
+- [飞轮轮次封顶与兜底收场](flywheel-round-cap-backstop.md) | 2k | 修正轮 ≤4 + 显式早停判据 + 兜底收场——纸面完备性长尾的治理 | 飞轮, 轮次封顶, 早停, 兜底
+- [预注册测量裁决](pre-registered-measurement-adjudication.md) | 2k | 测量规则先于测量锁定；配对 RI/PR + validity 先行 + 安全地板——缓存收益裁决实证 | 预注册, 测量, 裁决, 性能
+- [Biome 生成物证据边界](biome-generated-evidence-boundary.md) | 1k | 机器生成证据目录按配置边界排除出格式门（三实例）+ 目录哈希算法定义 | biome, 生成物, 配置边界, 证据
+
+## 施工工具链事实
+
+- [js-yaml dump 默认值陷阱](js-yaml-dump-defaults.md) | 1k | sortKeys 默认 false、未知选项静默忽略——跨包迁移逐选项核对 | js-yaml, yaml, dump, 陷阱
+- [gate 脚本只用 POSIX 工具](posix-tools-gate-scripts.md) | 1k | rg 等非 POSIX 依赖让 gate 观测值全零误报——SPEC 即 oracle | gate, posix, grep, oracle
+- [benchmarks 六域契约与重放基线](quality-harness-six-domains.md) | 2k | 六域结构、run.ts 旗标面与重放基线 manifest 合同（字面 argv/有序依赖/SETUP/快照哈希） | benchmark, quality-harness, 重放, manifest
+
+## 流程教训
+
+- [rebase 后重核 SPEC 引用](rebase-citation-rescan.md) | 1k | rebase 换入新版图后 file:line/哈希/事实断言全部失效需逐条重核 | rebase, SPEC, 引用, 纪律
+- [审查立场条款](reviewer-stance-clause.md) | 1k | 工单显式声明 Human 授权范式，防 fresh reviewer 以缺冻结判 FAIL——实质结构洞仍照报 | 审查, 工单, 立场条款, critic
+- [事务式编辑纪律](transactional-edit-discipline.md) | 1k | 多锚点批量编辑先验证全部锚点再单次写盘 + 逐项 grep 验证；长内容走文件不走 heredoc | 编辑, 断言, 事务, 纪律

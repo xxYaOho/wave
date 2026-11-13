@@ -7,6 +7,11 @@
 > - <ingest|lint> | <主题或页面> | <一句话说明>
 > ~~~
 
+## 2026-11-13
+- ingest | 验收范式与飞轮治理 | 基线即合同/轮次封顶与兜底收场/预注册测量裁决/Biome 生成物证据边界——P1b+C2+M1 三计划约二十轮审查的治理产出。
+- ingest | 施工工具链事实 | js-yaml dump 默认值陷阱、gate 脚本 POSIX-only、benchmarks 六域契约与重放基线 manifest 合同。
+- ingest | 流程教训 | rebase 后重核 SPEC 引用、审查立场条款、事务式编辑纪律——三实例实测教训。
+
 ## 2026-10-09
 - ingest | Wave DT workspace model | 记录 Day/Night 表面层级差异、`$config.autoGenerateColor` 配置草案与待讨论参数。
 
