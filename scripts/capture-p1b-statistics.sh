@@ -59,6 +59,11 @@ done
 	exit 2
 }
 
+case "$EVIDENCE_DIR" in
+	/*) ;;
+	*) EVIDENCE_DIR="$REPO_ROOT/$EVIDENCE_DIR" ;;
+esac
+
 WORK_DIR="/private/tmp/p1b-capture-$RUN_ID"
 RESULTS_DIR="$WORK_DIR/reports"
 
