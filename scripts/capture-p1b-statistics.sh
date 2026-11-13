@@ -136,9 +136,12 @@ REPORT_PATH="$RESULTS_DIR/$RUN_ID.json"
 	exit 1
 }
 
-NODE_VERSION="$(mise exec bun@1.3.6 -- node --version)"
 REPORT_NODE="$(mise exec bun@1.3.6 -- bun -e 'const report = JSON.parse(await Bun.file(process.argv[1]).text()); const node = report.environment?.node; if (typeof node !== "string" || node.length === 0) process.exit(1); console.log(node);' "$REPORT_PATH")" || {
 	echo "FAIL: report environment.node missing: $REPORT_PATH" >&2
+	exit 1
+}
+NODE_VERSION="$(mise exec bun@1.3.6 -- bun -e 'console.log(process.version)')" || {
+	echo "FAIL: runtime node probe failed" >&2
 	exit 1
 }
 [ "$NODE_VERSION" = "$REPORT_NODE" ] || {
