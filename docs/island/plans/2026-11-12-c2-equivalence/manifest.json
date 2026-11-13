@@ -410,10 +410,10 @@
  },
  "note_matrix": "miss grid: palette/dimension × flat/json/yaml + name-fallback variants (FULL-7 F-3/FULL-6 M4 complete)",
  "fixturesSha256": {
-  "std-with-ids": "b82250537ee9b22628702a69bb9c668d447dc24f440c9a4a13b536324957f508",
-  "std-no-ids": "e1f3728d1b53088962f1e4c8eb3a974788fb3d6263af1cf277e5cc5a10ea520e",
+  "std-with-ids": "191ea2e52965828c213ba7e1bf0a2d5d894b9773076828133508970dabc9e615",
+  "std-no-ids": "0d84b5afd7aa59f3be73f03af386e90b83977bda30494ae2f510ff03212631a7",
   "nopairs.yaml": "40f2f908e1dcc00e40e8319b48abc31c3bcc8142ca89b8407adfd5108d281a1b"
  },
- "counting": "34 cases captured = 33 replayed + 1 SETUP (exit-only)",
+ "counting": "34 cases captured = 33 replayed + 1 SETUP (exit-only); replay set closed (no orphan files)",
  "fixturesSha256Algorithm": "per directory: sha256 over concat of (relative_path_utf8 + b\"\\n\" + file_bytes) for all files sorted by relative_path; per file: sha256 of file bytes"
 }
