@@ -52,6 +52,7 @@ P1a 交付的进程内 memo 仅有等价证明，无性能测量。路线图原�
 - 脚本行为：干跑参数解析；stale worktree 拒绝；脏树拒绝；lockfile 不匹配拒绝（已有实测）；evidence 覆盖守卫；每锚 smoke 执行；capture manifest 落盘断言（含 node 与负载注记——FULL-5 F-1）。
 - 有效性补充（FULL-4 F-3）：失败报告（任一 case status ≠ success）即使样本数合规也必须 invalid——测试含该反例。
 - 质量门：`pnpm check:ci` 不退化（mise bun 1.3.6，`--timeout 15000`）。
+- **gate 实证清单（FULL-8 后 Human 裁决闸门兜底收场 2026-11-13——四项转交付闸门实证验收，不再起审查轮）**：①capture manifest 的 runtime.node 须等于重放所产报告的 environment.node（版本源真实）；②hostLoad.load1mStart/End 非空且于捕获前起测（探针在 Darwin/Linux 双平台可用，空值即捕获失败）；③compose 字面调用零占位符（HEAD8 由 `git rev-parse --short=8` 变量代入）；④verdict 优先级封版：validity 任一失败 → invalid（不做规则裁决），safety-floor 仅在 valid 时评估且 fail → escalate。
 
 ## Out of Scope
 
