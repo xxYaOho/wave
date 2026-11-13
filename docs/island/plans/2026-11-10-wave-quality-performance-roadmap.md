@@ -128,6 +128,6 @@ C1、P1、P2 若出现共享文件，以实际依赖为准暂停冲突分支。�
 | C1 | CLI 控制面 | 当前 CLI 计划、Q0 | 已交付（2026-11-12 集成 main，台账全清；元数据统一 + 懒加载 + 共享测试基座） | main @ 57fd14f | SPEC: docs/island/plans/2026-11-11-c1-cli-control-plane.md |
 | P1 | Token 性能 | Q0 | 拆分为 P1a/P1b（Human 裁决 2026-11-12）；**P1a（缓存 memo）已交付（2026-11-12 集成 main，闸门 PASS，台账全清：进程内四层 memo + 三入口穿线，三场景与基线 v2 逐字节一致）**；P1b（统计与测量）待撰写，在 P1a 交付机制上建立 | main @ 3b6a51c | SPEC: docs/island/plans/2026-11-12-p1a-cache-memo.md（P1b 另立） |
 | P2 | Compress 性能 | Q0 | 已交付（2026-11-12 集成 main，台账全清；真实收益 oxipng/SVGO 中位加速 1.90x） | main @ 0a0b458 | SPEC: docs/island/plans/2026-11-11-p2-compress-performance.md |
-| C2 | Token 应用服务 | C1、P1a | SPEC 已起草待 STRICT FULL（2026-11-12；inspect/create 下沉 + build/wcag 现状核验；与 P1b 文件零交叠，可并行） | c2 worktree @ 5a6a730 | SPEC: docs/island/plans/2026-11-12-c2-token-service.md |
-| M1 | Manual 性能 | 当前手册施工、C1 | SPEC 已起草待 STRICT FULL（2026-11-12；构建期索引/路由分包/-m 文本直读；与 C2 并行） | m1 worktree @ 506e70b | SPEC: docs/island/plans/2026-11-12-m1-manual-performance.md |
+| C2 | Token 应用服务 | C1、P1a | SPEC v10 冻结（十轮审查后 Human 授权**基线即合同**范式 + 闸门兜底：35 案四项基线为唯一行为 oracle，FULL-10 五项转 harness 实现要求由 gate 实证）；Milestone-1 施工中（harness 先行 + 中期检查点） | c2 worktree @ 9699582 | SPEC: docs/island/plans/2026-11-12-c2-token-service.md |
+| M1 | Manual 性能 | 当前手册施工、C1 | SPEC v6 冻结（FULL-6 PASS + 机械扫除新生命周期），Milestone-1 施工中（Task-1 检查点已过，Task-2 进行中） | m1 worktree @ baa65d5 | SPEC: docs/island/plans/2026-11-12-m1-manual-performance.md |
 | C3 | OutputPlan 输出合同 | C2 | 未撰写 | 未创建 | 最后统一输出语义 |
