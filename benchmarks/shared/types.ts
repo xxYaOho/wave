@@ -66,6 +66,7 @@ export interface BenchmarkStats {
 	meanMs: number;
 	minMs: number;
 	maxMs: number;
+	p50Ms?: number | null;
 	p95Ms: number | null;
 	samplesMs?: number[];
 }

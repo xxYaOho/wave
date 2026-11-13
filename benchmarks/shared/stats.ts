@@ -8,11 +8,16 @@ export function calculateStats(values: number[]): BenchmarkStats | undefined {
 		sorted.length - 1,
 		Math.ceil(sorted.length * 0.95) - 1,
 	);
+	const p50Index = Math.min(
+		sorted.length - 1,
+		Math.ceil(sorted.length * 0.5) - 1,
+	);
 
 	return {
 		meanMs: sum / sorted.length,
 		minMs: sorted[0] ?? 0,
 		maxMs: sorted.at(-1) ?? 0,
+		p50Ms: sorted[p50Index] ?? null,
 		p95Ms: sorted[p95Index] ?? null,
 		samplesMs: [...values],
 	};
