@@ -27,17 +27,13 @@ import {
 	collectDependencyDictionary,
 	type LoadedDependency,
 } from './theme-pipeline.ts';
-import {
-	createTokenCache,
-	memoizeParsed,
-	type TokenCache,
-} from './token-cache.ts';
+import { memoizeParsed, type TokenCache } from './token-cache.ts';
 import { loadDesignTokenSource } from './workspace-loader.ts';
 
 function parseYamlObject(
 	content: string,
-	cache?: TokenCache,
 	sourcePath = '<inline>',
+	cache?: TokenCache,
 ): Record<string, unknown> | undefined {
 	const parsed = memoizeParsed(
 		cache,
@@ -156,7 +152,6 @@ export async function generateTheme(
 	ctx?: BuildContext,
 ): Promise<ThemeGenerationResult> {
 	const { workspacePath, cliOutput, cliPlatform, generateOptions } = input;
-	const cache = createTokenCache();
 	const resolvedCliOutput =
 		cliOutput && !path.isAbsolute(cliOutput)
 			? path.resolve(process.cwd(), cliOutput)
@@ -172,11 +167,7 @@ export async function generateTheme(
 		if (!ctx) logger.warn(NIGHT_SKIP_MESSAGE);
 	};
 
-	const loadResult = await loadDesignTokenSource(
-		workspacePath,
-		process.cwd(),
-		cache,
-	);
+	const loadResult = await loadDesignTokenSource(workspacePath, process.cwd());
 	if (!loadResult.ok) {
 		ctx?.markFailed('load', loadResult.message, {
 			phase: 'workspace load',
@@ -253,7 +244,6 @@ export async function generateTheme(
 	const effectiveThemeName = baseDocument.config.theme;
 	const baseDayTree = parseYamlObject(
 		baseDocument.tokenContent,
-		cache,
 		baseDocument.entry.path,
 	);
 	const firstPass = buildGroupPasses(
@@ -274,16 +264,12 @@ export async function generateTheme(
 					? source.document
 					: entry.isDefault
 						? baseDocument
-						: await parseProfileDocument(
-								entry,
-								{
-									baseConfig: baseDocument.config,
-									baseTree: baseDayTree,
-									baseId: baseDocument.themeId,
-									baseDir: workspace.workspaceDir,
-								},
-								cache,
-							);
+						: await parseProfileDocument(entry, {
+								baseConfig: baseDocument.config,
+								baseTree: baseDayTree,
+								baseId: baseDocument.themeId,
+								baseDir: workspace.workspaceDir,
+							});
 		} catch (error) {
 			if (!(error instanceof ProfileFormatError)) throw error;
 			ctx?.markFailed('parse', error.message, { phase: 'profile merge' });
@@ -291,12 +277,10 @@ export async function generateTheme(
 		}
 		const dayTree = entry.isDefault
 			? baseDayTree
-			: parseYamlObject(document.tokenContent, cache, entry.path);
+			: parseYamlObject(document.tokenContent, entry.path);
 		const profileDepResult = await collectDependencyDictionary(
 			document.config,
 			document.buildDir,
-			{},
-			cache,
 		);
 		recordLoadedResources(ctx, profileDepResult.loaded, recordedResources);
 		const profilePasses = buildGroupPasses(
@@ -323,7 +307,6 @@ export async function generateTheme(
 				yamlContent: document.tokenContent,
 				dict: profileDepResult.dict,
 				pass,
-				cache,
 			});
 			if (!prepared.ok) {
 				const message = prepared.line
@@ -356,7 +339,7 @@ export async function generateTheme(
 		let nightTree: Record<string, unknown> | undefined;
 		try {
 			const nightRaw = await Bun.file(entry.nightPath).text();
-			nightTree = parseYamlObject(nightRaw, cache, entry.nightPath);
+			nightTree = parseYamlObject(nightRaw, entry.nightPath);
 		} catch {
 			nightTree = undefined;
 		}
@@ -395,7 +378,6 @@ export async function generateTheme(
 				yamlContent: nightContent,
 				dict: profileDepResult.dict,
 				pass,
-				cache,
 			});
 			if (!prepared.ok) {
 				warnNightSkipped(entry.name);
