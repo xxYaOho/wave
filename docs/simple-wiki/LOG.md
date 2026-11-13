@@ -12,6 +12,9 @@
 - ingest | 施工工具链事实 | js-yaml dump 默认值陷阱、gate 脚本 POSIX-only、benchmarks 六域契约与重放基线 manifest 合同。
 - ingest | 流程教训 | rebase 后重核 SPEC 引用、审查立场条款、事务式编辑纪律——三实例实测教训。
 
+## 2026-11-13（二）
+- ingest | 施工工具链事实 | Bun 1.4.0 require.cache 丢失入口链登记——spike 实测精确症状与升级协议方向（preload tracer）。
+
 ## 2026-10-09
 - ingest | Wave DT workspace model | 记录 Day/Night 表面层级差异、`$config.autoGenerateColor` 配置草案与待讨论参数。
 
