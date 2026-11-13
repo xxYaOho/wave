@@ -11,19 +11,15 @@ import {
 	type ThemeIdentityReport,
 } from '../../core/doctor/identity.ts';
 import { inspectWorkspaceHealth } from '../../core/doctor/profile-health.ts';
-import { runThemeContrastCheck } from '../../core/doctor/registry.ts';
 import { validateDeclaredResources } from '../../core/doctor/resource-validator.ts';
 import { createThemeDoctorContextFromContent } from '../../core/doctor/theme-context.ts';
-import {
-	mergeNightOverlay,
-	NIGHT_SKIP_MESSAGE,
-} from '../../core/pipeline/profile-resolver.ts';
 import { collectDependencyDictionary } from '../../core/pipeline/theme-pipeline.ts';
 import {
 	createTokenCache,
 	type TokenCache,
 } from '../../core/pipeline/token-cache.ts';
 import { loadDesignTokenSource } from '../../core/pipeline/workspace-loader.ts';
+import { runDesignTokenContrastCheck as runDesignTokenContrastCheckService } from '../../core/doctor/wcag-service.ts';
 import type { DoctorFinding, DoctorThemeReport } from '../../types/index.ts';
 import { ExitCode } from '../../types/index.ts';
 import {
@@ -223,11 +219,7 @@ function renderThemeIdentityReport(
 }
 
 async function runDesignTokenContrastCheck(
-	options: {
-		file?: string;
-		night?: boolean;
-	},
-	cache = createTokenCache(),
+	options: { file?: string; night?: boolean },
 ): Promise<void> {
 	const fileInput = resolveExclusiveFileInput(undefined, options.file, {
 		label: 'WCAG source input',
@@ -238,95 +230,36 @@ async function runDesignTokenContrastCheck(
 		process.exitCode = ExitCode.INVALID_PARAMETER;
 		return;
 	}
-	const sourcePath = await expandMainYamlEntry(fileInput.path);
-	const loadResult = await loadDesignTokenSource(
-		sourcePath,
-		process.cwd(),
-		cache,
-	);
-	if (!loadResult.ok) {
-		renderWorkspaceLoadFailure(loadResult);
+
+	const result = await runDesignTokenContrastCheckService({
+		sourcePath: await expandMainYamlEntry(fileInput.path),
+		night: options.night,
+	});
+	if (result.kind === 'error') {
+		console.log(`✗ ${result.message}`);
+		process.exitCode = result.exitCode;
+		return;
+	}
+	if (result.kind === 'skip') {
+		console.log(result.message);
+		process.exitCode = ExitCode.SUCCESS;
 		return;
 	}
 
-	const { source } = loadResult;
-	const { workspace, entry } = source;
-	const document = source.document;
-	const profileDictResult = await collectDependencyDictionary(
-		document.config,
-		document.buildDir,
-		{},
-		cache,
-	);
-
-	let contextPath = entry.path;
-	let contextContent = document.tokenContent;
-	let displayThemeName = entry.isDefault
-		? workspace.config.theme
-		: `${workspace.config.theme}-${entry.name}`;
-	if (options.night) {
-		if (!entry.nightPath) {
-			console.log(NIGHT_SKIP_MESSAGE);
-			process.exitCode = ExitCode.SUCCESS;
-			return;
-		}
-		const dayRaw = yaml.load(document.tokenContent);
-		const nightRaw = yaml.load(await Bun.file(entry.nightPath).text());
-		const merged =
-			typeof dayRaw === 'object' &&
-			dayRaw !== null &&
-			!Array.isArray(dayRaw) &&
-			typeof nightRaw === 'object' &&
-			nightRaw !== null &&
-			!Array.isArray(nightRaw)
-				? mergeNightOverlay(
-						dayRaw as Record<string, unknown>,
-						nightRaw as Record<string, unknown>,
-					)
-				: { ok: false as const, message: NIGHT_SKIP_MESSAGE };
-		if (!merged.ok) {
-			if ('error' in merged) {
-				console.log(`✗ ${merged.error}`);
-				process.exitCode = ExitCode.FORMAT_ERROR;
-				return;
-			}
-			console.log(NIGHT_SKIP_MESSAGE);
-			process.exitCode = ExitCode.SUCCESS;
-			return;
-		}
-		contextContent = yaml.dump(merged.tree, { lineWidth: -1 });
-		contextPath = entry.nightPath;
-		displayThemeName = `${displayThemeName}-night`;
-	}
-
-	const ctxResult = await createThemeDoctorContextFromContent(
-		contextPath,
-		contextContent,
-		profileDictResult.dict,
-	);
-	if (!ctxResult.ok) {
-		console.log(`✗ ${ctxResult.findings[0]!.message}`);
-		process.exitCode = ctxResult.exitCode;
-		return;
-	}
-
-	const checkResult = await runThemeContrastCheck(ctxResult.context);
+	const { displayThemeName, reports, blockingErrors } = result;
 	console.log('Contrast Check');
 	console.log(SEPARATOR);
 	console.log(displayThemeName);
 	console.log(SEPARATOR);
 
-	if (
-		checkResult.reports.length === 0 &&
-		checkResult.blockingErrors.length === 0
-	) {
+	if (reports.length === 0 && blockingErrors.length === 0) {
 		console.log('No wcagPairs found to evaluate.');
 		process.exitCode = ExitCode.SUCCESS;
 		return;
 	}
 
-	for (let i = 0; i < checkResult.reports.length; i++) {
-		const report = checkResult.reports[i];
+	for (let i = 0; i < reports.length; i++) {
+		const report = reports[i];
 		if (!report) continue;
 		if (i > 0) console.log(SEPARATOR);
 		console.log(report.pair.name);
@@ -336,10 +269,9 @@ async function runDesignTokenContrastCheck(
 	}
 	console.log(SEPARATOR);
 
-	if (checkResult.blockingErrors.length > 0) {
+	if (blockingErrors.length > 0) {
 		console.log('');
-		for (const err of checkResult.blockingErrors)
-			console.log(`✗ ${err.message}`);
+		for (const error of blockingErrors) console.log(`✗ ${error.message}`);
 		process.exitCode = ExitCode.GENERAL_ERROR;
 	} else {
 		process.exitCode = ExitCode.SUCCESS;
